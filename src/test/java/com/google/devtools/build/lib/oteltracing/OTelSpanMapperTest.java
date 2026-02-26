@@ -73,7 +73,12 @@ public class OTelSpanMapperTest extends FoundationTestCase {
             .addSpanProcessor(SimpleSpanProcessor.create(exporter))
             .build();
     Tracer tracer = tracerProvider.get("bazel");
-    mapper = new OTelSpanMapper(tracer, /* traceAllActions= */ true);
+    mapper =
+        new OTelSpanMapper(
+            tracer,
+            /* traceAllActions= */ true,
+            /* actionKeyContext= */ null,
+            /* reporter= */ null);
     testEventBus = new EventBus();
     testEventBus.register(mapper);
   }

@@ -93,6 +93,18 @@ public final class ActionExecutedEvent implements BuildEventWithConfiguration {
     return action;
   }
 
+  /** Wall-clock start time of the action, if available. */
+  @Nullable
+  public Instant getStartTime() {
+    return startTime;
+  }
+
+  /** Wall-clock end time of the action, if available. */
+  @Nullable
+  public Instant getEndTime() {
+    return endTime;
+  }
+
   // null if action succeeded
   public ActionExecutionException getException() {
     return exception;

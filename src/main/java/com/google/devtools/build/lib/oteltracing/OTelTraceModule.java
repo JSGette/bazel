@@ -15,11 +15,15 @@ package com.google.devtools.build.lib.oteltracing;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.devtools.build.lib.actions.ActionKeyContext;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.runtime.BlazeModule;
 import com.google.devtools.build.lib.runtime.CommandEnvironment;
 import com.google.devtools.common.options.OptionsBase;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
@@ -67,7 +71,8 @@ public class OTelTraceModule extends BlazeModule {
     List<SpanProcessor> processors = new ArrayList<>(2);
 
     if (options.otelTraceEndpoint != null) {
-      SpanExporter otlpExporter = createOtlpExporter(options.otelTraceEndpoint);
+      SpanExporter otlpExporter =
+          createOtlpExporter(options.otelTraceEndpoint.trim());
       if (otlpExporter != null) {
         processors.add(BatchSpanProcessor.builder(otlpExporter).build());
       }
@@ -82,14 +87,27 @@ public class OTelTraceModule extends BlazeModule {
       return;
     }
 
-    var providerBuilder = SdkTracerProvider.builder();
+    Resource resource =
+        Resource.create(
+            Attributes.of(AttributeKey.stringKey("service.name"), "bazel"));
+    var providerBuilder =
+        SdkTracerProvider.builder().setResource(resource);
     for (SpanProcessor processor : processors) {
       providerBuilder.addSpanProcessor(processor);
     }
     tracerProvider = providerBuilder.build();
 
     Tracer tracer = tracerProvider.get("bazel");
-    mapper = new OTelSpanMapper(tracer, options.otelTraceAllActions);
+    ActionKeyContext actionKeyContext = null;
+    if (env.getSkyframeExecutor() != null) {
+      actionKeyContext = env.getSkyframeExecutor().getActionKeyContext();
+    }
+    mapper =
+        new OTelSpanMapper(
+            tracer,
+            options.otelTraceAllActions,
+            actionKeyContext,
+            env.getReporter());
     env.getEventBus().register(mapper);
   }
 
@@ -135,12 +153,37 @@ public class OTelTraceModule extends BlazeModule {
   }
 
   /**
-   * Creates an OTLP span exporter for the given endpoint. Returns null if the exporter could not
-   * be created (e.g. due to missing classes at runtime).
+   * Creates an OTLP span exporter for the given endpoint. Protocol is chosen by URL prefix:
+   * http:// or https:// → OTLP over HTTP; grpc:// or grpcs:// → OTLP over gRPC. Returns null if
+   * the exporter could not be created (e.g. due to missing classes at runtime).
    */
   @Nullable
   private SpanExporter createOtlpExporter(String endpoint) {
+    if (endpoint.isEmpty()) {
+      return null;
+    }
+    String lower = endpoint.toLowerCase(java.util.Locale.US);
+    boolean useHttp =
+        lower.startsWith("http://") || lower.startsWith("https://");
+    boolean useGrpc =
+        lower.startsWith("grpc://") || lower.startsWith("grpcs://");
+
     try {
+      if (useHttp) {
+        String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+        String tracesEndpoint = base.endsWith("/v1/traces") ? base : base + "/v1/traces";
+        return io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter.builder()
+            .setEndpoint(tracesEndpoint)
+            .setTimeout(10, TimeUnit.SECONDS)
+            .build();
+      }
+      if (useGrpc) {
+        return io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter.builder()
+            .setEndpoint(endpoint)
+            .setTimeout(10, TimeUnit.SECONDS)
+            .build();
+      }
+      // No scheme: assume gRPC (e.g. localhost:4317) for backward compatibility
       return io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter.builder()
           .setEndpoint(endpoint)
           .setTimeout(10, TimeUnit.SECONDS)

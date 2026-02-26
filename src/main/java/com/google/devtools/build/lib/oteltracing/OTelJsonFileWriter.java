@@ -49,7 +49,16 @@ final class OTelJsonFileWriter {
     JsonArray resourceSpans = new JsonArray();
 
     JsonObject rs = new JsonObject();
-    rs.add("resource", new JsonObject());
+    JsonObject resource = new JsonObject();
+    JsonArray resourceAttrs = new JsonArray();
+    JsonObject serviceNameAttr = new JsonObject();
+    serviceNameAttr.addProperty("key", "service.name");
+    JsonObject serviceNameVal = new JsonObject();
+    serviceNameVal.addProperty("stringValue", "bazel");
+    serviceNameAttr.add("value", serviceNameVal);
+    resourceAttrs.add(serviceNameAttr);
+    resource.add("attributes", resourceAttrs);
+    rs.add("resource", resource);
 
     JsonArray scopeSpans = new JsonArray();
     JsonObject ss = new JsonObject();

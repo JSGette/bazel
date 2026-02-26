@@ -34,6 +34,11 @@ public class OriginalUnstructuredCommandLineEvent implements BuildEventWithOrder
     this.args = ImmutableList.copyOf(args);
   }
 
+  /** Returns the original command-line arguments (e.g. for workspace status / invocation info). */
+  public ImmutableList<String> getArgs() {
+    return args;
+  }
+
   @Override
   public BuildEventId getEventId() {
     return BuildEventIdUtil.unstructuredCommandlineId();

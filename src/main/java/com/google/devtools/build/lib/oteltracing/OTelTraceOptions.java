@@ -43,8 +43,10 @@ public class OTelTraceOptions extends OptionsBase {
       effectTags = {OptionEffectTag.AFFECTS_OUTPUTS},
       metadataTags = {OptionMetadataTag.EXPERIMENTAL},
       help =
-          "If set, stream OTel trace spans in real-time via OTLP to the given endpoint "
-              + "(e.g. http://localhost:4318).")
+          "If set, stream OTel trace spans in real-time via OTLP to the given endpoint. "
+              + "Protocol is inferred from the URL prefix: http:// or https:// for OTLP over HTTP "
+              + "(e.g. http://localhost:4318); grpc:// or grpcs:// for OTLP over gRPC "
+              + "(e.g. grpc://localhost:4317).")
   public String otelTraceEndpoint;
 
   @Option(
