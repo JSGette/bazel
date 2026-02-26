@@ -358,6 +358,41 @@ alias(
 )
 
 alias(
+    name = "opentelemetry-api",
+    actual = "@maven//:io_opentelemetry_opentelemetry_api",
+)
+
+alias(
+    name = "opentelemetry-context",
+    actual = "@maven//:io_opentelemetry_opentelemetry_context",
+)
+
+alias(
+    name = "opentelemetry-sdk",
+    actual = "@maven//:io_opentelemetry_opentelemetry_sdk",
+)
+
+alias(
+    name = "opentelemetry-sdk-common",
+    actual = "@maven//:io_opentelemetry_opentelemetry_sdk_common",
+)
+
+alias(
+    name = "opentelemetry-sdk-trace",
+    actual = "@maven//:io_opentelemetry_opentelemetry_sdk_trace",
+)
+
+alias(
+    name = "opentelemetry-exporter-otlp",
+    actual = "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+)
+
+alias(
+    name = "opentelemetry-sdk-testing",
+    actual = "@maven//:io_opentelemetry_opentelemetry_sdk_testing",
+)
+
+alias(
     name = "caffeine",
     actual = "@maven//:com_github_ben_manes_caffeine_caffeine",
 )

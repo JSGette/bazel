@@ -224,6 +224,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/metrics:memory-use-recorder",
         "//src/main/java/com/google/devtools/build/lib/metrics:metrics_module",
         "//src/main/java/com/google/devtools/build/lib/network:noop_connectivity",
+        "//src/main/java/com/google/devtools/build/lib/oteltracing",
         "//src/main/java/com/google/devtools/build/lib/outputfilter",
         "//src/main/java/com/google/devtools/build/lib/packages/metrics",
         "//src/main/java/com/google/devtools/build/lib/platform:sleep_prevention_module",
