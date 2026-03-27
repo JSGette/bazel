@@ -184,13 +184,24 @@ public class RemoteSpawnRunner implements SpawnRunner {
     boolean acceptCachedResult = remoteExecutionService.getReadCachePolicy(spawn).allowAnyCache();
     boolean uploadLocalResults = remoteExecutionService.getWriteCachePolicy(spawn).allowAnyCache();
 
-    RemoteAction action =
-        remoteExecutionService.buildRemoteAction(
-            spawn,
-            context,
-            remoteOptions.remoteDiscardMerkleTrees
-                ? MerkleTreeComputer.BlobPolicy.DISCARD
-                : MerkleTreeComputer.BlobPolicy.KEEP);
+    RemoteAction action;
+    try {
+      action =
+          remoteExecutionService.buildRemoteAction(
+              spawn,
+              context,
+              remoteOptions.remoteDiscardMerkleTrees
+                  ? MerkleTreeComputer.BlobPolicy.DISCARD
+                  : MerkleTreeComputer.BlobPolicy.KEEP);
+    } catch (IOException e) {
+      if (remoteOptions.remoteLocalFallback && !RemoteRetrierUtils.causedByExecTimeout(e)) {
+        return execLocally(spawn, context);
+      }
+      if (e instanceof RemoteExecutionCapabilitiesException capEx) {
+        throw createExecExceptionFromRemoteExecutionCapabilitiesException(capEx);
+      }
+      throw e;
+    }
 
     context.setDigest(digestUtil.asSpawnLogProto(action.getActionKey()));
 

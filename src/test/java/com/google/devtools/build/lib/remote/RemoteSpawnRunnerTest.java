@@ -62,6 +62,7 @@ import com.google.devtools.build.lib.actions.Artifact;
 import com.google.devtools.build.lib.actions.ArtifactRoot;
 import com.google.devtools.build.lib.actions.ArtifactRoot.RootType;
 import com.google.devtools.build.lib.actions.CommandLines.ParamFileActionInput;
+import com.google.devtools.build.lib.actions.ExecException;
 import com.google.devtools.build.lib.actions.ExecutionRequirements;
 import com.google.devtools.build.lib.actions.ParameterFile.ParameterFileType;
 import com.google.devtools.build.lib.actions.ResourceSet;
@@ -91,6 +92,7 @@ import com.google.devtools.build.lib.remote.common.CacheNotFoundException;
 import com.google.devtools.build.lib.remote.common.OperationObserver;
 import com.google.devtools.build.lib.remote.common.RemoteActionExecutionContext;
 import com.google.devtools.build.lib.remote.common.RemoteCacheClient.ActionKey;
+import com.google.devtools.build.lib.remote.common.RemoteExecutionCapabilitiesException;
 import com.google.devtools.build.lib.remote.common.RemoteExecutionClient;
 import com.google.devtools.build.lib.remote.common.RemotePathResolver;
 import com.google.devtools.build.lib.remote.common.RemotePathResolver.SiblingRepositoryLayoutResolver;
@@ -1771,6 +1773,54 @@ public class RemoteSpawnRunnerTest {
     InOrder reportOrder = inOrder(policy);
     reportOrder.verify(policy, times(1)).report(SpawnSchedulingEvent.create("remote"));
     reportOrder.verify(policy, times(1)).report(SpawnExecutingEvent.create("remote"));
+  }
+
+  @Test
+  public void buildRemoteActionCapabilitiesFailure_fallsBackLocally() throws Exception {
+    remoteOptions.remoteLocalFallback = true;
+
+    RemoteSpawnRunner runner = newSpawnRunner();
+    RemoteExecutionService service = runner.getRemoteExecutionService();
+
+    doThrow(new RemoteExecutionCapabilitiesException(
+            new IOException("UNAVAILABLE: Unable to resolve host")))
+        .when(service)
+        .buildRemoteAction(any(), any(), any());
+
+    SpawnResult localResult =
+        new SpawnResult.Builder()
+            .setStatus(Status.SUCCESS)
+            .setExitCode(0)
+            .setRunnerName("local")
+            .build();
+    when(localRunner.exec(any(Spawn.class), any(SpawnExecutionContext.class)))
+        .thenReturn(localResult);
+
+    Spawn spawn = newSimpleSpawn();
+    SpawnExecutionContext policy = getSpawnContext(spawn);
+
+    SpawnResult result = runner.exec(spawn, policy);
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    verify(localRunner).exec(spawn, policy);
+  }
+
+  @Test
+  public void buildRemoteActionCapabilitiesFailure_noFallback_fails() throws Exception {
+    remoteOptions.remoteLocalFallback = false;
+
+    RemoteSpawnRunner runner = newSpawnRunner();
+    RemoteExecutionService service = runner.getRemoteExecutionService();
+
+    doThrow(new RemoteExecutionCapabilitiesException(
+            new IOException("UNAVAILABLE: Unable to resolve host")))
+        .when(service)
+        .buildRemoteAction(any(), any(), any());
+
+    Spawn spawn = newSimpleSpawn();
+    SpawnExecutionContext policy = getSpawnContext(spawn);
+
+    assertThrows(ExecException.class, () -> runner.exec(spawn, policy));
   }
 
   private static Spawn newSimpleSpawn(Artifact... outputs) {

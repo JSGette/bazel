@@ -605,6 +605,35 @@ EOF
   expect_log "2 processes: 1 internal, 1 local"
 }
 
+function test_local_fallback_if_remote_executor_unavailable_no_discard_merkle_trees() {
+  # Regression test: --remote_local_fallback must work even when Merkle tree
+  # computation triggers the capabilities check (BlobPolicy.KEEP path).
+  # Without the fix, buildRemoteAction catches RemoteExecutionCapabilitiesException
+  # and converts it to a fatal ExecException, bypassing fallback.
+  mkdir -p gen1
+  cat > gen1/BUILD <<'EOF'
+genrule(
+name = "gen1",
+srcs = [],
+outs = ["out1"],
+cmd = "touch \"$@\"",
+)
+EOF
+
+  bazel build \
+      --spawn_strategy=remote,local \
+      --remote_executor=grpc://noexist.invalid \
+      --remote_local_fallback \
+      --noexperimental_remote_discard_merkle_trees \
+      --build_event_text_file=gen1.log \
+      --nobuild_event_text_file_path_conversion \
+      //gen1 >& $TEST_log \
+      || fail "Expected success"
+
+  mv gen1.log $TEST_log
+  expect_log "2 processes: 1 internal, 1 local"
+}
+
 function is_file_uploaded() {
   h=$(shasum -a256 < $1)
   if [ -e "$cas_path/${h:0:64}" ]; then return 0; else return 1; fi

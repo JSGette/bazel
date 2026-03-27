@@ -78,6 +78,7 @@ import com.google.devtools.build.lib.remote.RemoteExecutionService.RemoteActionR
 import com.google.devtools.build.lib.remote.common.CacheNotFoundException;
 import com.google.devtools.build.lib.remote.common.RemoteActionExecutionContext;
 import com.google.devtools.build.lib.remote.common.RemoteCacheClient;
+import com.google.devtools.build.lib.remote.common.RemoteExecutionCapabilitiesException;
 import com.google.devtools.build.lib.remote.common.RemoteCacheClient.ActionKey;
 import com.google.devtools.build.lib.remote.common.RemotePathResolver;
 import com.google.devtools.build.lib.remote.disk.DiskCacheClient;
@@ -1327,5 +1328,41 @@ public class RemoteSpawnCacheTest {
     // assert
     assertThat(cacheHandle.hasResult()).isFalse();
     assertThat(cacheHandle.willStore()).isTrue();
+  }
+
+  @Test
+  public void buildRemoteActionCapabilitiesFailure_withFallbackFlags_proceedsLocally()
+      throws Exception {
+    RemoteOptions options = Options.getDefaults(RemoteOptions.class);
+    options.remoteLocalFallback = true;
+    options.remoteLocalFallbackForRemoteCache = true;
+
+    RemoteSpawnCache cache = remoteSpawnCacheWithOptions(options);
+
+    doThrow(new RemoteExecutionCapabilitiesException(
+            new IOException("UNAVAILABLE: Unable to resolve host")))
+        .when(cache.getRemoteExecutionService())
+        .buildRemoteAction(any(), any(), any());
+
+    CacheHandle handle = cache.lookup(simpleSpawn, simplePolicy);
+
+    assertThat(handle.hasResult()).isFalse();
+    assertThat(handle.willStore()).isFalse();
+  }
+
+  @Test
+  public void buildRemoteActionCapabilitiesFailure_withoutFallbackFlags_throws() throws Exception {
+    RemoteOptions options = Options.getDefaults(RemoteOptions.class);
+    options.remoteLocalFallback = false;
+    options.remoteLocalFallbackForRemoteCache = false;
+
+    RemoteSpawnCache cache = remoteSpawnCacheWithOptions(options);
+
+    doThrow(new RemoteExecutionCapabilitiesException(
+            new IOException("UNAVAILABLE: Unable to resolve host")))
+        .when(cache.getRemoteExecutionService())
+        .buildRemoteAction(any(), any(), any());
+
+    assertThrows(ExecException.class, () -> cache.lookup(simpleSpawn, simplePolicy));
   }
 }
