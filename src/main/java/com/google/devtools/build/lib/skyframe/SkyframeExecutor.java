@@ -233,8 +233,10 @@ import com.google.devtools.build.lib.skyframe.rewinding.ActionRewindStrategy;
 import com.google.devtools.build.lib.skyframe.serialization.DeserializedSkyValue;
 import com.google.devtools.build.lib.skyframe.serialization.FrontierNodeVersion;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.ClientId;
+import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheDeps;
+import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheManager;
+import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheReaderDepsProvider;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingDependenciesProvider;
-import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingDependenciesProvider.DisabledDependenciesProvider;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingOptions.RemoteAnalysisCacheMode;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingServerState;
 import com.google.devtools.build.lib.skyframe.toolchains.RegisteredExecutionPlatformsCycleReporter;
@@ -305,7 +307,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.nio.file.FileSystems;
 import java.time.Duration;
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -314,7 +315,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -525,8 +525,14 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
    */
   private final boolean globUnderSingleDep;
 
+  private boolean remoteAnalysisCachingHasEverBeenEnabled = false;
+
   private RemoteAnalysisCachingDependenciesProvider remoteAnalysisCachingDependenciesProvider =
-      DisabledDependenciesProvider.INSTANCE;
+      RemoteAnalysisCacheManager.createDisabled();
+
+  @Nullable
+  private RemoteAnalysisCacheReaderDepsProvider remoteAnalysisCacheReaderDepsProvider =
+      RemoteAnalysisCacheDeps.createDisabled();
 
   /**
    * The state of the remote analysis caching.
@@ -554,21 +560,22 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
    * Returns the dependencies for remote analysis caching.
    *
    * <p>Should not be called before analysis begins.
-   *
-   * <p>This will reture {@link DisabledDependenciesProvider} until the top level configuration is
-   * determined at the beginning of the analysis Skyframe evaluation, because it contains that
-   * value. See the callsite of {@link
-   * #setRemoteAnalysisCachingDependenciesProvider(RemoteAnalysisCachingDependenciesProvider)} for
-   * the exact point.
    */
   @VisibleForTesting // productionVisibility = Visibility.PRIVATE
   public RemoteAnalysisCachingDependenciesProvider getRemoteAnalysisCachingDependenciesProvider() {
     return remoteAnalysisCachingDependenciesProvider;
   }
 
+  @VisibleForTesting // productionVisibility = Visibility.PRIVATE
+  public RemoteAnalysisCacheReaderDepsProvider getRemoteAnalysisCacheReaderDepsProvider() {
+    return remoteAnalysisCacheReaderDepsProvider;
+  }
+
   public void setRemoteAnalysisCachingDependenciesProvider(
-      RemoteAnalysisCachingDependenciesProvider remoteAnalysisCachingDependenciesProvider) {
+      RemoteAnalysisCachingDependenciesProvider remoteAnalysisCachingDependenciesProvider,
+      RemoteAnalysisCacheReaderDepsProvider remoteAnalysisCacheReaderDepsProvider) {
     this.remoteAnalysisCachingDependenciesProvider = remoteAnalysisCachingDependenciesProvider;
+    this.remoteAnalysisCacheReaderDepsProvider = remoteAnalysisCacheReaderDepsProvider;
   }
 
   public RemoteAnalysisCachingServerState getRemoteAnalysisCachingState() {
@@ -588,18 +595,28 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
   /**
    * Invalidates the given keys with an external remote analysis service.
    *
-   * <p>If remote analysis caching is disabled, all deserialized nodes are deleted.
+   * <p>If remote analysis caching is currently disabled but has been enabled before, all
+   * deserialized nodes are deleted.
    */
   public void invalidateWithExternalService(ExtendedEventHandler eventHandler)
       throws InterruptedException {
-    ImmutableSet<SkyKey> keysToLookup =
-        getEvaluator().getDoneValues().entrySet().parallelStream()
-            .filter(e -> e.getValue() instanceof DeserializedSkyValue)
-            .map(Entry::getKey)
-            .collect(toImmutableSet());
+    boolean remoteAnalysisCachingCurrentlyEnabled = isRemoteAnalysisCachingEnabled();
+    remoteAnalysisCachingHasEverBeenEnabled |= remoteAnalysisCachingCurrentlyEnabled;
+    if (!remoteAnalysisCachingHasEverBeenEnabled) {
+      return;
+    }
 
-    if (!isRemoteAnalysisCachingEnabled()) {
-      // If skycache is disabled, we need to delete all the deserialized nodes
+    ImmutableSet<SkyKey> keysToLookup;
+    try (SilentCloseable c = Profiler.instance().profile("getDeserializedKeys")) {
+      keysToLookup =
+          getEvaluator().getInMemoryGraph().getAllNodeEntries().parallelStream()
+              .filter(e -> e.isDone() && e.getValue() instanceof DeserializedSkyValue)
+              .map(InMemoryNodeEntry::getKey)
+              .collect(toImmutableSet());
+    }
+
+    if (!remoteAnalysisCachingCurrentlyEnabled) {
+      // If skycache is currently disabled, we need to delete all the deserialized nodes
       // because they do not have transitive edges to File/Directory nodes.
       if (!keysToLookup.isEmpty()) {
         // Only scan the graph for deletion if there are keys to delete,
@@ -613,11 +630,11 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
         remoteAnalysisCachingDependenciesProvider.lookupKeysToInvalidate(
             keysToLookup, remoteAnalysisCachingState);
 
-    // Log a sample of the invalidated SkyKeys to the INFO log.
     if (keysToInvalidate.isEmpty()) {
       return;
     }
 
+    // Log a sample of the invalidated SkyKeys to the INFO log.
     int maxKeysToLog = 20;
     if (keysToInvalidate.size() > maxKeysToLog) {
       logger.atInfo().log(
@@ -764,9 +781,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
   private ImmutableMap<SkyFunctionName, SkyFunction> skyFunctions() {
     this.actionRewindStrategy =
         new ActionRewindStrategy(
-            skyframeActionExecutor,
-            bugReporter,
-            this::getRemoteAnalysisCachingDependenciesProvider);
+            skyframeActionExecutor, bugReporter, this::getRemoteAnalysisCacheReaderDepsProvider);
     BzlLoadFunction bzlLoadFunctionForInliningPackageAndWorkspaceNodes =
         getBzlLoadFunctionForInliningPackageAndWorkspaceNodes();
 
@@ -857,7 +872,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
             shouldUnblockCpuWorkWhenFetchingDeps,
             analysisProgress,
             this::getExistingPackage,
-            this::getRemoteAnalysisCachingDependenciesProvider));
+            this::getRemoteAnalysisCacheReaderDepsProvider));
     map.put(
         SkyFunctions.ASPECT,
         new AspectFunction(
@@ -866,7 +881,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
             shouldStoreTransitivePackagesInLoadingAndAnalysis(),
             this::getExistingPackage,
             new BaseTargetPrerequisitesSupplierImpl(),
-            this::getRemoteAnalysisCachingDependenciesProvider,
+            this::getRemoteAnalysisCacheReaderDepsProvider,
             analysisProgress));
     map.put(
         SkyFunctions.TOP_LEVEL_ASPECTS,
@@ -931,7 +946,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
             sourceArtifactsSeen,
             syscallCache,
             skyframeActionExecutor,
-            this::getRemoteAnalysisCachingDependenciesProvider));
+            this::getRemoteAnalysisCacheReaderDepsProvider));
     map.put(SkyFunctions.BUILD_INFO, new WorkspaceStatusFunction(this::makeWorkspaceStatusAction));
     map.put(SkyFunctions.COVERAGE_REPORT, new CoverageReportFunction(actionKeyContext));
     map.put(SkyFunctions.ACTION_EXECUTION, newActionExecutionFunction());
@@ -995,7 +1010,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
         directories,
         tsgm::get,
         bugReporter,
-        this::getRemoteAnalysisCachingDependenciesProvider,
+        this::getRemoteAnalysisCacheReaderDepsProvider,
         this::getConsumedArtifactsTracker);
   }
 
@@ -1049,8 +1064,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
   /** Inform this SkyframeExecutor that a new command is starting. */
   public void noteCommandStart() {
     // Prevent stale Skycache configuration from persisting between builds.
-    remoteAnalysisCachingDependenciesProvider =
-        RemoteAnalysisCachingDependenciesProvider.DisabledDependenciesProvider.INSTANCE;
+    remoteAnalysisCachingDependenciesProvider = RemoteAnalysisCacheManager.createDisabled();
   }
 
   /**
@@ -1181,8 +1195,7 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
     skyframeBuildView.reset();
     // Prevent stale Skycache configuration from persisting between cleans.
     remoteAnalysisCachingState = RemoteAnalysisCachingServerState.initializeEmpty();
-    remoteAnalysisCachingDependenciesProvider =
-        RemoteAnalysisCachingDependenciesProvider.DisabledDependenciesProvider.INSTANCE;
+    remoteAnalysisCachingDependenciesProvider = RemoteAnalysisCacheManager.createDisabled();
     skyfocusState = DISABLED;
     // cleanupInterningPools must be called before init(), since init() initializes a new graph,
     // losing all references to the SkyKeyInterners that must be cleaned up.
@@ -1528,7 +1541,6 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
     PrecomputedValue.STARLARK_SEMANTICS.set(injectable(), starlarkSemantics);
   }
 
-
   private void setLazyMacroExpansionPackages(LazyMacroExpansionPackages packages) {
     PrecomputedValue.LAZY_MACRO_EXPANSION_PACKAGES.set(injectable(), packages);
   }
@@ -1539,8 +1551,8 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
 
   public void setBaselineConfiguration(BuildOptions buildOptions, ExtendedEventHandler eventHandler)
       throws InvalidConfigurationException, InterruptedException {
-    PrecomputedValue.BASELINE_CONFIGURATION.set(injectable(), buildOptions);
-    PrecomputedValue.BASELINE_EXEC_CONFIGURATION.set(
+    BaselineOptionsFunction.BASELINE_CONFIGURATION.set(injectable(), buildOptions);
+    BaselineOptionsFunction.BASELINE_EXEC_CONFIGURATION.set(
         injectable(), adjustForExec(buildOptions, eventHandler));
   }
 
@@ -1853,12 +1865,13 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
     RepoContext mainRepoContext =
         RepoContext.of(RepositoryName.MAIN, mainRepositoryMappingValue.repositoryMapping());
 
-    ImmutableList<Entry<String, String>> flagAliasMappings =
+    ImmutableMap<String, Label> flagAliasMappings =
         args.stream()
             .filter(arg -> arg.startsWith("--flag_alias="))
             .map(arg -> arg.substring("--flag_alias=".length()).split("="))
-            .map(pair -> new SimpleImmutableEntry<>(pair[0], pair[1]))
-            .collect(toImmutableList());
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    pair -> pair[0], pair -> Label.parseCanonicalUnchecked(pair[1])));
     // Parse the options.
     PackageContext rootPackage = mainRepoContext.rootPackage();
     ParsedFlagsValue.Key parsedFlagsKey =
@@ -3278,10 +3291,17 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
             ImmutableList.of(BazelDepGraphValue.KEY), false, DEFAULT_THREAD_COUNT, eventHandler);
     var bzlmodDepGraph = evalResult.get(BazelDepGraphValue.KEY).getDepGraph();
     LinkedHashMap<String, String> aliasesMap = new LinkedHashMap<>();
+    var rootModule = bzlmodDepGraph.entrySet().iterator().next().getValue();
     for (var module : bzlmodDepGraph.entrySet()) {
       ImmutableMap<String, String> flagAliases = module.getValue().getFlagAliases();
-      aliasesMap.putAll(flagAliases);
-      if (!module.getKey().name().equals("rules_python")) {
+      for (var flagAlias : flagAliases.entrySet()) {
+        aliasesMap.put(
+            flagAlias.getKey(),
+            flagAlias.getValue().startsWith("//")
+                ? module.getKey().getCanonicalRepoNameWithoutVersion() + flagAlias.getValue()
+                : flagAlias.getValue());
+      }
+      if (!module.getValue().getName().equals("rules_python")) {
         continue;
       }
       // Don't apply hard-coded aliases if rules_python uses MODULE.bazel aliases.
@@ -3291,13 +3311,21 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
       // Add Python flags that haven't already been added by rules_python's MODULE.bazel.
       PY_FLAG_ALIASES.entrySet().stream()
           .filter(e -> !flagAliases.containsKey(e.getKey()))
+          .map(
+              e ->
+                  rootModule.getName().equals("rules_python")
+                      ? Map.entry(e.getKey(), e.getValue().substring(e.getValue().indexOf("/")))
+                      : e)
           .forEach(e -> aliasesMap.put(e.getKey(), e.getValue()));
       // Add Bazel Python flags that haven't already been added by rules_python's MODULE.bazel.
       BAZEL_PY_FLAG_ALIASES.entrySet().stream()
           .filter(e -> !flagAliases.containsKey(e.getKey()))
+          .map(
+              e ->
+                  rootModule.getName().equals("rules_python")
+                      ? Map.entry(e.getKey(), e.getValue().substring(e.getValue().indexOf("/")))
+                      : e)
           .forEach(e -> aliasesMap.put(e.getKey(), e.getValue()));
-
-      return ImmutableMap.copyOf(aliasesMap);
     }
 
     return ImmutableMap.copyOf(aliasesMap);

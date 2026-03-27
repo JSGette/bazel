@@ -294,7 +294,9 @@ public abstract class MockCcSupport {
         ImmutableList.of(
             "cc/private/rules_impl/native.bzl",
             "cc/private/rules_impl/native_cc_common.bzl",
-            "cc/private/rules_impl/native_providers.bzl")) {
+            "cc/private/rules_impl/native_providers.bzl",
+            // New files, not yet visible to bazel.
+            "cc/private/rules_impl/wrappers/BUILD")) {
       try {
         config.overwrite(
             "third_party/bazel_rules/rules_cc/" + path,
@@ -313,15 +315,14 @@ public abstract class MockCcSupport {
         ResourceLoader.readFromResources(
             TestConstants.RULES_CC_REPOSITORY_EXECROOT + "cc/action_names.bzl"));
     config.create(
-        TestConstants.RULES_CC_REPOSITORY_EXECROOT + "BUILD",
-        "genrule(name='license', cmd='exit 0', outs=['dummy_license'])");
+        TestConstants.RULES_CC_REPOSITORY_EXECROOT + "BUILD", "filegroup(name='license')");
     config.create(TestConstants.TOOLS_REPOSITORY_SCRATCH + "tools/build_defs/cc/BUILD");
     config.append(TestConstants.TOOLS_REPOSITORY_SCRATCH + "tools/cpp/BUILD", "");
 
     // These could be a distinct method
     config.create(
         TestConstants.TOOLS_REPOSITORY_SCRATCH + TestConstants.MOCK_LICENSE_SCRATCH + "BUILD",
-        "genrule(name='license', cmd='exit 0', outs=['dummy_license'])");
+        "filegroup(name='license')");
     config.create(
         TestConstants.TOOLS_REPOSITORY_SCRATCH
             + TestConstants.MOCK_LICENSE_SCRATCH

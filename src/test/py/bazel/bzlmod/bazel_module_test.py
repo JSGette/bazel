@@ -65,6 +65,9 @@ class BazelModuleTest(test_base.TestBase):
                 'build'
                 ' --extra_toolchains=@bazel_tools//tools/python:autodetecting_toolchain'
             ),
+            # TODO(bazel-team): Remove once rules_python exports runtime_env_toolchain_interpreter.sh
+            # See https://github.com/bazel-contrib/rules_python/pull/3471
+            'build --noincompatible_no_implicit_file_export',
         ],
     )
 
@@ -1067,7 +1070,7 @@ class BazelModuleTest(test_base.TestBase):
     self.assertIn(
         'include() directive found at '
         + self.main_registry.getURL()
-        + '/modules/foo/1.0/MODULE.bazel:6:1, but it can only be used in the '
+        + '/modules/foo/1.0/MODULE.bazel:5:1, but it can only be used in the '
         + 'root module or in modules with non-registry overrides',
         '\n'.join(stderr),
     )

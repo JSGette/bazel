@@ -52,11 +52,11 @@ public sealed class BuiltinFunction implements StarlarkCallable
    * <p>The method must be a proper Starlark method, not a field; i.e., {@link
    * StarlarkMethod#structField} must be false.
    */
-  static BuiltinFunction of(Object obj, MethodDescriptor desc, StarlarkSemantics semantics) {
+  static BuiltinFunction of(Object obj, MethodDescriptor desc) {
     if (desc.getTypeConstructorProxy() == null) {
       return new BuiltinFunction(obj, desc);
     } else {
-      return new BuiltinTypeFunction(obj, desc, semantics);
+      return new BuiltinTypeFunction(obj, desc);
     }
   }
 
@@ -523,14 +523,19 @@ public sealed class BuiltinFunction implements StarlarkCallable
     }
   }
 
-  private static final class BuiltinTypeFunction extends BuiltinFunction
-      implements TypeConstructor {
-
-    private final StarlarkSemantics semantics;
-
-    private BuiltinTypeFunction(Object obj, MethodDescriptor desc, StarlarkSemantics semantics) {
+  /**
+   * A {@link BuiltinFunction} whose symbol is also a type constructor; for example, {@code list} is
+   * used both as a function that returns list values ({@code l = list((1, 2, 3))}) and a
+   * constructor for list types ({@code type T = list[int]}).
+   */
+  // Non-private due to what appears to be a javac bug (present at least in JDK 21) causing
+  // scripts/bootstrap/compile.sh and bazel_bootstrap_distfile_tar_test to spuriously fail with
+  // "error: BuiltinTypeFunction has private access in BuiltinFunction".
+  // TODO(bazel-team): check if we can make this class private once Bazel starts using JDK 25 or
+  // newer to bootstrap
+  static final class BuiltinTypeFunction extends BuiltinFunction implements TypeConstructor {
+    private BuiltinTypeFunction(Object obj, MethodDescriptor desc) {
       super(obj, desc);
-      this.semantics = semantics;
     }
 
     @Override
@@ -542,7 +547,7 @@ public sealed class BuiltinFunction implements StarlarkCallable
       // and because it complicates unit tests where these preconditions fail.
       Class<?> tcProxy = desc.getTypeConstructorProxy();
       Preconditions.checkNotNull(tcProxy);
-      TypeConstructor tc = CallUtils.getTypeConstructor(semantics, tcProxy);
+      TypeConstructor tc = desc.getManager().getTypeConstructor(tcProxy);
       Preconditions.checkArgument(tc != null, "invalid type constructor proxy: %s", tcProxy);
       return tc.createStarlarkType(argsTuple);
     }

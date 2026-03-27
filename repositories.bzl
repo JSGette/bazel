@@ -129,9 +129,23 @@ def embedded_jdk_repositories():
     )
     http_file(
         name = "openjdk_win_arm64_vanilla",
-        integrity = "sha256-X0R5KhKvIQC025tRIMJ8Qq+AgK1jvJ6q3JyiXlx91ZA=",
+        integrity = "sha256-zhWbTuPBCc1RNXrPhCZBQsHdsOGHjSBGbqxQsBU0cVQ=",
         downloaded_file_path = "zulu-win-arm64.zip",
-        url = "https://cdn.azul.com/zulu/bin/zulu25.32.17-ca-jdk25.0.2-win_aarch64.zip",
+        # Use an EA release of 25.0.3 here since versions <= 25.0.2 are affected by a severe JDK bug
+        # that causes virtual threads (and thus repo rules) to hang indefinitely on Windows ARM64.
+        # https://github.com/bazelbuild/bazel/issues/28520
+        # https://mail.openjdk.org/pipermail/loom-dev/2026-February/008286.html
+        url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B1-ea-beta/OpenJDK25U-jdk_aarch64_windows_hotspot_25.0.3_1-ea.zip",
+    )
+
+    # The Adoptium Temurin JDK above has JEP 493 enabled, which means it does not ship with jmods.
+    # These are needed for cross-jlinking (minimizing the JDK on a different platform).
+    # https://adoptium.net/news/2025/08/eclipse-temurin-jdk24-JEP493-enabled
+    http_file(
+        name = "openjdk_win_arm64_jmods",
+        integrity = "sha256-2rjwZCoUIYD7L9nLwLJindsYPkDMvpI4km5a9UlxFtg=",
+        downloaded_file_path = "temurin-win-arm64-jmods.zip",
+        url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B1-ea-beta/OpenJDK25U-jmods_aarch64_windows_hotspot_25.0.3_1-ea.zip",
     )
 
 def _async_profiler_repos(ctx):

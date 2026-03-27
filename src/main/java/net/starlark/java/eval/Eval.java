@@ -170,7 +170,12 @@ final class Eval {
     Object[] defaults = null;
     int nparams =
         rfn.getParameters().size() - (rfn.hasKwargs() ? 1 : 0) - (rfn.hasVarargs() ? 1 : 0);
-    @Nullable CallableType functionType = rfn.getFunctionType();
+
+    // Nested functions use the same typeTable as their enclosing function, since both were compiled
+    // from the same Program.
+    StarlarkFunction fn = fn(fr);
+    @Nullable
+    CallableType functionType = fn.getTypeTable() == null ? null : fn.getTypeTable().getType(rfn);
     boolean dynamicTypeCheckingEnabled =
         fr.thread
             .getSemantics()
@@ -223,9 +228,9 @@ final class Eval {
 
     // Nested functions use the same globalIndex as their enclosing function,
     // since both were compiled from the same Program.
-    StarlarkFunction fn = fn(fr);
     return new StarlarkFunction(
         rfn,
+        fn.getTypeTable(),
         fn.getModule(),
         fn.globalIndex,
         Tuple.wrap(defaults),
@@ -456,13 +461,7 @@ final class Eval {
       Object object = eval(fr, dot.getObject());
       String field = dot.getField().getName();
       try {
-        Object x =
-            Starlark.getattr(
-                fr.thread.mutability(),
-                fr.thread.getSemantics(),
-                object,
-                field,
-                /* defaultValue= */ null);
+        Object x = Starlark.getattr(fr.thread, object, field, /* defaultValue= */ null);
         Object y = eval(fr, rhs);
         Object z;
         try {
@@ -662,8 +661,7 @@ final class Eval {
     Object object = eval(fr, dot.getObject());
     String name = dot.getField().getName();
     try {
-      return Starlark.getattr(
-          fr.thread.mutability(), fr.thread.getSemantics(), object, name, /* defaultValue= */ null);
+      return Starlark.getattr(fr.thread, object, name, /* defaultValue= */ null);
     } catch (EvalException ex) {
       fr.setErrorLocation(dot.getDotLocation());
       throw ex;
