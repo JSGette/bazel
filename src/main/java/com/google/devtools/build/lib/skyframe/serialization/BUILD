@@ -10,6 +10,7 @@ filegroup(
     srcs = glob(["**"]) + [
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis:srcs",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/autocodec:srcs",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:srcs",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/testutils:srcs",
     ],
     visibility = ["//src/main/java/com/google/devtools/build/lib:__subpackages__"],
