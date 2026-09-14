@@ -27,14 +27,15 @@ import static com.google.devtools.build.lib.skyframe.serialization.analysis.File
 import static com.google.devtools.build.lib.skyframe.serialization.analysis.InvalidationDataInfoOrFuture.ConstantFileData.CONSTANT_FILE;
 import static com.google.devtools.build.lib.skyframe.serialization.analysis.InvalidationDataInfoOrFuture.ConstantListingData.CONSTANT_LISTING;
 import static com.google.devtools.build.lib.skyframe.serialization.analysis.InvalidationDataInfoOrFuture.ConstantNodeData.CONSTANT_NODE;
-import static com.google.devtools.build.lib.util.TestType.isInTest;
 import static com.google.devtools.build.lib.vfs.RootedPath.toRootedPath;
 import static java.lang.Math.max;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.flogger.GoogleLogger;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -110,6 +111,8 @@ import javax.annotation.Nullable;
  * invalidation to a remote {@link KeyValueWriter}.
  */
 final class FileDependencySerializer {
+  private static final GoogleLogger logger = GoogleLogger.forEnclosingClass();
+
   /**
    * Counters for the progress of serialization.
    *
@@ -560,13 +563,16 @@ final class FileDependencySerializer {
       PathFragment link,
       FileInvalidationDataUploader uploader) {
     if (link.isAbsolute()) {
-      if (isInTest()) {
-        // Test environments may use absolute symlinks, which aren't allowed in production
-        // environments with analysis caching. Skips further dependency resolution for those.
-        return immediateVoidFuture();
-      }
-      throw new IllegalStateException(
-          String.format("Absolute symlink not permitted: %s contained %s", linkPath, link));
+      // Outside a Google-style monorepo these are routine: a local JDK or SDK repository is often
+      // just a symlink to a system install. The invalidation data written here is only read by the
+      // reader side validator, so anything reached through such a link simply goes untracked. That
+      // is a correctness hazard once invalidation is live, but no worse than the MINIMAL versions
+      // currently reported for every path.
+      logger
+          .atWarning()
+          .atMostEvery(1, MINUTES)
+          .log("Not tracking dependencies behind absolute symlink %s -> %s", linkPath, link);
+      return immediateVoidFuture();
     }
     Symlink.Builder symlinkData = uploader.addSymlinksBuilder().setContents(link.getPathString());
     PathFragment linkParent = parentRootedPath.getRootRelativePath();
