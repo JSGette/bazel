@@ -266,7 +266,8 @@ public class BuildView {
     BuildOptions topLevelConfigurationTrimmedOfTestOptions;
     boolean shouldDiscardAnalysisCache;
     if (skyframeExecutor.getAndIncrementAnalysisCount() != 0
-        && remoteAnalysisCachingDependenciesProvider.mode().isSyncUpload()) {
+        && remoteAnalysisCachingDependenciesProvider.mode().isSyncUpload()
+        && !remoteAnalysisCachingDependenciesProvider.allowsWarmUpload()) {
       throw new AbruptExitException(
           DetailedExitCode.of(
               FailureDetail.newBuilder()

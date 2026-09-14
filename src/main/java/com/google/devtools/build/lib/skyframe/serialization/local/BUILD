@@ -27,14 +27,24 @@ java_library(
 )
 
 java_library(
+    name = "local_analysis_caching_options",
+    srcs = ["LocalAnalysisCachingOptions.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/util",
+        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
+        "//src/main/java/com/google/devtools/common/options",
+    ],
+)
+
+java_library(
     name = "local_skycache_module",
     srcs = [
-        "LocalAnalysisCachingOptions.java",
         "LocalAnalysisCachingServicesSupplier.java",
         "LocalSkycacheModule.java",
         "MinimalVersionGetter.java",
     ],
     deps = [
+        ":local_analysis_caching_options",
         ":local_stores",
         "//src/main/java/com/google/devtools/build/lib:runtime",
         "//src/main/java/com/google/devtools/build/lib/concurrent:thread_safety",

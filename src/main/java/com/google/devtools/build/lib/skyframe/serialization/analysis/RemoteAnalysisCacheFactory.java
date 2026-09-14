@@ -65,6 +65,7 @@ import com.google.devtools.build.lib.skyframe.serialization.PlatformConfiguratio
 import com.google.devtools.build.lib.skyframe.serialization.SkycacheMetadataParams;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.ClientId.LongVersionClientId;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheManager.AnalysisDeps;
+import com.google.devtools.build.lib.skyframe.serialization.local.LocalAnalysisCachingOptions;
 import com.google.devtools.build.lib.util.AbruptExitException;
 import com.google.devtools.build.lib.util.DetailedExitCode;
 import com.google.devtools.build.lib.util.SerializedAbruptExitException;
@@ -256,6 +257,7 @@ public final class RemoteAnalysisCacheFactory {
             env.getRemoteAnalysisCachingEventListener(),
             commandExecutor);
 
+    boolean localAnalysisCacheEnabled = isLocalAnalysisCacheEnabled(env);
     var manager =
         new RemoteAnalysisCacheManager(
             options.getMode(),
@@ -266,7 +268,8 @@ public final class RemoteAnalysisCacheFactory {
             topLevelTargets,
             activeDirectoriesMatcher,
             options.getSkycacheMinimizeMemory(),
-            platformConfigurationProvider);
+            platformConfigurationProvider,
+            localAnalysisCacheEnabled);
 
     // Bail out if needed
 
@@ -275,7 +278,7 @@ public final class RemoteAnalysisCacheFactory {
       try (SilentCloseable unused = Profiler.instance().profile("initAnalysisCacheClient")) {
         analysisCacheClient = deps.getAnalysisCacheClient();
       }
-      if (analysisCacheClient == null) {
+      if (analysisCacheClient == null && !localAnalysisCacheEnabled) {
         env.getReporter()
             .handle(
                 Event.warn(
@@ -292,6 +295,17 @@ public final class RemoteAnalysisCacheFactory {
     } else {
       throw new IllegalStateException("Unknown RemoteAnalysisCacheMode: " + options.getMode());
     }
+  }
+
+  /**
+   * Whether the local, disk backed analysis cache is in use.
+   *
+   * <p>It supplies a store but no analysis cache service, which stock Bazel treats as "caching
+   * unavailable". Lookups go straight to the store and freshness is whatever the cache key encodes.
+   */
+  private static boolean isLocalAnalysisCacheEnabled(CommandEnvironment env) {
+    var localOptions = env.getOptions().getOptions(LocalAnalysisCachingOptions.class);
+    return localOptions != null && localOptions.enabled;
   }
 
   private static Optional<PathFragmentPrefixTrie> finalizeActiveDirectoriesMatcher(

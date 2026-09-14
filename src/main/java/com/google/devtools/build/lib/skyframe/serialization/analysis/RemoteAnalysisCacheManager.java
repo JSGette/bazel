@@ -56,6 +56,8 @@ public class RemoteAnalysisCacheManager implements RemoteAnalysisCachingDependen
 
   private final SettablePlatformConfigurationProvider platformConfigurationProvider;
 
+  private final boolean allowsWarmUpload;
+
   /**
    * A collection of various parts of this class that various parts of Bazel (cache reading, cache
    * writing, in-memory bookkeeping) need.
@@ -79,6 +81,7 @@ public class RemoteAnalysisCacheManager implements RemoteAnalysisCachingDependen
     this.eventHandler = null;
     this.skycacheMetadataParams = null;
     this.platformConfigurationProvider = null;
+    this.allowsWarmUpload = false;
   }
 
   RemoteAnalysisCacheManager(
@@ -90,7 +93,8 @@ public class RemoteAnalysisCacheManager implements RemoteAnalysisCachingDependen
       Collection<Label> topLevelTargets,
       Optional<Predicate<PackageIdentifier>> activeDirectoriesMatcher,
       boolean minimizeMemory,
-      SettablePlatformConfigurationProvider platformConfigurationProvider) {
+      SettablePlatformConfigurationProvider platformConfigurationProvider,
+      boolean allowsWarmUpload) {
     this.mode = mode;
     this.analysisCacheClient = analysisCacheClient;
     this.analysisCacheInvalidator = analysisCacheInvalidator;
@@ -100,11 +104,17 @@ public class RemoteAnalysisCacheManager implements RemoteAnalysisCachingDependen
     this.eventHandler = eventHandler;
     this.skycacheMetadataParams = skycacheMetadataParams;
     this.platformConfigurationProvider = platformConfigurationProvider;
+    this.allowsWarmUpload = allowsWarmUpload;
   }
 
   @Override
   public RemoteAnalysisCacheMode mode() {
     return mode;
+  }
+
+  @Override
+  public boolean allowsWarmUpload() {
+    return allowsWarmUpload;
   }
 
   @Override

@@ -27,6 +27,16 @@ import javax.annotation.Nullable;
 public interface RemoteAnalysisCachingDependenciesProvider {
   RemoteAnalysisCacheMode mode();
 
+  /**
+   * Whether this provider may upload from a server that has already analyzed something.
+   *
+   * <p>Uploads are otherwise restricted to cold servers, which rules out populating the cache for a
+   * second configuration without restarting.
+   */
+  default boolean allowsWarmUpload() {
+    return false;
+  }
+
   void queryMetadataAndMaybeBailout() throws InterruptedException;
 
   /**
