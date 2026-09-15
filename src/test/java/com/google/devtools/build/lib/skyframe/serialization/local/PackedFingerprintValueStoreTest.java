@@ -23,7 +23,6 @@ import com.google.devtools.build.lib.skyframe.serialization.StringKey;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,15 +30,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public final class DiskFingerprintValueStoreTest {
+public final class PackedFingerprintValueStoreTest {
 
   private Path root;
-  private DiskFingerprintValueStore store;
+  private PackedFingerprintValueStore store;
 
   @Before
   public void setUp() throws IOException {
-    root = Files.createTempDirectory("disk-fingerprint-value-store");
-    store = DiskFingerprintValueStore.create(root);
+    root = Files.createTempDirectory("packed-fingerprint-value-store");
+    store = PackedFingerprintValueStore.create(root);
   }
 
   @Test
@@ -63,6 +62,18 @@ public final class DiskFingerprintValueStoreTest {
   }
 
   @Test
+  public void get_beforeFlush_readsBufferedEntry() throws Exception {
+    PackedFingerprint key = PackedFingerprint.getFingerprintForTesting("key");
+    byte[] value = "buffered".getBytes(UTF_8);
+    store.put(key, value).get();
+
+    // The pack file is still empty: the entry only exists in the write buffer.
+    assertThat(Files.size(root.resolve("0.pack"))).isEqualTo(0);
+
+    assertThat(store.get(key).get()).isEqualTo(value);
+  }
+
+  @Test
   public void get_missingKey_failsWithMissingFingerprintValueException() {
     PackedFingerprint key = PackedFingerprint.getFingerprintForTesting("absent");
 
@@ -72,7 +83,7 @@ public final class DiskFingerprintValueStoreTest {
   }
 
   @Test
-  public void put_overwritesExistingValue() throws Exception {
+  public void put_sameKeyTwice_lastValueWins() throws Exception {
     PackedFingerprint key = PackedFingerprint.getFingerprintForTesting("key");
 
     store.put(key, "first".getBytes(UTF_8)).get();
@@ -82,14 +93,55 @@ public final class DiskFingerprintValueStoreTest {
   }
 
   @Test
-  public void get_afterReopeningStoreAtSameRoot_stillFindsValue() throws Exception {
+  public void get_manyEntries_findsEachOne() throws Exception {
+    for (int i = 0; i < 1000; i++) {
+      store.put(PackedFingerprint.getFingerprintForTesting("key" + i), valueOfLength(i)).get();
+    }
+
+    for (int i = 0; i < 1000; i++) {
+      assertThat(store.get(PackedFingerprint.getFingerprintForTesting("key" + i)).get())
+          .isEqualTo(valueOfLength(i));
+    }
+  }
+
+  @Test
+  public void create_afterFlush_readsEntriesWrittenByPreviousStore() throws Exception {
     PackedFingerprint key = PackedFingerprint.getFingerprintForTesting("key");
     byte[] value = "durable".getBytes(UTF_8);
     store.put(key, value).get();
+    store.flush();
 
-    DiskFingerprintValueStore reopened = DiskFingerprintValueStore.create(root);
+    PackedFingerprintValueStore reopened = PackedFingerprintValueStore.create(root);
 
     assertThat(reopened.get(key).get()).isEqualTo(value);
+  }
+
+  @Test
+  public void create_writesToFreshPack_leavingPreviousPackIntact() throws Exception {
+    store.put(PackedFingerprint.getFingerprintForTesting("first"), new byte[10]).get();
+    store.flush();
+
+    PackedFingerprintValueStore second = PackedFingerprintValueStore.create(root);
+    second.put(PackedFingerprint.getFingerprintForTesting("second"), new byte[10]).get();
+    second.flush();
+
+    assertThat(Files.exists(root.resolve("0.pack"))).isTrue();
+    assertThat(Files.exists(root.resolve("1.pack"))).isTrue();
+    assertThat(second.get(PackedFingerprint.getFingerprintForTesting("first")).get())
+        .hasLength(10);
+  }
+
+  @Test
+  public void create_indexRecordPastEndOfPack_dropsEntry() throws Exception {
+    PackedFingerprint key = PackedFingerprint.getFingerprintForTesting("key");
+    store.put(key, "value".getBytes(UTF_8)).get();
+    store.flush();
+    // Simulates a server that died after its index reached disk but before its pack did.
+    Files.write(root.resolve("0.pack"), new byte[0]);
+
+    PackedFingerprintValueStore reopened = PackedFingerprintValueStore.create(root);
+
+    assertThrows(ExecutionException.class, () -> reopened.get(key).get());
   }
 
   @Test
@@ -112,36 +164,37 @@ public final class DiskFingerprintValueStoreTest {
   @Test
   public void sweep_underLimit_deletesNothing() throws Exception {
     store.put(PackedFingerprint.getFingerprintForTesting("a"), new byte[100]).get();
+    store.flush();
 
-    var result = store.sweep(/* maxBytes= */ 1000);
+    var result = store.sweep(/* maxBytes= */ 1_000_000);
 
-    assertThat(result.entriesDeleted()).isEqualTo(0);
-    assertThat(result.bytesAfter()).isEqualTo(100);
+    assertThat(result.packsDeleted()).isEqualTo(0);
   }
 
   @Test
-  public void sweep_overLimit_deletesOldestFirst() throws Exception {
-    PackedFingerprint oldest = PackedFingerprint.getFingerprintForTesting("oldest");
-    PackedFingerprint middle = PackedFingerprint.getFingerprintForTesting("middle");
-    PackedFingerprint newest = PackedFingerprint.getFingerprintForTesting("newest");
-    store.put(oldest, new byte[100]).get();
-    store.put(middle, new byte[100]).get();
-    store.put(newest, new byte[100]).get();
-    setModificationTime(oldest, 1000);
-    setModificationTime(middle, 2000);
-    setModificationTime(newest, 3000);
+  public void sweep_overLimit_deletesOldPacksButNotTheOneBeingWritten() throws Exception {
+    PackedFingerprint old = PackedFingerprint.getFingerprintForTesting("old");
+    store.put(old, new byte[1000]).get();
+    store.flush();
 
-    var result = store.sweep(/* maxBytes= */ 150);
+    PackedFingerprintValueStore current = PackedFingerprintValueStore.create(root);
+    PackedFingerprint fresh = PackedFingerprint.getFingerprintForTesting("fresh");
+    current.put(fresh, new byte[1000]).get();
+    current.flush();
 
-    assertThat(result.entriesScanned()).isEqualTo(3);
-    assertThat(result.entriesDeleted()).isEqualTo(2);
-    assertThat(result.bytesAfter()).isEqualTo(100);
-    assertThat(store.get(newest).get()).hasLength(100);
-    assertThrows(ExecutionException.class, () -> store.get(oldest).get());
-    assertThrows(ExecutionException.class, () -> store.get(middle).get());
+    var result = current.sweep(/* maxBytes= */ 1500);
+
+    assertThat(result.packsDeleted()).isEqualTo(1);
+    assertThat(Files.exists(root.resolve("0.pack"))).isFalse();
+    assertThat(current.get(fresh).get()).hasLength(1000);
+    assertThrows(ExecutionException.class, () -> current.get(old).get());
   }
 
-  private void setModificationTime(PackedFingerprint key, long millis) throws IOException {
-    Files.setLastModifiedTime(store.pathFor(key), FileTime.fromMillis(millis));
+  private static byte[] valueOfLength(int length) {
+    byte[] value = new byte[length];
+    for (int i = 0; i < length; i++) {
+      value[i] = (byte) i;
+    }
+    return value;
   }
 }

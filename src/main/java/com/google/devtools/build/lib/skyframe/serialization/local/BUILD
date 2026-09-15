@@ -14,8 +14,8 @@ filegroup(
 java_library(
     name = "local_stores",
     srcs = [
-        "DiskFingerprintValueStore.java",
         "LayeredFingerprintValueStore.java",
+        "PackedFingerprintValueStore.java",
     ],
     deps = [
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",

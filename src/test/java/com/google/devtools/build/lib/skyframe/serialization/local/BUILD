@@ -12,9 +12,9 @@ filegroup(
 )
 
 java_test(
-    name = "DiskFingerprintValueStoreTest",
+    name = "PackedFingerprintValueStoreTest",
     size = "small",
-    srcs = ["DiskFingerprintValueStoreTest.java"],
+    srcs = ["PackedFingerprintValueStoreTest.java"],
     deps = [
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_stores",

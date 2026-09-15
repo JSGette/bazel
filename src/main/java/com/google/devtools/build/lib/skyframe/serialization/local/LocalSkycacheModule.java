@@ -54,7 +54,7 @@ public final class LocalSkycacheModule extends SerializationModule {
       new LocalAnalysisCachingServicesSupplier();
 
   @Nullable private StoreParams activeParams;
-  @Nullable private DiskFingerprintValueStore diskStore;
+  @Nullable private PackedFingerprintValueStore diskStore;
 
   @Override
   protected RemoteAnalysisCachingServicesSupplier getAnalysisCachingServicesSupplier() {
@@ -100,7 +100,7 @@ public final class LocalSkycacheModule extends SerializationModule {
 
   private void openStore(StoreParams params) throws AbruptExitException {
     try {
-      diskStore = DiskFingerprintValueStore.create(params.root());
+      diskStore = PackedFingerprintValueStore.create(params.root());
     } catch (IOException e) {
       throw abruptExit(
           "Failed to open the local analysis cache at " + params.root(),
@@ -110,6 +110,18 @@ public final class LocalSkycacheModule extends SerializationModule {
     supplier.setStore(LayeredFingerprintValueStore.create(diskStore, params.memoryBytes()));
     activeParams = params;
     logger.atInfo().log("Opened local analysis cache with %s", params);
+  }
+
+  @Override
+  public void afterCommand() {
+    if (diskStore == null) {
+      return;
+    }
+    try {
+      diskStore.flush();
+    } catch (IOException e) {
+      logger.atWarning().withCause(e).log("Failed to flush the local analysis cache");
+    }
   }
 
   private static AbruptExitException abruptExit(
@@ -127,10 +139,10 @@ public final class LocalSkycacheModule extends SerializationModule {
 
   /** Sweeps the on-disk cache back under its size cap once the server goes idle. */
   private static final class SweepIdleTask implements IdleTask {
-    private final DiskFingerprintValueStore store;
+    private final PackedFingerprintValueStore store;
     private final long maxBytes;
 
-    SweepIdleTask(DiskFingerprintValueStore store, long maxBytes) {
+    SweepIdleTask(PackedFingerprintValueStore store, long maxBytes) {
       this.store = store;
       this.maxBytes = maxBytes;
     }
