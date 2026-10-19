@@ -15,8 +15,8 @@ todos:
     content: "Phase 0: codec coverage gaps + compression bake-off (zstd levels/per-function dictionaries/magicless, LZ4+dict, OpenZL, varint/Roaring/Elias-Fano for edges, FSST for keys)"
     status: pending
   - id: p0-ipc-spike
-    content: "Phase 0: Java<->Rust UDS vs shared-memory ring microbenchmark on Linux/macOS; go/no-go memo"
-    status: pending
+    content: "Phase 0: Java<->Rust UDS vs shared-memory ring microbenchmark on Linux/macOS; go/no-go memo (UDS prototype in tools/skystore; remaining comparisons pending)"
+    status: in_progress
   - id: p0-zabel-compare
     content: "Phase 0: download SHA256-verified Zabel v0.0.8 into an isolated directory; compare with Bazel on LLVM (hermetic-llvm) and BuildBuddy workloads (peak RSS, wall time, incremental) as a native-rewrite reference point"
     status: pending

@@ -3,7 +3,10 @@
 Java hot plane + Rust "skystore" sidecar on SSD. Drop-in replacement for
 Skyframe's in-memory graph so the rest of Bazel sees no difference.
 
-**Status:** design / Phase 0 not started. Decisions locked 2026-10-16.
+**Status:** Phase 0 started: the optional [skystore IPC prototype](../../tools/skystore/README.md)
+implements Rust/Java batched UDS get/put with protocol and lifecycle tests.
+Shared-memory comparison, heap attribution, and later phases remain pending.
+Decisions locked 2026-10-16.
 **Tracks:** engine phases 0–8 + parallel Track V (Java value-layout wins).
 
 ## Verdict
