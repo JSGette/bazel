@@ -85,6 +85,18 @@ abstract class AbstractInMemoryNodeEntry<D extends DirtyBuildingState>
     return key;
   }
 
+  @Override
+  public final synchronized boolean replaceDoneValueForMaintenance(
+      SkyValue expected, SkyValue replacement) {
+    checkNotNull(expected);
+    checkNotNull(replacement);
+    if (!isDone() || value != expected) {
+      return false;
+    }
+    value = replacement;
+    return true;
+  }
+
   private boolean isEvaluating() {
     return dirtyBuildingState != null;
   }

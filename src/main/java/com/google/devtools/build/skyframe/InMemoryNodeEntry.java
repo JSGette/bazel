@@ -26,6 +26,19 @@ public interface InMemoryNodeEntry extends NodeEntry {
   /** Returns the {@link SkyKey} associated with this node. */
   SkyKey getKey();
 
+  /**
+   * Replaces a completed node's value by identity without changing versions or edges.
+   *
+   * <p>Only for quiescent, between-command maintenance. The caller must exclude all evaluator and
+   * graph readers and restore any detached value before allowing evaluation to resume. This method
+   * performs no I/O. Metadata wrappers must be retained intact; it never unwraps them.
+   *
+   * @return false if unsupported, dirty, or the expected object is no longer the stored value
+   */
+  default boolean replaceDoneValueForMaintenance(SkyValue expected, SkyValue replacement) {
+    return false;
+  }
+
   /** Whether this node stores edges (deps and rdeps). */
   boolean keepsEdges();
 

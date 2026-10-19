@@ -18,14 +18,27 @@ fn main() -> std::io::Result<()> {
     use std::time::Duration;
 
     let args: Vec<_> = std::env::args_os().collect();
-    if args.len() != 2 {
-        eprintln!("usage: skystore SOCKET_PATH");
+    if !(2..=4).contains(&args.len()) || (args.len() == 4 && args[3] != "--watch-parent-stdin") {
+        eprintln!("usage: skystore SOCKET_PATH [NEW_SPILL_FILE [--watch-parent-stdin]]");
         std::process::exit(2);
+    }
+    if args.len() == 4 {
+        // The parent keeps this pipe open. EOF also terminates the sidecar if the JVM crashes.
+        std::thread::spawn(|| {
+            use std::io::Read;
+            let mut byte = [0];
+            let _ = std::io::stdin().read(&mut byte);
+            std::process::exit(0);
+        });
     }
     // Require a caller-owned private directory. Never unlink an existing path:
     // it may be another sidecar's live socket or an unrelated file.
     let listener = UnixListener::bind(&args[1])?;
-    let mut store = skystore::Store::default();
+    let mut store = if args.len() >= 3 {
+        skystore::Store::disk(std::path::Path::new(&args[2]))?
+    } else {
+        skystore::Store::default()
+    };
     for connection in listener.incoming() {
         let mut stream = connection?;
         stream.set_read_timeout(Some(Duration::from_secs(30)))?;

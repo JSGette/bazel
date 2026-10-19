@@ -345,6 +345,16 @@ public abstract class BlazeModule implements OptionsSupplier {
   public void commandComplete() {}
 
   /**
+   * Runs best-effort graph maintenance after all command completion hooks have finished.
+   *
+   * <p>No evaluation is running at this point. Implementations must restore any detached graph
+   * state in beforeCommand before other modules can read it. They must handle their own failures
+   * and must not schedule background work that accesses the graph. This hook is deliberately after
+   * command metrics and profiling; maintenance costs still contribute to client wall time.
+   */
+  public void afterCommandMaintenance(CommandEnvironment env) {}
+
+  /**
    * Called when Blaze shuts down.
    *
    * <p>If you are also implementing {@link #blazeShutdownOnCrash}, consider putting the common

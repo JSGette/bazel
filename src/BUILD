@@ -421,6 +421,7 @@ filegroup(
         "//src/main/java/com/google/devtools/build/lib/network:srcs",
         "//src/main/java/com/google/devtools/build/lib/outputfilter:srcs",
         "//src/main/java/com/google/devtools/build/skyframe:srcs",
+        "//src/main/java/com/google/devtools/build/skystore:srcs",
         "//src/main/java/com/google/devtools/common/options:srcs",
         "//src/main/java/net/starlark/java:srcs",
         "//src/main/native:srcs",

@@ -16,6 +16,17 @@ import time
 
 def process_memory(roots):
     """Sum live process RSS/PSS, following descendants (including a sidecar)."""
+    # /proc/PID/task/PID/children only includes children forked by the leader thread.
+    # JVM ProcessBuilder runs on command threads; discover children by process PPID instead.
+    children_by_parent = {}
+    for proc in Path("/proc").iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            fields = (proc / "stat").read_text().rpartition(")")[2].split()
+            children_by_parent.setdefault(int(fields[1]), []).append(int(proc.name))
+        except (FileNotFoundError, ProcessLookupError, PermissionError, ValueError, IndexError):
+            continue
     pending = list(roots)
     seen = set()
     rss = pss = 0
@@ -26,8 +37,7 @@ def process_memory(roots):
         seen.add(pid)
         base = Path("/proc") / str(pid)
         try:
-            children = (base / "task" / str(pid) / "children").read_text().split()
-            pending.extend(map(int, children))
+            pending.extend(children_by_parent.get(pid, []))
             fields = {}
             for line in (base / "smaps_rollup").read_text().splitlines():
                 key, _, value = line.partition(":")
@@ -111,6 +121,9 @@ def main():
             "post_command_tree_rss_kib": retained[0],
             "post_command_tree_pss_kib": retained[1],
         }
+        stats = output_base / "skyframe-tiering.json"
+        if stats.exists():
+            record["tiering"] = json.loads(stats.read_text())
         records.append(record)
         if measure:
             with (output / (name + ".samples.csv")).open("w", newline="") as f:
@@ -175,6 +188,12 @@ def main():
         ] + args.targets)
         diagnostic("jfr-stop", ["JFR.stop", "name=SkystoreBaseline"])
         diagnostic("heap-histogram", ["GC.class_histogram"])
+        retained = process_memory([server_pid()])
+        (output / "post-gc-memory.json").write_text(json.dumps({
+            "tree_rss_kib": retained[0], "tree_pss_kib": retained[1],
+            "process_count": retained[2],
+            "note": "After diagnostic recording and full-GC class histogram; includes sidecar."
+        }, indent=2) + "\n")
         command("skyframe-counts", ["dump", "--skyframe=count"], measure=False)
         command("skyframe-values", ["dump", "--memory=full,summary"], measure=False)
         warm = [r for r in records if r["name"].startswith("warm-analysis-")]

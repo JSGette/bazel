@@ -18,12 +18,16 @@
 //! the caller owns serialization, fingerprinting, and validity.
 
 use std::collections::HashMap;
-use std::io::{self, Read, Write};
+use std::fs::{File, OpenOptions};
+use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::path::Path;
 
 pub const VERSION: u8 = 1;
 pub const PING: u8 = 0;
 pub const PUT: u8 = 1;
 pub const GET: u8 = 2;
+pub const CLEAR: u8 = 3;
+const MAX_DISK: u64 = 1024 * 1024 * 1024;
 pub const MAX_FRAME: usize = 16 * 1024 * 1024;
 pub const MAX_BATCH: usize = 4096;
 pub const MAX_STORE: usize = 64 * 1024 * 1024;
@@ -102,14 +106,81 @@ impl<'a> Decoder<'a> {
     }
 }
 
+/// A process-lifetime location. Disk values are checked before they cross the IPC boundary.
+enum Value {
+    Memory(Vec<u8>),
+    Disk {
+        offset: u64,
+        length: usize,
+        checksum: u32,
+    },
+}
+
+impl Value {
+    fn len(&self) -> usize {
+        match self {
+            Self::Memory(bytes) => bytes.len(),
+            Self::Disk { length, .. } => *length,
+        }
+    }
+}
+
+/// CRC32C detects accidental on-disk corruption. It is not an authentication mechanism.
+fn crc32c(bytes: &[u8]) -> u32 {
+    let mut crc = !0u32;
+    for byte in bytes {
+        crc ^= u32::from(*byte);
+        for _ in 0..8 {
+            crc = (crc >> 1) ^ (0x82f63b78 & 0u32.wrapping_sub(crc & 1));
+        }
+    }
+    !crc
+}
+
 /// Bounded, process-lifetime storage. No eviction or reuse after restart.
 #[derive(Default)]
 pub struct Store {
-    values: HashMap<Key, Vec<u8>>,
+    values: HashMap<Key, Value>,
     bytes: usize,
+    disk: Option<File>,
 }
 
 impl Store {
+    /// Creates an empty, exclusively owned spill file. Existing files are never reused.
+    pub fn disk(path: &Path) -> io::Result<Self> {
+        Ok(Self {
+            disk: Some(
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create_new(true)
+                    .open(path)?,
+            ),
+            ..Self::default()
+        })
+    }
+
+    fn read_value(&mut self, key: &Key) -> io::Result<Option<Vec<u8>>> {
+        match self.values.get(key) {
+            None => Ok(None),
+            Some(Value::Memory(bytes)) => Ok(Some(bytes.clone())),
+            Some(Value::Disk {
+                offset,
+                length,
+                checksum,
+            }) => {
+                let file = self.disk.as_mut().unwrap();
+                file.seek(SeekFrom::Start(*offset))?;
+                let mut bytes = vec![0; *length];
+                file.read_exact(&mut bytes)?;
+                if crc32c(&bytes) != *checksum {
+                    return Err(invalid("spill checksum mismatch"));
+                }
+                Ok(Some(bytes))
+            }
+        }
+    }
+
     pub fn handle(&mut self, frame: &[u8]) -> io::Result<Vec<u8>> {
         if !(2..=MAX_FRAME).contains(&frame.len()) {
             return Err(invalid("frame length outside bounds"));
@@ -141,9 +212,33 @@ impl Store {
                 if new_size > MAX_STORE {
                     return Err(invalid("store budget exceeded"));
                 }
-                for (key, value) in updates {
-                    self.values.insert(key, value.to_vec());
+                // Publish index updates only after all writes succeed. On failure the old
+                // index remains valid; unreferenced tail bytes are reclaimed by CLEAR.
+                let mut locations = Vec::with_capacity(updates.len());
+                if let Some(file) = &mut self.disk {
+                    let mut offset = file.seek(SeekFrom::End(0))?;
+                    let added: u64 = updates.values().map(|v| v.len() as u64).sum();
+                    if offset + added > MAX_DISK {
+                        return Err(invalid("spill file budget exceeded"));
+                    }
+                    for (key, value) in updates {
+                        file.write_all(value)?;
+                        locations.push((
+                            key,
+                            Value::Disk {
+                                offset,
+                                length: value.len(),
+                                checksum: crc32c(value),
+                            },
+                        ));
+                        offset += value.len() as u64;
+                    }
+                } else {
+                    for (key, value) in updates {
+                        locations.push((key, Value::Memory(value.to_vec())));
+                    }
                 }
+                self.values.extend(locations);
                 self.bytes = new_size;
                 output.extend_from_slice(&(count as u32).to_be_bytes());
             }
@@ -163,15 +258,24 @@ impl Store {
                 output.reserve(response_size - 2);
                 output.extend_from_slice(&(count as u32).to_be_bytes());
                 for key in keys {
-                    match self.values.get(&key) {
+                    match self.read_value(&key)? {
                         None => output.push(0),
                         Some(value) => {
                             output.push(1);
                             output.extend_from_slice(&(value.len() as u32).to_be_bytes());
-                            output.extend_from_slice(value);
+                            output.extend_from_slice(&value);
                         }
                     }
                 }
+            }
+            CLEAR => {
+                input.finish()?;
+                if let Some(file) = &mut self.disk {
+                    file.set_len(0)?;
+                    file.seek(SeekFrom::Start(0))?;
+                }
+                self.values.clear();
+                self.bytes = 0;
             }
             _ => return Err(invalid("unknown operation")),
         }
@@ -333,5 +437,73 @@ mod tests {
         }
         drop(client);
         worker.join().unwrap().unwrap();
+    }
+    fn disk_store() -> (Store, std::path::PathBuf) {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static ID: AtomicUsize = AtomicUsize::new(0);
+        let path = std::env::temp_dir().join(format!(
+            "skystore-test-{}-{}",
+            std::process::id(),
+            ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        (Store::disk(&path).unwrap(), path)
+    }
+
+    #[test]
+    fn crc32c_known_vector() {
+        assert_eq!(crc32c(b"123456789"), 0xe3069283);
+    }
+
+    #[test]
+    fn disk_roundtrip_clear_and_exclusive_creation() {
+        let (mut store, path) = disk_store();
+        assert!(Store::disk(&path).is_err());
+        store
+            .handle(&put(&[([1; 16], b"first"), ([2; 16], b"")]))
+            .unwrap();
+        store.handle(&put(&[([1; 16], b"second")])).unwrap();
+        assert_eq!(store.read_value(&[1; 16]).unwrap().unwrap(), b"second");
+        assert_eq!(store.read_value(&[2; 16]).unwrap().unwrap(), b"");
+        assert!(matches!(store.values[&[1; 16]], Value::Disk { .. }));
+        assert!(store.handle(&[VERSION, CLEAR, 0]).is_err());
+        assert_eq!(store.values.len(), 2);
+        store.handle(&[VERSION, CLEAR]).unwrap();
+        assert_eq!(store.bytes, 0);
+        assert!(store.values.is_empty());
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), 0);
+        store.handle(&put(&[([3; 16], b"new")])).unwrap();
+        assert_eq!(store.read_value(&[3; 16]).unwrap().unwrap(), b"new");
+        drop(store);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn disk_corruption_and_truncation_fail_closed() {
+        let (mut store, path) = disk_store();
+        store.handle(&put(&[([1; 16], b"correct")])).unwrap();
+        let mut writer = OpenOptions::new().write(true).open(&path).unwrap();
+        writer.write_all(b"X").unwrap();
+        assert!(store.handle(&get(&[[1; 16]])).is_err());
+        writer.set_len(0).unwrap();
+        assert!(store.handle(&get(&[[1; 16]])).is_err());
+        drop(store);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn disk_rejects_malformed_batch_and_physical_limit_without_publishing() {
+        let (mut store, path) = disk_store();
+        store.handle(&put(&[([1; 16], b"old")])).unwrap();
+        let mut request = put(&[([1; 16], b"new"), ([2; 16], b"another")]);
+        request.pop();
+        assert!(store.handle(&request).is_err());
+        assert_eq!(store.read_value(&[1; 16]).unwrap().unwrap(), b"old");
+        assert!(store.read_value(&[2; 16]).unwrap().is_none());
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), 3);
+        store.disk.as_mut().unwrap().set_len(MAX_DISK).unwrap();
+        assert!(store.handle(&put(&[([1; 16], b"new")])).is_err());
+        assert_eq!(store.read_value(&[1; 16]).unwrap().unwrap(), b"old");
+        drop(store);
+        std::fs::remove_file(path).unwrap();
     }
 }

@@ -1,37 +1,64 @@
-# Skystore: Phase 0 IPC prototype
+# Skystore: experimental Rust-backed Skyframe value tier
 
-This is the first executable slice of the
+The optional `tiered_idle` engine mode connects Bazel's real Skyframe graph to
+the Rust skystore process. Java retains evaluation, invalidation, keys, versions,
+and edges. After command completion, audited glob values can move to a
+checksummed spill file; the next command restores them before any command module
+can read the graph. The default remains `inmemory`.
+
+This is the first integrated slice of the
 [tiered Skyframe design](../../docs/jsgette/skyframe-tiered-engine.md).
-It measures Java-to-Rust batched value transfers over a Unix-domain socket.
-It is **not connected to Bazel's evaluator** and does not change build semantics.
-Java retains the hot evaluation plane in the planned architecture.
+It is **not the complete tiered engine**: there is no compact graph, in-command
+paging, cold edge store, cross-restart checkpoint, or broad value codec coverage.
+It targets idle retained memory, not peak evaluation memory.
 
-The Rust binary has no third-party dependencies. It uses an ephemeral map so
-measurements isolate protocol, copies, allocation, and socket overhead from
-serialization, compression, and SSD I/O. Its fingerprints are opaque 16-byte
-keys; it neither computes nor validates content hashes. Restart loses all values.
-This is a measurement tool, not a persistent cache or a production server.
+## Build and run on Linux
 
-## Build and test on Linux
+Normal Bazel builds still require no Rust installation. Build the optional
+sidecar with Rust/Cargo >= 1.85, and build Bazel using the repository's pinned
+launcher (currently Bazel 9.3.0):
 
-Requirements: the repository's pinned Bazel version, Rust/Cargo >= 1.85, and a
-C++ toolchain for building Bazel. Bazel supplies Java 25 for Java targets.
-Cargo, rustfmt, and Clippy must be available on PATH.
+    cargo build --release --manifest-path tools/skystore/Cargo.toml
+    bazel build --config=efcache //src:bazel-dev
 
-From the repository root:
+Copy the resulting binary before running it against a workload in a separate
+output base:
 
-    tools/skystore/test.sh
-    bazel build //src:bazel-dev
-    bazel test //src/test/java/com/google/devtools/build/skyframe:all
+    /absolute/path/to/copied-bazel --output_base=/absolute/new/output-base build \
+      --experimental_skyframe_engine=tiered_idle \
+      --experimental_skystore_binary=/absolute/path/to/skystore \
+      //your:target
 
-The test script runs Rust formatting, Clippy, all Rust tests, the Java protocol
-tests, and a Java process against the actual release-mode Rust executable.
-The latter checks batching, missing/empty values, duplicate keys, reconnect,
-malformed requests without partial writes, occupied socket paths, restart,
-and server death. Set BAZEL=/path/to/bazel to use a particular launcher.
+Both flags are command options. Changing back to `inmemory` restores the graph
+and stops the sidecar. A missing/unusable binary produces a warning and uses the
+resident engine. An explicitly configured tier is therefore **best effort**;
+check `OUTPUT_BASE/skyframe-tiering.json` to verify actual spill/restore counts,
+serialized bytes, timings, recovery count, and sidecar PID.
 
-With EngFlow Cache & Carry reachable, configure these opt-in lines in
-~/.bazelrc as described in the
+The allowlist currently includes exact `GlobsValue` and
+`GlobValueWithImmutableSet` classes. Metadata wrappers, subclasses, errors,
+nested-set globs, dirty entries, and edgeless entries stay resident. Encodings
+smaller than 1 KiB stay resident too. The 32 MiB limit counts serialized values
+plus keys; it is not a heap-memory budget. Acknowledgement precedes detaching a
+value. Restores validate SHA-256 and the versioned codec before publishing.
+
+Maintenance runs only after all command-completion hooks. Entry replacement is
+an identity-checked operation that leaves versions and dependency topology
+unchanged. Storage I/O never occurs while holding a node-entry monitor.
+A missing/corrupt value or dead sidecar causes the entire evaluator to be reset
+before the next command evaluates anything. Failed writes leave values resident;
+if recovery of already-detached values fails, the graph is reset.
+
+The sidecar owns a new private directory under Linux /tmp, containing its Unix
+socket and spill file. Files are never reused across restarts. Shutdown stops
+the child and removes its files; a parent pipe also stops it after a JVM crash.
+A crash can leave a private directory on disk, which is never reopened.
+No fsync/durable recovery is promised or required for this ephemeral tier.
+
+## Cache & Carry
+
+The verified WSL setup uses the appliance over USB at 10.55.0.1 and enables the
+following configuration only with `--config=efcache`, as described in the
 [EngFlow guide](https://docs.engflow.com/myengflow/cache-carry.html):
 
     build:efcache --remote_cache=grpc://10.55.0.1:8080
@@ -39,120 +66,103 @@ With EngFlow Cache & Carry reachable, configure these opt-in lines in
     build:efcache --bes_results_url=http://10.55.0.1:8088/invocation/
     build:efcache --remote_timeout=600
 
-Then use:
+Bazel/Java actions use this remote action cache. Cargo builds the optional Rust
+binary separately. Add `--bes_backend=` during measurements to exclude build
+event upload latency while retaining the remote action cache.
+
+## Validation
+
+Run on Linux:
 
     tools/skystore/test.sh --config=efcache
-    bazel build --config=efcache //src:bazel-dev
-    bazel test --config=efcache //src/test/java/com/google/devtools/build/skyframe:all
+    bazel test --config=efcache \
+      //src/test/java/com/google/devtools/build/skyframe:all \
+      //src/test/java/com/google/devtools/build/lib/skyframe/tiering:all
+    python3 tools/skystore/engine_integration_test.py \
+      --bazel=/absolute/path/to/copied-bazel \
+      --skystore=/absolute/path/to/skystore \
+      --output=/absolute/new/test-directory --cache
 
-The Java and Bazel actions use the remote cache. Cargo builds the optional Rust
-spike separately; it does not use Bazel's remote action cache. rules_rust and
-embedding the sidecar are Phase 3 work. The normal Bazel bootstrap continues to
-require no Rust installation.
+The Rust tests cover framing, batches, limits, checksums, corrupt/truncated
+files, atomic index publication, exclusive file creation, and clearing.
+Java tests cover transport deadlines and validation, exact codec round trips,
+metadata/dirty-value pinning, identity guards, version/edge preservation, storage
+failures, and option registration.
 
-## Benchmark
+The process integration script validates actual build outputs across source,
+glob addition/deletion, BUILD and .bzl edits, flag changes, keep-going errors,
+cycles, query, mode changes, clean, state dropping, restart, killed sidecars,
+and deliberately corrupted spill files. Its output directory must be new.
+The existing Java/Rust IPC interop script also checks malformed requests,
+reconnect, empty/missing values, occupied sockets, and restart loss.
 
-Run on an otherwise idle machine:
+## Profiling
 
-    tools/skystore/benchmark.sh > /tmp/skystore-uds.csv
-
-The script starts the release Rust binary in a private temporary directory,
-runs Java with batches of 1/64/256 and values of 64/1024 bytes, then stops the
-sidecar and removes its socket. Each configuration checks every returned value,
-warms up 1,000 put/get pairs, and measures 5,000 pairs. CSV rows report p50, p99,
-mean end-to-end microseconds per request and values/second separately for put
-and get. The benchmark JVM uses a 256 MiB initial / 512 MiB maximum heap.
-Each Java invocation prints a CSV header. Validation of returned bytes
-is outside the timed get interval, but client allocation and decoding are included.
-
-Record the commit, OS/kernel, CPU, Rust/JDK versions, build mode, load, and raw
-CSV. These are synthetic warm-map measurements, not a Skyframe speedup result.
-No timing thresholds are asserted in tests. Compare with shared memory and real
-serialized values before choosing a production transport.
-
-Initial [Linux measurements and validation](../../docs/jsgette/measurements/skystore-uds-linux-2026-10-19.md)
-are recorded with raw CSV and environment details.
-
-## Engine profiling baseline
-
-The Linux-only profile_bazel.py harness separates unprofiled analysis timing
-from a diagnostic pass. It records cold analysis (fresh server/output base),
-two warmups, five warm analysis runs, process-tree RSS and PSS sampled every
-50 ms, a JFR CPU/allocation recording, Bazel trace and memory profiles, a
-post-GC class histogram, and a per-value Skyframe memory dump.
-
-Use a frozen vanilla binary and an immutable workload checkout:
+`profile_bazel.py` separates unprofiled analysis timing from diagnostic passes.
+It records a fresh-output-base analysis, two warmups, repeated warm analysis,
+process-tree RSS/PSS sampled every 50 ms, JFR CPU/allocation samples, a Bazel
+trace and memory profile, post-GC heap histogram, and Skyframe value attribution.
 
     python3 tools/skystore/profile_bazel.py \
-      --bazel=/absolute/path/to/bazel-vanilla \
-      --workspace=/absolute/path/to/workload \
-      --output=/absolute/path/to/new-profile-directory \
+      --bazel=/absolute/path/to/copied-bazel \
+      --workspace=/absolute/path/to/frozen-workload \
+      --output=/absolute/new/profile-directory \
       --jcmd=/absolute/path/to/jdk/bin/jcmd \
       --build-arg=--config=efcache --build-arg=--bes_backend= \
+      --build-arg=--experimental_skyframe_engine=tiered_idle \
+      --build-arg=--experimental_skystore_binary=/absolute/path/to/skystore \
       //src:bazel-dev
 
-Repeat with the integrated engine binary, matched flags, and a different output
-directory. Additional startup flags use --startup-arg=--flag=value. The harness
-refuses to overwrite an output directory and shuts down only its own server.
+Compare vanilla, modified-default, and modified-tiered binaries with identical
+workloads and flags apart from the tier switch. Repeat in balanced order.
+The sampler discovers descendants by PPID, including children spawned by
+non-leader JVM threads, and includes the Rust process. RSS can double-count
+shared pages; PSS apportions them. Timing runs do not enable JFR or forced GC.
+The diagnostic pass clears and rebuilds the analysis graph. The memory profile
+forces GC before the post-command spill; the separate class histogram reflects
+the idle graph after spilling.
 
-Timing runs do not enable JFR or forced-GC memory profiling. The diagnostic
-pass clears the analysis graph, then rebuilds it with profiling enabled.
-The process-tree measurement includes child processes, so an integrated Rust
-sidecar contributes to the totals. RSS sums may double-count shared pages;
-PSS apportions them. The output records the binary SHA256, workload commit,
-kernel, CPU, memory, flags, sampling interval, and raw per-run measurements.
-
-This is an analysis-only baseline, not a complete engine comparison. Repository
-and OS caches may already be warm, the cold run is a single sample, and peak
-memory is sampled rather than measured continuously. Final comparisons also
-need repeated cold builds, source/BUILD/.bzl edits, flag changes, server restart,
-output/action-key equivalence, and the total JVM-plus-sidecar memory footprint.
-Keep large JFR recordings and raw dumps outside Git.
+Analysis-only timings do not establish execution performance. Repository and
+OS caches may already be warm, sampled peaks can miss brief spikes, and codec
+coverage is deliberately narrow. Record raw results and avoid interpreting
+serialized bytes as saved RAM. Large JFR recordings and dumps belong outside Git.
 
 ## Wire protocol v1
 
-All integers are unsigned, big-endian. Each frame has a four-byte body length
-followed by a one-byte version (1), a one-byte operation, and its payload.
-The response echoes version and operation. Only one request may be outstanding
-on a connection. A single connection can carry many requests.
+Integers are big-endian. Frames are a four-byte body length, version byte 1,
+operation byte, and payload. Responses echo version and operation. One request
+may be outstanding per connection.
 
-| Operation | Request payload | Response payload |
+| Operation | Request | Response |
 |---|---|---|
 | 0 Ping | Empty | Empty |
-| 1 PutValues | Count u32, then (fingerprint[16], length u32, value[length]) per entry | Count u32 acknowledged |
-| 2 GetValues | Count u32, then fingerprint[16] per entry | Count u32, then (found u8, [length u32, value[length]]) per entry |
+| 1 PutValues | Count u32, then (key[16], length u32, value[length]) | Count u32 acknowledged |
+| 2 GetValues | Count u32, then key[16] | Count u32, then (found u8, [length u32, value[length]]) |
+| 3 Clear | Empty | Empty |
 
-Get results preserve request order, including duplicate keys. found=0 is a
-miss with no following length/value; found=1 can contain a zero-length value.
-Duplicate put keys take the last value in the batch. Empty batches are valid.
-A put is fully validated, including its resulting store budget, before mutation.
+Keys are opaque; the idle tier uses unique IDs within each cleared generation,
+with SHA-256 integrity checks held separately in Java. GET preserves order,
+duplicates, empty values and misses. PUT validates the whole request and budget
+before mutation. Disk index updates are published only after all writes succeed.
+A lost acknowledgement does not prove a PUT was not applied. CLEAR is used only
+after restoring every live reference.
 
-Limits: 16 MiB per frame body, 4,096 entries per batch, and 64 MiB of retained
-key/value bytes (HashMap and allocator overhead are additional). Get responses
-must also fit the frame limit, including repeated values. Reduce batch size on
-overflow. Unknown operations/versions, malformed payloads, invalid lengths,
-trailing bytes, and exceeded budgets close the client connection without an
-acknowledgement; they do not terminate the server. A dropped connection is not
-proof that a previously sent put was not applied.
+Limits: 16 MiB frames, 4,096 entries per batch, 64 MiB retained logical key/value
+bytes, and a 1 GiB physical append-file cap. The disk backend keeps offsets,
+lengths, and CRC32C checksums in RAM, not payloads. CLEAR truncates the file.
+Corruption, malformed requests, invalid versions/operations, and exceeded
+budgets close the connection. Later clients can reconnect. CRC32C detects
+accidental disk corruption; it is not authentication.
 
-The Java client applies a whole-request deadline and closes on I/O/protocol
-errors. The prototype server handles one connection at a time with 30-second
-read/write inactivity timeouts. This deliberate single-client model is for
-measuring batch IPC, not concurrent evaluator traffic.
+The Java client uses a whole-request deadline. The server handles one connection
+at a time with 30-second inactivity timeouts. The integrated controller disconnects
+between commands. Standalone IPC benchmarks can still use the memory backend:
 
-Create the socket inside a caller-owned private directory. The server refuses
-to replace any existing path. The owner stops the process and removes its socket;
-the server deliberately leaves stale sockets after exit. The benchmark and
-interop harnesses own and clean up their private directories.
+    tools/skystore/benchmark.sh > /tmp/skystore-uds.csv
 
-## Remaining gates
-
-- Shared-memory ring comparison, macOS runs, and repeatable IPC decision memo.
-- Heap attribution, working-set tracing, codec coverage and real-value
-  compression measurements from Phase 0.
-- Compact Java graph and conformance work before production tiering.
-- Storage-engine comparison, checksums, checkpoints, crash recovery,
-  multi-client scheduling, and production sidecar lifecycle in later phases.
-
-No engine flag, value spilling, persisted edges, or graph invalidation is enabled
-by this prototype.
+Those synthetic warm-map results isolate transport costs and are not evidence
+of a Skyframe speedup. Initial
+[IPC measurements](../../docs/jsgette/measurements/skystore-uds-linux-2026-10-19.md)
+remain available. Production promotion still needs the compact graph,
+working-set policy, wider audited codecs, concurrency/rewinding conformance,
+bounded paging, and persistent validity/checkpoint work from the design.

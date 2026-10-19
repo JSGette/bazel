@@ -889,6 +889,10 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       finalCommandResult = BlazeCommandResult.withIdleTasks(finalCommandResult, idleTasks);
     }
 
+    for (BlazeModule module : blazeModules) {
+      module.afterCommandMaintenance(env);
+    }
+
     env.getReporter().cleanup();
     actionKeyContext.clear();
     DebugLoggerConfigurator.flushServerLog();

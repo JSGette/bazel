@@ -42,6 +42,8 @@ public final class Bazel {
   public static final ImmutableList<Class<? extends BlazeModule>> BAZEL_MODULES =
       ImmutableList.of(
           BazelStartupOptionsModule.class,
+          // Restore tiered values before any other command module can access the graph.
+          com.google.devtools.build.lib.skyframe.tiering.SkyframeTieringModule.class,
           // This module is registered early so that profiles are as complete as possible.
           com.google.devtools.build.lib.profiler.CommandProfilerModule.class,
           com.google.devtools.build.lib.starlarkprofiler.CpuProfilerModule.class,

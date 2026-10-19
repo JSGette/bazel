@@ -74,6 +74,11 @@ public final class SkystoreClient implements Closeable {
     finish(exchange((byte) 0, request((byte) 0, 0)));
   }
 
+  /** Discards all values after the caller has restored every live reference. */
+  public void clear() throws IOException {
+    finish(exchange((byte) 3, request((byte) 3, 0)));
+  }
+
   public void put(List<Entry> entries) throws IOException {
     checkCount(entries.size());
     long size = 4;

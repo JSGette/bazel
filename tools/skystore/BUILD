@@ -1,13 +1,25 @@
-load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
+load("@rules_java//java:defs.bzl", "java_binary", "java_test")
 
 package(
     default_applicable_licenses = ["//:license"],
     default_visibility = ["//visibility:private"],
 )
 
-java_library(
+alias(
     name = "client",
-    srcs = ["java/com/google/devtools/build/skystore/SkystoreClient.java"],
+    actual = "//src/main/java/com/google/devtools/build/skystore:client",
+)
+
+filegroup(
+    name = "srcs",
+    srcs = glob(
+        ["**"],
+        exclude = [
+            "target/**",
+            "__pycache__/**",
+        ],
+    ),
+    visibility = ["//tools:__pkg__"],
 )
 
 java_binary(

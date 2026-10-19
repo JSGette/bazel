@@ -31,6 +31,7 @@ filegroup(
         "//tools/python:srcs",
         "//tools/res:srcs",
         "//tools/sh:srcs",
+        "//tools/skystore:srcs",
         "//tools/test:srcs",
         "//tools/test/CoverageOutputGenerator/java/com/google/devtools/coverageoutputgenerator:srcs",
         "//tools/test/CoverageOutputGenerator/javatests/com/google/devtools/coverageoutputgenerator:srcs",
