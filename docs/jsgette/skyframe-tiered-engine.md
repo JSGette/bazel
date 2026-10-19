@@ -15,9 +15,9 @@ uses stable Java handles, an explicit completed-node residency limit, and full
 cold records containing values, both versions, dependency groups, and reverse
 edges. It passes the existing evaluator contract with supported values evicted
 between operations, and a Linux test pages records through the rules_rs-built
-Rust process. It is **not selected by a Bazel command flag yet**. Lossless action
-value codecs, production graph lifecycle wiring, byte-level memory accounting,
-and the lazy-engine performance comparison remain pending.
+Rust process. The opt-in `tiered_genrule` command mode now pages audited native
+genrule action nodes during real builds. Broader codecs, byte-level residency
+accounting, and production-scale storage remain pending.
 Decisions locked 2026-10-16; disk-backed graph acceptance clarified 2026-10-19.
 
 ## Implemented graph-core checkpoint (2026-10-19)
@@ -68,6 +68,55 @@ bazel test --config=efcache --bes_backend= --jobs=4 \
   //src/test/java/com/google/devtools/build/skyframe:DiskBackedMemoizingEvaluatorTest \
   //src/test/java/com/google/devtools/build/lib/skyframe/tiering:SkystoreGraphTest
 ```
+
+## Native genrule demand paging (2026-10-19)
+
+A source-built Bazel can now select the graph during real analysis and execution:
+
+```sh
+bazel --output_base=/absolute/separate/output-base build \
+  --experimental_skyframe_engine=tiered_genrule \
+  --experimental_skyframe_resident_nodes=32 \
+  --experimental_skystore_binary=/absolute/path/to/skystore \
+  //your:target
+```
+
+The allowlist is deliberately exact: native `GenRuleAction` in
+`RuleConfiguredTargetValue`, with one action and no input discovery. Other
+actions and values, errors, event wrappers, and in-flight nodes remain pinned.
+This is a working action-paging slice, **not full action-type coverage or a
+byte-bounded production engine**. The resident limit counts eligible node
+delegates, not objects still held by external callers, pinned values, metadata,
+or the operating system page cache.
+
+The local codec retains transitive-package metadata, action/target aliasing,
+canonical configuration identity, and weakly interned artifacts. Shared nested
+sets use fingerprint-addressed chunks in the Rust store. Configuration and
+BuildOptions references remain pinned for an evaluator generation. Remote
+analysis-cache substitutions and enhanced Starlark action codecs are excluded.
+Missing chunk reads complete their shared futures exceptionally; repeated
+readers cannot become stuck on an unresolved future.
+
+Each evaluator generation owns a fresh Rust process, store, and codec scope.
+Changing engines/limits/binary resets the evaluator; a dead process detected
+between commands rebuilds the graph. Clean, state dropping, interruption, and
+tracking-mode changes are supported. Storage startup failure falls back to an
+ordinary graph and retries on the next command. Failure to read an authoritative
+record during evaluation fails closed. Discarding analysis values and remote
+analysis caching disable this experiment; the remote **action** cache remains
+supported. Files are ephemeral, without cross-server persistence or compaction.
+
+`OUTPUT_BASE/skyframe-tiering.json` reports enabled status, resident/pinned/cold
+nodes, logical node I/O, chunk reads/writes, pinned configuration count, and the
+sidecar PID. Switching back to `inmemory` clears stale enabled statistics.
+
+Linux validation includes the native codec's actual Rust chunk round trip,
+forced cold shared-cache reads, repeated missing-chunk failure, 28 real-command
+checks (including action-key inspection), and five lifecycle checks. The common
+vanilla command matrix verifies output digests and action keys; independent
+graph/evaluator tests force eviction between completed operations. The
+[measurement report](measurements/skyframe-lazy-genrule-linux-2026-10-19.md)
+records the measured scope and remaining limitations.
 
 ## Required outcome: graph on disk, bounded working set in RAM
 

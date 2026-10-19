@@ -15,13 +15,16 @@ todos:
     content: "Integrated opt-in Rust disk value tier for audited globs between commands; Linux correctness/recovery tests and vanilla/default/tiered profiling complete. Does not complete compact graph, paging, or persistent-engine phases."
     status: completed
   - id: disk-backed-graph-core
-    content: "Implemented stable node handles, demand-loaded checksummed complete node records, bounded completed-node cache, evaluator graph constructor seam, and generic change-pruning hooks. Linux graph/evaluator forced-eviction suite and Rust disk integration pass. Command lifecycle wiring and lossless action codecs remain pending."
+    content: "Implemented stable node handles, demand-loaded checksummed complete node records, bounded completed-node cache, evaluator graph constructor seam, and generic change-pruning hooks. Linux graph/evaluator forced-eviction suite and Rust disk integration pass. Opt-in native genrule action codec and command lifecycle wiring now implemented; wider codecs remain pending."
+    status: completed
+  - id: native-genrule-demand-paging
+    content: "Real tiered_genrule engine integration, local identity-preserving native action codec, shared Rust chunks, lifecycle recovery, Linux output/action-key oracle checks, and vanilla/default/tiered profiles. Native genrules only; full codec coverage and byte-based accounting remain pending."
     status: completed
   - id: disk-backed-graph-acceptance
     content: "Required outcome clarified 2026-10-19: cold action/Skyframe node records, values and edges on SSD; only compact metadata, active/pinned objects and a bounded working-set cache in RAM. No whole-graph restoration before commands. Audit lossless local codecs and cold-dependency invalidation; idle glob spilling does not meet this outcome."
     status: pending
   - id: disk-backed-graph-comparison
-    content: "After lazy graph integration: compare vanilla against a disk graph larger than the resident cache using small/disjoint working sets and cold-dependency edits; distinguish warm page-cache reads from verified disk reads; report total JVM/Rust/cache memory, pinned bytes, page-ins, hit/miss/eviction counts, latency and output equivalence."
+    content: "Native-genrule prototype measured separately; broader acceptance still requires: compare vanilla against a disk graph larger than the resident cache using small/disjoint working sets and cold-dependency edits; distinguish warm page-cache reads from verified disk reads; report total JVM/Rust/cache memory, pinned bytes, page-ins, hit/miss/eviction counts, latency and output equivalence."
     status: pending
   - id: p0-working-set
     content: "Phase 0: working-set tracer over replayed commit history (value-read / version-read / dirtied / recomputed per command)"
