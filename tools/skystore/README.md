@@ -51,6 +51,37 @@ See the [lazy graph measurements](../../docs/jsgette/measurements/skyframe-lazy-
 The remaining sections describe the build and the earlier idle-glob mode where
 specified.
 
+## Experimental rules_go paging and concurrent SkyCache
+
+`--experimental_skyframe_engine=tiered_go` extends the local codec to `go_library` values whose
+actions are exact non-discovering `StarlarkAction` instances. Input pruning, enhanced actions,
+other action classes, and unsupported rule families stay pinned. GoArchive fields are shared
+chunks; configurations, Starlark definitions and Runfiles identities are evaluator-local pinned
+references. The statistics report those reference counts. These records are not portable between
+Bazel servers and must not be placed in a shared analysis cache.
+
+The private Rust disk store permits 1 GiB of live logical payload and 4 GiB of appended bytes;
+the in-memory store retains its 64 MiB bound. Identical repeated writes verify the old bytes and
+avoid another append. These are prototype safety limits, not residency or compaction policies.
+
+`profile_rules_go.py` runs a real repository wrapper with a copied Bazel binary and fresh output
+base, records process-tree PSS/RSS and live heap, checks full-GC reload, and verifies output hashes
+through semantic source and Starlark edits/reverts. It restores edited files and shuts down its
+own server even on failure. Use a disposable, otherwise idle checkout and the same action cache
+and binary for both engines. Its process measurements exclude filesystem page-cache residency.
+Use `--edits-only` for additional correctness cases without repeating warm timing. The completed
+[Datadog comparison](../../docs/jsgette/measurements/skyframe-lazy-go-datadog-linux-2026-10-19.md)
+found higher live heap and much worse latency; the mode remains experimental and off by default.
+
+The independent `ConcurrentFileFingerprintValueStore` foundation implements immutable publication
+for simultaneous processes on local POSIX storage. It has live-reader, namespace, corruption and
+conflicting-writer tests, but no production module activation or portable analysis reuse yet.
+See the [implementation roadmap](../../docs/jsgette/plans/skycache_local_backend_f13e5f7f.plan.md).
+
+    bazel test --config=efcache --bes_backend= --jobs=4 \
+      //src/test/java/com/google/devtools/build/lib/skyframe/tiering:LocalGoValueCodecTest \
+      //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:ConcurrentFileFingerprintValueStoreTest
+
 ## Build and run on Linux
 
 Build the optional sidecar through

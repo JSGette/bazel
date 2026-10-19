@@ -43,6 +43,12 @@ isProject: false
 
 # Shared Bazel Server Across Git Worktrees
 
+> Status revised 2026-10-19: retained as an alternative design, not the selected implementation.
+> The current requirement is independent Bazel servers running simultaneously in separate worktrees.
+> Follow [Concurrent SkyCache across worktrees](skycache_local_backend_f13e5f7f.plan.md) for that work.
+> Sharing immutable analysis does not require merging command execution or mutable evaluator state
+> into a single JVM.
+
 ## Problem Statement
 
 When N git worktrees of the same repo run Bazel, today you get N independent server JVMs, each consuming 1-4GB of heap, competing for CPUs, and duplicating identical analysis/loading work. For agentic development workflows this is the common case.

@@ -1,149 +1,191 @@
 ---
-name: skycache local backend
-overview: "Fork Bazel 9.2.0 locally and add a BlazeModule that gives Skycache a real backend: a server-lifetime RAM tier plus a sharded on-disk CAS-style store, with git-diff-driven invalidation so flipping --config=gorace restores analysis from cache instead of re-analyzing from scratch."
+name: concurrent SkyCache across worktrees
+overview: Independent Bazel servers share immutable validated analysis records through a concurrent filesystem backend, with demand paging and a future gRPC transport.
 todos:
-  - id: p0-measure
-    content: "P0: measure current cost of a --config=gorace flip (full analysis time) with --profile on a representative target set, to establish the baseline the restore path must beat"
+  - id: go-measure
+    content: Complete real rules_go correctness and Datadog memory/latency comparisons
+    status: completed
+  - id: concurrent-storage
+    content: Implement and test the immutable concurrent filesystem storage foundation
+    status: completed
+  - id: exact-snapshot-reuse
+    content: Add portable exact-snapshot analysis reuse across simultaneous worktrees
     status: pending
-  - id: fork-setup
-    content: "Set up local Bazel 9.2.0 build: checkout tag 9.2.0 in ~/REPOS/bazel, confirm a clean bootstrap build, and wire the resulting binary into datadog-agent via BAZEL_REAL/tools/bazel"
+  - id: dependency-validation
+    content: Validate cached dependency witnesses across nearby commits and dirty trees
     status: pending
-  - id: disk-store
-    content: Implement DiskFingerprintValueStore (sharded hex path, temp+rename writes, size-capped LRU sweep as an IdleTask) with unit tests
+  - id: bounded-residency
+    content: Enforce byte budgets, batch I/O, compact storage, and measure whole-machine memory
     status: pending
-  - id: layered-store
-    content: "Implement LayeredFingerprintValueStore: bounded Caffeine RAM tier in front of the disk tier, write-through puts, promote-on-get"
-    status: pending
-  - id: module
-    content: "Add LocalSkycacheModule extends SerializationModule plus LocalServicesSupplier: one server-lifetime FingerprintValueService over the layered store, null analysis cache client, MinimalVersionGetter installed via env.setVersionGetter in beforeCommand"
-    status: pending
-  - id: flags
-    content: Add experimental_local_analysis_cache* options and the flag that unlocks store-only DOWNLOAD
-    status: pending
-  - id: patch-gates
-    content: Patch Bazel.java module registration, the BuildTool DOWNLOAD gate at BuildTool.java:1331, and UPLOAD_BUILDS_MUST_BE_COLD in BuildView.java, each behind the new flag
-    status: pending
-  - id: p1-validate
-    content: "P1 validation: cold server upload of config A with --experimental_active_directories, flip to config B, flip back with DOWNLOAD, and confirm cache-hit stats plus an analysis-time win over the P0 baseline"
-    status: pending
-  - id: p2-git-invalidation
-    content: "P2: implement GitChangeSource feeding VersionedChanges as client changes, make VersionedChangesValidator reachable, and wire it into SkyValueRetriever so entries whose FileDependencies match are rejected"
-    status: pending
-  - id: p2-validate
-    content: "P2 validation: edit a source file, confirm only dependent nodes are invalidated and unrelated cached analysis still restores; add a verify mode comparing restored vs freshly analyzed graphs"
-    status: pending
-  - id: p3-decide
-    content: "P3: with P1/P2 numbers in hand, decide whether to add an HTTP FingerprintValueStore against bazel-remote (--disable_http_ac_validation, /ac/<64 hex>) for cross-machine sharing, including swapping murmur3 for SHA-256"
+  - id: grpc-transport
+    content: Add gRPC using the same storage and publication conformance contract
     status: pending
 isProject: false
 ---
+# Concurrent SkyCache and demand-paged Skyframe
 
-> Note: this plan cites `/Users/joseph.gette/REPOS/bazel` at tag `9.1.1`. Verified with `git diff --stat 9.1.1 9.2.0` that every file touched below is byte-identical in `9.2.0`, which is what [.bazelversion](/Users/joseph.gette/REPOS/datadog-agent/.bazelversion) pins.
+Architecture revised 2026-10-19 after the completed rules_go correctness and Datadog benchmark
+matrix. Concurrent filesystem publication is implemented and tested; portable cross-worktree
+analysis integration is next.
 
-# Skycache local backend: RAM + disk analysis cache
+## Objective and ownership
 
-## Goal
+Independent Bazel servers in simultaneous worktrees should reuse completed analysis from the same
+or nearby repository states. Each server owns its evaluation overlay: dirty/in-flight nodes,
+dependency scheduling, local versions, reverse-edge mutation, action execution state and output
+roots. Shared storage holds immutable portable values, shared chunks, dependency evidence and
+published lookup candidates. Several servers may publish and read concurrently; there is no
+exclusive lifetime writer and no requirement to wait for a five-minute snapshot.
 
-Flipping between `--config=gorace` and default in the same server should restore the analysis graph from a cache instead of re-analyzing. One JVM, one Skyframe graph, but serialized analysis for N configs living in RAM and on disk.
+The Rust code in this fork is a storage process, not a Rust Skyframe evaluator. Preserve Java's
+evaluation semantics while improving storage and residency. A full evaluator rewrite is a separate
+project and is not required for concurrent reuse.
 
-## What already works vs. what is missing
+## Evidence gates
 
-Working in stock OSS 9.2.0:
+The existing native-genrule experiment saved about 10% of post-GC heap on a synthetic 1,024-action
+graph, but raised JVM-plus-Rust PSS about 24%, and added latency on disjoint and edited builds.
+It does not establish a whole-machine memory win. The completed
+[Go comparison](../measurements/skyframe-lazy-go-datadog-linux-2026-10-19.md) uses the same
+source-built binary in both modes on Datadog's cluster-agent (57,298 configured targets,
+318,018 graph nodes). It reports graph residency, process-tree PSS, live heap, latency, I/O and
+matching output hashes through full-GC reload and source/Starlark/library edits and reverts.
 
-- Full serialization pipeline (`FrontierSerializer`, `SelectedEntrySerializer`) and deserialization (`SkyValueRetriever`).
-- Per-config keying for free: `FrontierNodeVersion` mixes `topLevelConfigChecksum` + `blazeInstallMD5` + `evaluatingVersion` + distinguisher, and the entry key is `fingerprint(version || serializedSkyKey)` (`SkyKeySerializationHelper.java:58-66`). Two configs never collide, so one store holds all of them.
-- The store interface is already injectable with no patch: `FingerprintValueService` has a public constructor taking a `FingerprintValueStore`, and `SerializationModule.getAnalysisCachingServicesSupplier()` is `@ForOverride`. `BazelSkycacheIntegrationTest.java:101-104` is a working example of overriding it.
-- Invalidation *matching* is implemented and unit-tested: `VersionedChanges`, `VersionedChangesValidator`, `FileDependencyDeserializer`.
+The Go prototype is also a negative performance result: at a 256-eligible-node limit, 314,159
+nodes remain pinned and 3,603 are cold. Post-warm live heap rises from 248.4 to 381.4 MiB (+54%);
+warm-build median rises from 0.598 to 24.019 seconds (40x). Peak process-tree PSS is about 4 GiB in
+both modes. Keep demand paging opt-in. Complete portable sharing independently, and require
+compact metadata, byte accounting and removal of repeated serialization before widening residency.
 
-Missing, and therefore our work:
+The current local codec pins configurations and Starlark definitions. Its node IDs, key dictionary,
+versions and identity references belong to one evaluator generation. Those bytes must never be
+published as portable SkyCache records. The existing alternative graph also retains Java handles
+for every node and a Rust in-memory location index. Counting evicted delegates is insufficient.
 
-- No persistent store. The default supplier is a static in-memory map with a `TODO: b/358347099 - use a persistent store` (`SerializationModule.java:82-89`).
-- DOWNLOAD is gated on a gRPC analysis-cache service being present, even though the store-only path is fully implemented (`BuildTool.java:1331-1350`, and `SkyValueRetriever.java:237-245` handles `analysisCacheClient == null` by fetching straight from the store).
-- `CommandEnvironment.setVersionGetter` has zero callers, so UPLOAD hits `throw new NullPointerException("missing versionGetter")` (`FrontierSerializer.java:147-152`).
-- UPLOAD refuses to run on a warm server (`BuildView.java:158-268`, `UPLOAD_BUILDS_MUST_BE_COLD`) — exactly the "second config in the same server" case.
-- No reader-side invalidation wiring. `VersionedChangesValidator` is never instantiated in `src/main/java`, and `lookupKeysToInvalidate` returns an empty set when there is no cache client (`BuildTool.java:1761-1769`).
+Real rules_go validation has already found three requirements absent from the native-genrule
+fixture: artifact-array codecs for multi-output compile actions; explicit sharing of the transitive
+GoArchive provider DAG (otherwise the store exceeds 1 GiB before analysis finishes); and preservation
+of Runfiles identity inside GoArchiveData, so resident and decoded depsets do not pass duplicate
+packages to the linker. The first Go codec pins Runfiles and reports that cost. These findings make
+provider semantics and ownership an explicit acceptance gate for every new rule family.
 
-## Architecture
+## Invariants
 
-```mermaid
-flowchart TD
-  subgraph server [Bazel server, one JVM]
-    graph[Skyframe graph, one config live]
-    svc[FingerprintValueService, server lifetime]
-    fpc[FingerprintValueCache, deserialized objects]
-    ram[Bounded RAM byte cache]
-    disk[Sharded disk store]
-  end
-  gitsrc[GitChangeSource, diff vs baseline] --> vc[VersionedChanges]
-  vc --> validator[VersionedChangesValidator]
-  graph -->|UPLOAD, serialize frontier| svc
-  graph -->|DOWNLOAD, deserialize| svc
-  svc --> fpc
-  svc --> ram
-  ram -->|miss| disk
-  validator -->|"reject stale entry"| svc
-```
+1. Separate optional cache misses from loss of authoritative paged evaluation state. A missing or
+   invalid shared cache entry causes recomputation. A missing private spill record fails the
+   operation or resets the evaluator at a safe command boundary; it must not silently disappear.
+2. Derive a compatibility namespace from repository identity, Bazel/codec versions, semantics,
+   configuration/transitions, toolchains and platforms. Explicitly rebind workspace/output roots.
+   Do not reuse local numeric Skyframe versions across JVMs.
+3. Start with exact source snapshots validated by content, file type/mode, symlink target and
+   relevant directory/absence witnesses. HEAD plus a list of dirty filenames is incorrect: editing
+   the same dirty file twice leaves that key unchanged. Include relevant untracked/ignored files,
+   external repositories and environment/toolchain inputs, or disable sharing for unsupported cases.
+4. Treat commit IDs as lookup hints once dependency validation exists. Preserve multiple candidate
+   versions per logical key; two worktrees must not overwrite each other's candidate. A conflicting
+   payload for an identical full semantic identity signals nondeterminism or an incomplete key.
+5. Publish complete immutable data before making a root/candidate visible. A successful publication
+   means the referenced closure is readable and has reached the required durability boundary.
+   Readers opened before publication must discover it without restarting; negative caches cannot
+   hide new entries indefinitely.
+6. GC cannot delete authoritative records, active reader pins or in-progress writer data. First
+   implement no deletion, then introduce fenced ownership/leases and a tested collector. A single
+   GC coordinator is compatible with many writers. Remote lease expiry requires a separate design.
 
-Two distinct RAM effects, worth keeping straight:
+## Delivery sequence
 
-- `FingerprintValueCache` inside a server-lifetime `FingerprintValueService` memoizes *deserialized* shared values, so repeated config flips skip re-deserializing shared subgraphs.
-- Our own bounded byte cache in front of the disk store removes I/O only.
+### A. Measure and bound the local Go experiment
 
-Neither removes the cost of deserializing and inserting nodes into Skyframe. Expected win is "analysis restore" vs. "full re-analysis", not "instant".
+Audit ordinary rules_go library Starlark actions, providers, argument mapping, resource callbacks,
+configuration and artifact identity. Leave input discovery/pruning, mutable enhanced actions,
+unsupported action classes and in-flight values pinned. Exercise actual large Datadog builds,
+warm runs, full-GC reloads, source edits/reverts and Starlark edits/reverts. Preserve generated output
+hashes and commands. Do not turn paging on by default based on node-count reduction alone.
 
-## Patches to Bazel (keep minimal, they are the maintenance burden)
+Completed: exact command/action/provider identity tests; the full large-workload matrix; and an
+additional real Go-library source/BUILD compile-option edit matrix. Outputs match the in-memory
+control, including every revert. The result supports the codec experiment's tested correctness,
+not a production memory or latency improvement.
 
-1. `src/main/java/com/google/devtools/build/lib/bazel/Bazel.java:86` — register our module instead of `SerializationModule`.
-2. `src/main/java/com/google/devtools/build/lib/buildtool/BuildTool.java:1331-1350` — allow DOWNLOAD with a null analysis cache client, behind a new flag so the default stays upstream behavior.
-3. `src/main/java/com/google/devtools/build/lib/analysis/BuildView.java:259-268` — relax `UPLOAD_BUILDS_MUST_BE_COLD` under the same flag so config #2 in a warm server can upload.
-4. `src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java` — consult the invalidation data key (phase 2 only).
+### B. Concurrent filesystem storage foundation
 
-Everything else is new files under a new package, ideally `.../skyframe/serialization/analysis/local/`, so rebases stay cheap.
+Implement an immutable, namespaced FingerprintValueStore at the existing serialization boundary.
+Use SHA-256 names/content checks, bounded record lengths, owner-private staging, atomic no-replace
+publication and file/directory durability. Independent processes can publish unrelated entries and
+idempotently publish identical entries; conflicting values are rejected rather than silently won
+by the last writer. Read directly from the filesystem to avoid per-process full indexes and stale
+startup-only discovery. No garbage collection or production module activation in this first slice.
 
-## New code
+Acceptance: a reader opened before writers sees live publications; simultaneous processes can
+publish identical and distinct keys; conflicting writers cannot replace a completed entry; partial
+staging, truncation and corruption are never returned as valid values; incompatible namespaces miss.
 
-- `LocalSkycacheModule extends SerializationModule` — overrides `getAnalysisCachingServicesSupplier()`, and in `beforeCommand` calls `env.setVersionGetter(...)`.
-- `LocalServicesSupplier implements RemoteAnalysisCachingServicesSupplier` — builds one `FingerprintValueService` per server (not per command) over the layered store; leaves `getAnalysisCacheClient()` returning null.
-- `LayeredFingerprintValueStore implements FingerprintValueStore` — RAM tier (Caffeine, already vendored in Bazel) in front of a disk tier; `put` writes through, `get` promotes.
-- `DiskFingerprintValueStore` — `<root>/<2 hex>/<30 hex>` from `PackedFingerprint.toBytes()` (fixed 16 bytes, `PackedFingerprint.java:42`), temp file + atomic rename, size-capped LRU sweep registered as an `IdleTask` via `env.addIdleTask`.
-- `MinimalVersionGetter implements LongVersionGetter` — returns `MINIMAL` for existing paths and `CURRENT_VERSION` for nonexistent ones. This is what makes the git-diff scheme work: MTSVs become uniform, and staleness is decided entirely on the read side.
-- `GitChangeSource` — `git rev-parse HEAD`, `git diff --name-only <baseline>..HEAD`, `git status --porcelain`; feeds `new VersionedChanges(clientChanges)`.
+Implemented checkpoint: `ConcurrentFileFingerprintValueStore` at
+`src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/` passes these checks,
+including four independent live writer JVMs and a two-process conflicting publication race.
+The backend requires an existing durable root on a same-user local POSIX filesystem. It publishes
+with an atomic hard link (no replacement), checks the stored key and SHA-256 payload digest, and
+completes writes only after file and directory fsync. It is not registered as a Bazel module yet;
+cross-worktree analysis reuse depends on phase C, not merely on this byte-store implementation.
 
-New flags, all `experimental_` and defaulting to off: `--experimental_local_analysis_cache` (path), `--experimental_local_analysis_cache_ram_bytes`, `--experimental_local_analysis_cache_max_bytes`, and one flag to unlock the store-only DOWNLOAD path.
+The first format may use one file per entry for a simple publication proof. The older packed
+prototype already demonstrated that this layout is expensive at analysis-cache scale. Benchmark it
+before activation; sealed packs and sparse disk indexes are the next storage optimization, not an
+excuse to omit concurrent publication correctness.
 
-## Phasing
+### C. Portable exact-snapshot analysis reuse
 
-**P0 — measure the prize.** Time a `--config=gorace` flip today on `//pkg/ebpf/...` and on the target set from terminal 3, with `--profile`. If restore has to beat, say, 90s of analysis, that number decides whether P2 is worth it.
+Port the existing LocalSkycacheModule/serialization integration after auditing its guards. Supply
+exact snapshot identity and root rebinding; initially reject unsupported inputs. Use completed
+serialization write futures as the dependency-closure barrier, then publish an immutable candidate
+manifest. Do not relax upstream warm-upload gates without tests comparing cold and warm frontiers.
+Test two worktrees, two independent servers and different output bases building at the same time.
+Verify outputs and action keys against uncached analysis, including edits during a publication.
 
-**P1 — pinned baseline, no incrementality.** Patches 1-3, the module, both store tiers, `MinimalVersionGetter`. Correctness comes from keying: put `git rev-parse HEAD` plus a digest of the dirty-file list into the cache key, reusing the existing `--experimental_analysis_cache_key_distinguisher_for_testing` mechanism (`RemoteAnalysisCachingOptions.java:213-219`) at first, then a properly named flag. Any source edit changes the key, so you get a clean full miss rather than a stale hit. UPLOAD also needs `--experimental_active_directories` since this repo has no `PROJECT.scl`. Workflow to validate: cold server, build config A with UPLOAD, flip to config B, flip back to A with DOWNLOAD, confirm restore.
+### D. Reuse across nearby commits
 
-**P2 — git-diff invalidation.** Patch 4 plus `GitChangeSource`. Drop the source state out of the cache key, register changed files as client changes, and reject any entry whose `FileDependencies` match. This is what makes the cache survive editing code, and it is the difference between "useful when the tree is clean" and "useful all day". The pieces are all there; the work is the `SkyValueRetriever` call site and making `VersionedChangesValidator` reachable.
+Wire dependency validation into retrieval, with trustworthy witnesses for contents, globs, missing
+paths, symlinks, external repositories, flags and environment. Git diff accelerates candidate
+selection but is not the correctness oracle. Check repeated edits of the same file, additions,
+deletions, renames and branch changes. Validate candidates before exposing portable values to the
+local evaluator. Report rejected candidates and why they were rejected.
 
-**P3 — decide on externalization.** Only after P1/P2 numbers exist.
+### E. Memory reduction and I/O scheduling
 
-## Option B: fully external backend
+Use a byte budget covering decoded values, pinned/active state, handles/indexes, caches and I/O
+buffers. Jobs/CPU times a factor controls admission and bounded prefetch, not a claim that the total
+graph has only that many nodes: waiting parents, dependency fanout and arbitrary SkyFunction-held
+references can exceed execution concurrency. Reserve progress capacity so reads required to finish
+work cannot deadlock behind the residency budget. An oversize or unsupported value has an explicit
+pin reason and measured cost.
 
-Analyzed, and the honest conclusion is that **bazel-remote already is this**, so writing a server is the wrong first move.
+Audit global consumers as well as the evaluator: action-conflict checking, analysis-result
+collection and depset expansion can touch far more than the currently executing jobs. A lazy
+node map alone does not make these consumers streaming. Define which metadata is always resident,
+which references callers may retain, and how each global operation avoids repeated hydration.
 
-The Skycache store is a flat `16-byte key -> opaque bytes` KV. It is *not* a CAS: top-level entries are keyed by `fingerprint(version || key)`, i.e. by key, not by content (`SkyKeySerializationHelper.java:58-66`). Only shared values inside an entry are content-addressed. So a strict REAPI CAS cannot host it — you need arbitrary-key KV.
+Batch requests and move I/O away from globally serialized eviction paths. Avoid repeated whole
+nested-set flattening and encode/decode work for still-retained values. Add private-store compaction
+and a sparse on-disk shared index. Measure JVM + Rust PSS and filesystem-cache residency, with guest
+page-cache and host/device-cache limitations stated separately. Require a repeatable memory benefit
+at acceptable latency before widening the value allowlist or changing defaults.
 
-bazel-remote's `/ac/<64 hex>` endpoint over plain HTTP/1.1 PUT/GET is exactly that, once `--disable_http_ac_validation` turns off ActionResult parsing. It brings disk storage, an LRU with `--max_size`, optional zstd, and S3/GCS/Azure proxy backends for free. Our 16-byte fingerprint hex-encodes to 32 chars, so pad to the required 64.
+### F. gRPC transport
 
-Tradeoffs:
+Keep filesystem paths out of semantic records. The existing FingerprintValueStore remains the byte
+transport seam; add batch get/put, immutable candidate publication/discovery and pin/release contracts
+where required rather than forcing these semantics into arbitrary-key overwrite. A later gRPC
+backend implements the same conformance tests with cancellation, deadlines, retries and idempotent
+publication. Remote storage is optional reuse; each evaluator retains a reliable private authority
+until remote durability and lease guarantees can safely serve that role.
 
-- In favor: zero server code; sharing across machines and CI becomes a config change; battle-tested eviction.
-- Against: no gRPC needed but you do need an HTTP `FingerprintValueStore` (~150 lines on `java.net.http`), and every get becomes a loopback round trip where an in-process map was free. bazel-remote keeps its index in RAM but data on disk, so the fast tier still has to live inside Bazel.
-- Correctness caveat for sharing: `NONPROD_FINGERPRINTER` is murmur3_128 (`FingerprintValueService.java:39-40`). Fine for one dev's disk, not something to point at a shared multi-user store without swapping in SHA-256 first.
+## Existing prototype audit
 
-Recommendation: build P1 against the local disk store, keep `FingerprintValueStore` the only seam, and add an HTTP-backed implementation later if sharing turns out to matter. No gRPC at any point.
+`origin/jsgette/skycache-local` at `4d3d1534be` already has a module, bounded RAM tier and packed
+fingerprint store. Its per-writer pack files are useful precedent, but startup-only indexes miss
+live publications and sweeping protects only the local writer's current pack. Do not point several
+servers at it as a supported concurrent cache. Its GitChangeSource validation is still roadmap work.
+The previous local plan's dirty-filename key and blanket rejection of gRPC are superseded.
 
-## Risks
-
-- Rebase cost on every Bazel bump. Mitigated by four small patches plus an isolated package.
-- `UPLOAD_BUILDS_MUST_BE_COLD` exists for a reason; relaxing it may serialize a frontier computed over a graph that already holds another config's nodes. Needs explicit validation that a warm-server upload produces the same bytes as a cold-server one for the same config.
-- Inputs outside git (external repos under `external/`, env vars, generated files) are invisible to `GitChangeSource`. Mitigate by mixing `MODULE.bazel.lock` into the key and treating non-workspace paths conservatively.
-- Skycache is upstream-experimental. Serialization bugs surface as analysis-time crashes or, worse, silent incorrectness. Keep it opt-in per developer, never on in CI, and add a "verify" mode that re-analyzes and compares against the restored graph on demand.
-
-## Delivery
-
-Local only, per your choice: build from `~/REPOS/bazel`, opt in via `BAZEL_REAL` / the existing [tools/bazel](/Users/joseph.gette/REPOS/datadog-agent/tools/bazel) wrapper. No change to `.bazelversion` and nothing that affects other developers or CI until P0/P1 numbers justify it.
+The shared-server proposal remains an alternative to evaluate separately. It is not the selected
+architecture for this request, which requires independent simultaneous Bazel instances/worktrees.

@@ -20,6 +20,20 @@ genrule action nodes during real builds. Broader codecs, byte-level residency
 accounting, and production-scale storage remain pending.
 Decisions locked 2026-10-16; disk-backed graph acceptance clarified 2026-10-19.
 
+The opt-in `tiered_go` experiment additionally pages audited `go_library` values with exact
+non-discovering `StarlarkAction` actions. The completed
+[Datadog cluster-agent comparison](measurements/skyframe-lazy-go-datadog-linux-2026-10-19.md)
+passes the output checks but raises post-warm live heap by 54% and warm latency by 40x; peak PSS
+remains about 4 GiB in both modes. Keep it experimental. Artifact-array support, shared GoArchive
+field chunks, and pinned Runfiles identity are
+required for correctness. Local Starlark definitions, configurations, Runfiles, graph keys and
+handles remain resident; a small eligible-node limit is not a small whole-graph heap guarantee.
+
+For the selected multi-worktree architecture, use the revised
+[concurrent SkyCache roadmap](plans/skycache_local_backend_f13e5f7f.plan.md). The Rust component
+is a private storage sidecar, not a Rust Skyframe evaluator. A separate concurrent immutable
+filesystem byte store now has multiprocess tests; its portable analysis integration remains next.
+
 ## Implemented graph-core checkpoint (2026-10-19)
 
 - The evaluator accepts an alternative graph through a constructor; defaults

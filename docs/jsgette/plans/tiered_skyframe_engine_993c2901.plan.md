@@ -20,6 +20,9 @@ todos:
   - id: native-genrule-demand-paging
     content: "Real tiered_genrule engine integration, local identity-preserving native action codec, shared Rust chunks, lifecycle recovery, Linux output/action-key oracle checks, and vanilla/default/tiered profiles. Native genrules only; full codec coverage and byte-based accounting remain pending."
     status: completed
+  - id: rules-go-demand-paging
+    content: "Opt-in tiered_go codec with shared GoArchive chunks and local identity preservation; real Datadog Agent comparison and revised concurrent SkyCache roadmap. Broader graph residency is still gated on measured total-memory and latency benefit."
+    status: completed
   - id: disk-backed-graph-acceptance
     content: "Required outcome clarified 2026-10-19: cold action/Skyframe node records, values and edges on SSD; only compact metadata, active/pinned objects and a bounded working-set cache in RAM. No whole-graph restoration before commands. Audit lossless local codecs and cold-dependency invalidation; idle glob spilling does not meet this outcome."
     status: pending

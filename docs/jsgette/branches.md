@@ -19,6 +19,7 @@ clone they come from. "Local only" branches are not pushed.
 
 | Branch | Base | What it is |
 |---|---|---|
+| `jsgette/skyframe-go-paging` | `jsgette/skystore-phase0` at `009e2761ff3e` | Experimental demand paging of audited rules_go libraries, Datadog Agent comparison, concurrent immutable filesystem SkyCache foundation, and revised multi-worktree roadmap. Located in the `bazel-go-paging` worktree. |
 | `jsgette/lazy-packed-action-cache` | `master` | Action cache entries in append-only pack files read lazily, with compaction. Under review. |
 | `remote-missing-execution-timestamps` | `master` | Don't report remote spawns as starting at the Unix epoch. |
 | `jsgette/fix_build_file_not_found` | `master` | Fix a `build` folder being read as a file. |
