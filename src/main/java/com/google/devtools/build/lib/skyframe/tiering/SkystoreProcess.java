@@ -14,9 +14,11 @@
 
 package com.google.devtools.build.lib.skyframe.tiering;
 
+import com.google.devtools.build.skyframe.DiskBackedGraph;
 import com.google.devtools.build.skystore.SkystoreClient;
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -25,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /** One optional, exclusively owned Rust process and ephemeral spill file per Bazel server. */
-final class SkystoreProcess implements IdleValueTier.Storage, Closeable {
+final class SkystoreProcess implements IdleValueTier.Storage, DiskBackedGraph.Store, Closeable {
   private final Path directory;
   private final Path socket;
   private final Path data;
@@ -76,6 +78,20 @@ final class SkystoreProcess implements IdleValueTier.Storage, Closeable {
     }
   }
 
+  @Override
+  public void put(long id, byte[] record) throws IOException {
+    put(nodeKey(id), record);
+  }
+
+  @Override
+  public byte[] get(long id) throws IOException {
+    return get(nodeKey(id));
+  }
+
+  private static byte[] nodeKey(long id) {
+    return ByteBuffer.allocate(16).putLong(0x534b474e4f444501L).putLong(id).array();
+  }
+
   long pid() {
     return process.pid();
   }
@@ -91,12 +107,12 @@ final class SkystoreProcess implements IdleValueTier.Storage, Closeable {
   }
 
   @Override
-  public void put(byte[] key, byte[] value) throws IOException {
+  public synchronized void put(byte[] key, byte[] value) throws IOException {
     connect().put(List.of(new SkystoreClient.Entry(key, value)));
   }
 
   @Override
-  public byte[] get(byte[] key) throws IOException {
+  public synchronized byte[] get(byte[] key) throws IOException {
     return connect()
         .get(List.of(key))
         .getFirst()
@@ -104,11 +120,11 @@ final class SkystoreProcess implements IdleValueTier.Storage, Closeable {
   }
 
   @Override
-  public void clear() throws IOException {
+  public synchronized void clear() throws IOException {
     connect().clear();
   }
 
-  void disconnect() {
+  synchronized void disconnect() {
     if (client != null) {
       try {
         client.close();
@@ -120,7 +136,7 @@ final class SkystoreProcess implements IdleValueTier.Storage, Closeable {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     disconnect();
     process.destroyForcibly();
     try {

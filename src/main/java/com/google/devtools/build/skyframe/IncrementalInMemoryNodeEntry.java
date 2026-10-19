@@ -87,6 +87,31 @@ public class IncrementalInMemoryNodeEntry extends AbstractInMemoryNodeEntry<Dirt
     super(key);
   }
 
+  /** Complete immutable state of a done incremental node, before serialization. */
+  record DoneSnapshot(
+      SkyValue value,
+      NodeVersion version,
+      @GroupedDeps.Compressed Object directDeps,
+      ImmutableList<SkyKey> reverseDeps) {}
+
+  synchronized DoneSnapshot snapshotDone() {
+    checkState(isDone(), this);
+    return new DoneSnapshot(
+        checkNotNull(value),
+        version,
+        getCompressedDirectDepsForDoneEntry(),
+        ImmutableList.copyOf(getReverseDepsForDoneEntry()));
+  }
+
+  static IncrementalInMemoryNodeEntry fromSnapshot(SkyKey key, DoneSnapshot snapshot) {
+    IncrementalInMemoryNodeEntry entry = new IncrementalInMemoryNodeEntry(key);
+    entry.version = snapshot.version();
+    entry.directDeps = snapshot.directDeps();
+    ReverseDepsUtility.writeReverseDeps(entry, snapshot.reverseDeps());
+    entry.value = snapshot.value();
+    return entry;
+  }
+
   /**
    * Replaces the SkyValue with a placeholder value indicating that it has been cleared.
    *
@@ -391,7 +416,8 @@ public class IncrementalInMemoryNodeEntry extends AbstractInMemoryNodeEntry<Dirt
    * still present and was not changed more recently than {@link #lastEvaluatedVersion}.
    */
   @Nullable
-  final Iterable<SkyKey> lastBuildDepsIfChangePrunable() {
+  @Override
+  public final Iterable<SkyKey> lastBuildDepsIfChangePrunable() {
     var localDirtyBuildingState = dirtyBuildingState;
     if (localDirtyBuildingState == null
         || !localDirtyBuildingState.isIncremental()
@@ -407,6 +433,7 @@ public class IncrementalInMemoryNodeEntry extends AbstractInMemoryNodeEntry<Dirt
   }
 
   /** Returns the version at which this node was last evaluated; see {@link NodeVersion}. */
+  @Override
   public final Version lastEvaluatedVersion() {
     return version.lastEvaluated();
   }
@@ -485,6 +512,7 @@ public class IncrementalInMemoryNodeEntry extends AbstractInMemoryNodeEntry<Dirt
     checkState(isDone(), this);
     this.directDeps = GroupedDeps.EMPTY_COMPRESSED;
   }
+
   /** Flushes pending reverse dep operations, which potentially saves memory. */
   public final synchronized void consolidateReverseDeps() {
 

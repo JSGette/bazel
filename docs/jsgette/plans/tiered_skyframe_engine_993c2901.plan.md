@@ -14,6 +14,9 @@ todos:
   - id: experimental-idle-tier
     content: "Integrated opt-in Rust disk value tier for audited globs between commands; Linux correctness/recovery tests and vanilla/default/tiered profiling complete. Does not complete compact graph, paging, or persistent-engine phases."
     status: completed
+  - id: disk-backed-graph-core
+    content: "Implemented stable node handles, demand-loaded checksummed complete node records, bounded completed-node cache, evaluator graph constructor seam, and generic change-pruning hooks. Linux graph/evaluator forced-eviction suite and Rust disk integration pass. Command lifecycle wiring and lossless action codecs remain pending."
+    status: completed
   - id: disk-backed-graph-acceptance
     content: "Required outcome clarified 2026-10-19: cold action/Skyframe node records, values and edges on SSD; only compact metadata, active/pinned objects and a bounded working-set cache in RAM. No whole-graph restoration before commands. Audit lossless local codecs and cold-dependency invalidation; idle glob spilling does not meet this outcome."
     status: pending
@@ -37,10 +40,10 @@ todos:
     status: pending
   - id: p1-decouple
     content: "Phase 1: narrow graph maintenance API replacing getInMemoryGraph()/IncrementalInMemoryNodeEntry casts in ~16 lib files; evaluator factory seam"
-    status: pending
+    status: in_progress
   - id: p1-conformance
     content: "Phase 1: reusable conformance suite, eviction fuzzer with page events + invariant checker, differential trace comparer"
-    status: pending
+    status: in_progress
   - id: p2-compact-graph
     content: "Phase 2: compact in-process graph (int ids, packed state, varint frozen deps, Roaring rdeps, hydrate/dehydrate of in-flight NodeEntry)"
     status: pending

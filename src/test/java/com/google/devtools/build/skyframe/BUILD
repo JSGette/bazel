@@ -112,3 +112,17 @@ java_test(
     test_class = "com.google.devtools.build.skyframe.SkyframeEvictionTest",
     runtime_deps = [":skyframe_tests"],
 )
+
+java_test(
+    name = "DiskBackedGraphTest",
+    size = "medium",
+    test_class = "com.google.devtools.build.skyframe.DiskBackedGraphTest",
+    runtime_deps = [":skyframe_tests"],
+)
+
+java_test(
+    name = "DiskBackedMemoizingEvaluatorTest",
+    size = "medium",
+    test_class = "com.google.devtools.build.skyframe.DiskBackedMemoizingEvaluatorTest",
+    runtime_deps = [":skyframe_tests"],
+)

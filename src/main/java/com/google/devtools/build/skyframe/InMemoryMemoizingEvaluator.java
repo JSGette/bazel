@@ -63,6 +63,29 @@ public final class InMemoryMemoizingEvaluator extends AbstractInMemoryMemoizingE
       EmittedEventState emittedEventState,
       boolean keepEdges,
       boolean usePooledInterning) {
+    this(
+        skyFunctions,
+        differencer,
+        progressReceiver,
+        graphInconsistencyReceiver,
+        eventFilter,
+        emittedEventState,
+        keepEdges,
+        keepEdges
+            ? InMemoryGraph.create(usePooledInterning)
+            : InMemoryGraph.createEdgeless(usePooledInterning));
+  }
+
+  /** Creates an evaluator owning the supplied graph, whose edge policy must match keepEdges. */
+  public InMemoryMemoizingEvaluator(
+      Map<SkyFunctionName, SkyFunction> skyFunctions,
+      Differencer differencer,
+      EvaluationProgressReceiver progressReceiver,
+      GraphInconsistencyReceiver graphInconsistencyReceiver,
+      EventFilter eventFilter,
+      EmittedEventState emittedEventState,
+      boolean keepEdges,
+      InMemoryGraph graph) {
     super(
         ImmutableMap.copyOf(skyFunctions),
         differencer,
@@ -72,10 +95,7 @@ public final class InMemoryMemoizingEvaluator extends AbstractInMemoryMemoizingE
         graphInconsistencyReceiver,
         keepEdges,
         Version.minimal());
-    this.graph =
-        keepEdges
-            ? InMemoryGraph.create(usePooledInterning)
-            : InMemoryGraph.createEdgeless(usePooledInterning);
+    this.graph = java.util.Objects.requireNonNull(graph);
   }
 
   @Override

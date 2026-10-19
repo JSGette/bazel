@@ -8,9 +8,66 @@ has Rust/Java IPC, checksummed disk value storage, rules_rs builds, and an
 experimental `tiered_idle` integration. That integration retains the graph in
 Java and restores all detached glob values before each command. It is an
 intermediate storage experiment, **not this document's disk-backed graph**.
-Its completed profiles do not measure demand paging. The lazy graph implementation
-and its performance comparison remain pending.
+Its completed profiles do not measure demand paging.
+
+The first demand-paged graph core is now implemented as `DiskBackedGraph`: it
+uses stable Java handles, an explicit completed-node residency limit, and full
+cold records containing values, both versions, dependency groups, and reverse
+edges. It passes the existing evaluator contract with supported values evicted
+between operations, and a Linux test pages records through the rules_rs-built
+Rust process. It is **not selected by a Bazel command flag yet**. Lossless action
+value codecs, production graph lifecycle wiring, byte-level memory accounting,
+and the lazy-engine performance comparison remain pending.
 Decisions locked 2026-10-16; disk-backed graph acceptance clarified 2026-10-19.
+
+## Implemented graph-core checkpoint (2026-10-19)
+
+- The evaluator accepts an alternative graph through a constructor; defaults
+  remain unchanged. Change-pruning dependencies and last-evaluation versions
+  are exposed through the node interface rather than a concrete-class cast.
+- A node handle survives eviction. Completed eligible nodes are stored on disk;
+  dirty/evaluating nodes and unsupported value types stay resident. Per-entry
+  operation locks exclude eviction while an operation is using its delegate.
+  Storage I/O runs outside the original node monitors.
+- Records carry a format version, stable record ID, last-change/last-evaluation
+  versions, dependency group boundaries, reverse edges, value bytes, and CRC32C.
+  A write must succeed before the live delegate is released. Missing, corrupt,
+  or unavailable authoritative records fail the operation.
+- Keys, state and version scans, and graph cleanup do not page in cold nodes.
+  A weak value reference preserves identity while a caller still holds the
+  original value. Production codecs must additionally preserve shared nested
+  sets, artifacts, configurations, and mutable action state.
+- Statistics distinguish resident, pinned, and cold node counts and record
+  page-ins, evictions, and logical bytes read/written. These are **not physical
+  SSD I/O counters or heap-byte measurements**.
+- The current budget counts eligible completed nodes, not bytes. Handles,
+  keys, versions and a key-ID dictionary remain resident; deleted dictionary
+  entries and obsolete Rust records need future compaction. The store is still
+  ephemeral and retains the prototype capacity limits. Pooled label interning
+  is disabled for this alternative graph to avoid I/O under interner locks.
+
+Linux validation through Cache & Carry:
+
+- Complete Skyframe suite: **1,640 test records, 1,634 passed, 6 skipped**.
+  This includes 177 graph/evaluator cases using disk records and forced eviction.
+- Real Rust graph integration: **3 passed**, including a 32-node graph with a
+  two-node resident limit, concurrent reads/edge updates, missing records, and
+  process death. The test uses audited glob values; it does not prove action
+  value serialization.
+- Existing idle-tier, Rust unit/Clippy/rustfmt, Java client and IPC integration
+  targets passed. `//src:bazel-dev` built successfully.
+- Corruption tests include a same-length payload change, and the graph tests
+  cover grouped edges, reverse-edge races, change pruning, cold dependency
+  changes, unsupported/active pinning, write failure, and disjoint working sets.
+
+Reproduce the focused tests:
+
+```sh
+bazel test --config=efcache --bes_backend= --jobs=4 \
+  //src/test/java/com/google/devtools/build/skyframe:DiskBackedGraphTest \
+  //src/test/java/com/google/devtools/build/skyframe:DiskBackedMemoizingEvaluatorTest \
+  //src/test/java/com/google/devtools/build/lib/skyframe/tiering:SkystoreGraphTest
+```
 
 ## Required outcome: graph on disk, bounded working set in RAM
 

@@ -311,7 +311,7 @@ abstract class ReverseDepsUtility {
       switch (KeyToConsolidate.op(keyToConsolidate, Op.CHECK)) {
         case REMOVE:
           entry.setReverseDepsForReverseDepsUtil(ImmutableList.of());
-          // Fall through to check.
+        // Fall through to check.
         case CHECK:
           Preconditions.checkState(key.equals(raw), "%s %s %s", keyToConsolidate, raw, entry);
           break;
@@ -366,8 +366,7 @@ abstract class ReverseDepsUtility {
   }
 
   /** Stores the given reverse deps, which must not contain duplicates. */
-  private static void writeReverseDeps(
-      IncrementalInMemoryNodeEntry entry, Collection<SkyKey> reverseDeps) {
+  static void writeReverseDeps(IncrementalInMemoryNodeEntry entry, Collection<SkyKey> reverseDeps) {
     if (!entry.keepsEdges() || reverseDeps.isEmpty()) {
       entry.setReverseDepsForReverseDepsUtil(ImmutableList.of());
     } else if (reverseDeps.size() == 1) {

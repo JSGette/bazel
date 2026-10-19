@@ -39,6 +39,17 @@ public interface InMemoryNodeEntry extends NodeEntry {
     return false;
   }
 
+  /** Last evaluation version, which can be newer than the last value change. */
+  default Version lastEvaluatedVersion() {
+    return getVersion();
+  }
+
+  /** Last-build dependencies for a dirty, change-prunable node, or null if unsupported. */
+  @Nullable
+  default Iterable<SkyKey> lastBuildDepsIfChangePrunable() {
+    return null;
+  }
+
   /** Whether this node stores edges (deps and rdeps). */
   boolean keepsEdges();
 

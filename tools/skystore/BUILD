@@ -20,6 +20,7 @@ rust_binary(
     name = "skystore",
     srcs = ["src/main.rs"],
     edition = "2021",
+    visibility = ["//src/test/java/com/google/devtools/build/lib/skyframe/tiering:__pkg__"],
     deps = [":skystore_lib"],
 )
 

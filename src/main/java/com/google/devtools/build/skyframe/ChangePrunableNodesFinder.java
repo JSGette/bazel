@@ -106,7 +106,8 @@ final class ChangePrunableNodesFinder {
         // A partial scan only ever results in fewer nodes being kept, which is always safe.
         return;
       }
-      if (!(graph.getIfPresent(skyKey) instanceof IncrementalInMemoryNodeEntry entry)) {
+      InMemoryNodeEntry entry = graph.getIfPresent(skyKey);
+      if (entry == null) {
         continue;
       }
       Iterable<SkyKey> lastBuildDeps = entry.lastBuildDepsIfChangePrunable();
