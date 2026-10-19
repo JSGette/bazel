@@ -73,6 +73,42 @@ serialized values before choosing a production transport.
 Initial [Linux measurements and validation](../../docs/jsgette/measurements/skystore-uds-linux-2026-10-19.md)
 are recorded with raw CSV and environment details.
 
+## Engine profiling baseline
+
+The Linux-only profile_bazel.py harness separates unprofiled analysis timing
+from a diagnostic pass. It records cold analysis (fresh server/output base),
+two warmups, five warm analysis runs, process-tree RSS and PSS sampled every
+50 ms, a JFR CPU/allocation recording, Bazel trace and memory profiles, a
+post-GC class histogram, and a per-value Skyframe memory dump.
+
+Use a frozen vanilla binary and an immutable workload checkout:
+
+    python3 tools/skystore/profile_bazel.py \
+      --bazel=/absolute/path/to/bazel-vanilla \
+      --workspace=/absolute/path/to/workload \
+      --output=/absolute/path/to/new-profile-directory \
+      --jcmd=/absolute/path/to/jdk/bin/jcmd \
+      --build-arg=--config=efcache --build-arg=--bes_backend= \
+      //src:bazel-dev
+
+Repeat with the integrated engine binary, matched flags, and a different output
+directory. Additional startup flags use --startup-arg=--flag=value. The harness
+refuses to overwrite an output directory and shuts down only its own server.
+
+Timing runs do not enable JFR or forced-GC memory profiling. The diagnostic
+pass clears the analysis graph, then rebuilds it with profiling enabled.
+The process-tree measurement includes child processes, so an integrated Rust
+sidecar contributes to the totals. RSS sums may double-count shared pages;
+PSS apportions them. The output records the binary SHA256, workload commit,
+kernel, CPU, memory, flags, sampling interval, and raw per-run measurements.
+
+This is an analysis-only baseline, not a complete engine comparison. Repository
+and OS caches may already be warm, the cold run is a single sample, and peak
+memory is sampled rather than measured continuously. Final comparisons also
+need repeated cold builds, source/BUILD/.bzl edits, flag changes, server restart,
+output/action-key equivalence, and the total JVM-plus-sidecar memory footprint.
+Keep large JFR recordings and raw dumps outside Git.
+
 ## Wire protocol v1
 
 All integers are unsigned, big-endian. Each frame has a four-byte body length
