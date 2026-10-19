@@ -1,8 +1,51 @@
 load("@rules_java//java:defs.bzl", "java_binary", "java_test")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_clippy_test", "rustfmt_test")
 
 package(
     default_applicable_licenses = ["//:license"],
     default_visibility = ["//visibility:private"],
+)
+
+rust_library(
+    name = "skystore_lib",
+    srcs = ["src/lib.rs"],
+    crate_name = "skystore",
+    edition = "2021",
+)
+
+rust_binary(
+    name = "skystore",
+    srcs = ["src/main.rs"],
+    edition = "2021",
+    deps = [":skystore_lib"],
+)
+
+rust_test(
+    name = "skystore_test",
+    size = "small",
+    crate = ":skystore_lib",
+)
+
+rust_clippy_test(
+    name = "clippy_test",
+    size = "small",
+    targets = [
+        ":skystore",
+        ":skystore_lib",
+        ":skystore_test",
+    ],
+)
+
+rustfmt_test(
+    name = "rustfmt_test",
+    size = "small",
+    targets = [
+        ":skystore",
+        ":skystore_lib",
+    ],
 )
 
 alias(
@@ -45,10 +88,14 @@ java_test(
     ],
 )
 
-java_binary(
+java_test(
     name = "interop_test",
-    testonly = True,
+    size = "small",
     srcs = ["java/com/google/devtools/build/skystore/InteropTest.java"],
+    args = ["$(rootpath :skystore)"],
+    data = [":skystore"],
     main_class = "com.google.devtools.build.skystore.InteropTest",
+    tags = ["no_windows"],
+    use_testrunner = False,
     deps = [":client"],
 )

@@ -39,7 +39,7 @@ todos:
     content: "Phase 2: compact in-process graph (int ids, packed state, varint frozen deps, Roaring rdeps, hydrate/dehydrate of in-flight NodeEntry)"
     status: pending
   - id: p3-skystore
-    content: "Phase 3: Rust skystore sidecar (protocol, segment store bake-off, checksums, io_uring, crash recovery, rules_rust embedding, optional in bootstrap)"
+    content: "Phase 3: Rust skystore sidecar (protocol, segment store bake-off, checksums, io_uring, crash recovery, rules_rs embedding, optional in bootstrap)"
     status: pending
   - id: p4-value-tiering
     content: "Phase 4: residency policies, spill/page-in with async prefetch, shared-value dedupe, interning restore, codec gap closure, identity audits"
@@ -79,7 +79,7 @@ isProject: false
   - nokeep_going error bubbling re-enters SkyFunctions.
   - The atomic `addReverseDepAndCheckIfDone`/`setValue` pair would become a cross-process transaction. Today it is ~47 `synchronized` occurrences in [IncrementalInMemoryNodeEntry.java](src/main/java/com/google/devtools/build/skyframe/IncrementalInMemoryNodeEntry.java) and [AbstractInMemoryNodeEntry.java](src/main/java/com/google/devtools/build/skyframe/AbstractInMemoryNodeEntry.java).
 - **A separate process does not save machine RAM by itself.** Only the compact representation and SSD tiering do.
-- **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++ compiler, and there is no rules_rust today. The sidecar must therefore be optional: a bootstrap build runs the in-process compact graph from Phase 2.
+- **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++ compiler. rules_rs builds the optional sidecar separately: a bootstrap build runs the in-process compact graph from Phase 2.
 - **Role of C.** No hand-written C is planned. C libraries (zstd, liburing) are linked into the Rust sidecar.
 
 ## Zabel: dzbarsky's Zig rewrite of Bazel
@@ -257,7 +257,7 @@ flowchart LR
 - Batch operations: `PutValues`, `GetValues`, `PutNodeRecords`, `GetNodeRecords`, `ComputeDirtyClosure`, `Checkpoint`, `Compact`, `Stats`.
 - Storage: an append-only segment log plus fingerprint-addressed blobs. Bake off a custom log against fjall/redb.
 - I/O and caching: io_uring on Linux, pread thread pool elsewhere; block checksums; S3-FIFO or CLOCK-Pro block cache.
-- Build: rules_rust, embedded in the install base; optional in bootstrap builds.
+- Build: rules_rs, embedded in the install base; optional in bootstrap builds.
 - Failure policy: a crash or corruption is treated as cache loss. Drop the graph and recover from the last checkpoint.
 
 **Phase 4: Value tiering (the sliding window)**
@@ -319,7 +319,7 @@ flowchart LR
 - Values dominate and codec coverage is partial, so engine-only gains are capped. Phase 0 quantifies this; PIN stays the default.
 - Identity-sensitive values and side tables. Audit them before SPILL.
 - Sidecar crashes and corruption. Treat as cache loss; use checksums and a kill -9 test suite.
-- rules_rust and bootstrap. The sidecar is optional.
+- rules_rs and bootstrap. The sidecar is optional.
 - SSD write amplification. Append deltas only and budget compaction.
 - Divergence from upstream eviction work. Engage early.
 

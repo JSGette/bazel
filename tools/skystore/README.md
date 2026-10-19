@@ -14,12 +14,22 @@ It targets idle retained memory, not peak evaluation memory.
 
 ## Build and run on Linux
 
-Normal Bazel builds still require no Rust installation. Build the optional
-sidecar with Rust/Cargo >= 1.85, and build Bazel using the repository's pinned
-launcher (currently Bazel 9.3.0):
+Build the optional sidecar through
+[rules_rs](https://github.com/hermeticbuild/rules_rs) 0.1.0 using the repository's
+pinned launcher (currently Bazel 9.3.0). Bazel downloads Rust 1.99.1, rustfmt, and
+Clippy from the checksummed toolchain recorded in MODULE.bazel.lock; no local
+Rust or Cargo installation is needed. Rust targets use edition 2021.
 
-    cargo build --release --manifest-path tools/skystore/Cargo.toml
+    bazel build --config=efcache -c opt //tools/skystore:skystore
+    cp bazel-bin/tools/skystore/skystore /absolute/path/to/skystore
     bazel build --config=efcache //src:bazel-dev
+
+The Rust library, binary, and unit tests load rules_rs wrappers. Formatting and
+Clippy use the patched upstream rules supplied by rules_rs. The existing C/C++
+toolchain selection is unchanged. Cargo.toml/Cargo.lock remain available for
+editor support and standalone development; the build and validation scripts use
+Bazel. The source bootstrap still needs only Java and C++: the sidecar is
+optional and is not embedded in the Bazel binary.
 
 Copy the resulting binary before running it against a workload in a separate
 output base:
@@ -66,9 +76,9 @@ following configuration only with `--config=efcache`, as described in the
     build:efcache --bes_results_url=http://10.55.0.1:8088/invocation/
     build:efcache --remote_timeout=600
 
-Bazel/Java actions use this remote action cache. Cargo builds the optional Rust
-binary separately. Add `--bes_backend=` during measurements to exclude build
-event upload latency while retaining the remote action cache.
+Bazel/Java and rules_rs Rust actions use this remote action cache. Add
+`--bes_backend=` during measurements to exclude build event upload latency while
+retaining the remote action cache.
 
 ## Validation
 
@@ -83,6 +93,11 @@ Run on Linux:
       --skystore=/absolute/path/to/skystore \
       --output=/absolute/new/test-directory --cache
 
+`test.sh` runs `bazel test //tools/skystore:all`, including Rust unit tests,
+Clippy (warnings are errors), rustfmt, Java client tests, and the Java/Rust
+process interoperability test. The latter obtains the Rust binary through
+Bazel runfiles, so it also works inside the Linux test sandbox.
+
 The Rust tests cover framing, batches, limits, checksums, corrupt/truncated
 files, atomic index publication, exclusive file creation, and clearing.
 Java tests cover transport deadlines and validation, exact codec round trips,
@@ -93,7 +108,7 @@ The process integration script validates actual build outputs across source,
 glob addition/deletion, BUILD and .bzl edits, flag changes, keep-going errors,
 cycles, query, mode changes, clean, state dropping, restart, killed sidecars,
 and deliberately corrupted spill files. Its output directory must be new.
-The existing Java/Rust IPC interop script also checks malformed requests,
+The Java/Rust IPC interop test also checks malformed requests,
 reconnect, empty/missing values, occupied sockets, and restart loss.
 
 ## Profiling
@@ -162,7 +177,9 @@ between commands. Standalone IPC benchmarks can still use the memory backend:
 
     tools/skystore/benchmark.sh > /tmp/skystore-uds.csv
 
-Those synthetic warm-map results isolate transport costs and are not evidence
+The benchmark script builds the sidecar with `-c opt` through rules_rs and
+resolves its configured Bazel output directory. Those synthetic warm-map
+results isolate transport costs and are not evidence
 of a Skyframe speedup. Initial
 [IPC measurements](../../docs/jsgette/measurements/skystore-uds-linux-2026-10-19.md)
 remain available. Production promotion still needs the compact graph,
@@ -170,3 +187,8 @@ working-set policy, wider audited codecs, concurrency/rewinding conformance,
 bounded paging, and persistent validity/checkpoint work from the design.
 
 The [integrated Linux comparison](../../docs/jsgette/measurements/skyframe-rust-idle-linux-2026-10-19.md) records the vanilla/default/tiered results and promotion decision.
+
+The published October 19 measurements predate the rules_rs build integration
+and used Cargo release builds with Rust 1.99.1. They remain results for those
+recorded binaries; a rules_rs build can use different compiler/linker flags and
+must be measured separately before making performance claims about it.

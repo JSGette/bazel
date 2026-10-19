@@ -52,7 +52,7 @@ Estimates to validate in the Phase 0 IPC spike:
 - **A separate process does not save machine RAM by itself.** Only the compact
   representation and SSD tiering do.
 - **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++
-  compiler; there is no `rules_rust` today. The sidecar must be optional: a
+  compiler. `rules_rs` builds the optional sidecar separately. A
   bootstrap build runs the in-process compact graph from Phase 2.
 - **Role of C.** No hand-written C. C libraries (zstd, liburing) are linked into
   the Rust sidecar.
@@ -335,7 +335,7 @@ Each phase is a stack of atomic reviewable commits with a review gate.
   custom log vs fjall/redb.
 - I/O: io_uring on Linux, pread thread pool elsewhere; block checksums;
   S3-FIFO or CLOCK-Pro block cache.
-- Build: rules_rust, embedded in install base; optional in bootstrap.
+- Build: rules_rs, embedded in install base; optional in bootstrap.
 - Failure: crash/corruption = cache loss; drop graph, recover from last
   checkpoint.
 
@@ -423,7 +423,7 @@ before starting each item. Each win is an independent upstream PR.
   Phase 0 quantifies; PIN stays default.
 - Identity-sensitive values and side tables — audit before SPILL.
 - Sidecar crashes/corruption — treat as cache loss; checksums + kill −9 suite.
-- rules_rust and bootstrap — sidecar optional.
+- rules_rs and bootstrap — sidecar optional.
 - SSD write amplification — append deltas only; budget compaction.
 - Divergence from upstream eviction work — engage early.
 

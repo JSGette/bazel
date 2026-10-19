@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 public final class InteropTest {
   public static void main(String[] args) throws Exception {
     if (args.length != 1) {
-      throw new IllegalArgumentException("usage: InteropTest ABSOLUTE_SKYSTORE_BINARY");
+      throw new IllegalArgumentException("usage: InteropTest SKYSTORE_BINARY");
     }
     Path directory = Files.createTempDirectory(Path.of("/tmp"), "skystore-interop-");
     Path socket = directory.resolve("sock");
