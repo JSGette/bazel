@@ -10,7 +10,10 @@ todos:
     status: pending
   - id: p0-engine-comparison
     content: "Capture reproducible vanilla Bazel baseline CPU/heap profiles and RAM/performance measurements; repeat after Rust engine integration with matched versions, cold/warm/incremental workloads, total JVM-plus-sidecar RSS, and comparative profiling reports"
-    status: pending
+    status: completed
+  - id: experimental-idle-tier
+    content: "Integrated opt-in Rust disk value tier for audited globs between commands; Linux correctness/recovery tests and vanilla/default/tiered profiling complete. Does not complete compact graph, paging, or persistent-engine phases."
+    status: completed
   - id: p0-working-set
     content: "Phase 0: working-set tracer over replayed commit history (value-read / version-read / dirtied / recomputed per command)"
     status: pending
@@ -319,3 +322,14 @@ flowchart LR
 - rules_rust and bootstrap. The sidecar is optional.
 - SSD write amplification. Append deltas only and budget compaction.
 - Divergence from upstream eviction work. Engage early.
+
+## First integrated experiment — 2026-10-19
+
+The optional tiered_idle mode connects real Skyframe entries to the Rust spill
+store between commands, restoring all detached values before evaluation.
+[Linux comparison and promotion decision](../measurements/skyframe-rust-idle-linux-2026-10-19.md):
+about 1% less live Java heap, about 8% slower repeated warm analysis, and no
+demonstrated total process RAM saving. Keep it experimental and disabled by
+default. This is a bounded integration experiment; the compact graph,
+in-command paging, wider codec coverage, graph conformance/fuzzing, and
+persistence gates above remain open.

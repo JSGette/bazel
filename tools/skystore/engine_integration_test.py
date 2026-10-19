@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--skystore", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cache", action="store_true")
+    parser.add_argument("--vanilla", action="store_true", help="Run the output-equivalence matrix without tier-specific fault injection")
     args = parser.parse_args()
     root = args.output.resolve()
     root.mkdir(parents=True, exist_ok=False)
@@ -52,7 +53,7 @@ def main():
         return json.loads((output_base / "skyframe-tiering.json").read_text())
 
     def run(name, command="build", extra=(), expected=0, tier=True, targets=("//:result",)):
-        argv = startup + [command] + (tier_flags if tier else [])
+        argv = startup + [command] + (tier_flags if tier and not args.vanilla else [])
         if command in ("build", "test"):
             argv += cache_flags + ["--jobs=4"]
         argv += list(extra) + list(targets)
@@ -77,10 +78,12 @@ def main():
 
     try:
         run("cold")
-        assert stats()["detached_values"] > 0, "test must exercise real value spilling"
-        count = stats()["detached_values"]
+        if not args.vanilla:
+            assert stats()["detached_values"] > 0, "test must exercise real value spilling"
+            count = stats()["detached_values"]
         run("warm")
-        assert stats()["restored_values"] == count
+        if not args.vanilla:
+            assert stats()["restored_values"] == count
         (data / "long-filename-for-tiering-0001.txt").write_text("edited\n")
         run("source-edit")
         (data / "new-file-in-glob.txt").write_text("new\n")
@@ -100,26 +103,28 @@ def main():
         run("after-cycle")
         run("query", command="query", targets=["deps(//:result)"])
         run("after-query")
-        old = stats()
-        os.kill(old["sidecar_pid"], signal.SIGKILL)
-        run("sidecar-killed")
-        assert stats()["recovery_count"] > old["recovery_count"]
-        old = stats()
-        cmdline = Path(f'/proc/{old["sidecar_pid"]}/cmdline').read_bytes().split(b"\0")
-        spill = Path(os.fsdecode(cmdline[2]))
-        assert spill.parent.name.startswith("bazel-skystore-") and spill.name == "values"
-        with spill.open("r+b") as f:
-            first = f.read(1)
-            assert first, "corruption test needs stored bytes"
-            f.seek(0)
-            f.write(bytes([first[0] ^ 0x80]))
-        run("spill-corruption")
-        assert stats()["recovery_count"] > old["recovery_count"]
-        run("mode-inmemory", tier=False)
-        assert not stats()["enabled"]
-        run("mode-tiered-again")
+        if not args.vanilla:
+            old = stats()
+            os.kill(old["sidecar_pid"], signal.SIGKILL)
+            run("sidecar-killed")
+            assert stats()["recovery_count"] > old["recovery_count"]
+            old = stats()
+            cmdline = Path(f'/proc/{old["sidecar_pid"]}/cmdline').read_bytes().split(b"\0")
+            spill = Path(os.fsdecode(cmdline[2]))
+            assert spill.parent.name.startswith("bazel-skystore-") and spill.name == "values"
+            with spill.open("r+b") as f:
+                first = f.read(1)
+                assert first, "corruption test needs stored bytes"
+                f.seek(0)
+                f.write(bytes([first[0] ^ 0x80]))
+            run("spill-corruption")
+            assert stats()["recovery_count"] > old["recovery_count"]
+            run("mode-inmemory", tier=False)
+            assert not stats()["enabled"]
+            run("mode-tiered-again")
         run("drop-state", extra=["--nokeep_state_after_build"])
-        assert stats()["detached_values"] == 0
+        if not args.vanilla:
+            assert stats()["detached_values"] == 0
         run("after-drop-state")
         run("shutdown", command="shutdown", tier=False, targets=[])
         run("server-restart")

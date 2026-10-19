@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 The Bazel Authors. All rights reserved.
 # Licensed under the Apache License, Version 2.0. See the repository LICENSE.
-"""Linux-only analysis baseline: separate timing runs from diagnostic profiles."""
+"""Linux-only engine comparison: separate timing runs from diagnostic profiles."""
 
 import argparse
 import csv
@@ -60,6 +60,7 @@ def main():
     parser.add_argument("--startup-arg", action="append", default=[])
     parser.add_argument("--build-arg", action="append", default=[])
     parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--execute", action="store_true", help="Execute actions instead of analysis only")
     parser.add_argument("targets", nargs="+")
     args = parser.parse_args()
     if platform.system() != "Linux":
@@ -79,6 +80,7 @@ def main():
         *args.startup_arg,
     ]
     records = []
+    phase = "build" if args.execute else "analysis"
 
     def server_pid():
         try:
@@ -156,7 +158,7 @@ def main():
         ).strip(),
         "binary": str(binary),
         "sample_interval_seconds": 0.05,
-        "workload": "analysis only (--nobuild); no action execution",
+        "workload": "full build with action execution" if args.execute else "analysis only (--nobuild); no action execution",
         "cold_definition": "fresh output base and server; repository and OS caches may be warm",
         "ram_definition": "sampled sum of launcher, server, and descendants; RSS can double-count shared pages; PSS apportions them",
         "profiles": "diagnostic pass after timing runs; memory_profile and class histogram force GC",
@@ -168,23 +170,23 @@ def main():
     with binary.open("rb") as binary_file:
         metadata["binary_sha256"] = hashlib.file_digest(binary_file, "sha256").hexdigest()
     (output / "environment.json").write_text(json.dumps(metadata, indent=2) + "\n")
-    build = ["build", "--nobuild", "--jobs=4", "--local_resources=memory=6144", *args.build_arg]
+    build = ["build", *([] if args.execute else ["--nobuild"]), "--jobs=4", "--local_resources=memory=6144", *args.build_arg]
     try:
-        command("cold-analysis", build + args.targets)
+        command("cold-" + phase, build + args.targets)
         for i in range(2):
             command("warmup-" + str(i + 1), build + args.targets, measure=False)
         for i in range(args.repeats):
-            command("warm-analysis-" + str(i + 1), build + args.targets)
+            command("warm-" + phase + "-" + str(i + 1), build + args.targets)
         diagnostic("jvm-version", ["VM.version"])
         command("profile-reset", ["clean"], measure=False)
         diagnostic("jfr-start", [
             "JFR.start", "name=SkystoreBaseline", "settings=profile",
-            "filename=" + str(output / "analysis.jfr")
+            "filename=" + str(output / (phase + ".jfr"))
         ])
-        command("profile-analysis", build + [
-            "--profile=" + str(output / "analysis.trace.json.gz"),
+        command("profile-" + phase, build + [
+            "--profile=" + str(output / (phase + ".trace.json.gz")),
             "--noslim_profile",
-            "--memory_profile=" + str(output / "analysis.memory.txt"),
+            "--memory_profile=" + str(output / (phase + ".memory.txt")),
         ] + args.targets)
         diagnostic("jfr-stop", ["JFR.stop", "name=SkystoreBaseline"])
         diagnostic("heap-histogram", ["GC.class_histogram"])
@@ -196,16 +198,16 @@ def main():
         }, indent=2) + "\n")
         command("skyframe-counts", ["dump", "--skyframe=count"], measure=False)
         command("skyframe-values", ["dump", "--memory=full,summary"], measure=False)
-        warm = [r for r in records if r["name"].startswith("warm-analysis-")]
+        warm = [r for r in records if r["name"].startswith("warm-" + phase + "-")]
         summary = {
-            "cold_analysis": records[0],
+            "cold_run": records[0],
             "warm_median_wall_seconds": statistics.median(r["wall_seconds"] for r in warm),
             "warm_min_wall_seconds": min(r["wall_seconds"] for r in warm),
             "warm_max_wall_seconds": max(r["wall_seconds"] for r in warm),
             "warm_median_peak_tree_rss_kib": statistics.median(r["peak_tree_rss_kib"] for r in warm),
             "warm_median_peak_tree_pss_kib": statistics.median(r["peak_tree_pss_kib"] for r in warm),
             "warm_samples": len(warm),
-            "limitation": "One cold run, analysis-only workload, no incremental-edit or execution measurements.",
+            "limitation": "One cold run per invocation; repository/OS/remote caches can be warm. Edit scenarios require separate runs.",
         }
         (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     finally:

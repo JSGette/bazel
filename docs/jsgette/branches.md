@@ -13,7 +13,7 @@ clone they come from. "Local only" branches are not pushed.
 | [`bep-action-strategy-details`](https://github.com/JSGette/bazel/tree/bep-action-strategy-details) | `master` | Report spawn runner and cache hit in BEP `ActionExecuted` events. [bazelbuild/bazel#31811](https://github.com/bazelbuild/bazel/pull/31811) (open). |
 | [`jsgette/28605/fix_NPE_on_repo_env`](https://github.com/JSGette/bazel/tree/jsgette/28605/fix_NPE_on_repo_env) | `master` | NPE on `--repo_env` without a value. [bazelbuild/bazel#28606](https://github.com/bazelbuild/bazel/pull/28606), imported upstream. |
 | [`jsgette/issue_29129/fix_broken_fallback_for_remote_executor`](https://github.com/JSGette/bazel/tree/jsgette/issue_29129/fix_broken_fallback_for_remote_executor) | `master` | Fallback mechanism for `--remote_executor` ([bazelbuild/bazel#29129](https://github.com/bazelbuild/bazel/issues/29129)). |
-| [`jsgette/skystore-phase0`](https://github.com/JSGette/bazel/tree/jsgette/skystore-phase0) | `jsgette/master` | Phase 0 Rust/Java Skyframe cold-plane IPC prototype: batched UDS value store, protocol/lifecycle tests, Linux measurements. No production evaluator changes. |
+| [`jsgette/skystore-phase0`](https://github.com/JSGette/bazel/tree/jsgette/skystore-phase0) | `jsgette/master` | Experimental Rust-backed idle Skyframe value tier, checksummed disk storage, recovery tests, and vanilla/default/tiered Linux profiling. Opt-in tiered_idle mode; default engine unchanged. Compact graph, in-command paging, and persistence remain future work. |
 
 ## Local only
 

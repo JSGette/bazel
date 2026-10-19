@@ -122,6 +122,8 @@ The diagnostic pass clears and rebuilds the analysis graph. The memory profile
 forces GC before the post-command spill; the separate class histogram reflects
 the idle graph after spilling.
 
+Add --execute to profile full builds including action execution. The engine integration script also accepts --vanilla to run the same edit/output matrix without tier-specific fault injection.
+
 Analysis-only timings do not establish execution performance. Repository and
 OS caches may already be warm, sampled peaks can miss brief spikes, and codec
 coverage is deliberately narrow. Record raw results and avoid interpreting
@@ -166,3 +168,5 @@ of a Skyframe speedup. Initial
 remain available. Production promotion still needs the compact graph,
 working-set policy, wider audited codecs, concurrency/rewinding conformance,
 bounded paging, and persistent validity/checkpoint work from the design.
+
+The [integrated Linux comparison](../../docs/jsgette/measurements/skyframe-rust-idle-linux-2026-10-19.md) records the vanilla/default/tiered results and promotion decision.
