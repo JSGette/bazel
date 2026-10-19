@@ -27,7 +27,8 @@ pub const PING: u8 = 0;
 pub const PUT: u8 = 1;
 pub const GET: u8 = 2;
 pub const CLEAR: u8 = 3;
-const MAX_DISK: u64 = 1024 * 1024 * 1024;
+const MAX_DISK: u64 = 4 * 1024 * 1024 * 1024;
+const MAX_DISK_STORE: usize = 1024 * 1024 * 1024;
 pub const MAX_FRAME: usize = 16 * 1024 * 1024;
 pub const MAX_BATCH: usize = 4096;
 pub const MAX_STORE: usize = 64 * 1024 * 1024;
@@ -209,19 +210,43 @@ impl Store {
                     new_size -= self.values.get(key).map_or(0, |old| 16 + old.len());
                     new_size += 16 + value.len();
                 }
-                if new_size > MAX_STORE {
+                // Disk payloads are not retained in RAM. The 64 MiB memory-backend limit
+                // is too small for real rules_go graphs; disk still has a separate hard
+                // logical limit and append-file limit (obsolete records are not compacted).
+                let limit = if self.disk.is_some() {
+                    MAX_DISK_STORE
+                } else {
+                    MAX_STORE
+                };
+                if new_size > limit {
                     return Err(invalid("store budget exceeded"));
+                }
+                // Shared chunks may be republished after their weak Java memoization entries are
+                // collected. Do not append another copy of an identical value. Compare the bytes,
+                // not just CRC32C: checksums are not a collision-free identity test.
+                let mut changed = Vec::with_capacity(updates.len());
+                for (key, value) in updates {
+                    let same_length = self
+                        .values
+                        .get(&key)
+                        .is_some_and(|old| old.len() == value.len());
+                    if same_length
+                        && matches!(self.read_value(&key), Ok(Some(old)) if old.as_slice() == value)
+                    {
+                        continue;
+                    }
+                    changed.push((key, value));
                 }
                 // Publish index updates only after all writes succeed. On failure the old
                 // index remains valid; unreferenced tail bytes are reclaimed by CLEAR.
-                let mut locations = Vec::with_capacity(updates.len());
+                let mut locations = Vec::with_capacity(changed.len());
                 if let Some(file) = &mut self.disk {
                     let mut offset = file.seek(SeekFrom::End(0))?;
-                    let added: u64 = updates.values().map(|v| v.len() as u64).sum();
+                    let added: u64 = changed.iter().map(|(_, v)| v.len() as u64).sum();
                     if offset + added > MAX_DISK {
                         return Err(invalid("spill file budget exceeded"));
                     }
-                    for (key, value) in updates {
+                    for (key, value) in changed {
                         file.write_all(value)?;
                         locations.push((
                             key,
@@ -234,7 +259,7 @@ impl Store {
                         offset += value.len() as u64;
                     }
                 } else {
-                    for (key, value) in updates {
+                    for (key, value) in changed {
                         locations.push((key, Value::Memory(value.to_vec())));
                     }
                 }
@@ -486,6 +511,43 @@ mod tests {
         assert!(store.handle(&get(&[[1; 16]])).is_err());
         writer.set_len(0).unwrap();
         assert!(store.handle(&get(&[[1; 16]])).is_err());
+        drop(store);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn disk_logical_budget_rejects_before_writing_and_preserves_old_values() {
+        let (mut store, path) = disk_store();
+        store.handle(&put(&[([1; 16], b"old")])).unwrap();
+        // Exercise the logical accounting boundary without writing a gigabyte in a unit test.
+        store.bytes = MAX_STORE;
+        store
+            .handle(&put(&[([2; 16], b"beyond-memory-budget")]))
+            .unwrap();
+        let length = std::fs::metadata(&path).unwrap().len();
+        store.bytes = MAX_DISK_STORE;
+        assert!(store
+            .handle(&put(&[([3; 16], b"over-disk-budget")]))
+            .is_err());
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), length);
+        assert_eq!(store.read_value(&[1; 16]).unwrap().unwrap(), b"old");
+        assert!(store.read_value(&[3; 16]).unwrap().is_none());
+        drop(store);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn identical_disk_writes_do_not_grow_the_file_and_corruption_is_repaired() {
+        let (mut store, path) = disk_store();
+        let request = put(&[([1; 16], b"correct")]);
+        store.handle(&request).unwrap();
+        store.handle(&request).unwrap();
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), 7);
+        let mut writer = OpenOptions::new().write(true).open(&path).unwrap();
+        writer.write_all(b"X").unwrap();
+        store.handle(&request).unwrap();
+        assert_eq!(store.read_value(&[1; 16]).unwrap().unwrap(), b"correct");
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), 14);
         drop(store);
         std::fs::remove_file(path).unwrap();
     }

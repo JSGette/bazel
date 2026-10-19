@@ -112,20 +112,35 @@ final class SkystoreProcess implements IdleValueTier.Storage, DiskBackedGraph.St
 
   @Override
   public synchronized void put(byte[] key, byte[] value) throws IOException {
-    connect().put(List.of(new SkystoreClient.Entry(key, value)));
+    try {
+      connect().put(List.of(new SkystoreClient.Entry(key, value)));
+    } catch (IOException e) {
+      disconnect();
+      throw e;
+    }
   }
 
   @Override
   public synchronized byte[] get(byte[] key) throws IOException {
-    return connect()
-        .get(List.of(key))
-        .getFirst()
-        .orElseThrow(() -> new IOException("skystore value missing"));
+    try {
+      return connect()
+          .get(List.of(key))
+          .getFirst()
+          .orElseThrow(() -> new IOException("skystore value missing"));
+    } catch (IOException e) {
+      disconnect();
+      throw e;
+    }
   }
 
   @Override
   public synchronized void clear() throws IOException {
-    connect().clear();
+    try {
+      connect().clear();
+    } catch (IOException e) {
+      disconnect();
+      throw e;
+    }
   }
 
   synchronized void disconnect() {

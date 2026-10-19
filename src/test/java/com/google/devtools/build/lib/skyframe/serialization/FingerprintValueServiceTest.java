@@ -99,6 +99,9 @@ public final class FingerprintValueServiceTest {
     WriteStatus writeStatus = service.put(testFingerprint, testValue);
 
     assertThat(writeStatus).isSameInstanceAs(expectedStatus);
+    assertThat(service.getStats().setLatencyMicros()).isEmpty();
+    expectedStatus.markSuccess();
+    assertThat(service.getStats().setLatencyMicros()).hasSize(1);
   }
 
   @Test

@@ -28,8 +28,6 @@ import com.google.devtools.build.lib.util.DecimalBucketer;
 import com.google.devtools.build.skyframe.SkyKey;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -171,12 +169,11 @@ public final class FingerprintValueService implements KeyValueWriter {
   /** Delegates to {@link FingerprintValueStore#put}. */
   @Override
   public WriteStatus put(KeyBytesProvider fingerprint, byte[] serializedBytes) {
-    Instant before = Instant.now();
+    // Wall clocks can move backwards (observed under WSL). Metrics must not abort serialization.
+    long before = System.nanoTime();
     WriteStatus status = store.put(fingerprint, serializedBytes);
     status.addListener(
-        () ->
-            setLatencyMicros.add(
-                TimeUnit.NANOSECONDS.toMicros(Duration.between(before, Instant.now()).toNanos())),
+        () -> setLatencyMicros.add(TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - before)),
         directExecutor());
     return status;
   }
@@ -200,12 +197,10 @@ public final class FingerprintValueService implements KeyValueWriter {
 
   /** Delegates to {@link FingerprintValueStore#get}. */
   public ListenableFuture<byte[]> get(KeyBytesProvider fingerprint) throws IOException {
-    Instant before = Instant.now();
+    long before = System.nanoTime();
     ListenableFuture<byte[]> result = store.get(fingerprint);
     result.addListener(
-        () ->
-            getLatencyMicros.add(
-                TimeUnit.NANOSECONDS.toMicros(Duration.between(before, Instant.now()).toNanos())),
+        () -> getLatencyMicros.add(TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - before)),
         directExecutor());
     return result;
   }

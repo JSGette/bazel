@@ -94,6 +94,21 @@ public final class SkystoreGraphTest {
   }
 
   @Test
+  public void interruptedRequestDoesNotPoisonLaterConnections() throws Exception {
+    try (SkystoreProcess store = start()) {
+      store.put(17, new byte[] {1, 2, 3});
+      try {
+        Thread.currentThread().interrupt();
+        assertThrows(java.io.IOException.class, () -> store.get(17));
+      } finally {
+        Thread.interrupted();
+      }
+      assertThat(store.isAlive()).isTrue();
+      assertThat(store.get(17)).isEqualTo(new byte[] {1, 2, 3});
+    }
+  }
+
+  @Test
   public void lazyRustReadsPreserveNodesAndBoundWorkingSet() throws Exception {
     try (SkystoreProcess store = start()) {
       DiskBackedGraph graph = new DiskBackedGraph(store, GLOBS, 2);
