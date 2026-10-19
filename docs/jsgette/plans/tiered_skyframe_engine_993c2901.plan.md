@@ -8,6 +8,9 @@ todos:
   - id: p0-heap-attribution
     content: "Phase 0: heap attribution (structure vs values per SkyFunctionName) via SkyframeMemoryDumper extension; baseline on bazel repo + one large client repo"
     status: pending
+  - id: p0-engine-comparison
+    content: "Capture reproducible vanilla Bazel baseline CPU/heap profiles and RAM/performance measurements; repeat after Rust engine integration with matched versions, cold/warm/incremental workloads, total JVM-plus-sidecar RSS, and comparative profiling reports"
+    status: pending
   - id: p0-working-set
     content: "Phase 0: working-set tracer over replayed commit history (value-read / version-read / dirtied / recomputed per command)"
     status: pending
