@@ -92,6 +92,10 @@ final class SkystoreProcess implements IdleValueTier.Storage, DiskBackedGraph.St
     return ByteBuffer.allocate(16).putLong(0x534b474e4f444501L).putLong(id).array();
   }
 
+  boolean isAlive() {
+    return process.isAlive();
+  }
+
   long pid() {
     return process.pid();
   }

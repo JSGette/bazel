@@ -51,6 +51,61 @@ def process_memory(roots):
     return rss, pss, len(seen)
 
 
+def sidecar_io(output_base):
+    """Linux sidecar I/O counters; read_bytes excludes reads served by the guest page cache."""
+    try:
+        state = json.loads((output_base / "skyframe-tiering.json").read_text())
+        pid = state.get("sidecar_pid", 0)
+        if not pid:
+            return {}
+        counters = {key: int(value) for key, value in
+                    (line.split(":") for line in Path(f"/proc/{pid}/io").read_text().splitlines())}
+        return {"pid": pid, **counters}
+    except (FileNotFoundError, ProcessLookupError, PermissionError):
+        return {}
+
+
+def evict_spill_pages(output_base, *, evict=True):
+    """Evict only this run's spill file from the Linux page cache, never global caches."""
+    import ctypes
+    import mmap
+    import os
+
+    state = json.loads((output_base / "skyframe-tiering.json").read_text())
+    pid = state["sidecar_pid"]
+    command = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+    spill = Path(os.fsdecode(command[2]))
+    assert spill.parent.name.startswith("bazel-skystore-") and spill.name == "values"
+    libc = ctypes.CDLL(None, use_errno=True)
+
+    def resident_pages(fd, size):
+        if size == 0:
+            return 0
+        count = (size + mmap.PAGESIZE - 1) // mmap.PAGESIZE
+        with mmap.mmap(fd, size, flags=mmap.MAP_PRIVATE,
+                       prot=mmap.PROT_READ | mmap.PROT_WRITE) as mapping:
+            address = ctypes.addressof(ctypes.c_char.from_buffer(mapping))
+            vector = (ctypes.c_ubyte * count)()
+            result = libc.mincore(ctypes.c_void_p(address), ctypes.c_size_t(size), vector)
+            if result:
+                raise OSError(ctypes.get_errno(), "mincore failed")
+            return sum(bool(value & 1) for value in vector)
+
+    with spill.open("rb") as stream:
+        size = os.fstat(stream.fileno()).st_size
+        before = resident_pages(stream.fileno(), size)
+        os.fsync(stream.fileno())
+        if evict:
+            os.posix_fadvise(stream.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+        else:
+            while stream.read(1024 * 1024):
+                pass
+        after = resident_pages(stream.fileno(), size)
+    return {"condition": "evicted" if evict else "warmed", "file_bytes": size, "resident_pages_before": before,
+            "resident_pages_after": after, "page_bytes": mmap.PAGESIZE,
+            "note": "Linux guest page-cache eviction; WSL host/device caches are uncontrolled."}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bazel", type=Path, required=True)
@@ -59,6 +114,13 @@ def main():
     parser.add_argument("--jcmd", type=Path, required=True)
     parser.add_argument("--startup-arg", action="append", default=[])
     parser.add_argument("--build-arg", action="append", default=[])
+    parser.add_argument("--command-arg", action="append", default=[],
+                        help="Option preserved across build, clean and dump commands (e.g. graph engine)")
+    parser.add_argument("--guest-evict-spill", action="store_true",
+                        help="Also measure reads after evicting this run's spill file from guest page cache")
+    parser.add_argument("--alternate-target", action="append", default=[],
+                        help="Measure repeated builds of each disjoint target after warm all-target runs")
+    parser.add_argument("--edit-file", type=Path, help="Fixture input to edit and restore for incremental runs")
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--execute", action="store_true", help="Execute actions instead of analysis only")
     parser.add_argument("targets", nargs="+")
@@ -89,7 +151,8 @@ def main():
             return 0
 
     def command(name, arguments, measure=True):
-        argv = startup + arguments
+        argv = startup + arguments[:1] + args.command_arg + arguments[1:]
+        io_before = sidecar_io(output_base)
         samples = []
         with (output / (name + ".log")).open("w") as log:
             start = time.monotonic()
@@ -126,6 +189,12 @@ def main():
         stats = output_base / "skyframe-tiering.json"
         if stats.exists():
             record["tiering"] = json.loads(stats.read_text())
+        io_after = sidecar_io(output_base)
+        if io_after:
+            record["sidecar_io"] = io_after
+            if io_before.get("pid") == io_after["pid"]:
+                record["sidecar_io_delta"] = {key: io_after[key] - io_before[key]
+                                              for key in io_after if key != "pid"}
         records.append(record)
         if measure:
             with (output / (name + ".samples.csv")).open("w", newline="") as f:
@@ -165,6 +234,7 @@ def main():
         "targets": args.targets,
         "startup_args": args.startup_arg,
         "build_args": args.build_arg,
+        "command_args": args.command_arg,
     }
     import hashlib
     with binary.open("rb") as binary_file:
@@ -177,6 +247,30 @@ def main():
             command("warmup-" + str(i + 1), build + args.targets, measure=False)
         for i in range(args.repeats):
             command("warm-" + phase + "-" + str(i + 1), build + args.targets)
+        for index in range(args.repeats):
+            for target_index, target in enumerate(args.alternate_target):
+                command(f"disjoint-{index + 1}-{target_index + 1}", build + [target])
+        if args.edit_file:
+            edit_file = args.edit_file.resolve(strict=True)
+            original = edit_file.read_bytes()
+            try:
+                edit_file.write_bytes(original + b"incremental-edit\n")
+                command("source-edit", build + args.targets)
+            finally:
+                edit_file.write_bytes(original)
+            command("source-revert", build + args.targets)
+        if args.guest_evict_spill:
+            evictions = []
+            for index in range(args.repeats):
+                conditions = ["guest-warm", "guest-evicted"] if index % 2 == 0 else ["guest-evicted", "guest-warm"]
+                for position, condition in enumerate(conditions):
+                    diagnostic(f"{condition}-gc-{index + 1}", ["GC.run"])
+                    eviction = evict_spill_pages(output_base, evict=condition == "guest-evicted")
+                    evictions.append(eviction)
+                    (output / "guest-cache-evictions.json").write_text(json.dumps(evictions, indent=2) + "\n")
+                    targets = ([args.alternate_target[position % len(args.alternate_target)]]
+                               if args.alternate_target else args.targets)
+                    command(f"{condition}-{index + 1}", build + targets)
         diagnostic("jvm-version", ["VM.version"])
         command("profile-reset", ["clean"], measure=False)
         diagnostic("jfr-start", [

@@ -14,9 +14,12 @@
 
 package com.google.devtools.build.lib.skyframe.tiering;
 
+import com.google.devtools.build.lib.analysis.AnalysisOptions;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.runtime.BlazeModule;
 import com.google.devtools.build.lib.runtime.CommandEnvironment;
+import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheMode;
+import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingOptions;
 import com.google.devtools.build.skyframe.InMemoryGraph;
 import com.google.devtools.common.options.EnumConverter;
 import com.google.devtools.common.options.Option;
@@ -30,11 +33,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/** Experimental Rust-backed, between-command value tier. Disabled by default. */
+/** Experimental Rust-backed idle and demand-loaded graph tiers. Disabled by default. */
 public final class SkyframeTieringModule extends BlazeModule {
   public enum Engine {
     INMEMORY,
-    TIERED_IDLE
+    TIERED_IDLE,
+    TIERED_GENRULE
   }
 
   public static final class EngineConverter extends EnumConverter<Engine> {
@@ -53,8 +57,9 @@ public final class SkyframeTieringModule extends BlazeModule {
         effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
         metadataTags = {OptionMetadataTag.EXPERIMENTAL},
         help =
-            "inmemory or tiered_idle. tiered_idle stores audited glob values in an optional "
-                + "Rust process between commands; values are restored before evaluation.")
+            "inmemory, tiered_idle, or tiered_genrule. tiered_idle restores glob values before "
+                + "commands. tiered_genrule pages complete native-genrule nodes on demand; other "
+                + "values remain pinned. Experimental and disabled by default.")
     public abstract Engine getEngine();
 
     @Option(
@@ -63,11 +68,23 @@ public final class SkyframeTieringModule extends BlazeModule {
         documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
         effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
         metadataTags = {OptionMetadataTag.EXPERIMENTAL},
-        help = "Absolute path to the optional skystore executable for tiered_idle.")
+        help =
+            "Absolute path to the optional skystore executable for tiered_idle or tiered_genrule.")
     public abstract String getBinary();
+
+    @Option(
+        name = "experimental_skyframe_resident_nodes",
+        defaultValue = "128",
+        documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+        effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
+        metadataTags = {OptionMetadataTag.EXPERIMENTAL},
+        help =
+            "Maximum resident eligible completed nodes for tiered_genrule. Other nodes are pinned.")
+    public abstract int getResidentNodes();
   }
 
   private static final long SPILL_BUDGET = 32L * 1024 * 1024;
+  private TieredGraphFactory pagedFactory;
   private SkystoreProcess process;
   private IdleValueTier tier;
   private InMemoryGraph graph;
@@ -84,7 +101,7 @@ public final class SkyframeTieringModule extends BlazeModule {
 
   @Override
   public void beforeCommand(CommandEnvironment env) {
-    boolean wasActive = tier != null;
+    boolean wasActive = tier != null || pagedFactory != null;
     enabled = false;
     restoredValues = 0;
     long start = System.nanoTime();
@@ -113,6 +130,45 @@ public final class SkyframeTieringModule extends BlazeModule {
     }
     restoreNanos = System.nanoTime() - start;
     Options options = env.getOptions().getOptions(Options.class);
+    if (pagedFactory != null
+        && (options.getEngine() != Engine.TIERED_GENRULE
+            || !pagedFactory.matches(options.getBinary(), options.getResidentNodes())
+            || !pagedFactory.healthy())) {
+      stopPaged(env);
+    }
+    if (options.getEngine() == Engine.TIERED_GENRULE) {
+      stop();
+      AnalysisOptions analysis = env.getOptions().getOptions(AnalysisOptions.class);
+      RemoteAnalysisCachingOptions remote =
+          env.getOptions().getOptions(RemoteAnalysisCachingOptions.class);
+      if (options.getResidentNodes() < 0
+          || (analysis != null && analysis.getDiscardAnalysisCache())
+          || (remote != null && remote.getMode() != RemoteAnalysisCacheMode.OFF)) {
+        stopPaged(env);
+        env.getReporter()
+            .handle(
+                Event.warn(
+                    "tiered_genrule disabled: requires a nonnegative resident-node limit, "
+                        + "retained analysis values, and remote analysis caching off."));
+        writeStats(env, 0);
+        return;
+      }
+      if (pagedFactory == null) {
+        try {
+          pagedFactory =
+              new TieredGraphFactory(env, options.getBinary(), options.getResidentNodes());
+          env.getSkyframeExecutor().setExperimentalGraphFactory(pagedFactory);
+        } catch (RuntimeException e) {
+          stopPaged(env);
+          env.getReporter()
+              .handle(
+                  Event.warn(
+                      "Disk-backed Skyframe unavailable; using inmemory: " + e.getMessage()));
+          writeStats(env, 0);
+        }
+      }
+      return;
+    }
     if (options.getEngine() != Engine.TIERED_IDLE) {
       stop();
       if (wasActive) {
@@ -145,6 +201,14 @@ public final class SkyframeTieringModule extends BlazeModule {
 
   @Override
   public void afterCommandMaintenance(CommandEnvironment env) {
+    if (pagedFactory != null) {
+      try {
+        pagedFactory.writeStats();
+      } catch (IOException ignored) {
+        // Diagnostics do not affect graph correctness.
+      }
+      return;
+    }
     if (!enabled) {
       return;
     }
@@ -179,7 +243,9 @@ public final class SkyframeTieringModule extends BlazeModule {
           Path.of(env.getOutputBase().getPathString(), "skyframe-tiering.json"),
           "{\"enabled\":"
               + (tier != null)
-              + ",\"detached_values\":"
+              + ",\"engine\":\""
+              + (tier == null ? "inmemory" : "tiered_idle")
+              + "\",\"detached_values\":"
               + (tier == null ? 0 : tier.detachedCount())
               + ",\"serialized_bytes\":"
               + (tier == null ? 0 : tier.serializedBytes())
@@ -199,6 +265,14 @@ public final class SkyframeTieringModule extends BlazeModule {
     }
   }
 
+  private void stopPaged(CommandEnvironment env) {
+    if (pagedFactory != null) {
+      env.getSkyframeExecutor().setExperimentalGraphFactory(null);
+      pagedFactory.close();
+      pagedFactory = null;
+    }
+  }
+
   private void stop() {
     if (process != null) {
       process.close();
@@ -212,5 +286,9 @@ public final class SkyframeTieringModule extends BlazeModule {
   @Override
   public void blazeShutdown() {
     stop();
+    if (pagedFactory != null) {
+      pagedFactory.close();
+      pagedFactory = null;
+    }
   }
 }

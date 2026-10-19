@@ -331,6 +331,24 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
 
   private static final GoogleLogger logger = GoogleLogger.forEnclosingClass();
   protected MemoizingEvaluator memoizingEvaluator;
+  @Nullable private Function<Boolean, InMemoryGraph> experimentalGraphFactory;
+
+  /** Changes graph implementations between commands, discarding the previous evaluator state. */
+  public final void setExperimentalGraphFactory(
+      @Nullable Function<Boolean, InMemoryGraph> factory) {
+    experimentalGraphFactory = factory;
+    resetEvaluator();
+  }
+
+  protected final InMemoryGraph createGraph(boolean keepEdges) {
+    if (experimentalGraphFactory != null) {
+      return experimentalGraphFactory.apply(keepEdges);
+    }
+    return keepEdges
+        ? InMemoryGraph.create(/* usePooledInterning= */ true)
+        : InMemoryGraph.createEdgeless(/* usePooledInterning= */ true);
+  }
+
   private final EmittedEventState emittedEventState = new EmittedEventState();
   protected final PackageFactory pkgFactory;
   private final WorkspaceStatusAction.Factory workspaceStatusActionFactory;
@@ -4225,8 +4243,6 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
     incrementalBuildMonitor.accrue(changedKeysWithNewValues.keySet());
   }
 
-
-
   private static final int MAX_NUMBER_OF_CHANGED_KEYS_TO_LOG = 10;
 
   private static void logDiffInfo(
@@ -4625,7 +4641,6 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
       return (UnloadedToolchainContext) memoizingEvaluator.getExistingValue(key);
     }
   }
-
 
   /**
    * Defines configuration for the diff checking and the progress message shown during a slow diff

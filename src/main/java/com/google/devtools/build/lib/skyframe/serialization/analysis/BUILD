@@ -389,6 +389,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/runtime/commands:__pkg__",
         "//src/main/java/com/google/devtools/build/lib/skyframe:__pkg__",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:__pkg__",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/tiering:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/skyframe:__pkg__",
     ],
     deps = [
@@ -418,6 +419,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/runtime/commands:__pkg__",
         "//src/main/java/com/google/devtools/build/lib/skyframe:__pkg__",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:__pkg__",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/tiering:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/runtime:__subpackages__",
         "//src/test/java/com/google/devtools/build/lib/skyframe:__pkg__",
     ],

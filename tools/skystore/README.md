@@ -8,9 +8,48 @@ can read the graph. The default remains `inmemory`.
 
 This is the first integrated slice of the
 [tiered Skyframe design](../../docs/jsgette/skyframe-tiered-engine.md).
-It is **not the complete tiered engine**: there is no compact graph, in-command
-paging, cold edge store, cross-restart checkpoint, or broad value codec coverage.
-It targets idle retained memory, not peak evaluation memory.
+The `tiered_genrule` mode now pages audited native genrule node records, action
+values, dependency groups, and reverse edges during real builds. Shared nested
+sets live in fingerprint-addressed Rust chunks. Unsupported values remain pinned.
+There is no compact global index, byte-based heap budget, compaction, broad
+action codec coverage, or cross-restart checkpoint yet.
+
+## Demand-paged native genrules
+
+    /absolute/path/to/copied-bazel --output_base=/absolute/new/output-base build \
+      --experimental_skyframe_engine=tiered_genrule \
+      --experimental_skyframe_resident_nodes=32 \
+      --experimental_skystore_binary=/absolute/path/to/skystore //your:target
+
+The limit counts eligible completed node delegates. Other values, active nodes,
+configuration references, keys and handles consume additional memory. Check
+`skyframe-tiering.json` for enabled status, resident/pinned/cold counts, node
+page-ins/bytes, shared-chunk reads/writes and PID. No whole-graph restoration runs
+at command start. A missing authoritative record during evaluation fails closed.
+Startup failure falls back to the resident engine. Each reset starts a fresh
+storage/codec generation; tracking off uses the regular edgeless graph.
+
+The allowlist covers exact native `GenRuleAction` values with one action and no
+input discovery. The codec preserves transitive packages, configuration identity,
+artifact identity, and shared nested sets. Starlark actions, input-discovering
+actions, wrappers and all other values remain pinned. `--discard_analysis_cache`
+and remote analysis caching disable this mode. Cache & Carry's remote action
+cache works normally.
+
+    python3 tools/skystore/lazy_graph_integration_test.py \
+      --bazel=/absolute/path/to/copied-bazel --skystore=/absolute/path/to/skystore \
+      --output=/absolute/new/test-directory --cache
+    python3 tools/skystore/lazy_graph_lifecycle_test.py \
+      --bazel=/absolute/path/to/copied-bazel --skystore=/absolute/path/to/skystore \
+      --output=/absolute/new/lifecycle-directory --cache
+
+Use `--vanilla` with the integration matrix and a frozen vanilla binary to
+compare output digests and action keys. The matrix exercises derived-input
+producer/consumer chains, disjoint targets, edits, errors, recovery and resets.
+See the [lazy graph measurements](../../docs/jsgette/measurements/skyframe-lazy-genrule-linux-2026-10-19.md).
+
+The remaining sections describe the build and the earlier idle-glob mode where
+specified.
 
 ## Build and run on Linux
 
@@ -124,8 +163,8 @@ trace and memory profile, post-GC heap histogram, and Skyframe value attribution
       --output=/absolute/new/profile-directory \
       --jcmd=/absolute/path/to/jdk/bin/jcmd \
       --build-arg=--config=efcache --build-arg=--bes_backend= \
-      --build-arg=--experimental_skyframe_engine=tiered_idle \
-      --build-arg=--experimental_skystore_binary=/absolute/path/to/skystore \
+      --command-arg=--experimental_skyframe_engine=tiered_idle \
+      --command-arg=--experimental_skystore_binary=/absolute/path/to/skystore \
       //src:bazel-dev
 
 Compare vanilla, modified-default, and modified-tiered binaries with identical
@@ -138,6 +177,14 @@ forces GC before the post-command spill; the separate class histogram reflects
 the idle graph after spilling.
 
 Add --execute to profile full builds including action execution. The engine integration script also accepts --vanilla to run the same edit/output matrix without tier-specific fault injection.
+
+For demand paging, use `--command-arg` for the engine, binary, and resident-node
+options so clean and diagnostic commands preserve the selected graph. Add
+`--alternate-target` twice for disjoint target sets and `--edit-file` for an
+incremental source edit. `--guest-evict-spill` compares explicitly warmed and
+evicted spill-file pages after matched full GCs; `mincore` records residency
+and `/proc/PID/io` verifies guest block reads. This evicts only the owned file,
+not global caches. WSL host/device caches remain uncontrolled.
 
 Analysis-only timings do not establish execution performance. Repository and
 OS caches may already be warm, sampled peaks can miss brief spikes, and codec
@@ -182,9 +229,9 @@ resolves its configured Bazel output directory. Those synthetic warm-map
 results isolate transport costs and are not evidence
 of a Skyframe speedup. Initial
 [IPC measurements](../../docs/jsgette/measurements/skystore-uds-linux-2026-10-19.md)
-remain available. Production promotion still needs the compact graph,
-working-set policy, wider audited codecs, concurrency/rewinding conformance,
-bounded paging, and persistent validity/checkpoint work from the design.
+remain available. Production promotion still needs the compact graph, byte-based working-set policy,
+wider audited codecs, production-scale storage, and persistent validity/checkpoint
+work from the design.
 
 The [integrated Linux comparison](../../docs/jsgette/measurements/skyframe-rust-idle-linux-2026-10-19.md) records the vanilla/default/tiered results and promotion decision.
 
