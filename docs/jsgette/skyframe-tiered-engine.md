@@ -3,10 +3,62 @@
 Java hot plane + Rust "skystore" sidecar on SSD. Drop-in replacement for
 Skyframe's in-memory graph so the rest of Bazel sees no difference.
 
-**Status:** Phase 0 started: the optional [skystore IPC prototype](../../tools/skystore/README.md)
-implements Rust/Java batched UDS get/put with protocol and lifecycle tests.
-Shared-memory comparison, heap attribution, and later phases remain pending.
-Decisions locked 2026-10-16.
+**Status (2026-10-19):** The optional [skystore implementation](../../tools/skystore/README.md)
+has Rust/Java IPC, checksummed disk value storage, rules_rs builds, and an
+experimental `tiered_idle` integration. That integration retains the graph in
+Java and restores all detached glob values before each command. It is an
+intermediate storage experiment, **not this document's disk-backed graph**.
+Its completed profiles do not measure demand paging. The lazy graph implementation
+and its performance comparison remain pending.
+Decisions locked 2026-10-16; disk-backed graph acceptance clarified 2026-10-19.
+
+## Required outcome: graph on disk, bounded working set in RAM
+
+The objective is to stop retaining the full action/Skyframe graph in RAM.
+This is separate from Bazel's action-result cache and CAS: Cache & Carry can
+accelerate builds, but using it does not move the Skyframe graph out of Java.
+
+- Rust owns cold node records, values, direct edges, and reverse edges on SSD.
+  Neither the JVM nor the Rust process may keep a second full decoded graph.
+- RAM holds compact lookup/state metadata, active evaluation state, explicitly
+  accounted pinned objects, and a cache with an enforced residency budget.
+  A key/proxy object for every node is still memory that must be measured.
+- Graph access loads only the needed records/chunks, with bounded prefetch.
+  Starting a command, enumerating keys, inspecting versions, or shutting down
+  must not trigger whole-graph rehydration.
+- Eviction preserves versions, dependency groups, reverse-edge consistency,
+  change pruning, interning, and action identity. Active readers must retain
+  valid objects until they finish. Disk I/O must not occur under node monitors.
+- Unsupported values remain explicitly pinned until audited lossless codecs
+  exist; report their count and retained bytes. A run that keeps the action
+  graph resident cannot be presented as achieving the disk-backed objective.
+- The comparison must use a stored graph larger than its resident cache,
+  revisit small and disjoint working sets, and cover edits that dirty cold
+  dependencies. Report total JVM-plus-Rust memory, pinned/active/cache bytes,
+  pages and bytes read, hit/miss/eviction counts, latency, CPU, and output
+  equivalence against vanilla.
+- Separate warm filesystem-cache reads from cold disk reads and verify the
+  latter with I/O counters. In WSL, guest page-cache eviction alone does not
+  prove physical SSD reads because host caching may still satisfy them.
+  Include filesystem-cache memory when assessing whole-machine savings.
+
+The initial idle experiment does not satisfy these acceptance conditions.
+A faster idle spill/restore loop or a lazy glob-only value proxy is not a
+substitute for the graph-storage implementation.
+
+### Implementation constraints confirmed in the current tree
+
+The existing analysis-cache codecs require a local-graph audit before reuse.
+`RemoteConfiguredTargetValue.codec()` substitutes remote value classes and
+omits transitive-package state. `ActionExecutionValue` decoding introduces
+`DeserializedSkyValue` markers with separate invalidation behavior.
+`ModuleCodec` can require Skyframe dependencies while decoding. A successful
+lookup in the registry is not proof of lossless support: its default fallback
+can reconstruct objects through `DynamicCodec`.
+
+Use the Phase 1 factory/maintenance seams and conformance work below before
+switching graph representations. Audit codec identity and invalidation contracts
+alongside the lazy graph, then benchmark that implementation.
 **Tracks:** engine phases 0–8 + parallel Track V (Java value-layout wins).
 
 ## Verdict

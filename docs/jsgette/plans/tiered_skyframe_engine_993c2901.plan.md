@@ -9,11 +9,17 @@ todos:
     content: "Phase 0: heap attribution (structure vs values per SkyFunctionName) via SkyframeMemoryDumper extension; baseline on bazel repo + one large client repo"
     status: pending
   - id: p0-engine-comparison
-    content: "Capture reproducible vanilla Bazel baseline CPU/heap profiles and RAM/performance measurements; repeat after Rust engine integration with matched versions, cold/warm/incremental workloads, total JVM-plus-sidecar RSS, and comparative profiling reports"
+    content: "Capture reproducible vanilla Bazel baseline CPU/heap profiles and RAM/performance measurements; repeat for the experimental idle value tier with matched versions, cold/warm/incremental workloads, total JVM-plus-sidecar RSS, and comparative profiling reports"
     status: completed
   - id: experimental-idle-tier
     content: "Integrated opt-in Rust disk value tier for audited globs between commands; Linux correctness/recovery tests and vanilla/default/tiered profiling complete. Does not complete compact graph, paging, or persistent-engine phases."
     status: completed
+  - id: disk-backed-graph-acceptance
+    content: "Required outcome clarified 2026-10-19: cold action/Skyframe node records, values and edges on SSD; only compact metadata, active/pinned objects and a bounded working-set cache in RAM. No whole-graph restoration before commands. Audit lossless local codecs and cold-dependency invalidation; idle glob spilling does not meet this outcome."
+    status: pending
+  - id: disk-backed-graph-comparison
+    content: "After lazy graph integration: compare vanilla against a disk graph larger than the resident cache using small/disjoint working sets and cold-dependency edits; distinguish warm page-cache reads from verified disk reads; report total JVM/Rust/cache memory, pinned bytes, page-ins, hit/miss/eviction counts, latency and output equivalence."
+    status: pending
   - id: p0-working-set
     content: "Phase 0: working-set tracer over replayed commit history (value-read / version-read / dirtied / recomputed per command)"
     status: pending
