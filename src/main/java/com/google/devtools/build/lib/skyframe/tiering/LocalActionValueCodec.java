@@ -25,6 +25,8 @@ import com.google.devtools.build.lib.actions.Artifact.SourceArtifact;
 import com.google.devtools.build.lib.actions.ArtifactFactory;
 import com.google.devtools.build.lib.actions.ArtifactOwner;
 import com.google.devtools.build.lib.actions.ArtifactRoot;
+import com.google.devtools.build.lib.analysis.Runfiles;
+import com.google.devtools.build.lib.analysis.actions.StarlarkAction;
 import com.google.devtools.build.lib.analysis.config.BuildConfigurationValue;
 import com.google.devtools.build.lib.analysis.config.BuildOptions;
 import com.google.devtools.build.lib.analysis.configuredtargets.RuleConfiguredTarget;
@@ -32,8 +34,12 @@ import com.google.devtools.build.lib.bugreport.BugReporter;
 import com.google.devtools.build.lib.collect.nestedset.NestedSetCodecWithStore;
 import com.google.devtools.build.lib.collect.nestedset.NestedSetStore;
 import com.google.devtools.build.lib.compress.CompressionService;
+import com.google.devtools.build.lib.packages.LocalGoArchiveCodec;
+import com.google.devtools.build.lib.packages.StarlarkProvider;
 import com.google.devtools.build.lib.rules.genrule.GenRuleAction;
+import com.google.devtools.build.lib.skyframe.BzlLoadThreadOwner;
 import com.google.devtools.build.lib.skyframe.RuleConfiguredTargetValue;
+import com.google.devtools.build.lib.skyframe.serialization.ArrayCodec;
 import com.google.devtools.build.lib.skyframe.serialization.DeserializationContext;
 import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService;
 import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
@@ -53,29 +59,43 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ExecutionException;
+import net.starlark.java.eval.Module;
 
 /**
- * Experimental local codec for the exact native genrule value/action pair.
+ * Experimental local codec for audited native genrules and Go library spawn actions.
  *
  * <p>This is deliberately separate from remote analysis caching. It preserves transitive packages
  * and local configuration identity, and uses the shared nested-set store for mixed residency.
- * Configurations and BuildOptions remain pinned for the codec's graph lifetime. This codec does not
- * support Starlark actions, input discovery, templates, errors or event wrappers.
+ * Configurations, BuildOptions, Starlark definitions, and Runfiles remain pinned for the codec's
+ * graph lifetime. The identity tables are local to one evaluator and cannot be reused by another
+ * server. This codec does not support input discovery, enhanced Starlark actions, templates, errors
+ * or event wrappers.
  */
-final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
+final class LocalActionValueCodec implements DiskBackedGraph.ValueCodec {
   private ObjectCodecs codecs;
   private final CompressionService compression;
-  private final FingerprintValueService fingerprints;
+  private FingerprintValueService fingerprints;
   private final Interner<DerivedArtifact> artifacts = Interners.newWeakInterner();
   private final ConfigurationReferences configurations = new ConfigurationReferences();
+  private final boolean goActions;
+  private final LocalReferences<Module> modules = new LocalReferences<>(Module.class);
+  private final LocalReferences<BzlLoadThreadOwner> moduleOwners =
+      new LocalReferences<>(BzlLoadThreadOwner.class);
+  private final LocalReferences<StarlarkProvider> providers =
+      new LocalReferences<>(StarlarkProvider.class);
+  // GoArchiveData participates in depset equality and includes Runfiles, which uses identity
+  // equality. Decoding a second Runfiles object would duplicate packages in the Go linker inputs.
+  private final LocalReferences<Runfiles> runfiles = new LocalReferences<>(Runfiles.class);
 
-  LocalGenruleValueCodec(
+  LocalActionValueCodec(
       ObjectCodecRegistry.Builder registry,
       ImmutableClassToInstanceMap<Object> dependencies,
       ArtifactFactory artifactFactory,
       FingerprintValueStore store,
       FingerprintValueService fingerprints,
-      CompressionService compression) {
+      CompressionService compression,
+      boolean goActions) {
+    this.goActions = goActions;
     this.fingerprints = fingerprints;
     this.compression = compression;
     ArtifactSerializationContext artifactContext =
@@ -96,7 +116,13 @@ final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
         new ObjectCodecs(
             registry
                 .add(new LocalValueCodec())
+                .add(ArrayCodec.forComponentType(Artifact.class))
                 .add(configurations)
+                .add(modules)
+                .add(moduleOwners)
+                .add(providers)
+                .add(runfiles)
+                .add(new LocalGoArchiveCodec(providers::id, providers::get))
                 .add(
                     new NestedSetCodecWithStore(
                         new NestedSetStore(
@@ -118,12 +144,24 @@ final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
   public boolean supports(SkyValue value) {
     if (!(value instanceof RuleConfiguredTargetValue target)
         || target.getConfiguredTarget() == null
-        || !"genrule".equals(target.getConfiguredTarget().getRuleClassString())
-        || target.getActions().size() != 1) {
+        || target.getActions().isEmpty()) {
       return false;
     }
-    var action = target.getActions().getFirst();
-    return action.getClass() == GenRuleAction.class && !((GenRuleAction) action).discoversInputs();
+    String rule = target.getConfiguredTarget().getRuleClassString();
+    if ("genrule".equals(rule) && target.getActions().size() == 1) {
+      var action = target.getActions().getFirst();
+      return action.getClass() == GenRuleAction.class
+          && !((GenRuleAction) action).discoversInputs();
+    }
+    // The exact class check excludes EnhancedStarlarkAction, including input pruning and
+    // shadowed actions whose mutable state cannot safely be reconstructed from analysis.
+    return goActions
+        && "go_library".equals(rule)
+        && target.getActions().stream()
+            .allMatch(
+                action ->
+                    action.getClass() == StarlarkAction.class
+                        && !((StarlarkAction) action).discoversInputs());
   }
 
   @Override
@@ -131,14 +169,14 @@ final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
     if (!supports(value)) {
       throw new IOException("unsupported local action value");
     }
-    GenRuleAction action =
-        (GenRuleAction) ((RuleConfiguredTargetValue) value).getActions().getFirst();
     // Seed weak interning while original artifacts may still be referenced by resident parents.
-    for (Artifact input : action.getInputs().toList()) {
-      remember(input);
-    }
-    for (Artifact output : action.getOutputs()) {
-      remember(output);
+    for (var action : ((RuleConfiguredTargetValue) value).getActions()) {
+      for (Artifact input : action.getInputs().toList()) {
+        remember(input);
+      }
+      for (Artifact output : action.getOutputs()) {
+        remember(output);
+      }
     }
     try {
       var result = codecs.serializeMemoizedAndBlocking(compression, fingerprints, value);
@@ -150,7 +188,7 @@ final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
       Thread.currentThread().interrupt();
       throw new IOException("interrupted storing action value", e);
     } catch (SerializationException | ExecutionException e) {
-      throw new IOException("cannot serialize local genrule", e);
+      throw new IOException("cannot serialize local action value", e);
     }
   }
 
@@ -167,15 +205,20 @@ final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
           codecs.deserializeMemoizedAndBlocking(
               compression, fingerprints, ByteString.copyFrom(bytes));
       if (!(value instanceof SkyValue skyValue) || !supports(skyValue)) {
-        throw new IOException("invalid local genrule value");
+        throw new IOException("invalid local action value");
       }
       return skyValue;
     } catch (SerializationException e) {
-      throw new IOException("cannot deserialize local genrule", e);
+      throw new IOException("cannot deserialize local action value", e);
     }
   }
 
-  /** Discards only the weak nested-set caches to exercise actual chunk decoding in tests. */
+  /** Replaces weak fingerprint caches to exercise actual shared-field decoding in tests. */
+  void resetFingerprintServiceForTesting(FingerprintValueService fingerprints) {
+    this.fingerprints = fingerprints;
+  }
+
+  /** Discards weak nested-set caches to exercise actual chunk decoding in tests. */
   void resetNestedSetCacheForTesting(FingerprintValueStore store) {
     codecs =
         codecs.withCodecOverridesForTesting(
@@ -190,6 +233,72 @@ final class LocalGenruleValueCodec implements DiskBackedGraph.ValueCodec {
 
   int pinnedConfigurations() {
     return configurations.size();
+  }
+
+  int pinnedStarlarkDefinitions() {
+    return modules.size() + providers.size() + moduleOwners.size();
+  }
+
+  int pinnedRunfiles() {
+    return runfiles.size();
+  }
+
+  /** Local objects retain identity; records never escape this evaluator generation. */
+  private static final class LocalReferences<T> implements ObjectCodec<T> {
+    private final Class<T> type;
+    private final IdentityHashMap<T, Integer> ids = new IdentityHashMap<>();
+    private final ArrayList<T> values = new ArrayList<>();
+
+    LocalReferences(Class<T> type) {
+      this.type = type;
+    }
+
+    @Override
+    public boolean autoRegister() {
+      return false;
+    }
+
+    @Override
+    public Class<T> getEncodedClass() {
+      return type;
+    }
+
+    @Override
+    public synchronized void serialize(SerializationContext context, T value, CodedOutputStream out)
+        throws IOException {
+      out.writeInt32NoTag(id(value));
+    }
+
+    synchronized int id(T value) {
+      return ids.computeIfAbsent(
+          value,
+          key -> {
+            int next = values.size();
+            values.add(key);
+            return next;
+          });
+    }
+
+    synchronized T get(int id) {
+      if (id < 0 || id >= values.size()) {
+        throw new IllegalArgumentException("unknown local definition ID");
+      }
+      return values.get(id);
+    }
+
+    @Override
+    public synchronized T deserialize(DeserializationContext context, CodedInputStream in)
+        throws IOException {
+      int id = in.readInt32();
+      if (id < 0 || id >= values.size()) {
+        throw new IOException("unknown local definition ID");
+      }
+      return values.get(id);
+    }
+
+    synchronized int size() {
+      return values.size();
+    }
   }
 
   /** Explicitly carries the transient field that DynamicCodec would otherwise omit. */

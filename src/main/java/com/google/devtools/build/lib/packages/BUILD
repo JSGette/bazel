@@ -66,6 +66,7 @@ java_library(
             "GlobberUtils.java",
             "Info.java",
             "LabelPrinter.java",
+            "LocalGoArchiveCodec.java",
             "NativeInfo.java",
             "PackageGroupsRuleVisibility.java",
             "PackagePieceIdentifier.java",
@@ -236,6 +237,19 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/util:hash_codes",
         "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
         "//third_party/java/guava:base",
+    ],
+)
+
+java_library(
+    name = "local_go_archive_codec",
+    srcs = ["LocalGoArchiveCodec.java"],
+    visibility = ["//src/main/java/com/google/devtools/build/lib/skyframe/tiering:__pkg__"],
+    deps = [
+        ":provider",
+        "//src/main/java/com/google/devtools/build/lib/cmdline",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//third_party/java/guava:collect",
+        "//third_party/java/protobuf:protobuf_lite",
     ],
 )
 

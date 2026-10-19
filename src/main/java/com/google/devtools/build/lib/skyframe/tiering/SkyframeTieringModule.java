@@ -38,7 +38,8 @@ public final class SkyframeTieringModule extends BlazeModule {
   public enum Engine {
     INMEMORY,
     TIERED_IDLE,
-    TIERED_GENRULE
+    TIERED_GENRULE,
+    TIERED_GO
   }
 
   public static final class EngineConverter extends EnumConverter<Engine> {
@@ -57,9 +58,10 @@ public final class SkyframeTieringModule extends BlazeModule {
         effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
         metadataTags = {OptionMetadataTag.EXPERIMENTAL},
         help =
-            "inmemory, tiered_idle, or tiered_genrule. tiered_idle restores glob values before "
-                + "commands. tiered_genrule pages complete native-genrule nodes on demand; other "
-                + "values remain pinned. Experimental and disabled by default.")
+            "inmemory, tiered_idle, tiered_genrule, or tiered_go. tiered_idle restores glob values"
+                + " before commands. tiered_genrule pages complete native-genrule nodes on demand;"
+                + " other values remain pinned. tiered_go also pages audited Go library spawn"
+                + " actions. Experimental and disabled by default.")
     public abstract Engine getEngine();
 
     @Option(
@@ -68,8 +70,7 @@ public final class SkyframeTieringModule extends BlazeModule {
         documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
         effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
         metadataTags = {OptionMetadataTag.EXPERIMENTAL},
-        help =
-            "Absolute path to the optional skystore executable for tiered_idle or tiered_genrule.")
+        help = "Absolute path to the optional skystore executable for the tiered engines.")
     public abstract String getBinary();
 
     @Option(
@@ -79,7 +80,8 @@ public final class SkyframeTieringModule extends BlazeModule {
         effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
         metadataTags = {OptionMetadataTag.EXPERIMENTAL},
         help =
-            "Maximum resident eligible completed nodes for tiered_genrule. Other nodes are pinned.")
+            "Maximum resident eligible completed nodes for tiered_genrule or tiered_go. Other nodes"
+                + " are pinned.")
     public abstract int getResidentNodes();
   }
 
@@ -131,12 +133,16 @@ public final class SkyframeTieringModule extends BlazeModule {
     restoreNanos = System.nanoTime() - start;
     Options options = env.getOptions().getOptions(Options.class);
     if (pagedFactory != null
-        && (options.getEngine() != Engine.TIERED_GENRULE
-            || !pagedFactory.matches(options.getBinary(), options.getResidentNodes())
+        && ((options.getEngine() != Engine.TIERED_GENRULE
+                && options.getEngine() != Engine.TIERED_GO)
+            || !pagedFactory.matches(
+                options.getBinary(),
+                options.getResidentNodes(),
+                options.getEngine() == Engine.TIERED_GO)
             || !pagedFactory.healthy())) {
       stopPaged(env);
     }
-    if (options.getEngine() == Engine.TIERED_GENRULE) {
+    if (options.getEngine() == Engine.TIERED_GENRULE || options.getEngine() == Engine.TIERED_GO) {
       stop();
       AnalysisOptions analysis = env.getOptions().getOptions(AnalysisOptions.class);
       RemoteAnalysisCachingOptions remote =
@@ -148,7 +154,7 @@ public final class SkyframeTieringModule extends BlazeModule {
         env.getReporter()
             .handle(
                 Event.warn(
-                    "tiered_genrule disabled: requires a nonnegative resident-node limit, "
+                    "Demand paging disabled: requires a nonnegative resident-node limit, "
                         + "retained analysis values, and remote analysis caching off."));
         writeStats(env, 0);
         return;
@@ -156,7 +162,11 @@ public final class SkyframeTieringModule extends BlazeModule {
       if (pagedFactory == null) {
         try {
           pagedFactory =
-              new TieredGraphFactory(env, options.getBinary(), options.getResidentNodes());
+              new TieredGraphFactory(
+                  env,
+                  options.getBinary(),
+                  options.getResidentNodes(),
+                  options.getEngine() == Engine.TIERED_GO);
           env.getSkyframeExecutor().setExperimentalGraphFactory(pagedFactory);
         } catch (RuntimeException e) {
           stopPaged(env);

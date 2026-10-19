@@ -51,6 +51,7 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
   private final Path binary;
   private final Path outputBase;
   private final int residentLimit;
+  private final boolean goActions;
   private final BlazeDirectories directories;
   private final ConfiguredRuleClassProvider ruleClassProvider;
   private final SkyframeExecutor skyframeExecutor;
@@ -59,12 +60,13 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
   private SkystoreProcess process;
   private SafeExecutorOwner executor;
   private DiskBackedGraph graph;
-  private LocalGenruleValueCodec codec;
+  private LocalActionValueCodec codec;
   private SkystoreFingerprintStore chunks;
   private String disabledReason = "not_initialized";
 
   // Retain stable server services, never the command environment or its analysis result.
-  TieredGraphFactory(CommandEnvironment env, String binary, int residentLimit) {
+  TieredGraphFactory(CommandEnvironment env, String binary, int residentLimit, boolean goActions) {
+    this.goActions = goActions;
     this.binary = Path.of(binary);
     this.outputBase = Path.of(env.getOutputBase().getPathString());
     this.residentLimit = residentLimit;
@@ -75,8 +77,10 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
     this.compression = env.getRuntime().getBlazeService(CompressionService.class);
   }
 
-  boolean matches(String binary, int residentLimit) {
-    return this.binary.equals(Path.of(binary)) && this.residentLimit == residentLimit;
+  boolean matches(String binary, int residentLimit, boolean goActions) {
+    return this.binary.equals(Path.of(binary))
+        && this.residentLimit == residentLimit
+        && this.goActions == goActions;
   }
 
   boolean healthy() {
@@ -146,13 +150,14 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
                           directories, ruleClassProvider, workspaceName)),
               ruleClassProvider);
       codec =
-          new LocalGenruleValueCodec(
+          new LocalActionValueCodec(
               registry,
               dependencies,
               skyframeExecutor.getSkyframeBuildView().getArtifactFactory(),
               chunks,
               fingerprints,
-              compression);
+              compression,
+              goActions);
       graph = new DiskBackedGraph(process, codec, residentLimit);
       disabledReason = "";
       return graph;
@@ -175,7 +180,9 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
     if (graph == null) {
       Files.writeString(
           outputBase.resolve("skyframe-tiering.json"),
-          "{\"enabled\":false,\"engine\":\"tiered_genrule\",\"reason\":\""
+          "{\"enabled\":false,\"engine\":\""
+              + (goActions ? "tiered_go" : "tiered_genrule")
+              + "\",\"reason\":\""
               + disabledReason
               + "\",\"sidecar_pid\":0}\n");
       return;
@@ -183,7 +190,9 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
     var stats = graph.statistics();
     Files.writeString(
         outputBase.resolve("skyframe-tiering.json"),
-        "{\"enabled\":true,\"engine\":\"tiered_genrule\""
+        "{\"enabled\":true,\"engine\":\""
+            + (goActions ? "tiered_go" : "tiered_genrule")
+            + "\""
             + ",\"resident_limit_nodes\":"
             + residentLimit
             + ",\"nodes\":"
@@ -208,6 +217,10 @@ final class TieredGraphFactory implements Function<Boolean, InMemoryGraph>, Clos
             + chunks.writes()
             + ",\"pinned_configurations\":"
             + codec.pinnedConfigurations()
+            + ",\"pinned_starlark_definitions\":"
+            + codec.pinnedStarlarkDefinitions()
+            + ",\"pinned_runfiles\":"
+            + codec.pinnedRunfiles()
             + ",\"sidecar_pid\":"
             + process.pid()
             + "}\n");

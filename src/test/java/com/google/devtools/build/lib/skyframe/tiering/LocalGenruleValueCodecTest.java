@@ -99,13 +99,14 @@ public final class LocalGenruleValueCodecTest extends BuildViewTestCase {
               .put(PackagePathCodecDependencies.class, skyframeExecutor::getPackagePathEntries)
               .build();
       var codec =
-          new LocalGenruleValueCodec(
+          new LocalActionValueCodec(
               registry,
               dependencies,
               view.getArtifactFactory(),
               store,
               fingerprints,
-              new CompressionServiceImpl());
+              new CompressionServiceImpl(),
+              false);
 
       assertThat(codec.supports(original)).isTrue();
       byte[] record = codec.encode(original);
