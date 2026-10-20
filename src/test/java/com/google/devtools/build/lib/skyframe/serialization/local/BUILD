@@ -98,6 +98,19 @@ java_test(
     ],
 )
 
+java_binary(
+    name = "LocalCandidateValidationBenchmark",
+    testonly = True,
+    srcs = ["LocalCandidateValidationBenchmark.java"],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalCandidateValidationBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)
+
 java_test(
     name = "LocalCacheSessionTest",
     size = "medium",

@@ -83,6 +83,9 @@ final class LocalCacheSession implements FingerprintValueStore {
   // Protected by refresh's monitor. Input metadata is only a hint to retry full validation.
   // Unchanged mismatches retain the negative TTL, avoiding full scans on every cache miss.
   private final Map<Path, LocalInputSnapshot.InputStamp> rejectedInputs = new HashMap<>();
+  // Retry the previously failing witness first. A match is only permission to validate the
+  // entire manifest again, never proof that its other inputs still match.
+  private final Map<String, LocalInputSnapshot.Witness> rejectedWitnesses = new HashMap<>();
   private volatile List<Candidate> candidates = List.of();
   private boolean hasRefreshed;
   private long nextRefresh;
@@ -306,7 +309,17 @@ final class LocalCacheSession implements FingerprintValueStore {
       return;
     }
     hasRefreshed = true;
-    nextRefresh = now + 1_000_000_000L;
+    try {
+      refreshCandidates();
+    } finally {
+      // A large validation can exceed the interval itself. Starting the interval before that
+      // work allowed every queued lookup to immediately repeat the same expensive scan.
+      nextRefresh = nanoTime.getAsLong() + 1_000_000_000L;
+    }
+  }
+
+  // Called with refresh's monitor held.
+  private void refreshCandidates() throws IOException {
     rejectedInputs.clear();
     var available = new HashMap<String, Candidate>();
     for (Candidate candidate : candidates) {
@@ -325,27 +338,28 @@ final class LocalCacheSession implements FingerprintValueStore {
           continue;
         }
         try {
+          var previousMismatch = rejectedWitnesses.get(filename);
+          if (previousMismatch != null && !inputs.matches(previousMismatch)) {
+            rejectWitness(filename, previousMismatch);
+            continue;
+          }
           Manifest manifest = readManifest(path);
           boolean matches = true;
           for (var witness : manifest.witnesses()) {
             if (!inputs.matches(witness)) {
-              var stamp = inputs.inputStamp(witness);
-              rejectedInputs.put(stamp.path(), stamp);
+              rejectWitness(filename, witness);
               matches = false;
               break;
             }
           }
           if (matches) {
+            rejectedWitnesses.remove(filename);
             Candidate candidate =
                 new Candidate(
                     manifest.id(), PackedFingerprintValueStore.open(objects, manifest.id()),
                     manifest.witnesses(), manifest.parents());
             opened.add(candidate);
             available.put(candidate.id(), candidate);
-          } else {
-            rejected.incrementAndGet();
-            // Repositories may materialize later in this invocation; retry these mismatches.
-            inspected.remove(filename);
           }
         } catch (IOException e) {
           rejected.incrementAndGet();
@@ -382,6 +396,16 @@ final class LocalCacheSession implements FingerprintValueStore {
         throw failure;
       }
     }
+  }
+
+  private void rejectWitness(String filename, LocalInputSnapshot.Witness witness)
+      throws IOException {
+    var stamp = inputs.inputStamp(witness);
+    rejectedInputs.put(stamp.path(), stamp);
+    rejectedWitnesses.put(filename, witness);
+    rejected.incrementAndGet();
+    // Repositories may materialize later in this invocation; retry these mismatches.
+    inspected.remove(filename);
   }
 
   private boolean rejectedInputsChanged() throws IOException {
@@ -483,6 +507,7 @@ final class LocalCacheSession implements FingerprintValueStore {
     usedParents.clear();
     inspected.clear();
     rejectedInputs.clear();
+    rejectedWitnesses.clear();
     IOException failure = null;
     for (PackedFingerprintValueStore store : stores) {
       try {

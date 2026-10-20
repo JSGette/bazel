@@ -623,6 +623,58 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void negativeRefreshIntervalStartsAfterSlowValidationCompletes() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file = Files.writeString(temporary.newFile("external").toPath(), "expected");
+    var inputs = snapshot(workspace, output);
+    inputs.observe(file, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    Files.writeString(file, "mismatch");
+    var clock = new AtomicLong();
+    // Two seconds elapse during the first validation. No time elapses between later lookups.
+    var reader =
+        new LocalCacheSession(
+            cache, snapshot(workspace, output), () -> clock.getAndSet(2_000_000_000L));
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    assertThat(reader.statisticsJson(false)).contains("\"rejected_publications\":1");
+    reader.finish(false);
+  }
+
+  @Test
+  public void repairingPreviousMismatchStillValidatesEveryOtherWitness() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path first = Files.writeString(temporary.newFile("a-first").toPath(), "first");
+    Path last = Files.writeString(temporary.newFile("z-last").toPath(), "last");
+    var inputs = snapshot(workspace, output);
+    inputs.observe(first, false);
+    inputs.observe(last, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    Files.delete(last);
+    var clock = new AtomicLong();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output), clock::get);
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    Files.writeString(first, "wrong");
+    Files.writeString(last, "last");
+    clock.set(2_000_000_000L);
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    Files.writeString(first, "first");
+    clock.set(4_000_000_000L);
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+    reader.finish(false);
+  }
+
+  @Test
   public void unchangedMetadataStillGetsFullValidationAfterNegativeTtl() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path writerOutput = temporary.newFolder("writer-output").toPath();
