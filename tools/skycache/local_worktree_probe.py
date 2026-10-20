@@ -167,6 +167,17 @@ def main():
         entries = list((root / "cache/objects").rglob("*.entry"))
         record["cache_entry_files"] = len(entries)
         record["cache_entry_bytes"] = sum(path.stat().st_size for path in entries)
+        packs = list((root / "cache/objects").rglob("data.pack"))
+        indexes = list((root / "cache/objects").rglob("index"))
+        record["cache_pack_files"] = len(packs)
+        record["cache_index_files"] = len(indexes)
+        record["cache_packed_bytes"] = sum(path.stat().st_size for path in packs + indexes)
+        record["cache_record_count"] = len(entries)
+        for path in indexes:
+            with path.open("rb") as stream:
+                magic, pack_count = struct.unpack(">ii", stream.read(8))
+            assert magic == 0x534B4901
+            record["cache_record_count"] += pack_count
         protocol["phases"].append(record)
         protocol_path.write_text(json.dumps(protocol, indent=2) + "\n")
         print(json.dumps(record), flush=True)
@@ -205,6 +216,31 @@ def main():
             else:
                 path.write_bytes(b"deliberately corrupt shared chunk")
                 damaged += 1
+        for path in (root / "cache/objects").rglob("data.pack"):
+            index = (path.parent / "index").read_bytes()
+            magic, pack_count, data_size = struct.unpack_from(">iiq", index)
+            assert magic == 0x534B4901 and len(index) == 16 + pack_count * 48 + 32
+            assert path.stat().st_size == data_size
+            with path.open("r+b") as stream:
+                for number in range(pack_count):
+                    offset, length = struct.unpack_from(">qq", index, 16 + number * 48 + 32)
+                    assert 0 <= offset <= data_size - length
+                    stream.seek(offset)
+                    header = stream.read(44)
+                    magic, key_length, value_length = struct.unpack_from(">iii", header)
+                    assert magic == 0x534B5001 and length == 44 + key_length + value_length
+                    stream.seek(offset + 44 + key_length)
+                    first_value_byte = stream.read(1) if value_length else b""
+                    if first_value_byte == b"\x04":
+                        preserved += 1
+                    else:
+                        # Preserve the index and record lengths so roots are found and nested
+                        # chunk checksums fail during deserialization, exercising fallback.
+                        stream.seek(offset + 12)
+                        stream.write(bytes([header[12] ^ 128]))
+                        damaged += 1
+                stream.flush()
+                os.fsync(stream.fileno())
         protocol["corruption"] = {"damaged_chunks": damaged, "preserved_possible_roots": preserved}
         assert damaged and preserved
         pair("corrupt-chunks-fallback")

@@ -40,15 +40,33 @@ java_test(
     ],
 )
 
+java_test(
+    name = "PackedFingerprintValueStoreTest",
+    size = "medium",
+    srcs = ["PackedFingerprintValueStoreTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
+
 java_binary(
     name = "ConcurrentFileStoreBenchmark",
     testonly = True,
     srcs = ["ConcurrentFileStoreBenchmark.java"],
     main_class = "com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileStoreBenchmark",
     deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:concurrent_file_store",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
         "//third_party/java/guava:concurrent",
     ],
 )

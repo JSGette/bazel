@@ -23,6 +23,19 @@ java_library(
 )
 
 java_library(
+    name = "packed_store",
+    srcs = ["PackedFingerprintValueStore.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_statuses",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/protobuf:protobuf_lite",
+    ],
+)
+
+java_library(
     name = "local_skycache_module",
     srcs = [
         "LocalAnalysisCacheClient.java",
@@ -35,7 +48,7 @@ java_library(
         "LocalSourceArtifactCodec.java",
     ],
     deps = [
-        ":concurrent_file_store",
+        ":packed_store",
         "//src/main/java/com/google/devtools/build/lib/actions:artifact_owner",
         "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
         "//src/main/java/com/google/devtools/build/lib/analysis:blaze_directories",

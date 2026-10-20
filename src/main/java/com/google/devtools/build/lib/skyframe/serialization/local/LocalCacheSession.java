@@ -51,13 +51,16 @@ import java.util.function.LongSupplier;
  * explicit for later garbage collection. There is no deletion in this initial session format.
  */
 final class LocalCacheSession implements FingerprintValueStore {
-  private static final int MAGIC = 0x534b5331;
+  private static final int MAGIC = 0x534b5332;
   private static final int MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
   private static final int MAX_WITNESSES = 1_000_000;
 
+  private record Manifest(
+      String id, List<LocalInputSnapshot.Witness> witnesses, List<String> parents) {}
+
   private record Candidate(
       String id,
-      ConcurrentFileFingerprintValueStore store,
+      PackedFingerprintValueStore store,
       List<LocalInputSnapshot.Witness> witnesses,
       List<String> parents) {}
 
@@ -68,9 +71,9 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final Path objects;
   private final Path publications;
   private final String id;
-  private volatile ConcurrentFileFingerprintValueStore privateStore;
-  // Puts hold locks across durable I/O. Keep substantially more stripes than concurrent writers
-  // so unrelated keys rarely wait behind another record's fsync.
+  private volatile PackedFingerprintValueStore privateStore;
+  // Puts hold locks across private writes and shared reads. Keep more stripes than writers
+  // so unrelated keys rarely wait behind another record's I/O.
   private final Striped<Lock> putLocks = Striped.lock(4096);
   // Only skipped puts need bookkeeping. Ordinary writes remain indexed by the private store.
   private final ConcurrentHashMap<ByteString, SharedPut> sharedPuts = new ConcurrentHashMap<>();
@@ -100,9 +103,9 @@ final class LocalCacheSession implements FingerprintValueStore {
     this.inputs = inputs;
     this.nanoTime = nanoTime;
     durableDirectory(root.toAbsolutePath().normalize());
-    this.objects = durableDirectory(root.resolve("objects"));
+    this.objects = durableDirectory(root.resolve("objects").resolve("packed-v1"));
     this.publications =
-        durableDirectory(root.resolve("publications-v1").resolve(inputs.sourceDigest()));
+        durableDirectory(root.resolve("publications-v2").resolve(inputs.sourceDigest()));
     this.id =
         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
   }
@@ -200,9 +203,9 @@ final class LocalCacheSession implements FingerprintValueStore {
     }
   }
 
-  private synchronized ConcurrentFileFingerprintValueStore storeForWrites() throws IOException {
+  private synchronized PackedFingerprintValueStore storeForWrites() throws IOException {
     if (privateStore == null) {
-      privateStore = ConcurrentFileFingerprintValueStore.create(objects, id);
+      privateStore = PackedFingerprintValueStore.create(objects, id);
     }
     return privateStore;
   }
@@ -271,7 +274,7 @@ final class LocalCacheSession implements FingerprintValueStore {
     return null;
   }
 
-  private static byte[] read(ConcurrentFileFingerprintValueStore store, KeyBytesProvider key)
+  private static byte[] read(PackedFingerprintValueStore store, KeyBytesProvider key)
       throws InterruptedException {
     if (store == null) {
       return null;
@@ -300,40 +303,71 @@ final class LocalCacheSession implements FingerprintValueStore {
       paths =
           stream.filter(p -> p.getFileName().toString().endsWith(".manifest")).sorted().toList();
     }
-    for (Path path : paths) {
-      String filename = path.getFileName().toString();
-      if (!inspected.add(filename)) {
-        continue;
+    List<Candidate> opened = new ArrayList<>();
+    try {
+      for (Path path : paths) {
+        String filename = path.getFileName().toString();
+        if (!inspected.add(filename)) {
+          continue;
+        }
+        try {
+          Manifest manifest = readManifest(path);
+          boolean matches = true;
+          for (var witness : manifest.witnesses()) {
+            if (!inputs.matches(witness)) {
+              var stamp = inputs.inputStamp(witness);
+              rejectedInputs.put(stamp.path(), stamp);
+              matches = false;
+              break;
+            }
+          }
+          if (matches) {
+            Candidate candidate =
+                new Candidate(
+                    manifest.id(), PackedFingerprintValueStore.open(objects, manifest.id()),
+                    manifest.witnesses(), manifest.parents());
+            opened.add(candidate);
+            available.put(candidate.id(), candidate);
+          } else {
+            rejected.incrementAndGet();
+            // Repositories may materialize later in this invocation; retry these mismatches.
+            inspected.remove(filename);
+          }
+        } catch (IOException e) {
+          rejected.incrementAndGet();
+        }
       }
-      try {
-        Candidate candidate = readManifest(path);
-        boolean matches = true;
-        for (var witness : candidate.witnesses()) {
-          if (!inputs.matches(witness)) {
-            var stamp = inputs.inputStamp(witness);
-            rejectedInputs.put(stamp.path(), stamp);
-            matches = false;
-            break;
+      // Existing candidates already have a complete closure. Only new candidates can be pruned.
+      boolean removed;
+      do {
+        removed = available.values().removeIf(c -> !available.keySet().containsAll(c.parents()));
+      } while (removed);
+      candidates = List.copyOf(available.values());
+    } finally {
+      // Rejected or incomplete publications must not retain a pack descriptor or index.
+      // Previously published candidates stay open until finish, while other gets may use them.
+      Set<String> retained = new HashSet<>();
+      for (Candidate candidate : candidates) {
+        retained.add(candidate.id());
+      }
+      IOException failure = null;
+      for (Candidate candidate : opened) {
+        if (!retained.contains(candidate.id())) {
+          try {
+            candidate.store().close();
+          } catch (IOException e) {
+            if (failure == null) {
+              failure = e;
+            } else {
+              failure.addSuppressed(e);
+            }
           }
         }
-        if (matches) {
-          available.put(candidate.id(), candidate);
-        } else {
-          rejected.incrementAndGet();
-          // Repositories may be materialized later in this invocation. A mismatch is a miss now,
-          // but it must not permanently hide an otherwise valid publication from this reader.
-          inspected.remove(filename);
-        }
-      } catch (IOException e) {
-        rejected.incrementAndGet();
+      }
+      if (failure != null) {
+        throw failure;
       }
     }
-    // Reject incomplete transitive publication closures, including missing/corrupt parents.
-    boolean removed;
-    do {
-      removed = available.values().removeIf(c -> !available.keySet().containsAll(c.parents()));
-    } while (removed);
-    candidates = List.copyOf(available.values());
   }
 
   private boolean rejectedInputsChanged() throws IOException {
@@ -386,6 +420,8 @@ final class LocalCacheSession implements FingerprintValueStore {
       if (payload.length > MAX_MANIFEST_BYTES) {
         throw new IOException("input manifest exceeds size limit");
       }
+      // No manifest can reference private bytes that have not reached durable storage.
+      privateStore.seal();
       Path temporary =
           Files.createTempFile(
               publications,
@@ -410,11 +446,47 @@ final class LocalCacheSession implements FingerprintValueStore {
       }
       return true;
     } finally {
-      lifecycle.writeLock().unlock();
+      try {
+        closeStores();
+      } finally {
+        lifecycle.writeLock().unlock();
+      }
     }
   }
 
-  private Candidate readManifest(Path path) throws IOException {
+  // finish owns the lifecycle write lock, so no get or put can still be using a descriptor.
+  private void closeStores() throws IOException {
+    List<PackedFingerprintValueStore> stores = new ArrayList<>();
+    if (privateStore != null) {
+      stores.add(privateStore);
+      privateStore = null;
+    }
+    for (Candidate candidate : candidates) {
+      stores.add(candidate.store());
+    }
+    candidates = List.of();
+    sharedPuts.clear();
+    usedParents.clear();
+    inspected.clear();
+    rejectedInputs.clear();
+    IOException failure = null;
+    for (PackedFingerprintValueStore store : stores) {
+      try {
+        store.close();
+      } catch (IOException e) {
+        if (failure == null) {
+          failure = e;
+        } else {
+          failure.addSuppressed(e);
+        }
+      }
+    }
+    if (failure != null) {
+      throw failure;
+    }
+  }
+
+  private Manifest readManifest(Path path) throws IOException {
     long size = Files.size(path);
     if (size < 32 || size > MAX_MANIFEST_BYTES + 32) {
       throw new IOException("invalid manifest length");
@@ -451,15 +523,10 @@ final class LocalCacheSession implements FingerprintValueStore {
         witnesses.add(new LocalInputSnapshot.Witness(in.readUTF(), in.readBoolean(), in.readUTF()));
       }
       if (in.read() != -1
-          || !Files.isDirectory(
-              objects.resolve("shared-v1").resolve(namespace), LinkOption.NOFOLLOW_LINKS)) {
+          || !Files.isDirectory(objects.resolve(namespace), LinkOption.NOFOLLOW_LINKS)) {
         throw new IOException("incomplete publication");
       }
-      return new Candidate(
-          namespace,
-          ConcurrentFileFingerprintValueStore.create(objects, namespace),
-          List.copyOf(witnesses),
-          List.copyOf(parents));
+      return new Manifest(namespace, List.copyOf(witnesses), List.copyOf(parents));
     }
   }
 

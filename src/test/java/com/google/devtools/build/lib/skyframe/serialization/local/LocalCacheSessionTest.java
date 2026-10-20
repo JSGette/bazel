@@ -46,6 +46,78 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void failedPackSealCannotPublishAndClosesItsDescriptor() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+    writer.put(new Key("entry"), new byte[] {7}).get();
+    try (var paths = Files.walk(cache.resolve("objects"))) {
+      Path pack =
+          paths
+              .filter(p -> p.getFileName().toString().equals("data.pack"))
+              .findFirst()
+              .orElseThrow();
+      Files.createDirectory(pack.getParent().resolve("index"));
+    }
+    assertThat(openCacheDescriptors(cache)).isGreaterThan(0);
+    assertThrows(java.io.IOException.class, () -> writer.finish(true));
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    try (var paths = Files.walk(cache)) {
+      assertThat(paths.anyMatch(p -> p.toString().endsWith(".manifest"))).isFalse();
+    }
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThrows(ExecutionException.class, () -> reader.get(new Key("entry")).get());
+    reader.finish(false);
+  }
+
+  @Test
+  public void completedReadersAndRejectedCandidatesDoNotLeakPackDescriptors() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path external = Files.writeString(temporary.newFile("external").toPath(), "one");
+    var inputs = snapshot(workspace, output);
+    inputs.observe(external, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    for (int i = 0; i < 10; i++) {
+      var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+      assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+      assertThat(openCacheDescriptors(cache)).isGreaterThan(0);
+      reader.finish(false);
+      assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    }
+    Files.writeString(external, "two");
+    for (int i = 0; i < 10; i++) {
+      var rejected = new LocalCacheSession(cache, snapshot(workspace, output));
+      assertThrows(ExecutionException.class, () -> rejected.get(key).get());
+      assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+      rejected.finish(false);
+    }
+  }
+
+  private static long openCacheDescriptors(Path cache) throws java.io.IOException {
+    Path physicalCache = cache.toRealPath();
+    try (var descriptors = Files.list(Path.of("/proc/self/fd"))) {
+      return descriptors
+          .filter(
+              path -> {
+                try {
+                  return Files.readSymbolicLink(path).startsWith(physicalCache);
+                } catch (java.io.IOException e) {
+                  return false; // An unrelated descriptor may close while /proc is being
+                  // enumerated.
+                }
+              })
+          .count();
+    }
+  }
+
+  @Test
   public void sameContentsAcrossWorktreesHaveSameIdentityAndDirtyBytesInvalidate()
       throws Exception {
     Path a = temporary.newFolder("a").toPath();
@@ -275,7 +347,7 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("chunk"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     Path parentManifest;
-    try (var files = Files.walk(cache.resolve("publications-v1"))) {
+    try (var files = Files.walk(cache.resolve("publications-v2"))) {
       parentManifest =
           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
     }
@@ -286,6 +358,7 @@ public final class LocalCacheSessionTest {
     Files.delete(parentManifest);
     var reader = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThrows(ExecutionException.class, () -> reader.get(new Key("root")).get());
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
     reader.finish(false);
   }
 
@@ -323,7 +396,7 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("chunk"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     Path parentManifest;
-    try (var files = Files.walk(cache.resolve("publications-v1"))) {
+    try (var files = Files.walk(cache.resolve("publications-v2"))) {
       parentManifest =
           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
     }
@@ -334,6 +407,7 @@ public final class LocalCacheSessionTest {
     Files.delete(parentManifest);
     var reader = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThrows(ExecutionException.class, () -> reader.get(new Key("root")).get());
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
     reader.finish(false);
   }
 
@@ -441,7 +515,11 @@ public final class LocalCacheSessionTest {
     var child = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThat(child.put(key, new byte[] {1}).get()).isFalse();
     try (var files = Files.walk(cache.resolve("objects"))) {
-      Path entry = files.filter(p -> p.toString().endsWith(".entry")).findFirst().orElseThrow();
+      Path entry =
+          files
+              .filter(p -> p.getFileName().toString().equals("data.pack"))
+              .findFirst()
+              .orElseThrow();
       Files.write(entry, new byte[] {0});
     }
     assertThrows(ExecutionException.class, () -> child.get(key).get());

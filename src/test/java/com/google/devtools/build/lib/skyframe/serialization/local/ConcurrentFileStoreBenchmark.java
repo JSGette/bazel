@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See the repository LICENSE.
 package com.google.devtools.build.lib.skyframe.serialization.local;
 
+import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
 import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -9,7 +10,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Locale;
 
-/** Standalone local-filesystem benchmark; each invocation requires a fresh directory. */
+/** Standalone file/pack benchmark; each invocation requires a fresh directory. */
 public final class ConcurrentFileStoreBenchmark {
   private record Key(int index) implements KeyBytesProvider {
     @Override
@@ -27,7 +28,11 @@ public final class ConcurrentFileStoreBenchmark {
     Path root = Files.createDirectory(Path.of(args[0]));
     int count = Integer.parseInt(args[1]);
     int size = Integer.parseInt(args[2]);
-    var store = ConcurrentFileFingerprintValueStore.create(root, "ab".repeat(32));
+    boolean packed = args.length > 3 && args[3].equals("packed");
+    FingerprintValueStore store =
+        packed
+            ? PackedFingerprintValueStore.create(root, "ab".repeat(32))
+            : ConcurrentFileFingerprintValueStore.create(root, "ab".repeat(32));
     byte[] value = new byte[size];
     Arrays.fill(value, (byte) 73);
     // Warm the JVM and filesystem code without populating the measured keys.
@@ -41,11 +46,25 @@ public final class ConcurrentFileStoreBenchmark {
       }
     }
     long novel = System.nanoTime() - start;
+    start = System.nanoTime();
+    if (store instanceof PackedFingerprintValueStore writer) {
+      writer.seal();
+      writer.close();
+    }
+    long seal = System.nanoTime() - start;
+    start = System.nanoTime();
+    store =
+        packed
+            ? PackedFingerprintValueStore.open(root, "ab".repeat(32))
+            : ConcurrentFileFingerprintValueStore.create(root, "ab".repeat(32));
+    long open = System.nanoTime() - start;
     for (int round = 0; round < 5; round++) {
       start = System.nanoTime();
-      for (int i = 0; i < count; i++) {
-        if (store.put(new Key(i), value).get()) {
-          throw new AssertionError("duplicate publication was novel");
+      if (!packed) {
+        for (int i = 0; i < count; i++) {
+          if (store.put(new Key(i), value).get()) {
+            throw new AssertionError("duplicate publication was novel");
+          }
         }
       }
       long duplicates = System.nanoTime() - start;
@@ -58,14 +77,22 @@ public final class ConcurrentFileStoreBenchmark {
       long reads = System.nanoTime() - start;
       System.out.printf(
           Locale.ROOT,
-          "{\"round\":%d,\"entries\":%d,\"value_bytes\":%d,\"novel_ms\":%.3f,"
-              + "\"duplicate_ms\":%.3f,\"read_ms\":%.3f}%n",
+          "{\"backend\":\"%s\",\"round\":%d,\"entries\":%d,\"value_bytes\":%d,"
+              + "\"novel_ms\":%.3f,\"seal_ms\":%.3f,\"publication_ms\":%.3f,\"open_ms\":%.3f,"
+              + "\"duplicate_ms\":%s,\"read_ms\":%.3f}%n",
+          packed ? "packed" : "files",
           round,
           count,
           size,
           novel / 1e6,
-          duplicates / 1e6,
+          seal / 1e6,
+          (novel + seal) / 1e6,
+          open / 1e6,
+          packed ? "null" : Double.toString(duplicates / 1e6),
           reads / 1e6);
+    }
+    if (store instanceof PackedFingerprintValueStore reader) {
+      reader.close();
     }
   }
 
