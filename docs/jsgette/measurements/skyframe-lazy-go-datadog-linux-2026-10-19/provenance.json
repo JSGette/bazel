@@ -1,0 +1,37 @@
+{
+  "measurement_date": "2026-10-19",
+  "implementation_checkpoint": "1af5db48b405a53ad883fe3c6241364a1df0326f",
+  "implementation_branch": "jsgette/skyframe-go-paging",
+  "implementation_url": "https://github.com/JSGette/bazel/tree/1af5db48b405a53ad883fe3c6241364a1df0326f",
+  "datadog_commit": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "main_runs": [
+    "dd-go-r6",
+    "dd-control-r1"
+  ],
+  "library_correctness_runs": [
+    "dd-library-inmemory",
+    "dd-library-tiered_go"
+  ],
+  "measured_bazel_binary_sha256": "aa933bf576aab42313bec2e478a386eba48b16e4ee2652b8fc642971f0180d9b",
+  "measured_skystore_binary_sha256": "98ecf20c9b83751d33f32598c8cdf2e334f6044bc6c2451e61a7ee6b04931c7c",
+  "files": {
+    "benchmark-results.json": {
+      "bytes": 41007,
+      "sha256": "1ad91fe570eb8c8aca28b676d27409700bac14a59e728cd90ebd7b3c7ee130b3"
+    },
+    "datadog-MODULE.bazel.lock": {
+      "bytes": 898587,
+      "sha256": "7f32675fc29a9cb837256a760cfca19dfab2bf040492cfa0c9bb40444b8d9290"
+    },
+    "library-output-checks.json": {
+      "bytes": 1898,
+      "sha256": "8407cb00c37524ce6bf21585906f42ae72b1043d53d9233e9b3c4a86521b0af4"
+    }
+  },
+  "notes": [
+    "Graph-cold, warm repository/action/OS caches; one cold/edit matrix per mode and three warm repetitions.",
+    "The separate library matrix checks correctness; its timings are not an unbiased performance comparison.",
+    "Raw JVM environment logs, build output bases, caches, and binaries are not included.",
+    "The implementation checkpoint includes the tested filesystem-store foundation; binary hashes identify the exact measured executables."
+  ]
+}

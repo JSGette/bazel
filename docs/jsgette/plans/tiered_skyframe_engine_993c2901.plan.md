@@ -8,6 +8,27 @@ todos:
   - id: p0-heap-attribution
     content: "Phase 0: heap attribution (structure vs values per SkyFunctionName) via SkyframeMemoryDumper extension; baseline on bazel repo + one large client repo"
     status: pending
+  - id: p0-engine-comparison
+    content: "Capture reproducible vanilla Bazel baseline CPU/heap profiles and RAM/performance measurements; repeat for the experimental idle value tier with matched versions, cold/warm/incremental workloads, total JVM-plus-sidecar RSS, and comparative profiling reports"
+    status: completed
+  - id: experimental-idle-tier
+    content: "Integrated opt-in Rust disk value tier for audited globs between commands; Linux correctness/recovery tests and vanilla/default/tiered profiling complete. Does not complete compact graph, paging, or persistent-engine phases."
+    status: completed
+  - id: disk-backed-graph-core
+    content: "Implemented stable node handles, demand-loaded checksummed complete node records, bounded completed-node cache, evaluator graph constructor seam, and generic change-pruning hooks. Linux graph/evaluator forced-eviction suite and Rust disk integration pass. Opt-in native genrule action codec and command lifecycle wiring now implemented; wider codecs remain pending."
+    status: completed
+  - id: native-genrule-demand-paging
+    content: "Real tiered_genrule engine integration, local identity-preserving native action codec, shared Rust chunks, lifecycle recovery, Linux output/action-key oracle checks, and vanilla/default/tiered profiles. Native genrules only; full codec coverage and byte-based accounting remain pending."
+    status: completed
+  - id: rules-go-demand-paging
+    content: "Opt-in tiered_go codec with shared GoArchive chunks and local identity preservation; real Datadog Agent comparison and revised concurrent SkyCache roadmap. Broader graph residency is still gated on measured total-memory and latency benefit."
+    status: completed
+  - id: disk-backed-graph-acceptance
+    content: "Required outcome clarified 2026-10-19: cold action/Skyframe node records, values and edges on SSD; only compact metadata, active/pinned objects and a bounded working-set cache in RAM. No whole-graph restoration before commands. Audit lossless local codecs and cold-dependency invalidation; idle glob spilling does not meet this outcome."
+    status: pending
+  - id: disk-backed-graph-comparison
+    content: "Native-genrule prototype measured separately; broader acceptance still requires: compare vanilla against a disk graph larger than the resident cache using small/disjoint working sets and cold-dependency edits; distinguish warm page-cache reads from verified disk reads; report total JVM/Rust/cache memory, pinned bytes, page-ins, hit/miss/eviction counts, latency and output equivalence."
+    status: pending
   - id: p0-working-set
     content: "Phase 0: working-set tracer over replayed commit history (value-read / version-read / dirtied / recomputed per command)"
     status: pending
@@ -15,8 +36,8 @@ todos:
     content: "Phase 0: codec coverage gaps + compression bake-off (zstd levels/per-function dictionaries/magicless, LZ4+dict, OpenZL, varint/Roaring/Elias-Fano for edges, FSST for keys)"
     status: pending
   - id: p0-ipc-spike
-    content: "Phase 0: Java<->Rust UDS vs shared-memory ring microbenchmark on Linux/macOS; go/no-go memo"
-    status: pending
+    content: "Phase 0: Java<->Rust UDS vs shared-memory ring microbenchmark on Linux/macOS; go/no-go memo (UDS prototype in tools/skystore; remaining comparisons pending)"
+    status: in_progress
   - id: p0-zabel-compare
     content: "Phase 0: download SHA256-verified Zabel v0.0.8 into an isolated directory; compare with Bazel on LLVM (hermetic-llvm) and BuildBuddy workloads (peak RSS, wall time, incremental) as a native-rewrite reference point"
     status: pending
@@ -25,15 +46,15 @@ todos:
     status: pending
   - id: p1-decouple
     content: "Phase 1: narrow graph maintenance API replacing getInMemoryGraph()/IncrementalInMemoryNodeEntry casts in ~16 lib files; evaluator factory seam"
-    status: pending
+    status: in_progress
   - id: p1-conformance
     content: "Phase 1: reusable conformance suite, eviction fuzzer with page events + invariant checker, differential trace comparer"
-    status: pending
+    status: in_progress
   - id: p2-compact-graph
     content: "Phase 2: compact in-process graph (int ids, packed state, varint frozen deps, Roaring rdeps, hydrate/dehydrate of in-flight NodeEntry)"
     status: pending
   - id: p3-skystore
-    content: "Phase 3: Rust skystore sidecar (protocol, segment store bake-off, checksums, io_uring, crash recovery, rules_rust embedding, optional in bootstrap)"
+    content: "Phase 3: Rust skystore sidecar (protocol, segment store bake-off, checksums, io_uring, crash recovery, rules_rs embedding, optional in bootstrap)"
     status: pending
   - id: p4-value-tiering
     content: "Phase 4: residency policies, spill/page-in with async prefetch, shared-value dedupe, interning restore, codec gap closure, identity audits"
@@ -71,9 +92,9 @@ isProject: false
 - **Semantics split across processes.** Values, keys, `ErrorInfo`, event NestedSets, and `SkyKeyComputeState` are Java objects.
   - Change pruning calls Java `equals`.
   - nokeep_going error bubbling re-enters SkyFunctions.
-  - The atomic `addReverseDepAndCheckIfDone`/`setValue` pair would become a cross-process transaction. Today it is ~47 `synchronized` occurrences in [IncrementalInMemoryNodeEntry.java](src/main/java/com/google/devtools/build/skyframe/IncrementalInMemoryNodeEntry.java) and [AbstractInMemoryNodeEntry.java](src/main/java/com/google/devtools/build/skyframe/AbstractInMemoryNodeEntry.java).
+  - The atomic `addReverseDepAndCheckIfDone`/`setValue` pair would become a cross-process transaction. Today it is ~47 `synchronized` occurrences in [IncrementalInMemoryNodeEntry.java](../../../src/main/java/com/google/devtools/build/skyframe/IncrementalInMemoryNodeEntry.java) and [AbstractInMemoryNodeEntry.java](../../../src/main/java/com/google/devtools/build/skyframe/AbstractInMemoryNodeEntry.java).
 - **A separate process does not save machine RAM by itself.** Only the compact representation and SSD tiering do.
-- **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++ compiler, and there is no rules_rust today. The sidecar must therefore be optional: a bootstrap build runs the in-process compact graph from Phase 2.
+- **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++ compiler. rules_rs builds the optional sidecar separately: a bootstrap build runs the in-process compact graph from Phase 2.
 - **Role of C.** No hand-written C is planned. C libraries (zstd, liburing) are linked into the Rust sidecar.
 
 ## Zabel: dzbarsky's Zig rewrite of Bazel
@@ -182,7 +203,7 @@ flowchart LR
 
 **Integer edges:**
 - Java tier: group-sorted delta + LEB128 varint (KISS, ~1-2 bytes per edge with creation-order ID locality).
-- Large rdep sets: Roaring, which is already a dependency (`org.roaringbitmap`, used in [LeafIdAssignment.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/LeafIdAssignment.java)).
+- Large rdep sets: Roaring, which is already a dependency (`org.roaringbitmap`, used in [LeafIdAssignment.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/LeafIdAssignment.java)).
 - Skystore: evaluate Stream VByte, SIMD bit-packing, or Elias-Fano for cold segments, plus WebGraph-style ID renumbering (BFS or layered label propagation) during compaction.
 
 **Key strings (paths, labels):** FSST (random-access string compression, as used in DuckDB) or front-coding in sorted key blocks.
@@ -203,10 +224,10 @@ flowchart LR
 ## Prior art and how it is reused
 
 **Inside Bazel:**
-- **Extension point for alternative graphs.** `NodeEntry`, `DirtyBuildingState`, `CycleDetector`, and `InMemoryGraphImpl` are documented as public "for alternative graph implementations". [QueryableGraph.java](src/main/java/com/google/devtools/build/skyframe/QueryableGraph.java) already has `Reason`, async batch gets, `prefetchDeps`, and size limits.
-- **Value tier.** Skycache's serialization path ([FingerprintValueStore.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueStore.java), [SkyValueRetriever.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java), `putSharedValue` for NestedSet sharing). Open-source Bazel has only an in-memory store (TODO b/358347099).
-- **Conformance and eviction direction.** [SkyframeEvictionTest.java](src/test/java/com/google/devtools/build/skyframe/SkyframeEvictionTest.java) is upstream's June 2026 fuzz harness "for node eviction". The abstract `MemoizingEvaluatorTest`, `GraphTest`, and `InMemoryNodeEntryTest` suites are already parameterized.
-- **Lessons.** Skyfocus (deleted in c9bdec481a) used destructive pruning and errored on changes outside the working set; we avoid both. [HighWaterMarkLimiter.java](src/main/java/com/google/devtools/build/lib/skyframe/HighWaterMarkLimiter.java) drops state where we would spill. `--heuristically_drop_nodes` plus `NodeDroppingInconsistencyReceiver` show tolerated inconsistency.
+- **Extension point for alternative graphs.** `NodeEntry`, `DirtyBuildingState`, `CycleDetector`, and `InMemoryGraphImpl` are documented as public "for alternative graph implementations". [QueryableGraph.java](../../../src/main/java/com/google/devtools/build/skyframe/QueryableGraph.java) already has `Reason`, async batch gets, `prefetchDeps`, and size limits.
+- **Value tier.** Skycache's serialization path ([FingerprintValueStore.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueStore.java), [SkyValueRetriever.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java), `putSharedValue` for NestedSet sharing). Open-source Bazel has only an in-memory store (TODO b/358347099).
+- **Conformance and eviction direction.** [SkyframeEvictionTest.java](../../../src/test/java/com/google/devtools/build/skyframe/SkyframeEvictionTest.java) is upstream's June 2026 fuzz harness "for node eviction". The abstract `MemoizingEvaluatorTest`, `GraphTest`, and `InMemoryNodeEntryTest` suites are already parameterized.
+- **Lessons.** Skyfocus (deleted in c9bdec481a) used destructive pruning and errored on changes outside the working set; we avoid both. [HighWaterMarkLimiter.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/HighWaterMarkLimiter.java) drops state where we would spill. `--heuristically_drop_nodes` plus `NodeDroppingInconsistencyReceiver` show tolerated inconsistency.
 - **Platform.** JDK 25 is embedded with compact object headers already on, and FFM is available. zstd-jni and RoaringBitmap are already dependencies.
 
 **External:**
@@ -223,7 +244,7 @@ flowchart LR
 ## Phases (each is a stack of atomic commits with a review gate)
 
 **Phase 0: Measure and spike (no behavior change)**
-- Heap attribution, extending [SkyframeMemoryDumper.java](src/main/java/com/google/devtools/build/lib/buildtool/SkyframeMemoryDumper.java): structure (entries, deps, rdeps, map nodes, keys) versus values, per `SkyFunctionName`.
+- Heap attribution, extending [SkyframeMemoryDumper.java](../../../src/main/java/com/google/devtools/build/lib/buildtool/SkyframeMemoryDumper.java): structure (entries, deps, rdeps, map nodes, keys) versus values, per `SkyFunctionName`.
 - Working-set tracing over replayed commit history (the bazel repo plus one large client repo): per command, record nodes read for value, read for version only, dirtied, and recomputed.
 - Codec coverage and compression bake-off on real values: list the gaps (known: `FileStateValue`, `DirectoryListingValue`, `BzlLoadValue`, driver values).
 - Java-Rust IPC microbenchmark: UDS versus shared-memory ring, batch get/put, on Linux and macOS.
@@ -233,8 +254,8 @@ flowchart LR
 
 **Phase 1: Decouple Bazel from in-memory internals (upstream-friendly)**
 - Replace `getInMemoryGraph()` uses and casts to `IncrementalInMemoryNodeEntry` with a narrow maintenance API: function-filtered enumeration, `getIfPresent`, `remove`, `clearValue`, `clearDirectDeps`, rdep surgery, dumps.
-- About 16 production files are affected, mainly `SkyframeExecutor`, [SequencedSkyframeExecutor.java](src/main/java/com/google/devtools/build/lib/skyframe/SequencedSkyframeExecutor.java), [FrontierSerializer.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/FrontierSerializer.java), [SelectedEntrySerializer.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializer.java), [DumpCommand.java](src/main/java/com/google/devtools/build/lib/runtime/commands/DumpCommand.java), [FilesystemValueChecker.java](src/main/java/com/google/devtools/build/lib/skyframe/FilesystemValueChecker.java), `VendorCommand`, and `LocalResourceUsageCollectors`.
-- Evaluator factory seam selected by a startup option, used in `SequencedSkyframeExecutor.createEvaluator` and [AbstractPackageLoader.java](src/main/java/com/google/devtools/build/lib/skyframe/packages/AbstractPackageLoader.java).
+- About 16 production files are affected, mainly `SkyframeExecutor`, [SequencedSkyframeExecutor.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/SequencedSkyframeExecutor.java), [FrontierSerializer.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/FrontierSerializer.java), [SelectedEntrySerializer.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializer.java), [DumpCommand.java](../../../src/main/java/com/google/devtools/build/lib/runtime/commands/DumpCommand.java), [FilesystemValueChecker.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/FilesystemValueChecker.java), `VendorCommand`, and `LocalResourceUsageCollectors`.
+- Evaluator factory seam selected by a startup option, used in `SequencedSkyframeExecutor.createEvaluator` and [AbstractPackageLoader.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/packages/AbstractPackageLoader.java).
 - Reusable conformance suite, the eviction fuzzer extended with page-in/out events plus a symmetry and version invariant checker, and a differential trace comparer (per-node value fingerprint, deps, versions).
 - Oracle-level checks in the style Zabel uses: aquery action keys, label-order checksums, and output digests must match the in-memory engine.
 
@@ -251,7 +272,7 @@ flowchart LR
 - Batch operations: `PutValues`, `GetValues`, `PutNodeRecords`, `GetNodeRecords`, `ComputeDirtyClosure`, `Checkpoint`, `Compact`, `Stats`.
 - Storage: an append-only segment log plus fingerprint-addressed blobs. Bake off a custom log against fjall/redb.
 - I/O and caching: io_uring on Linux, pread thread pool elsewhere; block checksums; S3-FIFO or CLOCK-Pro block cache.
-- Build: rules_rust, embedded in the install base; optional in bootstrap builds.
+- Build: rules_rs, embedded in the install base; optional in bootstrap builds.
 - Failure policy: a crash or corruption is treated as cache loss. Drop the graph and recover from the last checkpoint.
 
 **Phase 4: Value tiering (the sliding window)**
@@ -313,6 +334,17 @@ flowchart LR
 - Values dominate and codec coverage is partial, so engine-only gains are capped. Phase 0 quantifies this; PIN stays the default.
 - Identity-sensitive values and side tables. Audit them before SPILL.
 - Sidecar crashes and corruption. Treat as cache loss; use checksums and a kill -9 test suite.
-- rules_rust and bootstrap. The sidecar is optional.
+- rules_rs and bootstrap. The sidecar is optional.
 - SSD write amplification. Append deltas only and budget compaction.
 - Divergence from upstream eviction work. Engage early.
+
+## First integrated experiment — 2026-10-19
+
+The optional tiered_idle mode connects real Skyframe entries to the Rust spill
+store between commands, restoring all detached values before evaluation.
+[Linux comparison and promotion decision](../measurements/skyframe-rust-idle-linux-2026-10-19.md):
+about 1% less live Java heap, about 8% slower repeated warm analysis, and no
+demonstrated total process RAM saving. Keep it experimental and disabled by
+default. This is a bounded integration experiment; the compact graph,
+in-command paging, wider codec coverage, graph conformance/fuzzing, and
+persistence gates above remain open.

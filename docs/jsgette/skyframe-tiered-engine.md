@@ -3,7 +3,182 @@
 Java hot plane + Rust "skystore" sidecar on SSD. Drop-in replacement for
 Skyframe's in-memory graph so the rest of Bazel sees no difference.
 
-**Status:** design / Phase 0 not started. Decisions locked 2026-10-16.
+**Status (2026-10-19):** The optional [skystore implementation](skystore-prototype.md)
+has Rust/Java IPC, checksummed disk value storage, rules_rs builds, and an
+experimental `tiered_idle` integration. That integration retains the graph in
+Java and restores all detached glob values before each command. It is an
+intermediate storage experiment, **not this document's disk-backed graph**.
+Its completed profiles do not measure demand paging.
+
+The first demand-paged graph core is now implemented as `DiskBackedGraph`: it
+uses stable Java handles, an explicit completed-node residency limit, and full
+cold records containing values, both versions, dependency groups, and reverse
+edges. It passes the existing evaluator contract with supported values evicted
+between operations, and a Linux test pages records through the rules_rs-built
+Rust process. The opt-in `tiered_genrule` command mode now pages audited native
+genrule action nodes during real builds. Broader codecs, byte-level residency
+accounting, and production-scale storage remain pending.
+Decisions locked 2026-10-16; disk-backed graph acceptance clarified 2026-10-19.
+
+The opt-in `tiered_go` experiment additionally pages audited `go_library` values with exact
+non-discovering `StarlarkAction` actions. The completed
+[Datadog cluster-agent comparison](measurements/skyframe-lazy-go-datadog-linux-2026-10-19.md)
+passes the output checks but raises post-warm live heap by 54% and warm latency by 40x; peak PSS
+remains about 4 GiB in both modes. Keep it experimental. Artifact-array support, shared GoArchive
+field chunks, and pinned Runfiles identity are
+required for correctness. Local Starlark definitions, configurations, Runfiles, graph keys and
+handles remain resident; a small eligible-node limit is not a small whole-graph heap guarantee.
+
+For the selected multi-worktree architecture, use the revised
+[concurrent SkyCache roadmap](plans/skycache_local_backend_f13e5f7f.plan.md). The Rust component
+is a private storage sidecar, not a Rust Skyframe evaluator. A separate concurrent immutable
+filesystem byte store now has multiprocess tests; its portable analysis integration remains next.
+
+## Implemented graph-core checkpoint (2026-10-19)
+
+- The evaluator accepts an alternative graph through a constructor; defaults
+  remain unchanged. Change-pruning dependencies and last-evaluation versions
+  are exposed through the node interface rather than a concrete-class cast.
+- A node handle survives eviction. Completed eligible nodes are stored on disk;
+  dirty/evaluating nodes and unsupported value types stay resident. Per-entry
+  operation locks exclude eviction while an operation is using its delegate.
+  Storage I/O runs outside the original node monitors.
+- Records carry a format version, stable record ID, last-change/last-evaluation
+  versions, dependency group boundaries, reverse edges, value bytes, and CRC32C.
+  A write must succeed before the live delegate is released. Missing, corrupt,
+  or unavailable authoritative records fail the operation.
+- Keys, state and version scans, and graph cleanup do not page in cold nodes.
+  A weak value reference preserves identity while a caller still holds the
+  original value. Production codecs must additionally preserve shared nested
+  sets, artifacts, configurations, and mutable action state.
+- Statistics distinguish resident, pinned, and cold node counts and record
+  page-ins, evictions, and logical bytes read/written. These are **not physical
+  SSD I/O counters or heap-byte measurements**.
+- The current budget counts eligible completed nodes, not bytes. Handles,
+  keys, versions and a key-ID dictionary remain resident; deleted dictionary
+  entries and obsolete Rust records need future compaction. The store is still
+  ephemeral and retains the prototype capacity limits. Pooled label interning
+  is disabled for this alternative graph to avoid I/O under interner locks.
+
+Linux validation through Cache & Carry:
+
+- Complete Skyframe suite: **1,640 test records, 1,634 passed, 6 skipped**.
+  This includes 177 graph/evaluator cases using disk records and forced eviction.
+- Real Rust graph integration: **3 passed**, including a 32-node graph with a
+  two-node resident limit, concurrent reads/edge updates, missing records, and
+  process death. The test uses audited glob values; it does not prove action
+  value serialization.
+- Existing idle-tier, Rust unit/Clippy/rustfmt, Java client and IPC integration
+  targets passed. `//src:bazel-dev` built successfully.
+- Corruption tests include a same-length payload change, and the graph tests
+  cover grouped edges, reverse-edge races, change pruning, cold dependency
+  changes, unsupported/active pinning, write failure, and disjoint working sets.
+
+Reproduce the focused tests:
+
+```sh
+bazel test --config=efcache --bes_backend= --jobs=4 \
+  //src/test/java/com/google/devtools/build/skyframe:DiskBackedGraphTest \
+  //src/test/java/com/google/devtools/build/skyframe:DiskBackedMemoizingEvaluatorTest \
+  //src/test/java/com/google/devtools/build/lib/skyframe/tiering:SkystoreGraphTest
+```
+
+## Native genrule demand paging (2026-10-19)
+
+A source-built Bazel can now select the graph during real analysis and execution:
+
+```sh
+bazel --output_base=/absolute/separate/output-base build \
+  --experimental_skyframe_engine=tiered_genrule \
+  --experimental_skyframe_resident_nodes=32 \
+  --experimental_skystore_binary=/absolute/path/to/skystore \
+  //your:target
+```
+
+The allowlist is deliberately exact: native `GenRuleAction` in
+`RuleConfiguredTargetValue`, with one action and no input discovery. Other
+actions and values, errors, event wrappers, and in-flight nodes remain pinned.
+This is a working action-paging slice, **not full action-type coverage or a
+byte-bounded production engine**. The resident limit counts eligible node
+delegates, not objects still held by external callers, pinned values, metadata,
+or the operating system page cache.
+
+The local codec retains transitive-package metadata, action/target aliasing,
+canonical configuration identity, and weakly interned artifacts. Shared nested
+sets use fingerprint-addressed chunks in the Rust store. Configuration and
+BuildOptions references remain pinned for an evaluator generation. Remote
+analysis-cache substitutions and enhanced Starlark action codecs are excluded.
+Missing chunk reads complete their shared futures exceptionally; repeated
+readers cannot become stuck on an unresolved future.
+
+Each evaluator generation owns a fresh Rust process, store, and codec scope.
+Changing engines/limits/binary resets the evaluator; a dead process detected
+between commands rebuilds the graph. Clean, state dropping, interruption, and
+tracking-mode changes are supported. Storage startup failure falls back to an
+ordinary graph and retries on the next command. Failure to read an authoritative
+record during evaluation fails closed. Discarding analysis values and remote
+analysis caching disable this experiment; the remote **action** cache remains
+supported. Files are ephemeral, without cross-server persistence or compaction.
+
+`OUTPUT_BASE/skyframe-tiering.json` reports enabled status, resident/pinned/cold
+nodes, logical node I/O, chunk reads/writes, pinned configuration count, and the
+sidecar PID. Switching back to `inmemory` clears stale enabled statistics.
+
+Linux validation includes the native codec's actual Rust chunk round trip,
+forced cold shared-cache reads, repeated missing-chunk failure, 28 real-command
+checks (including action-key inspection), and five lifecycle checks. The common
+vanilla command matrix verifies output digests and action keys; independent
+graph/evaluator tests force eviction between completed operations. The
+[measurement report](measurements/skyframe-lazy-genrule-linux-2026-10-19.md)
+records the measured scope and remaining limitations.
+
+## Required outcome: graph on disk, bounded working set in RAM
+
+The objective is to stop retaining the full action/Skyframe graph in RAM.
+This is separate from Bazel's action-result cache and CAS: Cache & Carry can
+accelerate builds, but using it does not move the Skyframe graph out of Java.
+
+- Rust owns cold node records, values, direct edges, and reverse edges on SSD.
+  Neither the JVM nor the Rust process may keep a second full decoded graph.
+- RAM holds compact lookup/state metadata, active evaluation state, explicitly
+  accounted pinned objects, and a cache with an enforced residency budget.
+  A key/proxy object for every node is still memory that must be measured.
+- Graph access loads only the needed records/chunks, with bounded prefetch.
+  Starting a command, enumerating keys, inspecting versions, or shutting down
+  must not trigger whole-graph rehydration.
+- Eviction preserves versions, dependency groups, reverse-edge consistency,
+  change pruning, interning, and action identity. Active readers must retain
+  valid objects until they finish. Disk I/O must not occur under node monitors.
+- Unsupported values remain explicitly pinned until audited lossless codecs
+  exist; report their count and retained bytes. A run that keeps the action
+  graph resident cannot be presented as achieving the disk-backed objective.
+- The comparison must use a stored graph larger than its resident cache,
+  revisit small and disjoint working sets, and cover edits that dirty cold
+  dependencies. Report total JVM-plus-Rust memory, pinned/active/cache bytes,
+  pages and bytes read, hit/miss/eviction counts, latency, CPU, and output
+  equivalence against vanilla.
+- Separate warm filesystem-cache reads from cold disk reads and verify the
+  latter with I/O counters. In WSL, guest page-cache eviction alone does not
+  prove physical SSD reads because host caching may still satisfy them.
+  Include filesystem-cache memory when assessing whole-machine savings.
+
+The initial idle experiment does not satisfy these acceptance conditions.
+A faster idle spill/restore loop or a lazy glob-only value proxy is not a
+substitute for the graph-storage implementation.
+
+### Implementation constraints confirmed in the current tree
+
+The existing analysis-cache codecs require a local-graph audit before reuse.
+`RemoteConfiguredTargetValue.codec()` substitutes remote value classes and
+omits transitive-package state. `ActionExecutionValue` decoding introduces
+`DeserializedSkyValue` markers with separate invalidation behavior.
+`ModuleCodec` can require Skyframe dependencies while decoding. A successful
+lookup in the registry is not proof of lossless support: its default fallback
+can reconstruct objects through `DynamicCodec`.
+
+Use the Phase 1 factory/maintenance seams and conformance work below before
+switching graph representations. Audit codec identity and invalidation contracts
+alongside the lazy graph, then benchmark that implementation.
 **Tracks:** engine phases 0–8 + parallel Track V (Java value-layout wins).
 
 ## Verdict
@@ -49,7 +224,7 @@ Estimates to validate in the Phase 0 IPC spike:
 - **A separate process does not save machine RAM by itself.** Only the compact
   representation and SSD tiering do.
 - **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++
-  compiler; there is no `rules_rust` today. The sidecar must be optional: a
+  compiler. `rules_rs` builds the optional sidecar separately. A
   bootstrap build runs the in-process compact graph from Phase 2.
 - **Role of C.** No hand-written C. C libraries (zstd, liburing) are linked into
   the Rust sidecar.
@@ -332,7 +507,7 @@ Each phase is a stack of atomic reviewable commits with a review gate.
   custom log vs fjall/redb.
 - I/O: io_uring on Linux, pread thread pool elsewhere; block checksums;
   S3-FIFO or CLOCK-Pro block cache.
-- Build: rules_rust, embedded in install base; optional in bootstrap.
+- Build: rules_rs, embedded in install base; optional in bootstrap.
 - Failure: crash/corruption = cache loss; drop graph, recover from last
   checkpoint.
 
@@ -420,7 +595,7 @@ before starting each item. Each win is an independent upstream PR.
   Phase 0 quantifies; PIN stays default.
 - Identity-sensitive values and side tables — audit before SPILL.
 - Sidecar crashes/corruption — treat as cache loss; checksums + kill −9 suite.
-- rules_rust and bootstrap — sidecar optional.
+- rules_rs and bootstrap — sidecar optional.
 - SSD write amplification — append deltas only; budget compaction.
 - Divergence from upstream eviction work — engage early.
 

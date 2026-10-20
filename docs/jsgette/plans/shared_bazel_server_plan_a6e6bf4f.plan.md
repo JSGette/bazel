@@ -43,6 +43,12 @@ isProject: false
 
 # Shared Bazel Server Across Git Worktrees
 
+> Status revised 2026-10-19: retained as an alternative design, not the selected implementation.
+> The current requirement is independent Bazel servers running simultaneously in separate worktrees.
+> Follow [Concurrent SkyCache across worktrees](skycache_local_backend_f13e5f7f.plan.md) for that work.
+> Sharing immutable analysis does not require merging command execution or mutable evaluator state
+> into a single JVM.
+
 ## Problem Statement
 
 When N git worktrees of the same repo run Bazel, today you get N independent server JVMs, each consuming 1-4GB of heap, competing for CPUs, and duplicating identical analysis/loading work. For agentic development workflows this is the common case.
@@ -63,7 +69,7 @@ The codebase already has the conceptual split:
 The `BlazeWorkspace` javadoc explicitly says:
 > "the introduction of this class is a step towards allowing 1:N relationships"
 
-([BlazeWorkspace.java](src/main/java/com/google/devtools/build/lib/runtime/BlazeWorkspace.java) line 65)
+([BlazeWorkspace.java](../../../src/main/java/com/google/devtools/build/lib/runtime/BlazeWorkspace.java) line 65)
 
 But today `BlazeRuntime.workspace` is a single field, and `workspace_directory` is a JVM startup argument, not a per-command parameter.
 
@@ -75,7 +81,7 @@ But today `BlazeRuntime.workspace` is a single field, and `workspace_directory` 
 
 ### 1a. Proto change
 
-Add `workspace_directory` to `RunRequest` in [command_server.proto](src/main/protobuf/command_server.proto):
+Add `workspace_directory` to `RunRequest` in [command_server.proto](../../../src/main/protobuf/command_server.proto):
 
 ```protobuf
 message RunRequest {
@@ -86,15 +92,15 @@ message RunRequest {
 
 ### 1b. Client startup option
 
-Add `--experimental_shared_server` startup option in [startup_options.h](src/main/cpp/startup_options.h) / [startup_options.cc](src/main/cpp/startup_options.cc). When set:
+Add `--experimental_shared_server` startup option in [startup_options.h](../../../src/main/cpp/startup_options.h) / [startup_options.cc](../../../src/main/cpp/startup_options.cc). When set:
 
 - `output_base` is computed as `md5("shared:" + <canonical_repo_root>)` instead of `md5(workspace_path)`. The canonical repo root can be detected via `git rev-parse --git-common-dir` or passed explicitly.
 - The client populates `RunRequest.workspace_directory` with the actual worktree path.
-- The exclusive `fcntl` lock on `$OUTPUT_BASE/lock` ([blaze.cc](src/main/cpp/blaze.cc) line 294) remains exclusive per-client but acquisition uses **wait mode** (existing `--block_for_lock` behavior). True concurrent client connections come in Phase 3.
+- The exclusive `fcntl` lock on `$OUTPUT_BASE/lock` ([blaze.cc](../../../src/main/cpp/blaze.cc) line 294) remains exclusive per-client but acquisition uses **wait mode** (existing `--block_for_lock` behavior). True concurrent client connections come in Phase 3.
 
 ### 1c. Server-side: parse workspace per-command
 
-In [CommandServer.java](src/main/java/com/google/devtools/build/lib/server/CommandServer.java) `run()` method (line 424): extract `workspace_directory` from `RunRequest` and pass it through to `dispatcher.exec()`. Add it as a parameter on [`CommandDispatcher.exec()`](src/main/java/com/google/devtools/build/lib/runtime/CommandDispatcher.java).
+In [CommandServer.java](../../../src/main/java/com/google/devtools/build/lib/server/CommandServer.java) `run()` method (line 424): extract `workspace_directory` from `RunRequest` and pass it through to `dispatcher.exec()`. Add it as a parameter on [`CommandDispatcher.exec()`](../../../src/main/java/com/google/devtools/build/lib/runtime/CommandDispatcher.java).
 
 If the server was started with `--workspace_directory` (legacy mode), ignore the per-command field and behave as today.
 
@@ -106,7 +112,7 @@ If the server was started with `--workspace_directory` (legacy mode), ignore the
 
 ### 2a. Workspace registry in BlazeRuntime
 
-In [BlazeRuntime.java](src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java), replace:
+In [BlazeRuntime.java](../../../src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java), replace:
 
 ```java
 // Line 204-205
@@ -129,7 +135,7 @@ Add `getOrCreateWorkspace(Path workspaceDir)` that:
 
 ### 2b. Worktree-scoped exec root
 
-Today `workspaceName` is hardcoded to `"_main"` in [BazelRuleClassProvider.java](src/main/java/com/google/devtools/build/lib/bazel/rules/BazelRuleClassProvider.java) line 237. All workspaces share `outputBase/execroot/_main/`.
+Today `workspaceName` is hardcoded to `"_main"` in [BazelRuleClassProvider.java](../../../src/main/java/com/google/devtools/build/lib/bazel/rules/BazelRuleClassProvider.java) line 237. All workspaces share `outputBase/execroot/_main/`.
 
 Introduce a **worktree ID** (short hash of the worktree source path) to partition exec roots:
 
@@ -146,13 +152,13 @@ outputBase/
 This avoids touching `runfilesPrefix` ("_main"), which affects runfiles layout and is deeply embedded. The exec root partition is purely a directory layout concern.
 
 Changes needed in:
-- [BlazeDirectories.java](src/main/java/com/google/devtools/build/lib/analysis/BlazeDirectories.java): `getExecRoot()` uses worktree ID when in shared server mode
-- [SymlinkForest.java](src/main/java/com/google/devtools/build/lib/buildtool/SymlinkForest.java): plants into the worktree-specific exec root (no cross-contamination, each forest is independent)
-- [OutputDirectoryLinksUtils.java](src/main/java/com/google/devtools/build/lib/buildtool/OutputDirectoryLinksUtils.java): convenience symlinks (`bazel-bin`, `bazel-out`) point to the correct worktree-scoped output tree; written to the worktree's own source directory (naturally isolated)
+- [BlazeDirectories.java](../../../src/main/java/com/google/devtools/build/lib/analysis/BlazeDirectories.java): `getExecRoot()` uses worktree ID when in shared server mode
+- [SymlinkForest.java](../../../src/main/java/com/google/devtools/build/lib/buildtool/SymlinkForest.java): plants into the worktree-specific exec root (no cross-contamination, each forest is independent)
+- [OutputDirectoryLinksUtils.java](../../../src/main/java/com/google/devtools/build/lib/buildtool/OutputDirectoryLinksUtils.java): convenience symlinks (`bazel-bin`, `bazel-out`) point to the correct worktree-scoped output tree; written to the worktree's own source directory (naturally isolated)
 
 ### 2c. DO_NOT_BUILD_HERE
 
-[BlazeWorkspace.java](src/main/java/com/google/devtools/build/lib/runtime/BlazeWorkspace.java) line 444: currently writes one workspace path. Change to write a sentinel per worktree exec root subdirectory, or switch to a directory-based check rather than content-based.
+[BlazeWorkspace.java](../../../src/main/java/com/google/devtools/build/lib/runtime/BlazeWorkspace.java) line 444: currently writes one workspace path. Change to write a sentinel per worktree exec root subdirectory, or switch to a directory-based check rather than content-based.
 
 ### 2d. Action cache and disk cache
 
@@ -162,7 +168,7 @@ Changes needed in:
 
 ### 2e. BlazeCommandDispatcher integration
 
-In [BlazeCommandDispatcher.java](src/main/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcher.java) `exec()`:
+In [BlazeCommandDispatcher.java](../../../src/main/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcher.java) `exec()`:
 
 1. Resolve the workspace directory from the command arguments
 2. Call `runtime.getOrCreateWorkspace(workspaceDir)`
@@ -230,7 +236,7 @@ Modules with intentionally shared state (keep as-is, add synchronization): `Cred
 
 ### 3d. Shared resource management
 
-Replace per-command `ResourceManager` creation in [BlazeWorkspace.initCommand()](src/main/java/com/google/devtools/build/lib/runtime/BlazeWorkspace.java) line 324 with a shared `ResourceManager` at the server level. This is the mechanism that naturally prevents CPU oversubscription — a single pool of CPU/RAM resources shared across all concurrent builds.
+Replace per-command `ResourceManager` creation in [BlazeWorkspace.initCommand()](../../../src/main/java/com/google/devtools/build/lib/runtime/BlazeWorkspace.java) line 324 with a shared `ResourceManager` at the server level. This is the mechanism that naturally prevents CPU oversubscription — a single pool of CPU/RAM resources shared across all concurrent builds.
 
 Also: `quiescingExecutors.resetParameters()` (line 346 in `initCommand()`) mutates a shared executor pool config. This needs to either become per-workspace or take the union/max of all active workspace configs.
 
