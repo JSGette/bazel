@@ -62,6 +62,12 @@ for commits, exact commands, raw results, failed experiments and limitations.
   writes 51 records versus 149 before and issues 49 fewer reads. Remaining duplicate writes
   need separate optimization.
 
+- A full Datadog cluster-agent writer/restarted-reader sequence now succeeds with identical
+  output hashes and 4,501 configured-target hits. Schemaful provider codecs preserve depset types
+  across fresh/differently primed processes. Eight focused targets / 86 cases pass. The reader
+  still uses more peak memory than its control and the writer remains expensive; concurrent
+  Datadog worktrees, nearby-revision reuse and resource bounds remain unfinished.
+
 This is an experimental implementation. The small-worktree test is not large-repository or
 production-maturity evidence. The prior Go paging experiment is historical, with a measured
 latency/memory regression; its code remains on its separate branch.

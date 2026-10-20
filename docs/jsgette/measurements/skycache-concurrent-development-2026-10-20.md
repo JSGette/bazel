@@ -457,3 +457,83 @@ Raw protocols: [before](skycache-concurrent-2026-10-20/independent-invalidation-
 [final after](skycache-concurrent-2026-10-20/independent-invalidation-final-after.json),
 [first Datadog trial](skycache-concurrent-2026-10-20/datadog-independent-invalidation-first.json),
 [final Datadog attempt](skycache-concurrent-2026-10-20/datadog-independent-invalidation-final.json).
+
+
+## Step 10 — provider type metadata; first complete Datadog reader
+
+Implementation: [ef4033337614](https://github.com/JSGette/bazel/commit/ef40333376148e398f3c8f756e8487192ee06c3f).
+Schemaful Starlark providers optimize depset fields by retaining only a NestedSet in the instance
+and predicting its element type on the provider. The exported provider is resolved in the reader's
+process, where that predictor can be empty or predict a different type. Reflective serialization
+of the raw fields therefore either crashed or silently assigned the wrong element class.
+
+A dedicated codec covers Schema0 through Schema5 and SchemaN. It sends typed depsets and reapplies
+the receiver's existing optimization after restoring the canonical provider. A conflicting
+prediction retains a wrapped depset. No evaluator change is needed. The Bazel installation identity
+already separates cache entries across these binary/codec changes.
+
+Before the fix, focused regressions reproduced the null element-class crash and a string depset
+being reported as StarlarkInt when the reader had learned that other type. Afterward, eight targets /
+86 tests pass, including all compact/array-backed schema sizes, a fresh receiver, a differently
+primed receiver, absent fields, None, scalars, empty depsets and the prior schemaless round trip.
+The None test explicitly registers the singleton, as the production registry does.
+
+The measurement harness now removes the previous command's statistics before each run. If a crash
+prevents the final configured-target summary, it records progress-hit evidence and labels that
+source rather than silently reporting zero hits or stale statistics.
+
+### Storage interruption and recovery
+
+The first large run was interrupted when Windows C:, which held the WSL virtual disk, reached
+zero free bytes. WSL returned EIO and could not restart. Linux's reported free space inside its
+expandable virtual disk did not reflect the backing host volume's exhaustion. Its two completed
+control rows are preserved separately; the writer and reader results are incomplete.
+
+Following the user's cleanup request, 7,828,633,275 bytes of old diagnostic traces, crash dumps
+and shader caches were removed. Ubuntu's approximately 141 GiB VHD was moved with WSL's supported
+move operation from C: through D: to `E:\\WSL\\Ubuntu`. D: was initially selected for capacity;
+after checking media type, its mechanical storage was rejected for final benchmark placement.
+E: is a WD Blue SN570 NVMe SSD. Linux paths and worktrees are unchanged. WSL restarted with a
+writable filesystem; full Git fsck passed for the Bazel and Datadog object databases, and the
+benchmark binary SHA-256 matched the pre-interruption binary. C: then had about 150 GiB free.
+
+The rerun checked both Linux free space and the Windows backing-volume capacity (30 GiB minimum),
+plus a 10 GiB reserve on C:. The operational helper is recorded locally as
+`work/resume_after_storage.py`. A reusable guard in the checked-in harness remains follow-up work.
+Because the backing SSD changed, **do not attribute the writer-time improvement versus Step 9
+to this codec fix**. Subsequent optimization comparisons must use fresh baselines on E:.
+
+### Complete Datadog run on E:
+
+Same Datadog commit, target, lockfile and resource limits as the preceding attempts. The action
+disk cache is warm. Every row exits successfully and produces the same cluster-agent SHA-256:
+`7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664`.
+
+| Run | Wall seconds | Peak process-tree PSS MiB | Configured-target hits | Local writes |
+| --- | ---: | ---: | ---: | ---: |
+| control-cold | 32.613 | 3305.1 | 0 | — |
+| control-warm | 0.743 | 3324.9 | 0 | — |
+| writer-cold | 104.114 | 2857.9 | 0 | 278629 |
+| writer-warm | 1.123 | 2891.9 | 0 | 0 |
+| reader-restart | 31.174 | 4148.3 | 4501 | 4477 |
+
+The cold writer publishes 278,629 records. The restarted reader completes restored C++/Go action
+processing, reports 4,501/4,507 configured-target hits, reads 152,623 shared chunks, and produces
+the correct executable. It still writes 4,477 records and publishes another manifest.
+This is the first complete large-repository analysis-reuse result, not production-maturity proof.
+The reader's peak memory exceeds the control and the single-pair wall-time difference is small.
+The writer remains substantially slower. There is no demonstrated general speed or RAM win.
+
+The separate two-worktree probe passes all 12 builds: simultaneous writes, warm commands,
+independent source/Starlark edits, reverts/restarts and corrupt-chunk fallback. Restarted readers
+each get 49 configured-target hits with exact expected output bytes. These are small fixtures;
+two concurrent Datadog worktrees still need validation.
+
+Next: avoid rewriting identical records from validated publications, then investigate storage I/O,
+validation cost, environment compatibility, memory retention and bounded lifecycle.
+
+Raw evidence: [Datadog](skycache-concurrent-2026-10-20/datadog-depset-metadata.json),
+[worktrees](skycache-concurrent-2026-10-20/depset-metadata-worktrees.json),
+[unit checks](skycache-concurrent-2026-10-20/depset-metadata-tests.json),
+[interrupted attempt](skycache-concurrent-2026-10-20/datadog-depset-metadata-interrupted.json),
+[recovery checks](skycache-concurrent-2026-10-20/storage-recovery-verification.json).

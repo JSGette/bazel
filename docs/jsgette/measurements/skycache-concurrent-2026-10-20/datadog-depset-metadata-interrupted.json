@@ -1,0 +1,67 @@
+{
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-metadata-review",
+  "binary_sha256": "24066d1d98f6e2af9cc59f38a2d9e1aa15bebfa989102b3487be85f2056c0a62",
+  "source_commit": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "lock_sha256": "7f32675fc29a9cb837256a760cfca19dfab2bf040492cfa0c9bb40444b8d9290",
+  "source_status": " M MODULE.bazel.lock\n",
+  "memory_scope": "process-tree RSS/PSS, sampled every 200 ms; excludes filesystem page cache",
+  "runs": [
+    {
+      "label": "control-cold",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-depset-metadata-review/workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-depset-metadata-review/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "--config=no-remote-cache",
+        "--jobs=4",
+        "--local_resources=memory=4096",
+        "--lockfile_mode=off",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "//cmd/cluster-agent:cluster-agent",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/datadog-depset-metadata-review/control-cold.bep.json"
+      ],
+      "exit_code": 0,
+      "seconds": 35.88784671299999,
+      "peak_tree_rss_kib": 3424056,
+      "peak_tree_pss_kib": 3417335,
+      "analysis_hits": 0,
+      "analysis_hits_source": "none",
+      "cache_disabled": false,
+      "publication_failures": [],
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+    },
+    {
+      "label": "control-warm",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-depset-metadata-review/workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-depset-metadata-review/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "--config=no-remote-cache",
+        "--jobs=4",
+        "--local_resources=memory=4096",
+        "--lockfile_mode=off",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "//cmd/cluster-agent:cluster-agent",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/datadog-depset-metadata-review/control-warm.bep.json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7026640189999966,
+      "peak_tree_rss_kib": 3458424,
+      "peak_tree_pss_kib": 3451721,
+      "analysis_hits": 0,
+      "analysis_hits_source": "none",
+      "cache_disabled": false,
+      "publication_failures": [],
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+    }
+  ],
+  "incomplete_reason": "Windows C: backing the WSL VHD exhausted during writer-cold; WSL returned EIO. No completed writer/reader measurement. Do not treat this as a successful cache run."
+}
