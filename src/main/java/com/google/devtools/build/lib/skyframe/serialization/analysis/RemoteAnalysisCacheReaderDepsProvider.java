@@ -68,4 +68,9 @@ public interface RemoteAnalysisCacheReaderDepsProvider {
 
   /** Returns true if Skycache is only used for analysis phase. */
   boolean getSkycacheAnalysisOnly();
+
+  /** Backend capability, independent of the MTSV-based analysis-only executor mode. */
+  default boolean retrievesExecutionValues() {
+    return true;
+  }
 }

@@ -53,6 +53,9 @@ public final class SkyValueRetrieverUtils {
       RemoteAnalysisCacheReaderDepsProvider analysisCachingDeps,
       Supplier<? extends SerializableSkyKeyComputeState> stateSupplier)
       throws InterruptedException {
+    if (!analysisCachingDeps.retrievesExecutionValues() && !(key instanceof ActionLookupKey)) {
+      return new NoCachedData(MissReason.MISS_REASON_NOT_ATTEMPTED);
+    }
     if (env.inErrorBubbling()) {
       // Remote retrieval during error bubbling causes incorrect error propagation. See b/449016469.
       return new NoCachedData(MissReason.MISS_REASON_NOT_ATTEMPTED);

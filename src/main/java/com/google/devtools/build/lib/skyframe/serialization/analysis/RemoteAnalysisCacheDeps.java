@@ -74,6 +74,7 @@ public class RemoteAnalysisCacheDeps
   private final boolean skycacheAnalysisOnly;
   private final boolean emitUploadedEvents;
   private final boolean uploadExecutionValues;
+  private final boolean retrieveExecutionValues;
 
   private final ListenableFuture<ObjectCodecs> objectCodecs;
   private final CompressionService compressionService;
@@ -123,6 +124,7 @@ public class RemoteAnalysisCacheDeps
     this.skycacheAnalysisOnly = skycacheAnalysisOnly;
     this.emitUploadedEvents = emitUploadedEvents;
     this.uploadExecutionValues = servicesSupplier.uploadsExecutionValues();
+    this.retrieveExecutionValues = servicesSupplier.retrievesExecutionValues();
     this.minimizeMemory = minimizeMemory;
     this.serializedFrontierProfile = serializedFrontierProfile;
     this.activeDirectoriesMatcher = activeDirectoriesMatcher;
@@ -167,6 +169,7 @@ public class RemoteAnalysisCacheDeps
     this.skycacheAnalysisOnly = false;
     this.emitUploadedEvents = false;
     this.uploadExecutionValues = false;
+    this.retrieveExecutionValues = false;
     this.serializedFrontierProfile = "";
     this.activeDirectoriesMatcher = Optional.empty();
     this.eventHandler = null;
@@ -433,6 +436,11 @@ public class RemoteAnalysisCacheDeps
   public boolean getSkycacheAnalysisOnly() {
     checkEnabled();
     return skycacheAnalysisOnly;
+  }
+
+  @Override
+  public boolean retrievesExecutionValues() {
+    return retrieveExecutionValues;
   }
 
   @Override

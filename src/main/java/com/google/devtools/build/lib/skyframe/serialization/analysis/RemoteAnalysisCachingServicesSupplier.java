@@ -49,6 +49,11 @@ public interface RemoteAnalysisCachingServicesSupplier extends BlazeService {
     return true;
   }
 
+  /** Whether this backend can return execution values from analysis-cache lookups. */
+  default boolean retrievesExecutionValues() {
+    return true;
+  }
+
   /** Additional backend compatibility/input identity; empty preserves the default cache keys. */
   default String getCacheKeyDistinguisher() {
     return "";

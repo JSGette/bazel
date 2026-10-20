@@ -181,6 +181,11 @@ public final class LocalSkycacheModule extends SerializationModule {
     }
 
     @Override
+    public boolean retrievesExecutionValues() {
+      return session == null;
+    }
+
+    @Override
     public ListenableFuture<? extends FingerprintValueStore> getFingerprintValueStore() {
       return immediateFuture(session == null ? fallback : session);
     }
