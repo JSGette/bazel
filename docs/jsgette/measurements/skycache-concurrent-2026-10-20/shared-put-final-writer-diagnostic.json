@@ -1,0 +1,55 @@
+{
+  "purpose": "Interleaved graph-cold writers, fresh SkyCache each run; warm action and filesystem caches",
+  "runs": [
+    {
+      "index": 1,
+      "variant": "after",
+      "binary_sha256": "73d842d81fee809143919347b08b28d8c0f839a169573314b44e38991ac4ab66",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-shared-put-wide-review/workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-shared-put-wide-review/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "--config=no-remote-cache",
+        "--jobs=4",
+        "--local_resources=memory=4096",
+        "--lockfile_mode=off",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "//cmd/cluster-agent:cluster-agent",
+        "--color=no",
+        "--curses=no",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/shared-put-wide-writer-repeat/1-after/cache",
+        "--experimental_active_directories=cmd/cluster-agent"
+      ],
+      "seconds": 106.87289795499987,
+      "exit_code": 0,
+      "skycache": {
+        "writes": 278629,
+        "reads": 57622,
+        "shared_reads": 0,
+        "rejected_publications": 0,
+        "deduplicated_writes": 0,
+        "published": true,
+        "failed": false
+      },
+      "peak_tree_pss_kib": 2969658,
+      "peak_tree_rss_kib": 2976316,
+      "server_cpu_seconds": 580.44,
+      "server_io": {
+        "rchar": 36942052237,
+        "wchar": 4081506709,
+        "syscr": 1193439,
+        "syscw": 895760,
+        "read_bytes": 32034816,
+        "write_bytes": 5070766080,
+        "cancelled_write_bytes": 28372992
+      },
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+      "host_free_bytes_before": {
+        "C": 161431564288,
+        "E": 579832557568
+      }
+    }
+  ]
+}

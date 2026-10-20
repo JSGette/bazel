@@ -537,3 +537,106 @@ Raw evidence: [Datadog](skycache-concurrent-2026-10-20/datadog-depset-metadata.j
 [unit checks](skycache-concurrent-2026-10-20/depset-metadata-tests.json),
 [interrupted attempt](skycache-concurrent-2026-10-20/datadog-depset-metadata-interrupted.json),
 [recovery checks](skycache-concurrent-2026-10-20/storage-recovery-verification.json).
+
+
+## Step 11 — reuse published bytes without another private write
+
+Implementation: [1d523c408f14](https://github.com/JSGette/bazel/commit/1d523c408f1451a18d2fd812e8d8243aab3cc495).
+The prior restarted Datadog reader rewrote 4,477 records even though it reused 4,501 configured
+targets. Each private write incurs filesystem work; any novel write also triggers final input
+validation and another publication.
+
+The session now compares a put against **validated publications**. Identical bytes reuse that
+publication and record it as a parent. A private namespace is created only when a real write
+is necessary. A command with no novel writes creates no namespace or manifest. The new
+`deduplicated_writes` statistic counts skipped put calls, not a scan of the whole store.
+
+Decisions and rejected shortcuts:
+
+- A small per-key pin remembers the chosen publication and value digest only for skipped puts.
+  This preserves read-your-writes if other publications use the same logical key with different
+  bytes. Searching publications again arbitrarily after a successful put was rejected.
+- Striped put locks preserve the existing immutable-key rule when matching and conflicting
+  puts race. Conflicts discard the optional publication; they cannot silently overwrite a key.
+  The final pool has 4,096 locks; the first 64-lock version caused unrelated writers to block
+  behind disk syncs and was rejected after measurement.
+- Reuse inherits the parent's input evidence and publication closure. Matching bytes from an
+  invalid publication are not enough. A global unvalidated key-existence shortcut was rejected.
+- Missing or corrupt pinned bytes are a miss and may be repaired with the original bytes in a
+  private namespace. A later different value remains a conflict.
+- Cold writes do not perform an extra private lookup unless a matching shared candidate exists.
+  No whole-store payload map, evaluator modification or graph eviction was added.
+
+Eight targets / 93 cases pass, including seven new session tests for these invariants. The
+two-worktree probe passes all 12 builds with independent source/Starlark edits, reverts, restarts
+and corrupted-record fallback. Each reverted reader retains 49 hits while writes fall from 51
+to zero; neither publishes. Before the corruption phase the store has 2,148 entries instead of
+2,250. The small probe is a correctness check; its startup timings do not establish a speed win.
+
+### Datadog comparison on the same backing SSD
+
+Same target, source revision, resource limits, warmed action cache and E: WSL backing volume
+as Step 10. The fork is compiled/tested with read-only Cache&Carry access; the measured Datadog
+commands use the local action cache. Both host and guest free space were checked before phases.
+
+| Run | Before seconds | After seconds | Before peak PSS MiB | After peak PSS MiB | Before writes | After writes | Skipped puts |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| control-cold | 32.613 | 33.774 | 3305.1 | 3217.8 | — | — | — |
+| control-warm | 0.743 | 0.690 | 3324.9 | 3275.4 | — | — | — |
+| writer-cold | 104.114 | 108.706 | 2857.9 | 3032.7 | 278629 | 278629 | 0 |
+| writer-warm | 1.123 | 1.151 | 2891.9 | 3078.5 | 0 | 0 | 0 |
+| reader-restart | 31.174 | 22.474 | 4148.3 | 4334.6 | 4477 | 0 | 4477 |
+
+All outputs retain SHA-256 `7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664` and the restarted reader retains
+4,501 configured-target hits. Reader publication after the change:
+`false`. These are one before/after sequence, not
+repeated statistical trials. The measured values establish the saved writes and observed
+runtime/memory for this run; they do not establish a general performance guarantee. The graph
+stays in RAM, and large-reader memory and cold-writer cost remain work items.
+
+### Rejected 64-lock pool and contention diagnosis
+
+The first implementation eliminated reader writes but made the cold writer slower:
+123.895 seconds versus 104.114.
+Four further graph-cold writes alternated the baseline and that initial binary, each with a
+fresh SkyCache directory and its existing warmed action/output cache. All write 278,629 records,
+publish successfully and retain the expected executable hash. CPU covers the Bazel server
+process from startup to command completion, not child processes.
+
+| Sequence | Variant | Wall seconds | Peak process-tree PSS MiB | Server CPU seconds |
+| --- | --- | ---: | ---: | ---: |
+| 1 | before | 108.720 | 3262.7 | 587.93 |
+| 2 | after | 132.548 | 3113.4 | 572.68 |
+| 3 | before | 107.223 | 2988.6 | 578.31 |
+| 4 | after | 125.700 | 3120.6 | 571.72 |
+
+The fourth repeat is diagnostic: six `jcmd Thread.print` samples ran during it, so it is not an
+unprofiled timing trial. The samples show 23, 26 and 30 writers parked at `LocalCacheSession.put`
+while other workers are in `FileChannel.force`. Sixty-four lock stripes unnecessarily serialize
+different keys when about 63 writers are active. This explains a concrete source of the regression;
+similar I/O totals and lower CPU alone would not have proved it. The final 4,096-lock pool keeps
+the conflict guarantee while reducing accidental contention. The table above uses the rebuilt
+final binary and rerun correctness/probe suite, not the rejected binary.
+
+The final unprofiled cold writer takes 108.706 seconds, close to the
+baseline repeat range of 107.223
+to 108.720 seconds. An additional
+final-binary diagnostic writer takes 106.873 seconds and
+produces the same output. Its active-writing samples show 62/63 runnable writers with only
+one parked writer in one sample, compared with 23–30 parked writers in the initial version.
+This confirms the targeted contention reduction. It does not eliminate the underlying cost
+of writing hundreds of thousands of separately synced files.
+
+Next: make the disk-capacity guard reusable, then exercise natural per-worktree environments
+and two concurrent Datadog worktrees. Storage packing, resource bounds and nearby-revision
+reuse remain incomplete.
+
+Raw evidence: [Datadog](skycache-concurrent-2026-10-20/datadog-shared-put.json),
+[two worktrees](skycache-concurrent-2026-10-20/shared-put-worktrees.json),
+[tests](skycache-concurrent-2026-10-20/shared-put-tests.json),
+[writer repetitions](skycache-concurrent-2026-10-20/shared-put-writer-repeats.json),
+[rejected version](skycache-concurrent-2026-10-20/datadog-shared-put-rejected-64-stripes.json),
+[lock samples](skycache-concurrent-2026-10-20/shared-put-lock-diagnostics.json),
+[final lock samples](skycache-concurrent-2026-10-20/shared-put-final-lock-diagnostics.json),
+[final diagnostic writer](skycache-concurrent-2026-10-20/shared-put-final-writer-diagnostic.json),
+[storage checks](skycache-concurrent-2026-10-20/shared-put-storage.json).

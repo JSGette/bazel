@@ -1,0 +1,124 @@
+{
+  "run": "1-after",
+  "note": "Six jcmd Thread.print samples; do not treat this run as an unprofiled timing",
+  "samples": [
+    {
+      "index": 0,
+      "put_thread_states": {},
+      "representative_stacks": {}
+    },
+    {
+      "index": 1,
+      "put_thread_states": {
+        "java.lang.Thread.State: RUNNABLE": 62
+      },
+      "representative_stacks": {
+        "java.lang.Thread.State: RUNNABLE": [
+          "at sun.nio.ch.UnixFileDispatcherImpl.force0(java.base@27/Native Method)",
+          "at sun.nio.ch.UnixFileDispatcherImpl.force(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.implForce(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.force(java.base@27/Unknown Source)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.syncDirectory(ConcurrentFileFingerprintValueStore.java:209)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.directory(ConcurrentFileFingerprintValueStore.java:203)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.put(ConcurrentFileFingerprintValueStore.java:93)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put(LocalCacheSession.java:166)",
+          "at com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.put(FingerprintValueService.java:186)",
+          "at com.google.devtools.build.lib.skyframe.serialization.SharedValueSerializationContext.putOwnedSharedValue(SharedValueSerializationContext.java:341)"
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "put_thread_states": {
+        "java.lang.Thread.State: RUNNABLE": 63
+      },
+      "representative_stacks": {
+        "java.lang.Thread.State: RUNNABLE": [
+          "at sun.nio.ch.UnixFileDispatcherImpl.force0(java.base@27/Native Method)",
+          "at sun.nio.ch.UnixFileDispatcherImpl.force(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.implForce(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.force(java.base@27/Unknown Source)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.put(ConcurrentFileFingerprintValueStore.java:112)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put(LocalCacheSession.java:166)",
+          "at com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.put(FingerprintValueService.java:186)",
+          "at com.google.devtools.build.lib.skyframe.serialization.SharedValueSerializationContext.putOwnedSharedValue(SharedValueSerializationContext.java:341)",
+          "at com.google.devtools.build.lib.skyframe.serialization.SharedValueSerializationContext.putSharedValue(SharedValueSerializationContext.java:241)",
+          "at com.google.devtools.build.lib.skyframe.serialization.ValueSharingAdapter.serialize(ValueSharingAdapter.java:41)"
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "put_thread_states": {
+        "java.lang.Thread.State: RUNNABLE": 61,
+        "java.lang.Thread.State: WAITING (parking)": 1
+      },
+      "representative_stacks": {
+        "java.lang.Thread.State: RUNNABLE": [
+          "at sun.nio.fs.UnixNativeDispatcher.unlink0(java.base@27/Native Method)",
+          "at sun.nio.fs.UnixNativeDispatcher.unlink(java.base@27/Unknown Source)",
+          "at sun.nio.fs.UnixFileSystemProvider.implDelete(java.base@27/Unknown Source)",
+          "at sun.nio.fs.AbstractFileSystemProvider.deleteIfExists(java.base@27/Unknown Source)",
+          "at java.nio.file.Files.deleteIfExists(java.base@27/Unknown Source)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.put(ConcurrentFileFingerprintValueStore.java:128)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put(LocalCacheSession.java:166)",
+          "at com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.put(FingerprintValueService.java:186)",
+          "at com.google.devtools.build.lib.skyframe.serialization.analysis.SelectedEntrySerializer$UploadTask.uploadEntryBytes(SelectedEntrySerializer.java:752)",
+          "at com.google.devtools.build.lib.skyframe.serialization.analysis.SelectedEntrySerializer$UploadTask$InvalidationDataInfoHandler$1.onSuccess(SelectedEntrySerializer.java:729)"
+        ],
+        "java.lang.Thread.State: WAITING (parking)": [
+          "at jdk.internal.misc.Unsafe.park(java.base@27/Native Method)",
+          "at java.util.concurrent.locks.LockSupport.park(java.base@27/Unknown Source)",
+          "at java.util.concurrent.locks.AbstractQueuedSynchronizer.acquire(java.base@27/Unknown Source)",
+          "at java.util.concurrent.locks.AbstractQueuedSynchronizer.acquire(java.base@27/Unknown Source)",
+          "at java.util.concurrent.locks.ReentrantLock$Sync.lock(java.base@27/Unknown Source)",
+          "at java.util.concurrent.locks.ReentrantLock.lock(java.base@27/Unknown Source)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put(LocalCacheSession.java:136)",
+          "at com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.put(FingerprintValueService.java:186)",
+          "at com.google.devtools.build.lib.skyframe.serialization.analysis.SelectedEntrySerializer$UploadTask.uploadEntryBytes(SelectedEntrySerializer.java:752)",
+          "at com.google.devtools.build.lib.skyframe.serialization.analysis.SelectedEntrySerializer$UploadTask$InvalidationDataInfoHandler$1.onSuccess(SelectedEntrySerializer.java:729)"
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "put_thread_states": {
+        "java.lang.Thread.State: RUNNABLE": 39
+      },
+      "representative_stacks": {
+        "java.lang.Thread.State: RUNNABLE": [
+          "at sun.nio.ch.UnixFileDispatcherImpl.force0(java.base@27/Native Method)",
+          "at sun.nio.ch.UnixFileDispatcherImpl.force(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.implForce(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.force(java.base@27/Unknown Source)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.syncDirectory(ConcurrentFileFingerprintValueStore.java:209)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.directory(ConcurrentFileFingerprintValueStore.java:203)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.put(ConcurrentFileFingerprintValueStore.java:93)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put(LocalCacheSession.java:166)",
+          "at com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.put(FingerprintValueService.java:186)",
+          "at com.google.devtools.build.lib.skyframe.serialization.SharedValueSerializationContext.putOwnedSharedValue(SharedValueSerializationContext.java:341)"
+        ]
+      }
+    },
+    {
+      "index": 5,
+      "put_thread_states": {
+        "java.lang.Thread.State: RUNNABLE": 40
+      },
+      "representative_stacks": {
+        "java.lang.Thread.State: RUNNABLE": [
+          "at sun.nio.ch.UnixFileDispatcherImpl.force0(java.base@27/Native Method)",
+          "at sun.nio.ch.UnixFileDispatcherImpl.force(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.implForce(java.base@27/Unknown Source)",
+          "at sun.nio.ch.FileChannelImpl.force(java.base@27/Unknown Source)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.ConcurrentFileFingerprintValueStore.put(ConcurrentFileFingerprintValueStore.java:112)",
+          "at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put(LocalCacheSession.java:166)",
+          "at com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.put(FingerprintValueService.java:186)",
+          "at com.google.devtools.build.lib.skyframe.serialization.SharedValueSerializationContext.putOwnedSharedValue(SharedValueSerializationContext.java:341)",
+          "at com.google.devtools.build.lib.skyframe.serialization.SharedValueSerializationContext.putSharedValue(SharedValueSerializationContext.java:241)",
+          "at com.google.devtools.build.lib.skyframe.serialization.ValueSharingAdapter.serialize(ValueSharingAdapter.java:41)"
+        ]
+      }
+    }
+  ]
+}
