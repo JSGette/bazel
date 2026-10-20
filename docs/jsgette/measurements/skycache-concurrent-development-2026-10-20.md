@@ -1516,3 +1516,53 @@ Evidence: [isolated before](skycache-concurrent-2026-10-20/witness-list-before.j
 [equal-count before](skycache-concurrent-2026-10-20/witness-equal-before.json),
 [equal-count after](skycache-concurrent-2026-10-20/witness-equal-after.json),
 [independent reader](skycache-concurrent-2026-10-20/witness-list-cross-worktree.json).
+
+
+## Step 26 — avoid repeated identical inherited checks during publication
+
+Implementation: [4eedeff94271](https://github.com/JSGette/bazel/commit/4eedeff9427147c7ccd3b5f68dad3b2cad04fb7e).
+Publication previously called include() for every used parent, rereading the same files for each
+parent with an identical input list, before the final isUnchanged() pass checked the unique inputs
+again. Finish now remembers up to 32 complete lists that it has included in this finish call.
+It still revalidates the first copy at publication time, still checks every different list, and
+still performs the final source/input validation. All used parent IDs remain in the manifest;
+sharing input evidence never removes a dependency. The set holds references already owned by the
+session. The schema, evaluator, in-RAM graph and durability sequence are unchanged. Reusing earlier
+discovery validation or dropping final content checks was rejected.
+
+The benchmark creates eight independent parents with the same 4,096 external 1 KiB input files.
+Each round reads all parent keys and writes one novel child key before timing finish(), including
+manifest serialization, sealing and durability operations. It removes only that round's newly
+created manifest from its private benchmark directory afterward, retaining a fixed parent set.
+Two warmups and five rounds use the same 256 MiB initial / 1 GiB maximum heap. Median publication
+time falls from 139.833 to 40.309 ms; allocation falls from 77,185,616 to
+19,837,304 bytes (74.30% less). This isolates repeated-parent overhead
+and does not establish a whole-Datadog speedup or a process-PSS reduction.
+
+Two regression tests pass before and after. A child using equal input lists from two parents
+becomes unreadable when either parent is removed; a content change after admission but before
+publication, with size and timestamp preserved, prevents publication. Restoring the inputs does
+not expose that failed child's private value, and descriptors close on failure. The first fixture
+compile omitted an IOException import; the correction and failure evidence are recorded. Production
+code was unchanged for the successful baseline run. All twelve focused targets / 171 cases pass.
+Cache&Carry is enabled for both microbenchmark source/test runs (one remote hit each) and the full
+source/test run (three remote hits).
+
+The new binary passes the independent Datadog off/writer/reader diagnostic. The reader starts with
+exactly one other writer's publication, obtains 4,021 configured-target hits and
+30,016 shared reads, publishes successfully, and produces the same executable
+as the cache-off control. The diagnostic uses JFR and heap inspection, so its timing is not a clean
+performance comparison. The most recent two-server runtime comparison is Step 25 with the prior
+binary; the most recent full artificial-edit/revert matrix remains Step 23. Repeat the full gate
+after the remaining resource-lifecycle changes. No production-maturity claim is made.
+
+Next bound candidate/index discovery resources and report local cache accounting accurately, then
+design reader-safe collection/quotas and dependency-scoped reuse across nearby revisions. Whole-source
+partitioning still prevents analysis reuse between different feature edits, even though concurrent
+publishing, isolation and identical-source reuse work.
+
+Evidence: [before publication benchmark](skycache-concurrent-2026-10-20/inherited-validation-before.json),
+[after publication benchmark](skycache-concurrent-2026-10-20/inherited-validation-after.json),
+[171 cases](skycache-concurrent-2026-10-20/inherited-validation-tests.json),
+[independent Datadog diagnostic](skycache-concurrent-2026-10-20/inherited-validation-cross-worktree.json),
+[fixture correction](skycache-concurrent-2026-10-20/inherited-validation-fixture-correction.json).

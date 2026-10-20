@@ -176,6 +176,15 @@ The development report records wall time, PSS, hit counts and single-run limitat
 publication-time inherited validation, then bound runtime resources and address safe GC/quotas and
 nearby-revision reuse. Step 23 remains the full artificial-edit/revert gate for the earlier binary.
 
+## Inherited publication validation deduplicated (Step 26)
+
+Finish validates each identical complete inherited input list once per finish call, with a bounded
+32-list set, and retains all parent IDs and the final complete validation. 171 focused cases and a
+fresh independent Datadog reader pass. The eight-parent publication microbenchmark improves from
+139.833 to 40.309 ms; this is not a whole-build or PSS claim. Next bound runtime discovery
+resources and improve accounting, then design reader-safe GC/quotas and nearby-revision reuse.
+The latter still requires dependency-scoped validation; do not simply remove the whole-source guard.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

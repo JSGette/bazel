@@ -1,0 +1,9 @@
+{
+  "failure": "New test fixture failed compilation because java.io.IOException import was omitted.",
+  "evidence": [
+    "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java:592: error: cannot find symbol",
+    "  symbol:   class IOException",
+    "  location: class LocalCacheSessionTest"
+  ],
+  "correction": "Added the missing test import, then reran the baseline successfully before changing production code."
+}
