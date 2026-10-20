@@ -965,3 +965,79 @@ run with the same binary and resources. Preserve the interrupted attempt instead
 its timings silently with a resumed run.
 
 Evidence: [interrupted packed attempt](skycache-concurrent-2026-10-20/datadog-packed-preflight-interruption.json).
+
+
+## Step 18 — durable packed storage
+
+Implementation: [99bb0cc4389b](https://github.com/JSGette/bazel/commit/99bb0cc4389b35d2b86987517e88a93cf9b035af).
+Each writer invocation now owns an append-only `data.pack` and a checksummed, sorted `index`.
+Threads reserve disjoint offsets and use positional I/O. Private puts support read-your-writes;
+they become durable when `seal` syncs the pack and index. Only after sealing does the session
+publish its manifest. A killed unsealed writer is undiscoverable. Independent writers own
+different namespaces and require no common writer lock. `publications-v2` and `objects/packed-v1`
+keep this layout separate from prior caches; old data is preserved without automatic migration.
+
+The reader keeps a 48-byte index row per record plus one descriptor per accepted publication;
+it does not cache record bytes. Validate input witnesses before opening an index. Rejected
+closures close newly opened descriptors; command completion closes all stores and drops index
+and writer-map references on success, failure and no-op paths. The active deferred nested-set
+codec waits for shared children before exposing restored values, and the lifecycle write lock
+excludes concurrent get/put calls during closure. Skyframe evaluation and its RAM graph are unchanged.
+
+Eight pack tests cover threaded puts, independent writer JVMs, process death, checksum/index
+corruption, symlink namespace rejection, bounds and visibility. Session tests additionally
+verify failed sealing cannot publish and repeated/rejected readers do not leak descriptors.
+Ten focused targets pass 111 cases; Bazel source builds/tests use Cache&Carry, uploads disabled.
+The first integration run caught changed conflict-message wording, which was restored to the
+existing diagnostic. A separate corruption-harness run caught a counter shadowing the fixture
+package count; the corrected full twelve-build worktree probe passes. Its corruption phase
+keeps root records and indexes intact while damaging nested-chunk checksums, preserving actual
+deserialization-fallback coverage. The Runfiles diamond also retains exactly three arguments.
+
+The synthetic sequential benchmark alternated file/pack backends across six fresh directories,
+20,000 measured 1 KiB records per trial, with 200 JVM warm-up records. Publication includes
+immediately following packed fsync and index sealing. Median publication time is
+58.682 seconds for files and 0.147 seconds for packs.
+Physical files fall from 20,200 to 2; allocated file bytes fall from 82,739,200 to 22,626,304,
+although the index slightly increases logical payload size. This isolates synchronous storage
+cost; it is not a prediction of whole-build speedup. Published pack readers are immutable, so
+their duplicate-put timing is not applicable. Full microbenchmark commands and rounds are retained.
+
+The substantial Datadog gate is repeated on the same revision, target, resources and host.
+All eighteen builds pass with identical corresponding output hashes across the old/new backends,
+including both feature controls, repeated restored reads and reverts.
+
+| Concurrent phase | Files wall s | Packs wall s | Files peak PSS GiB | Packs peak PSS GiB |
+| --- | ---: | ---: | ---: | ---: |
+| control-base | 40.929 | 38.549 | 6.220 | 6.010 |
+| concurrent-base-writers | 147.322 | 56.637 | 5.871 | 9.307 |
+| warm-base | 1.637 | 1.705 | 5.780 | 8.933 |
+| restarted-base-readers | 57.288 | 49.191 | 8.311 | 8.492 |
+| edited-warm-graphs | 430.389 | 352.072 | 13.578 | 14.228 |
+| control-edits-no-disk-cache | 337.663 | 324.745 | 10.282 | 10.447 |
+| first-restarted-edited-readers | 85.882 | 61.166 | 12.178 | 8.595 |
+| restarted-edited-readers | 63.792 | 29.891 | 7.632 | 8.592 |
+| reverted-restarted-readers | 75.757 | 53.167 | 8.157 | 8.846 |
+
+Each table cell is one phase run, with warm OS/action caches as specified in the protocol.
+The first edited restart in the file run executed ten local tool actions per server; these
+were disk-cache hits in the packed run. Do not attribute all of that phase's reduction to
+packing. Other action summaries are retained for comparison. Cache-off initial controls have
+fresh output bases, so comparisons with later restarted readers are not matched output-base
+histories; add cache-off restart controls before claiming a general analysis-cache advantage.
+The writer speedup repeats in the interrupted attempt, while its higher PSS also repeats.
+Saved build events show approximately the same graph size (318,340/318,341 nodes) and tens
+of GiB collected in Eden in both backends, but no live/committed heap snapshot. Use a separate
+intrusive diagnostic to distinguish retained objects from heap expansion. Do not interpret
+ordinary run variation as a reliable regression or gain. GC/quotas,
+candidate/validation costs, nearby-revision partial reuse, memory profiling, failure policy
+and partial-publication identity combinations still need work. The pack index has bounded
+input parsing; that is not yet a runtime disk quota or global candidate-memory budget.
+
+Evidence: [store comparison](skycache-concurrent-2026-10-20/packed-store-comparison.json),
+[tests](skycache-concurrent-2026-10-20/packed-tests.json),
+[provider identity](skycache-concurrent-2026-10-20/packed-provider-identity.json),
+[small worktrees](skycache-concurrent-2026-10-20/packed-worktrees.json),
+[Datadog packed gate](skycache-concurrent-2026-10-20/datadog-concurrent-packed.json),
+[action summaries](skycache-concurrent-2026-10-20/packed-action-summaries.json),
+[writer build metrics](skycache-concurrent-2026-10-20/packed-writer-bep-memory.json).

@@ -1,0 +1,480 @@
+{
+  "purpose": "isolated synthetic store costs; sequential calls; warm OS cache; no graph/paging changes",
+  "records": 20000,
+  "warmup_records": 200,
+  "value_bytes": 1024,
+  "method": "publication_ms includes novel writes and packed data/index fsync; duplicate puts measured before seal; reopen before reads",
+  "source_build_command": [
+    "/home/jgett/REPOS/.tools/bazel",
+    "--host_jvm_args=-Xmx4g",
+    "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/build-output",
+    "test",
+    "--config=efcache",
+    "--bes_backend=",
+    "--remote_upload_local_results=false",
+    "--jobs=4",
+    "--local_resources=memory=4096",
+    "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:PackedFingerprintValueStoreTest",
+    "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:ConcurrentFileFingerprintValueStoreTest",
+    "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:ConcurrentFileStoreBenchmark"
+  ],
+  "trials": [
+    {
+      "backend": "files",
+      "command": [
+        "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark",
+        "--jvm_flag=-Xmx256m",
+        "/home/jgett/REPOS/.work/skycache-concurrent/packed-store-comparison/0-files",
+        "20000",
+        "1024",
+        "files"
+      ],
+      "rounds": [
+        {
+          "backend": "files",
+          "round": 0,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58680.662,
+          "seal_ms": 1.734,
+          "publication_ms": 58682.396,
+          "open_ms": 1.629,
+          "duplicate_ms": 17698.007975,
+          "read_ms": 80.364
+        },
+        {
+          "backend": "files",
+          "round": 1,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58680.662,
+          "seal_ms": 1.734,
+          "publication_ms": 58682.396,
+          "open_ms": 1.629,
+          "duplicate_ms": 124.807323,
+          "read_ms": 68.134
+        },
+        {
+          "backend": "files",
+          "round": 2,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58680.662,
+          "seal_ms": 1.734,
+          "publication_ms": 58682.396,
+          "open_ms": 1.629,
+          "duplicate_ms": 124.299705,
+          "read_ms": 68.844
+        },
+        {
+          "backend": "files",
+          "round": 3,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58680.662,
+          "seal_ms": 1.734,
+          "publication_ms": 58682.396,
+          "open_ms": 1.629,
+          "duplicate_ms": 118.886363,
+          "read_ms": 66.428
+        },
+        {
+          "backend": "files",
+          "round": 4,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58680.662,
+          "seal_ms": 1.734,
+          "publication_ms": 58682.396,
+          "open_ms": 1.629,
+          "duplicate_ms": 118.925704,
+          "read_ms": 66.081
+        }
+      ],
+      "physical_files": 20200,
+      "file_bytes": 21654400,
+      "allocated_file_bytes": 82739200
+    },
+    {
+      "backend": "packed",
+      "command": [
+        "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark",
+        "--jvm_flag=-Xmx256m",
+        "/home/jgett/REPOS/.work/skycache-concurrent/packed-store-comparison/1-packed",
+        "20000",
+        "1024",
+        "packed"
+      ],
+      "rounds": [
+        {
+          "backend": "packed",
+          "round": 0,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.568,
+          "seal_ms": 67.691,
+          "publication_ms": 150.26,
+          "open_ms": 4.421,
+          "duplicate_ms": null,
+          "read_ms": 51.561
+        },
+        {
+          "backend": "packed",
+          "round": 1,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.568,
+          "seal_ms": 67.691,
+          "publication_ms": 150.26,
+          "open_ms": 4.421,
+          "duplicate_ms": null,
+          "read_ms": 40.108
+        },
+        {
+          "backend": "packed",
+          "round": 2,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.568,
+          "seal_ms": 67.691,
+          "publication_ms": 150.26,
+          "open_ms": 4.421,
+          "duplicate_ms": null,
+          "read_ms": 30.45
+        },
+        {
+          "backend": "packed",
+          "round": 3,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.568,
+          "seal_ms": 67.691,
+          "publication_ms": 150.26,
+          "open_ms": 4.421,
+          "duplicate_ms": null,
+          "read_ms": 26.363
+        },
+        {
+          "backend": "packed",
+          "round": 4,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.568,
+          "seal_ms": 67.691,
+          "publication_ms": 150.26,
+          "open_ms": 4.421,
+          "duplicate_ms": null,
+          "read_ms": 27.985
+        }
+      ],
+      "physical_files": 2,
+      "file_bytes": 22624048,
+      "allocated_file_bytes": 22626304
+    },
+    {
+      "backend": "packed",
+      "command": [
+        "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark",
+        "--jvm_flag=-Xmx256m",
+        "/home/jgett/REPOS/.work/skycache-concurrent/packed-store-comparison/2-packed",
+        "20000",
+        "1024",
+        "packed"
+      ],
+      "rounds": [
+        {
+          "backend": "packed",
+          "round": 0,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 81.959,
+          "seal_ms": 65.396,
+          "publication_ms": 147.355,
+          "open_ms": 4.231,
+          "duplicate_ms": null,
+          "read_ms": 50.174
+        },
+        {
+          "backend": "packed",
+          "round": 1,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 81.959,
+          "seal_ms": 65.396,
+          "publication_ms": 147.355,
+          "open_ms": 4.231,
+          "duplicate_ms": null,
+          "read_ms": 41.561
+        },
+        {
+          "backend": "packed",
+          "round": 2,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 81.959,
+          "seal_ms": 65.396,
+          "publication_ms": 147.355,
+          "open_ms": 4.231,
+          "duplicate_ms": null,
+          "read_ms": 30.52
+        },
+        {
+          "backend": "packed",
+          "round": 3,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 81.959,
+          "seal_ms": 65.396,
+          "publication_ms": 147.355,
+          "open_ms": 4.231,
+          "duplicate_ms": null,
+          "read_ms": 26.638
+        },
+        {
+          "backend": "packed",
+          "round": 4,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 81.959,
+          "seal_ms": 65.396,
+          "publication_ms": 147.355,
+          "open_ms": 4.231,
+          "duplicate_ms": null,
+          "read_ms": 26.728
+        }
+      ],
+      "physical_files": 2,
+      "file_bytes": 22624048,
+      "allocated_file_bytes": 22626304
+    },
+    {
+      "backend": "files",
+      "command": [
+        "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark",
+        "--jvm_flag=-Xmx256m",
+        "/home/jgett/REPOS/.work/skycache-concurrent/packed-store-comparison/3-files",
+        "20000",
+        "1024",
+        "files"
+      ],
+      "rounds": [
+        {
+          "backend": "files",
+          "round": 0,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 59318.516,
+          "seal_ms": 1.838,
+          "publication_ms": 59320.354,
+          "open_ms": 1.094,
+          "duplicate_ms": 18747.775843,
+          "read_ms": 79.108
+        },
+        {
+          "backend": "files",
+          "round": 1,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 59318.516,
+          "seal_ms": 1.838,
+          "publication_ms": 59320.354,
+          "open_ms": 1.094,
+          "duplicate_ms": 123.148429,
+          "read_ms": 66.246
+        },
+        {
+          "backend": "files",
+          "round": 2,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 59318.516,
+          "seal_ms": 1.838,
+          "publication_ms": 59320.354,
+          "open_ms": 1.094,
+          "duplicate_ms": 119.382077,
+          "read_ms": 66.675
+        },
+        {
+          "backend": "files",
+          "round": 3,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 59318.516,
+          "seal_ms": 1.838,
+          "publication_ms": 59320.354,
+          "open_ms": 1.094,
+          "duplicate_ms": 115.700896,
+          "read_ms": 66.282
+        },
+        {
+          "backend": "files",
+          "round": 4,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 59318.516,
+          "seal_ms": 1.838,
+          "publication_ms": 59320.354,
+          "open_ms": 1.094,
+          "duplicate_ms": 117.693672,
+          "read_ms": 64.702
+        }
+      ],
+      "physical_files": 20200,
+      "file_bytes": 21654400,
+      "allocated_file_bytes": 82739200
+    },
+    {
+      "backend": "files",
+      "command": [
+        "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark",
+        "--jvm_flag=-Xmx256m",
+        "/home/jgett/REPOS/.work/skycache-concurrent/packed-store-comparison/4-files",
+        "20000",
+        "1024",
+        "files"
+      ],
+      "rounds": [
+        {
+          "backend": "files",
+          "round": 0,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58660.117,
+          "seal_ms": 1.77,
+          "publication_ms": 58661.886,
+          "open_ms": 1.039,
+          "duplicate_ms": 18048.659944,
+          "read_ms": 79.381
+        },
+        {
+          "backend": "files",
+          "round": 1,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58660.117,
+          "seal_ms": 1.77,
+          "publication_ms": 58661.886,
+          "open_ms": 1.039,
+          "duplicate_ms": 122.185111,
+          "read_ms": 65.447
+        },
+        {
+          "backend": "files",
+          "round": 2,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58660.117,
+          "seal_ms": 1.77,
+          "publication_ms": 58661.886,
+          "open_ms": 1.039,
+          "duplicate_ms": 117.570448,
+          "read_ms": 65.976
+        },
+        {
+          "backend": "files",
+          "round": 3,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58660.117,
+          "seal_ms": 1.77,
+          "publication_ms": 58661.886,
+          "open_ms": 1.039,
+          "duplicate_ms": 115.20755,
+          "read_ms": 66.052
+        },
+        {
+          "backend": "files",
+          "round": 4,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 58660.117,
+          "seal_ms": 1.77,
+          "publication_ms": 58661.886,
+          "open_ms": 1.039,
+          "duplicate_ms": 117.801742,
+          "read_ms": 64.51
+        }
+      ],
+      "physical_files": 20200,
+      "file_bytes": 21654400,
+      "allocated_file_bytes": 82739200
+    },
+    {
+      "backend": "packed",
+      "command": [
+        "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark",
+        "--jvm_flag=-Xmx256m",
+        "/home/jgett/REPOS/.work/skycache-concurrent/packed-store-comparison/5-packed",
+        "20000",
+        "1024",
+        "packed"
+      ],
+      "rounds": [
+        {
+          "backend": "packed",
+          "round": 0,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.515,
+          "seal_ms": 48.842,
+          "publication_ms": 131.357,
+          "open_ms": 4.035,
+          "duplicate_ms": null,
+          "read_ms": 49.801
+        },
+        {
+          "backend": "packed",
+          "round": 1,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.515,
+          "seal_ms": 48.842,
+          "publication_ms": 131.357,
+          "open_ms": 4.035,
+          "duplicate_ms": null,
+          "read_ms": 40.548
+        },
+        {
+          "backend": "packed",
+          "round": 2,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.515,
+          "seal_ms": 48.842,
+          "publication_ms": 131.357,
+          "open_ms": 4.035,
+          "duplicate_ms": null,
+          "read_ms": 31.267
+        },
+        {
+          "backend": "packed",
+          "round": 3,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.515,
+          "seal_ms": 48.842,
+          "publication_ms": 131.357,
+          "open_ms": 4.035,
+          "duplicate_ms": null,
+          "read_ms": 26.858
+        },
+        {
+          "backend": "packed",
+          "round": 4,
+          "entries": 20000,
+          "value_bytes": 1024,
+          "novel_ms": 82.515,
+          "seal_ms": 48.842,
+          "publication_ms": 131.357,
+          "open_ms": 4.035,
+          "duplicate_ms": null,
+          "read_ms": 27.561
+        }
+      ],
+      "physical_files": 2,
+      "file_bytes": 22624048,
+      "allocated_file_bytes": 22626304
+    }
+  ],
+  "passed": true
+}

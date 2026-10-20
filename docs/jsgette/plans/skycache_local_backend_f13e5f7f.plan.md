@@ -64,9 +64,9 @@ for commits, exact commands, raw results, failed experiments and limitations.
 
 - A full Datadog cluster-agent writer/restarted-reader sequence now succeeds with identical
   output hashes and 4,501 configured-target hits. Schemaful provider codecs preserve depset types
-  across fresh/differently primed processes. Nine focused targets / 101 cases pass. The reader
-  still uses more peak memory than its control and the writer remains expensive; concurrent
-  Datadog worktrees, nearby-revision reuse and resource bounds remain unfinished.
+  across fresh/differently primed processes. Ten focused targets / 111 cases pass. The reader
+  still uses more peak memory than its control and the writer remains expensive; nearby-revision reuse and resource bounds remain unfinished. The eighteen-build
+  concurrent Datadog edit/restart/revert gate now passes on file and packed backends.
 - Identical puts reuse validated publications while preserving immutable-key conflicts,
   read-your-writes and parent closure. The Datadog reader writes zero records instead of 4,477,
   retains all 4,501 hits and creates no empty namespace/publication. Its measured wall time
@@ -81,10 +81,10 @@ for commits, exact commands, raw results, failed experiments and limitations.
 - Worktree identities now use effective repository/action/test environments; explicitly exposed
   values remain significant. A nine-case real Bazel matrix and the natural-environment worktree
   probe pass. Missing/regenerated repository inputs trigger a content-validated retry before
-  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). The isolated Runfiles identity defect is now fixed and verified by four regression tests and a real-worktree diamond probe. The full Datadog gate now passes eighteen builds, including two independent semantic Go edits, exact hashes against cache-disabled controls, repeated restarted readers and reverts. Measure packed storage next; production maturity is not established.
+  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). The isolated Runfiles identity defect is now fixed and verified by four regression tests and a real-worktree diamond probe. The full Datadog gate now passes eighteen builds, including two independent semantic Go edits, exact hashes against cache-disabled controls, repeated restarted readers and reverts. Packed storage is integrated and measured with the full gate repeated; production maturity is not established.
 
-This is an experimental implementation. The small-worktree test is not large-repository or
-production-maturity evidence. The prior Go paging experiment is historical, with a measured
+This is an experimental implementation. The passing Datadog gates establish tested concurrent workloads, not
+production maturity. Add partial-publication identity and mixed restored/recomputed graph probes. The prior Go paging experiment is historical, with a measured
 latency/memory regression; its code remains on its separate branch.
 
 ## Invariants
@@ -127,9 +127,9 @@ with analysis reuse. Expand to two live servers and semantic edits/reverts in bo
 
 Establish baselines before each change. Measure source scanning, external-input validation,
 candidate discovery, serialization, durable writes, reads and retained metadata separately.
-Current limitations include one file per record, repeated fsync, linear candidate search and
-whole-source/whole-publication validation. Evaluate sealed packs, indexed lookup and bounded
-batch I/O while preserving publication and missing-chunk behavior. Avoid a full per-process
+Sealed packs now batch durable writes and use compact per-publication indexes, with
+publication and nested-chunk fallback checks. Remaining costs include linear candidate search
+and whole-source/whole-publication validation. Measure and bound retained indexes and validation work. Avoid a full per-process
 in-memory index that grows with the entire shared cache.
 
 After each issue: implement one change, run focused regression checks, repeat measurements,
