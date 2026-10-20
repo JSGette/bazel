@@ -833,3 +833,55 @@ reader memory profiling, and partial nearby-revision reuse remain unfinished.
 
 Evidence: [protocol](skycache-concurrent-2026-10-20/datadog-concurrent-before-archive-fix.json),
 [duplicate archive](skycache-concurrent-2026-10-20/datadog-archive-duplication.json).
+
+
+## Step 15 — preserve Runfiles identity across serialized branches
+
+Implementation: [f7a44a9412a8](https://github.com/JSGette/bazel/commit/f7a44a9412a847f365245a526a9e2adda669e000).
+The Step 14 failure was reduced to a three-node diamond of Starlark provider values, each
+containing a Runfiles object. A writer expands the depset into three command-line arguments;
+the former reader expands it into four, duplicating the common leaf. The command-line
+expansion happens at execution, after restoration. Precomputing a string at analysis time
+did not reproduce the failure, explaining why that initial diagnostic was insufficient.
+Removing only the Runfiles field restores the expected three arguments in the old binary.
+
+Runfiles uses reference equality. Its former inline dynamic serialization produced separate
+copies when the same Runfiles appeared in independently shared nested arrays. StructImpl
+compares provider fields, so those copies made otherwise equal provider leaves unequal and
+defeated depset deduplication. Two of four new unit tests failed before the fix: cross-root
+identity and diamond uniqueness.
+
+The local registry now installs a shared Runfiles payload codec and treats Runfiles.EMPTY
+as a reference constant. A per-payload UUID distinguishes different original objects with
+identical fields; FingerprintValueService's existing identity-keyed writer cache encodes
+each original once, and its reader cache restores a single object for that fingerprint.
+Field serialization uses the existing dynamic field handlers and waits for asynchronous
+field restoration before exposing the value. The codec is only enabled by local SkyCache.
+There are no changes to Skyframe evaluation, Runfiles equality or rules_go linker behavior.
+
+Content-only interning was rejected because distinct Runfiles with identical fields must
+remain distinct. The unit suite checks this, the shared diamond, identity across separate
+serialized roots, and the EMPTY singleton. All four now pass. The broader nine-target suite
+passes 101 cases; source build/test commands used Cache&Carry with uploads disabled.
+
+The real-worktree reproduction now produces the exact same three arguments and ordering
+on writer and reader. Writer records rise from 94 to
+97; reader writes remain zero. Its elapsed writer/reader seconds
+were 10.835/10.368 before and
+11.706/9.900 after. These tiny, startup-dominated runs
+are correctness observations, not speed claims.
+
+The twelve-build native two-worktree probe also passes, including independent source and
+Starlark edits, restarted reverts and corrupted chunks. Each restarted reader obtains
+49 configured-target hits with zero new writes.
+
+**The substantial Datadog gate remains pending a new full run.** This fixes the isolated
+mechanism and does not retroactively turn the Step 14 failures into successes. Packing
+remains an unintegrated draft until that gate is repeated. Quotas/GC, memory profiling,
+nearby-revision partial reuse and optional-serialization failure handling are unfinished.
+
+Evidence: [before](skycache-concurrent-2026-10-20/runfiles-identity-before.json),
+[without Runfiles](skycache-concurrent-2026-10-20/runfiles-identity-control.json),
+[after](skycache-concurrent-2026-10-20/runfiles-identity-after.json),
+[worktree probe](skycache-concurrent-2026-10-20/runfiles-worktrees.json),
+[tests](skycache-concurrent-2026-10-20/runfiles-tests.json).

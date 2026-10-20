@@ -64,7 +64,7 @@ for commits, exact commands, raw results, failed experiments and limitations.
 
 - A full Datadog cluster-agent writer/restarted-reader sequence now succeeds with identical
   output hashes and 4,501 configured-target hits. Schemaful provider codecs preserve depset types
-  across fresh/differently primed processes. Eight focused targets / 97 cases pass. The reader
+  across fresh/differently primed processes. Nine focused targets / 101 cases pass. The reader
   still uses more peak memory than its control and the writer remains expensive; concurrent
   Datadog worktrees, nearby-revision reuse and resource bounds remain unfinished.
 - Identical puts reuse validated publications while preserving immutable-key conflicts,
@@ -81,7 +81,7 @@ for commits, exact commands, raw results, failed experiments and limitations.
 - Worktree identities now use effective repository/action/test environments; explicitly exposed
   values remain significant. A nine-case real Bazel matrix and the natural-environment worktree
   probe pass. Missing/regenerated repository inputs trigger a content-validated retry before
-  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). Fix this serialization correctness defect before integrating packing or claiming maturity.
+  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). The isolated Runfiles identity defect is now fixed and verified by four regression tests and a real-worktree diamond probe. Repeat the full Datadog gate before integrating packing or claiming maturity.
 
 This is an experimental implementation. The small-worktree test is not large-repository or
 production-maturity evidence. The prior Go paging experiment is historical, with a measured
