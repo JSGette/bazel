@@ -92,7 +92,7 @@ isProject: false
 - **Semantics split across processes.** Values, keys, `ErrorInfo`, event NestedSets, and `SkyKeyComputeState` are Java objects.
   - Change pruning calls Java `equals`.
   - nokeep_going error bubbling re-enters SkyFunctions.
-  - The atomic `addReverseDepAndCheckIfDone`/`setValue` pair would become a cross-process transaction. Today it is ~47 `synchronized` occurrences in [IncrementalInMemoryNodeEntry.java](src/main/java/com/google/devtools/build/skyframe/IncrementalInMemoryNodeEntry.java) and [AbstractInMemoryNodeEntry.java](src/main/java/com/google/devtools/build/skyframe/AbstractInMemoryNodeEntry.java).
+  - The atomic `addReverseDepAndCheckIfDone`/`setValue` pair would become a cross-process transaction. Today it is ~47 `synchronized` occurrences in [IncrementalInMemoryNodeEntry.java](../../../src/main/java/com/google/devtools/build/skyframe/IncrementalInMemoryNodeEntry.java) and [AbstractInMemoryNodeEntry.java](../../../src/main/java/com/google/devtools/build/skyframe/AbstractInMemoryNodeEntry.java).
 - **A separate process does not save machine RAM by itself.** Only the compact representation and SSD tiering do.
 - **Bootstrap constraint.** Bazel builds from source with only a JDK and a C++ compiler. rules_rs builds the optional sidecar separately: a bootstrap build runs the in-process compact graph from Phase 2.
 - **Role of C.** No hand-written C is planned. C libraries (zstd, liburing) are linked into the Rust sidecar.
@@ -203,7 +203,7 @@ flowchart LR
 
 **Integer edges:**
 - Java tier: group-sorted delta + LEB128 varint (KISS, ~1-2 bytes per edge with creation-order ID locality).
-- Large rdep sets: Roaring, which is already a dependency (`org.roaringbitmap`, used in [LeafIdAssignment.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/LeafIdAssignment.java)).
+- Large rdep sets: Roaring, which is already a dependency (`org.roaringbitmap`, used in [LeafIdAssignment.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/LeafIdAssignment.java)).
 - Skystore: evaluate Stream VByte, SIMD bit-packing, or Elias-Fano for cold segments, plus WebGraph-style ID renumbering (BFS or layered label propagation) during compaction.
 
 **Key strings (paths, labels):** FSST (random-access string compression, as used in DuckDB) or front-coding in sorted key blocks.
@@ -224,10 +224,10 @@ flowchart LR
 ## Prior art and how it is reused
 
 **Inside Bazel:**
-- **Extension point for alternative graphs.** `NodeEntry`, `DirtyBuildingState`, `CycleDetector`, and `InMemoryGraphImpl` are documented as public "for alternative graph implementations". [QueryableGraph.java](src/main/java/com/google/devtools/build/skyframe/QueryableGraph.java) already has `Reason`, async batch gets, `prefetchDeps`, and size limits.
-- **Value tier.** Skycache's serialization path ([FingerprintValueStore.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueStore.java), [SkyValueRetriever.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java), `putSharedValue` for NestedSet sharing). Open-source Bazel has only an in-memory store (TODO b/358347099).
-- **Conformance and eviction direction.** [SkyframeEvictionTest.java](src/test/java/com/google/devtools/build/skyframe/SkyframeEvictionTest.java) is upstream's June 2026 fuzz harness "for node eviction". The abstract `MemoizingEvaluatorTest`, `GraphTest`, and `InMemoryNodeEntryTest` suites are already parameterized.
-- **Lessons.** Skyfocus (deleted in c9bdec481a) used destructive pruning and errored on changes outside the working set; we avoid both. [HighWaterMarkLimiter.java](src/main/java/com/google/devtools/build/lib/skyframe/HighWaterMarkLimiter.java) drops state where we would spill. `--heuristically_drop_nodes` plus `NodeDroppingInconsistencyReceiver` show tolerated inconsistency.
+- **Extension point for alternative graphs.** `NodeEntry`, `DirtyBuildingState`, `CycleDetector`, and `InMemoryGraphImpl` are documented as public "for alternative graph implementations". [QueryableGraph.java](../../../src/main/java/com/google/devtools/build/skyframe/QueryableGraph.java) already has `Reason`, async batch gets, `prefetchDeps`, and size limits.
+- **Value tier.** Skycache's serialization path ([FingerprintValueStore.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueStore.java), [SkyValueRetriever.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java), `putSharedValue` for NestedSet sharing). Open-source Bazel has only an in-memory store (TODO b/358347099).
+- **Conformance and eviction direction.** [SkyframeEvictionTest.java](../../../src/test/java/com/google/devtools/build/skyframe/SkyframeEvictionTest.java) is upstream's June 2026 fuzz harness "for node eviction". The abstract `MemoizingEvaluatorTest`, `GraphTest`, and `InMemoryNodeEntryTest` suites are already parameterized.
+- **Lessons.** Skyfocus (deleted in c9bdec481a) used destructive pruning and errored on changes outside the working set; we avoid both. [HighWaterMarkLimiter.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/HighWaterMarkLimiter.java) drops state where we would spill. `--heuristically_drop_nodes` plus `NodeDroppingInconsistencyReceiver` show tolerated inconsistency.
 - **Platform.** JDK 25 is embedded with compact object headers already on, and FFM is available. zstd-jni and RoaringBitmap are already dependencies.
 
 **External:**
@@ -244,7 +244,7 @@ flowchart LR
 ## Phases (each is a stack of atomic commits with a review gate)
 
 **Phase 0: Measure and spike (no behavior change)**
-- Heap attribution, extending [SkyframeMemoryDumper.java](src/main/java/com/google/devtools/build/lib/buildtool/SkyframeMemoryDumper.java): structure (entries, deps, rdeps, map nodes, keys) versus values, per `SkyFunctionName`.
+- Heap attribution, extending [SkyframeMemoryDumper.java](../../../src/main/java/com/google/devtools/build/lib/buildtool/SkyframeMemoryDumper.java): structure (entries, deps, rdeps, map nodes, keys) versus values, per `SkyFunctionName`.
 - Working-set tracing over replayed commit history (the bazel repo plus one large client repo): per command, record nodes read for value, read for version only, dirtied, and recomputed.
 - Codec coverage and compression bake-off on real values: list the gaps (known: `FileStateValue`, `DirectoryListingValue`, `BzlLoadValue`, driver values).
 - Java-Rust IPC microbenchmark: UDS versus shared-memory ring, batch get/put, on Linux and macOS.
@@ -254,8 +254,8 @@ flowchart LR
 
 **Phase 1: Decouple Bazel from in-memory internals (upstream-friendly)**
 - Replace `getInMemoryGraph()` uses and casts to `IncrementalInMemoryNodeEntry` with a narrow maintenance API: function-filtered enumeration, `getIfPresent`, `remove`, `clearValue`, `clearDirectDeps`, rdep surgery, dumps.
-- About 16 production files are affected, mainly `SkyframeExecutor`, [SequencedSkyframeExecutor.java](src/main/java/com/google/devtools/build/lib/skyframe/SequencedSkyframeExecutor.java), [FrontierSerializer.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/FrontierSerializer.java), [SelectedEntrySerializer.java](src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializer.java), [DumpCommand.java](src/main/java/com/google/devtools/build/lib/runtime/commands/DumpCommand.java), [FilesystemValueChecker.java](src/main/java/com/google/devtools/build/lib/skyframe/FilesystemValueChecker.java), `VendorCommand`, and `LocalResourceUsageCollectors`.
-- Evaluator factory seam selected by a startup option, used in `SequencedSkyframeExecutor.createEvaluator` and [AbstractPackageLoader.java](src/main/java/com/google/devtools/build/lib/skyframe/packages/AbstractPackageLoader.java).
+- About 16 production files are affected, mainly `SkyframeExecutor`, [SequencedSkyframeExecutor.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/SequencedSkyframeExecutor.java), [FrontierSerializer.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/FrontierSerializer.java), [SelectedEntrySerializer.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializer.java), [DumpCommand.java](../../../src/main/java/com/google/devtools/build/lib/runtime/commands/DumpCommand.java), [FilesystemValueChecker.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/FilesystemValueChecker.java), `VendorCommand`, and `LocalResourceUsageCollectors`.
+- Evaluator factory seam selected by a startup option, used in `SequencedSkyframeExecutor.createEvaluator` and [AbstractPackageLoader.java](../../../src/main/java/com/google/devtools/build/lib/skyframe/packages/AbstractPackageLoader.java).
 - Reusable conformance suite, the eviction fuzzer extended with page-in/out events plus a symmetry and version invariant checker, and a differential trace comparer (per-node value fingerprint, deps, versions).
 - Oracle-level checks in the style Zabel uses: aquery action keys, label-order checksums, and output digests must match the in-memory engine.
 

@@ -3,7 +3,7 @@
 Java hot plane + Rust "skystore" sidecar on SSD. Drop-in replacement for
 Skyframe's in-memory graph so the rest of Bazel sees no difference.
 
-**Status (2026-10-19):** The optional [skystore implementation](../../tools/skystore/README.md)
+**Status (2026-10-19):** The optional [skystore implementation](skystore-prototype.md)
 has Rust/Java IPC, checksummed disk value storage, rules_rs builds, and an
 experimental `tiered_idle` integration. That integration retains the graph in
 Java and restores all detached glob values before each command. It is an

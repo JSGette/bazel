@@ -13,13 +13,13 @@ clone they come from. "Local only" branches are not pushed.
 | [`bep-action-strategy-details`](https://github.com/JSGette/bazel/tree/bep-action-strategy-details) | `master` | Report spawn runner and cache hit in BEP `ActionExecuted` events. [bazelbuild/bazel#31811](https://github.com/bazelbuild/bazel/pull/31811) (open). |
 | [`jsgette/28605/fix_NPE_on_repo_env`](https://github.com/JSGette/bazel/tree/jsgette/28605/fix_NPE_on_repo_env) | `master` | NPE on `--repo_env` without a value. [bazelbuild/bazel#28606](https://github.com/bazelbuild/bazel/pull/28606), imported upstream. |
 | [`jsgette/issue_29129/fix_broken_fallback_for_remote_executor`](https://github.com/JSGette/bazel/tree/jsgette/issue_29129/fix_broken_fallback_for_remote_executor) | `master` | Fallback mechanism for `--remote_executor` ([bazelbuild/bazel#29129](https://github.com/bazelbuild/bazel/issues/29129)). |
-| [`jsgette/skystore-phase0`](https://github.com/JSGette/bazel/tree/jsgette/skystore-phase0) | `jsgette/master` | Experimental Rust-backed idle Skyframe value tier, checksummed disk storage, recovery tests, and vanilla/default/tiered Linux profiling. Opt-in tiered_idle mode; default engine unchanged. Compact graph, in-command paging, and persistence remain future work. |
+| [`jsgette/skystore-phase0`](https://github.com/JSGette/bazel/tree/jsgette/skystore-phase0) | `jsgette/master` | Experimental Rust storage sidecar, idle value tier, demand-paged native genrules, recovery tests and Linux profiling. Default engine unchanged; compact global metadata and persistence remain future work. |
+| [`jsgette/skyframe-go-paging`](https://github.com/JSGette/bazel/tree/jsgette/skyframe-go-paging) | `jsgette/skystore-phase0` at `009e2761ff3e` | Experimental rules_go demand paging and concurrent immutable filesystem SkyCache foundation. The [Datadog comparison](measurements/skyframe-lazy-go-datadog-linux-2026-10-19.md) found higher memory use and slower builds; opt-in only. Portable cross-server analysis reuse is pending. |
 
 ## Local only
 
 | Branch | Base | What it is |
 |---|---|---|
-| `jsgette/skyframe-go-paging` | `jsgette/skystore-phase0` at `009e2761ff3e` | Experimental demand paging of audited rules_go libraries, Datadog Agent comparison, concurrent immutable filesystem SkyCache foundation, and revised multi-worktree roadmap. Located in the `bazel-go-paging` worktree. |
 | `jsgette/lazy-packed-action-cache` | `master` | Action cache entries in append-only pack files read lazily, with compaction. Under review. |
 | `remote-missing-execution-timestamps` | `master` | Don't report remote spawns as starting at the Unix epoch. |
 | `jsgette/fix_build_file_not_found` | `master` | Fix a `build` folder being read as a file. |

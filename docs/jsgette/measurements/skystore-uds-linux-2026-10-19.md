@@ -1,6 +1,6 @@
 # Initial skystore UDS measurements — Linux, 2026-10-19
 
-This records the optional [Phase 0 prototype](../../../tools/skystore/README.md)
+This records the optional [Phase 0 prototype](../skystore-prototype.md)
 in the commit introducing this file, based on fork commit 4cfc05f77b.
 It is a protocol and lifecycle implementation with a synthetic IPC measurement,
 not a production tiered Skyframe engine or a completed Phase 0 decision memo.

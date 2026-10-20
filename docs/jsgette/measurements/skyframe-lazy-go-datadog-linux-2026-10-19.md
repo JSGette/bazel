@@ -1,7 +1,10 @@
 # rules_go paging and concurrent SkyCache checkpoint
 
-2026-10-19. Local branch `jsgette/skyframe-go-paging`, based on
-`009e2761ff3e7a2a63167e821dc3bca996c46a4d`, in `/home/jgett/REPOS/bazel-go-paging`.
+Measured 2026-10-19; results published 2026-10-20. Implementation branch:
+[`jsgette/skyframe-go-paging`](https://github.com/JSGette/bazel/tree/jsgette/skyframe-go-paging), based on
+`009e2761ff3e7a2a63167e821dc3bca996c46a4d`.
+The implementation checkpoint is [`1af5db48b405`](https://github.com/JSGette/bazel/commit/1af5db48b405a53ad883fe3c6241364a1df0326f).
+Reports and plans are maintained on `jsgette/master`; experimental code stays on the implementation branch.
 
 ## Result and decision
 
@@ -146,7 +149,28 @@ It explicitly replaces the unsafe HEAD-plus-dirty-filename cache key and rejects
 indexes or uncoordinated pack sweeping for concurrent writers. Jobs/CPU limits control admission
 and prefetch; global graph consumers and waiting dependency fanout need separate residency work.
 
+## Published data
+
+- [Main measurements and comparison](skyframe-lazy-go-datadog-linux-2026-10-19/benchmark-results.json): command arguments, elapsed times, memory, paging/I/O counters and artifact hashes.
+- [Library output checks](skyframe-lazy-go-datadog-linux-2026-10-19/library-output-checks.json): source/BUILD edits and both reverts across engines.
+- [Resolved Datadog dependency lockfile](skyframe-lazy-go-datadog-linux-2026-10-19/datadog-MODULE.bazel.lock).
+- [Provenance and checksums](skyframe-lazy-go-datadog-linux-2026-10-19/provenance.json).
+
+The earlier [native genrule](skyframe-lazy-genrule-linux-2026-10-19.md),
+[idle-tier](skyframe-rust-idle-linux-2026-10-19.md), and
+[IPC](skystore-uds-linux-2026-10-19.md) reports are retained for context.
+
 ## Reproduction and provenance
+
+Check out the implementation branch before building or invoking the harness:
+
+```sh
+git fetch origin
+git switch --detach 1af5db48b405a53ad883fe3c6241364a1df0326f
+```
+
+The [harness](https://github.com/JSGette/bazel/blob/1af5db48b405a53ad883fe3c6241364a1df0326f/tools/skystore/profile_rules_go.py)
+and [prototype build guide](../skystore-prototype.md) belong to that implementation.
 
 Source: `/home/jgett/REPOS/bazel-go-paging`.
 Raw measurements: `/home/jgett/REPOS/.work/skyframe-go/work/` under the run names above.
