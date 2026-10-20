@@ -969,9 +969,21 @@ public class SkyFunctionEnvironment extends AbstractSkyFunctionEnvironment
     if (!oldDeps.isEmpty() || !resetDeps.isEmpty()) {
       // Remove the rdep on this entry for each of 1) its old deps from a prior evaluation that are
       // no longer direct deps and 2) reset deps that were not requested again post-restart.
-      ImmutableList<SkyKey> depsToRemove =
-          ImmutableList.copyOf(
-              Sets.difference(Sets.union(oldDeps, resetDeps), temporaryDirectDeps.toSet()));
+      ImmutableList<SkyKey> depsToRemove;
+      if (resetDeps.isEmpty()) {
+        if (oldDeps.size() == 1) {
+          SkyKey oldDep = oldDeps.iterator().next();
+          depsToRemove =
+              temporaryDirectDeps.contains(oldDep) ? ImmutableList.of() : ImmutableList.of(oldDep);
+        } else {
+          depsToRemove =
+              ImmutableList.copyOf(Sets.difference(oldDeps, temporaryDirectDeps.toSet()));
+        }
+      } else {
+        depsToRemove =
+            ImmutableList.copyOf(
+                Sets.difference(Sets.union(oldDeps, resetDeps), temporaryDirectDeps.toSet()));
+      }
       NodeBatch oldDepEntries =
           evaluatorContext.getGraph().getBatch(skyKey, Reason.RDEP_REMOVAL, depsToRemove);
       for (SkyKey key : depsToRemove) {
