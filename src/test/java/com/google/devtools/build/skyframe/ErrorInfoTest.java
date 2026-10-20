@@ -167,4 +167,95 @@ public final class ErrorInfoTest {
         .hasMessageThat()
         .contains("Cannot be directly transient but not transitively transient");
   }
+
+  @Test
+  public void fromChildErrors_exceptionOnlyPreservesPreferenceAndFlags() {
+    Exception tolerated = new IOException("tolerated");
+    Exception selected = new IOException("selected");
+    Exception catastrophic = new IOException("catastrophic");
+    ErrorInfo result =
+        ErrorInfo.fromChildErrors(
+            GraphTester.skyKey("parent"),
+            ImmutableList.of(
+                ErrorInfo.withValue(
+                    new ErrorInfo(tolerated, ImmutableList.of(), false, false, false)),
+                new ErrorInfo(selected, ImmutableList.of(), true, true, false),
+                new ErrorInfo(catastrophic, ImmutableList.of(), false, false, true)));
+
+    assertThat(result.getException()).isSameInstanceAs(selected);
+    assertThat(result.getCycleInfo()).isEmpty();
+    assertThat(result.isDirectlyTransient()).isFalse();
+    assertThat(result.isTransitivelyTransient()).isTrue();
+    assertThat(result.isCatastrophic()).isTrue();
+    assertThat(result.hasValue()).isFalse();
+  }
+
+  @Test
+  public void fromChildErrors_emptyCycleChildrenPreserveCycleOrderAndPerChildDeduplication() {
+    SkyKey parent = GraphTester.skyKey("parent");
+    SkyKey firstPath = GraphTester.skyKey("firstPath");
+    SkyKey duplicatePath = GraphTester.skyKey("duplicatePath");
+    SkyKey secondPath = GraphTester.skyKey("secondPath");
+    SkyKey thirdPath = GraphTester.skyKey("thirdPath");
+    ImmutableList<SkyKey> firstCycle =
+        ImmutableList.of(GraphTester.skyKey("a"), GraphTester.skyKey("b"));
+    ImmutableList<SkyKey> secondCycle = ImmutableList.of(GraphTester.skyKey("c"));
+    ErrorInfo first =
+        new ErrorInfo(
+            null,
+            ImmutableList.of(
+                CycleInfo.createCycleInfo(ImmutableList.of(firstPath), firstCycle),
+                CycleInfo.createCycleInfo(ImmutableList.of(duplicatePath), firstCycle)),
+            false,
+            false,
+            false);
+    ErrorInfo second =
+        ErrorInfo.fromCycle(CycleInfo.createCycleInfo(ImmutableList.of(secondPath), secondCycle));
+    ErrorInfo third =
+        ErrorInfo.fromCycle(CycleInfo.createCycleInfo(ImmutableList.of(thirdPath), firstCycle));
+    ImmutableList<CycleInfo> expected =
+        ImmutableList.of(
+            CycleInfo.createCycleInfo(ImmutableList.of(parent, firstPath), firstCycle),
+            CycleInfo.createCycleInfo(ImmutableList.of(parent, secondPath), secondCycle),
+            CycleInfo.createCycleInfo(ImmutableList.of(parent, thirdPath), firstCycle));
+
+    ErrorInfo cyclesOnly =
+        ErrorInfo.fromChildErrors(parent, ImmutableList.of(first, second, third));
+    assertThat(cyclesOnly.getCycleInfo()).containsExactlyElementsIn(expected).inOrder();
+    assertThat(cyclesOnly.getException()).isNull();
+    assertThat(cyclesOnly.isTransitivelyTransient()).isFalse();
+    assertThat(cyclesOnly.isCatastrophic()).isFalse();
+
+    Exception selected = new IOException("selected");
+    ErrorInfo emptyCycles = new ErrorInfo(selected, ImmutableList.of(), false, true, true);
+    ErrorInfo mixed =
+        ErrorInfo.fromChildErrors(
+            parent, ImmutableList.of(first, emptyCycles, second, emptyCycles, third));
+    assertThat(mixed.getCycleInfo()).containsExactlyElementsIn(expected).inOrder();
+    assertThat(mixed.getException()).isSameInstanceAs(selected);
+    assertThat(mixed.isDirectlyTransient()).isFalse();
+    assertThat(mixed.isTransitivelyTransient()).isTrue();
+    assertThat(mixed.isCatastrophic()).isTrue();
+  }
+
+  @Test
+  public void fromChildErrors_noDetailsSentinelRemainsScopedToItsChild() {
+    SkyKey parent = GraphTester.skyKey("parent");
+    CycleInfo detailed = CycleInfo.createCycleInfo(ImmutableList.of(GraphTester.skyKey("cycle")));
+    ErrorInfo sentinelChild =
+        new ErrorInfo(
+            null, ImmutableList.of(detailed, CycleInfo.cycleInfoNoDetails()), false, false, false);
+    ErrorInfo emptyCycles =
+        new ErrorInfo(new IOException("error"), ImmutableList.of(), false, false, false);
+
+    ErrorInfo result =
+        ErrorInfo.fromChildErrors(
+            parent, ImmutableList.of(sentinelChild, emptyCycles, ErrorInfo.fromCycle(detailed)));
+
+    assertThat(result.getCycleInfo())
+        .containsExactly(
+            CycleInfo.cycleInfoNoDetails(),
+            CycleInfo.createCycleInfo(ImmutableList.of(parent), detailed.getCycle()))
+        .inOrder();
+  }
 }

@@ -79,7 +79,9 @@ public class ErrorInfo {
         representativeException = child.exception;
         representativeExceptionCameWithValue = child.hasValue();
       }
-      cycleBuilder.addAll(CycleInfo.prepareCycles(currentValue, child.cycles));
+      if (!child.cycles.isEmpty()) {
+        cycleBuilder.addAll(CycleInfo.prepareCycles(currentValue, child.cycles));
+      }
       isTransitivelyTransient |= child.isTransitivelyTransient;
       isCatastrophic |= child.isCatastrophic;
     }
