@@ -9,6 +9,7 @@ from pathlib import Path
 import platform
 import shutil
 import subprocess
+import time
 
 GIB = 1024**3
 
@@ -46,12 +47,23 @@ def _wsl_storage():
         return None
     if not name:
         raise RuntimeError("WSL detected but WSL_DISTRO_NAME is missing; cannot check its backing volume")
-    try:
-        data = json.loads(subprocess.check_output(
-            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _WINDOWS_STORAGE],
-            text=True, stderr=subprocess.PIPE, timeout=20))
-    except (OSError, subprocess.SubprocessError, ValueError) as error:
-        raise RuntimeError("Cannot check WSL host storage; enable Windows interop before probing") from error
+    for attempt in range(3):
+        try:
+            data = json.loads(subprocess.check_output(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _WINDOWS_STORAGE],
+                text=True, stderr=subprocess.PIPE, timeout=20))
+            break
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
+            if attempt == 2:
+                detail = getattr(error, "stderr", None) or str(error)
+                if isinstance(detail, bytes):
+                    detail = detail.decode(errors="replace")
+                raise RuntimeError(
+                    "Cannot check WSL host storage after 3 attempts: " + detail.strip()[-2000:]
+                ) from error
+            # Interop can fail transiently while the VM is busy. Never reuse an old capacity
+            # observation or disable the guard; every retry asks Windows for current values.
+            time.sleep(0.5 * (attempt + 1))
     matches = [d for d in data["distros"] if d["name"] == name]
     if len(matches) != 1 or "error" in matches[0]:
         raise RuntimeError(f"Cannot resolve the Windows backing volume for WSL distro {name!r}")

@@ -3,12 +3,14 @@
 """Regression checks for the guest-free/host-full failure that interrupted a probe."""
 
 from pathlib import Path
+import json
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from storage_preflight import GIB, check_storage
+from storage_preflight import GIB, _wsl_storage, check_storage
 
 
 class StoragePreflightTest(unittest.TestCase):
@@ -48,6 +50,33 @@ class StoragePreflightTest(unittest.TestCase):
         result = self.check()
         self.assertIsNone(result["wsl_host"])
         self.assertFalse(self.path.exists())
+
+    def test_transient_interop_failures_retry_current_host_observation(self):
+        observation = json.dumps({
+            "system_drive": "C:\\", "system_free_bytes": 80 * GIB,
+            "distros": [{"name": "fixture", "path": "E:\\WSL\\fixture",
+                         "free_bytes": 70 * GIB}],
+        })
+        failures = [OSError("temporary interop failure"),
+                    subprocess.CalledProcessError(1, "powershell.exe", stderr="transient"),
+                    observation]
+        with patch.dict("os.environ", {"WSL_DISTRO_NAME": "fixture"}), \
+             patch("storage_preflight.subprocess.check_output", side_effect=failures) as run, \
+             patch("storage_preflight.time.sleep") as sleep:
+            result = _wsl_storage()
+        self.assertEqual(run.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(result["backing_free_bytes"], 70 * GIB)
+        self.assertEqual(result["system_free_bytes"], 80 * GIB)
+
+    def test_persistent_interop_failure_still_rejects_probe_with_diagnostic(self):
+        failure = subprocess.CalledProcessError(1, "powershell.exe", stderr="interop unavailable")
+        with patch.dict("os.environ", {"WSL_DISTRO_NAME": "fixture"}), \
+             patch("storage_preflight.subprocess.check_output", side_effect=failure) as run, \
+             patch("storage_preflight.time.sleep"):
+            with self.assertRaisesRegex(RuntimeError, "after 3 attempts: interop unavailable"):
+                _wsl_storage()
+        self.assertEqual(run.call_count, 3)
 
 
 if __name__ == "__main__":
