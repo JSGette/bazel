@@ -9,9 +9,11 @@ import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.Striped;
 import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
 import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
 import com.google.devtools.build.lib.skyframe.serialization.WriteStatus;
+import com.google.protobuf.ByteString;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -26,6 +28,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -35,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -55,11 +59,18 @@ final class LocalCacheSession implements FingerprintValueStore {
       List<LocalInputSnapshot.Witness> witnesses,
       List<String> parents) {}
 
+  private record SharedPut(Candidate candidate, String valueDigest) {}
+
   private final LocalInputSnapshot inputs;
   private final Path objects;
   private final Path publications;
   private final String id;
-  private final ConcurrentFileFingerprintValueStore privateStore;
+  private volatile ConcurrentFileFingerprintValueStore privateStore;
+  // Puts hold locks across durable I/O. Keep substantially more stripes than concurrent writers
+  // so unrelated keys rarely wait behind another record's fsync.
+  private final Striped<Lock> putLocks = Striped.lock(4096);
+  // Only skipped puts need bookkeeping. Ordinary writes remain indexed by the private store.
+  private final ConcurrentHashMap<ByteString, SharedPut> sharedPuts = new ConcurrentHashMap<>();
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
   private final Set<String> usedParents = ConcurrentHashMap.newKeySet();
   private final Set<String> inspected = new HashSet<>();
@@ -71,6 +82,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final AtomicLong reads = new AtomicLong();
   private final AtomicLong sharedReads = new AtomicLong();
   private final AtomicLong rejected = new AtomicLong();
+  private final AtomicLong deduplicatedWrites = new AtomicLong();
 
   LocalCacheSession(Path root, LocalInputSnapshot inputs) throws IOException {
     this.inputs = inputs;
@@ -80,7 +92,6 @@ final class LocalCacheSession implements FingerprintValueStore {
         durableDirectory(root.resolve("publications-v1").resolve(inputs.sourceDigest()));
     this.id =
         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-    this.privateStore = ConcurrentFileFingerprintValueStore.create(objects, id);
   }
 
   String sourceDigest() {
@@ -91,6 +102,10 @@ final class LocalCacheSession implements FingerprintValueStore {
     return sharedReads.get();
   }
 
+  long deduplicatedWrites() {
+    return deduplicatedWrites.get();
+  }
+
   String failureReason() {
     return failure;
   }
@@ -99,11 +114,12 @@ final class LocalCacheSession implements FingerprintValueStore {
     return String.format(
         java.util.Locale.ROOT,
         "{\"writes\":%d,\"reads\":%d,\"shared_reads\":%d,\"rejected_publications\":%d,"
-            + "\"published\":%s,\"failed\":%s}",
+            + "\"deduplicated_writes\":%d,\"published\":%s,\"failed\":%s}",
         writes.get(),
         reads.get(),
         sharedReads.get(),
         rejected.get(),
+        deduplicatedWrites.get(),
         published,
         failure != null);
   }
@@ -115,11 +131,46 @@ final class LocalCacheSession implements FingerprintValueStore {
       if (closed || failure != null) {
         return immediateWriteStatus(false);
       }
-      boolean novel = privateStore.put(key, bytes).get();
-      if (novel) {
-        writes.incrementAndGet();
+      ByteString keyBytes = ByteString.copyFrom(key.toBytes());
+      Lock keyLock = putLocks.get(keyBytes);
+      keyLock.lock();
+      try {
+        SharedPut previous = sharedPuts.get(keyBytes);
+        if (previous != null) {
+          if (!previous.valueDigest().equals(sha256(bytes))) {
+            throw new IOException("conflicting immutable shared cache value for reused key");
+          }
+          // Recheck the pinned record. If it disappeared or was damaged, repair with a private
+          // write, preserving the first put's value and the read-your-writes guarantee.
+          if (Arrays.equals(read(previous.candidate().store(), key), bytes)) {
+            deduplicatedWrites.incrementAndGet();
+            return immediateWriteStatus(false);
+          }
+        } else {
+          SharedPut shared = findIdenticalCandidate(key, bytes);
+          if (shared == null) {
+            try {
+              refresh();
+            } catch (IOException ignored) {
+              // Optional candidate discovery must not prevent an otherwise valid private write.
+            }
+            shared = findIdenticalCandidate(key, bytes);
+          }
+          if (shared != null && read(privateStore, key) == null) {
+            sharedPuts.put(keyBytes, shared);
+            usedParents.add(shared.candidate().id());
+            deduplicatedWrites.incrementAndGet();
+            return immediateWriteStatus(false);
+          }
+        }
+        boolean novel = storeForWrites().put(key, bytes).get();
+        if (novel) {
+          writes.incrementAndGet();
+        }
+        return immediateWriteStatus(novel);
+      } finally {
+        keyLock.unlock();
       }
-      return immediateWriteStatus(novel);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       failure = "interrupted cache write";
@@ -128,9 +179,30 @@ final class LocalCacheSession implements FingerprintValueStore {
       // Optional-cache failures discard this publication, not the user's build.
       failure = e.getCause().toString();
       return immediateWriteStatus(false);
+    } catch (IOException e) {
+      failure = e.toString();
+      return immediateWriteStatus(false);
     } finally {
       lifecycle.readLock().unlock();
     }
+  }
+
+  private synchronized ConcurrentFileFingerprintValueStore storeForWrites() throws IOException {
+    if (privateStore == null) {
+      privateStore = ConcurrentFileFingerprintValueStore.create(objects, id);
+    }
+    return privateStore;
+  }
+
+  private SharedPut findIdenticalCandidate(KeyBytesProvider key, byte[] expected)
+      throws InterruptedException {
+    for (Candidate candidate : candidates) {
+      byte[] value = read(candidate.store(), key);
+      if (Arrays.equals(value, expected)) {
+        return new SharedPut(candidate, sha256(value));
+      }
+    }
+    return null;
   }
 
   @Override
@@ -144,6 +216,17 @@ final class LocalCacheSession implements FingerprintValueStore {
       byte[] own = read(privateStore, key);
       if (own != null) {
         return immediateFuture(own);
+      }
+      if (!sharedPuts.isEmpty()) {
+        SharedPut pinned = sharedPuts.get(ByteString.copyFrom(key.toBytes()));
+        if (pinned != null) {
+          byte[] value = read(pinned.candidate().store(), key);
+          if (value == null || !pinned.valueDigest().equals(sha256(value))) {
+            return immediateFailedFuture(new MissingFingerprintValueException(key));
+          }
+          sharedReads.incrementAndGet();
+          return immediateFuture(value);
+        }
       }
       byte[] shared = readCandidates(key);
       if (shared == null) {
@@ -177,6 +260,9 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   private static byte[] read(ConcurrentFileFingerprintValueStore store, KeyBytesProvider key)
       throws InterruptedException {
+    if (store == null) {
+      return null;
+    }
     try {
       return store.get(key).get();
     } catch (ExecutionException e) {

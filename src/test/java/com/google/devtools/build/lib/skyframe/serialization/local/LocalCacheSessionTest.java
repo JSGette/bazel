@@ -12,7 +12,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.Map;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -284,5 +286,168 @@ public final class LocalCacheSessionTest {
     var reader = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThrows(ExecutionException.class, () -> reader.get(new Key("root")).get());
     reader.finish(false);
+  }
+
+  @Test
+  public void identicalPublishedPutsDoNotCreatePrivateFilesOrEmptyPublications() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = new Key("chunk");
+    var parent = new LocalCacheSession(cache, snapshot(workspace, output));
+    parent.put(key, new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    long filesBefore;
+    try (var files = Files.walk(cache)) {
+      filesBefore = files.count();
+    }
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(reader.put(key, new byte[] {1}).get()).isFalse();
+    assertThat(reader.put(key, new byte[] {1}).get()).isFalse();
+    assertThat(reader.deduplicatedWrites()).isEqualTo(2);
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {1});
+    assertThat(reader.finish(true)).isFalse();
+    assertThat(reader.failureReason()).isNull();
+    try (var files = Files.walk(cache)) {
+      assertThat(files.count()).isEqualTo(filesBefore);
+    }
+  }
+
+  @Test
+  public void deduplicatedPutRequiresParentClosureWithoutAnExplicitRead() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var parent = new LocalCacheSession(cache, snapshot(workspace, output));
+    parent.put(new Key("chunk"), new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    Path parentManifest;
+    try (var files = Files.walk(cache.resolve("publications-v1"))) {
+      parentManifest =
+          files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
+    }
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(child.put(new Key("chunk"), new byte[] {1}).get()).isFalse();
+    assertThat(child.put(new Key("root"), new byte[] {2}).get()).isTrue();
+    assertThat(child.finish(true)).isTrue();
+    Files.delete(parentManifest);
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThrows(ExecutionException.class, () -> reader.get(new Key("root")).get());
+    reader.finish(false);
+  }
+
+  @Test
+  public void identicalBytesFromAnInvalidPublicationAreWrittenPrivately() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path source = Files.writeString(temporary.newFile("external-input").toPath(), "one");
+    var inputs = snapshot(workspace, output);
+    inputs.observe(source, false);
+    var parent = new LocalCacheSession(cache, inputs);
+    var key = new Key("chunk");
+    parent.put(key, new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    Files.writeString(source, "two");
+    var changedInputs = snapshot(workspace, output);
+    changedInputs.observe(source, false);
+    var child = new LocalCacheSession(cache, changedInputs);
+    assertThat(child.put(key, new byte[] {1}).get()).isTrue();
+    assertThat(child.deduplicatedWrites()).isEqualTo(0);
+    assertThat(child.finish(true)).isTrue();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {1});
+    reader.finish(false);
+  }
+
+  @Test
+  public void conflictingPutAfterSharedPutDiscardsPublication() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = new Key("chunk");
+    var parent = new LocalCacheSession(cache, snapshot(workspace, output));
+    parent.put(key, new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(child.put(key, new byte[] {1}).get()).isFalse();
+    assertThat(child.put(key, new byte[] {2}).get()).isFalse();
+    assertThat(child.failureReason()).contains("conflicting immutable shared cache value");
+    assertThat(child.finish(true)).isFalse();
+  }
+
+  @Test
+  public void concurrentSharedAndConflictingPutsNeverPublish() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = new Key("chunk");
+    var parent = new LocalCacheSession(cache, snapshot(workspace, output));
+    parent.put(key, new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    var barrier = new CyclicBarrier(2);
+    try (var executor = Executors.newFixedThreadPool(2)) {
+      var first =
+          executor.submit(
+              () -> {
+                barrier.await();
+                return child.put(key, new byte[] {1}).get();
+              });
+      var second =
+          executor.submit(
+              () -> {
+                barrier.await();
+                return child.put(key, new byte[] {2}).get();
+              });
+      first.get();
+      second.get();
+    }
+    assertThat(child.failureReason()).contains("conflicting immutable shared cache value");
+    assertThat(child.finish(true)).isFalse();
+  }
+
+  @Test
+  public void sharedPutPinsTheMatchingValueWhenOtherPublicationsUseTheSameKey() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = new Key("chunk");
+    var first = new LocalCacheSession(cache, snapshot(workspace, output));
+    var second = new LocalCacheSession(cache, snapshot(workspace, output));
+    first.put(key, new byte[] {1}).get();
+    second.put(key, new byte[] {2}).get();
+    assertThat(first.finish(true)).isTrue();
+    assertThat(second.finish(true)).isTrue();
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    byte[] initial = child.get(key).get();
+    byte[] wanted = new byte[] {(byte) (initial[0] == 1 ? 2 : 1)};
+    assertThat(child.put(key, wanted).get()).isFalse();
+    assertThat(child.deduplicatedWrites()).isEqualTo(1);
+    assertThat(child.get(key).get()).isEqualTo(wanted);
+    assertThat(child.finish(true)).isFalse();
+  }
+
+  @Test
+  public void damagedSharedPutCanBeRepairedButCannotChangeValue() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = new Key("chunk");
+    var parent = new LocalCacheSession(cache, snapshot(workspace, output));
+    parent.put(key, new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(child.put(key, new byte[] {1}).get()).isFalse();
+    try (var files = Files.walk(cache.resolve("objects"))) {
+      Path entry = files.filter(p -> p.toString().endsWith(".entry")).findFirst().orElseThrow();
+      Files.write(entry, new byte[] {0});
+    }
+    assertThrows(ExecutionException.class, () -> child.get(key).get());
+    assertThat(child.put(key, new byte[] {1}).get()).isTrue();
+    assertThat(child.get(key).get()).isEqualTo(new byte[] {1});
+    assertThat(child.put(key, new byte[] {2}).get()).isFalse();
+    assertThat(child.failureReason()).contains("conflicting immutable shared cache value");
+    assertThat(child.finish(true)).isFalse();
   }
 }
