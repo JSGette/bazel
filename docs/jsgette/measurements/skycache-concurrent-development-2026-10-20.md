@@ -216,3 +216,27 @@ all output hashes:
 Next compatibility finding from inspecting Datadog: the checkout contains directory symlinks
 (`.claude/skills` and a procfs test fixture), which the conservative source scanner rejects.
 Support must include referent contents and cycle detection before claiming a Datadog SkyCache run.
+
+
+## Step 4 — skip guaranteed-miss execution lookups
+
+Implementation: [dce7468cdfe6](https://github.com/JSGette/bazel/commit/dce7468cdfe64e32bfbd8f60ba44b3b149ec5544).
+A backend retrieval capability lets the existing retrieval utility bypass execution keys before
+key serialization and filesystem lookup. Analysis retrieval and the default upstream backend
+remain enabled. This adds one small gate in SkyValueRetrieverUtils, not an evaluator change.
+
+All six Java targets (66 test cases) and the full 12-build worktree protocol pass. Corresponding
+outputs and analysis-hit counts match Step 3. Restarted-reader reads fall from 459 to 410 per
+server; cold-writer reads fall from 117 to 68. These are the 49 execution keys that cannot hit in
+this backend. Pair restart time was 10.731 → 10.571 seconds in single ordered samples: no
+statistically supported elapsed-time improvement is claimed.
+
+**Correction to the Step 3 hypothesis:** writes remain 51 per restarted reader. Therefore they
+were not caused by execution lookup-key serialization as initially suspected. Analysis-key
+serialization and duplicate shared chunks need separate investigation; do not present an
+unmeasured zero-write result. This change is retained for the demonstrated removal of 49
+guaranteed-miss filesystem lookups.
+
+[Raw after protocol](skycache-concurrent-2026-10-20/skip-execution-lookups-results.json);
+the before protocol is Step 3's analysis-only-upload result. Cache corruption fallback and
+independent source/Starlark edits continue to pass.

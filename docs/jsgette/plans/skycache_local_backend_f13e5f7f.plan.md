@@ -58,8 +58,9 @@ for commits, exact commands, raw results, failed experiments and limitations.
   Restarted readers demonstrate actual configured-target hits. A separate relocation probe
   works after the writer workspace and output base become inaccessible.
 - Execution-value uploads are omitted for the local backend because its reader only accepts
-  analysis envelopes. A reused test command writes 51 records versus 149 before; always-miss
-  execution lookups still serialize keys and are the next optimization.
+  analysis envelopes. Unsupported execution lookups are also bypassed. A reused test command
+  writes 51 records versus 149 before and issues 49 fewer reads. Remaining duplicate writes
+  need separate optimization.
 
 This is an experimental implementation. The small-worktree test is not large-repository or
 production-maturity evidence. The prior Go paging experiment is historical, with a measured
