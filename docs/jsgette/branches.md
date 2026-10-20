@@ -8,6 +8,7 @@ clone they come from. "Local only" branches are not pushed.
 | Branch | Base | What it is |
 |---|---|---|
 | [`jsgette/master`](https://github.com/JSGette/bazel/tree/jsgette/master) | `master` | Personal docs: module architecture, rewrite designs and plans (`docs/jsgette/`), this list. |
+| [`jsgette/skyframe_optimizations`](https://github.com/JSGette/bazel/tree/jsgette/skyframe_optimizations) | `4cfc05f77ba9` | Six separate JVM Skyframe optimization experiments. [Findings and measurements](skyframe-jvm-optimizations.md); C39b held for unresolved memory concerns, remaining exploration parked. |
 | [`jsgette/skycache-local`](https://github.com/JSGette/bazel/tree/jsgette/skycache-local) | `master` | Local Skycache backend: RAM + packed disk fingerprint value stores, `LocalSkycacheModule`, warm uploads without an analysis cache service, tolerated absolute symlinks. Rebased from `skycache-local` (9.2.0). |
 | [`jsgette/otel_bazel`](https://github.com/JSGette/bazel/tree/jsgette/otel_bazel) | `master` | OTel tracing module fed by the event bus: `--experimental_otel_trace_json` / `--experimental_otel_trace_endpoint` (OTLP HTTP and gRPC). Rebased from `otel_bazel`, without the repo_env NPE fix that has since landed upstream. |
 | [`bep-action-strategy-details`](https://github.com/JSGette/bazel/tree/bep-action-strategy-details) | `master` | Report spawn runner and cache hit in BEP `ActionExecuted` events. [bazelbuild/bazel#31811](https://github.com/bazelbuild/bazel/pull/31811) (open). |
