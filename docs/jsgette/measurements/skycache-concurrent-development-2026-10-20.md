@@ -671,3 +671,83 @@ Python compilation checks pass for both probes and the new helper/tests.
 Evidence: [live storage check](skycache-concurrent-2026-10-20/storage-preflight-live.json) and
 the `storage_preflight` fields in Step 11's [Datadog](skycache-concurrent-2026-10-20/datadog-shared-put.json)
 and [worktree](skycache-concurrent-2026-10-20/shared-put-worktrees.json) protocols.
+
+
+## Step 13 — worktree environments and repository discovery
+
+Implementation: [3c29d668c33d](https://github.com/JSGette/bazel/commit/3c29d668c33dc4ca7a49863dfd3908848406f341).
+The former fixture unset PWD/OLDPWD and supplied identical client environments. Giving each
+worktree its natural PWD and a different session marker reproduced a real compatibility problem:
+both reverted/restarted readers built correct outputs but got zero analysis hits and rewrote
+445 records each. The cache identity hashed all client variables even under strict repository env.
+
+The local module now hashes Bazel's effective repository environment and inherited action/test
+values in separate scopes. Repository overrides are resolved by the existing CommandEnvironment
+API. Without strict repository env, the effective repository environment still includes the full
+client environment. Fixed action/test options remain covered by the configuration identity.
+The Bzlmod client variable `BZLMOD_ALLOW_YANKED_VERSIONS` is included explicitly because module
+resolution reads it outside the repository environment. The source-identity domain is now v4.
+
+Blindly deleting PWD or terminal variables was rejected: explicitly exposed variables must
+remain meaningful. Separate scopes prevent a fixed repository value from hiding a different
+inherited action value with the same name. No evaluator or option semantics were changed.
+
+### Discovery timing exposed by a fresh external repository
+
+The environment probe's first fresh reader still missed after that change. Its publication
+identity and all 94 eventual input witnesses matched the writer, but the first lookup happened
+before the external repository existed. The one-second negative refresh interval hid its
+availability. A frozen-clock regression reproduced this without relying on wall-time sleeps.
+
+An initial missing-path-only retry fixed that case but failed when an existing repository was
+regenerated after a fixed environment override. The final implementation retains a cheap
+inode/size/mtime hint for each first mismatching input. A changed hint triggers full witness
+validation immediately. **Metadata is never validity evidence**: content, modes, links and
+directory evidence are still checked before accepting a publication. Unchanged mismatches
+remain throttled, and the periodic retry still works when bytes change while size/mtime/inode
+are preserved. First discovery also handles negative values from a monotonic clock.
+
+The pre-fix regression run failed two cases. The final eight-target suite passes 97 cases,
+including four new session checks: newly materialized inputs, regenerated-but-still-wrong
+inputs and throttling, metadata-preserving edits after the TTL, and negative monotonic time.
+
+### Real Bazel environment matrix
+
+Nine cases / eighteen successful builds use two real Git worktrees and separate restarted
+servers. The fixture generates an external repository file from a repository variable and an
+action output from an inherited variable. Exact output bytes are asserted independently for
+each case. Both positive cases start their reader against a fresh or regenerated repository.
+
+| Case | Expected reader outcome | Configured-target hits | Reader writes |
+| --- | --- | ---: | ---: |
+| strict-unrelated | hit | 2 | 14 |
+| repository-inherited | miss | 0 | 74 |
+| repository-fixed | hit | 2 | 14 |
+| action-inherited | miss | 0 | 74 |
+| separate-repo-action-scopes | miss | 0 | 74 |
+| test-inherited | miss | 0 | 74 |
+| pwd-explicit | miss | 0 | 74 |
+| nonstrict | miss | 0 | 74 |
+| bzlmod-client | miss | 0 | 74 |
+
+The strengthened original two-worktree probe also passes all twelve builds with natural PWDs
+and different session markers, independent source/Starlark edits, reverts/restarts and corrupt
+records. Each restarted reader now gets 49 hits, writes zero records and produces the same
+golden bytes. Pair wall time was 10.420 seconds before versus
+10.864 seconds after. This small fixture proves compatibility and saved
+work; startup dominates, so it is not a general performance claim.
+
+Next is the substantial two-server Datadog probe with independent semantic Go edits, separate
+cache-disabled controls, and edits/reverts after restoring a graph. The control edits will
+execute without the shared action disk cache to avoid accepting a bad cached result from the
+experimental build. Packing, bounded lifecycle, memory profiling and nearby-revision partial
+reuse remain unfinished.
+
+Evidence: [before](skycache-concurrent-2026-10-20/environment-before-worktrees.json),
+[worktrees](skycache-concurrent-2026-10-20/environment-worktrees.json),
+[environment matrix](skycache-concurrent-2026-10-20/environment-matrix.json),
+[tests](skycache-concurrent-2026-10-20/environment-tests.json),
+[regression](skycache-concurrent-2026-10-20/environment-discovery-regression.json),
+[first miss](skycache-concurrent-2026-10-20/environment-first-repository-miss.json),
+[matching witnesses](skycache-concurrent-2026-10-20/environment-manifest-comparison.json),
+[regeneration miss](skycache-concurrent-2026-10-20/environment-regenerated-repository-miss.json).

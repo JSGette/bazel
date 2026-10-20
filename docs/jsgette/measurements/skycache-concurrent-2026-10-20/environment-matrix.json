@@ -1,0 +1,914 @@
+{
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+  "binary_sha256": "d546b6cae2da579c263be5d9f8391004faef074ab8b669b84172674d8f5ef78d",
+  "purpose": "environment correctness, not a timing benchmark",
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent",
+        "free_bytes": 831417683968
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 571609624576,
+      "system_drive": "C:\\",
+      "system_free_bytes": 160733630464
+    }
+  },
+  "cases": [
+    {
+      "case": "strict-unrelated",
+      "reader_should_hit": true,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831417266176
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571609624576,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733634560
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/strict-unrelated",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no"
+          ],
+          "exit_code": 0,
+          "seconds": 11.010692660000018,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/strict-unrelated",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no"
+          ],
+          "exit_code": 0,
+          "seconds": 9.83962933600003,
+          "analysis_hits": 2,
+          "skycache": {
+            "writes": 14,
+            "reads": 17,
+            "shared_reads": 10,
+            "rejected_publications": 1,
+            "deduplicated_writes": 56,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        }
+      ]
+    },
+    {
+      "case": "repository-inherited",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831171858432
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571374743552,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733634560
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/repository-inherited",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 10.010081521000075,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "d725a4ea3dac12d3767280488b56615401e53f906e734e76ebcb3b6e2fd3d1ba",
+          "output": "one\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/repository-inherited",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 10.123479187000044,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "104230cceb9ed4bb046c22f6e8064c2b67325818f995244d0b49d493362ab4d6",
+          "output": "two\naction-default\n"
+        }
+      ]
+    },
+    {
+      "case": "repository-fixed",
+      "reader_should_hit": true,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831181737984
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571374743552,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733634560
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/repository-fixed",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=SKYCACHE_PROBE_VALUE=fixed"
+          ],
+          "exit_code": 0,
+          "seconds": 9.823753293999971,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "394a9814b5c0c536722fe0cc82576b764d8c7217c24be64400ea70f994482594",
+          "output": "fixed\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/repository-fixed",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=SKYCACHE_PROBE_VALUE=fixed"
+          ],
+          "exit_code": 0,
+          "seconds": 9.309609740000042,
+          "analysis_hits": 2,
+          "skycache": {
+            "writes": 14,
+            "reads": 17,
+            "shared_reads": 10,
+            "rejected_publications": 1,
+            "deduplicated_writes": 56,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "394a9814b5c0c536722fe0cc82576b764d8c7217c24be64400ea70f994482594",
+          "output": "fixed\naction-default\n"
+        }
+      ]
+    },
+    {
+      "case": "action-inherited",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831180849152
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571374743552,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733634560
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/action-inherited",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--action_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 9.590916752000112,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "e92975aba1609f3e36e97de36e909d4326293d12a88d917367b1f5cc314a022b",
+          "output": "repo-default\none\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/action-inherited",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--action_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 9.808701724999992,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "3ad2ffb99ad376b4044a8244766e630d4dfa3353211caa26dde0c4af63fb8897",
+          "output": "repo-default\ntwo\n"
+        }
+      ]
+    },
+    {
+      "case": "separate-repo-action-scopes",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831179485184
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571374743552,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733638656
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/separate-repo-action-scopes",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=SKYCACHE_PROBE_VALUE=fixed",
+            "--action_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 9.821024910999995,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "387e16eba11a0d09501c912b230ef9dfeebc80a45f4dc1b4b9b33d6789efcc8a",
+          "output": "fixed\none\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/separate-repo-action-scopes",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=SKYCACHE_PROBE_VALUE=fixed",
+            "--action_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 9.78789926100012,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "d51a056a2affdd9ee65f6f465c9948970755cec493c78929f51ab6065bab7e7a",
+          "output": "fixed\ntwo\n"
+        }
+      ]
+    },
+    {
+      "case": "test-inherited",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831178125312
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571374743552,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733634560
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/test-inherited",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--test_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 10.170338956000023,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/test-inherited",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--test_env=SKYCACHE_PROBE_VALUE"
+          ],
+          "exit_code": 0,
+          "seconds": 9.849267170000076,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        }
+      ]
+    },
+    {
+      "case": "pwd-explicit",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831176798208
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571374743552,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733548544
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/pwd-explicit",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=PWD"
+          ],
+          "exit_code": 0,
+          "seconds": 9.441187034999984,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/pwd-explicit",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--repo_env=PWD"
+          ],
+          "exit_code": 0,
+          "seconds": 10.179687262000016,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        }
+      ]
+    },
+    {
+      "case": "nonstrict",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831175487488
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571341189120,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733548544
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/nonstrict",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--noexperimental_strict_repo_env"
+          ],
+          "exit_code": 0,
+          "seconds": 10.354089418000058,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "d725a4ea3dac12d3767280488b56615401e53f906e734e76ebcb3b6e2fd3d1ba",
+          "output": "one\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/nonstrict",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no",
+            "--noexperimental_strict_repo_env"
+          ],
+          "exit_code": 0,
+          "seconds": 9.960118498999918,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "104230cceb9ed4bb046c22f6e8064c2b67325818f995244d0b49d493362ab4d6",
+          "output": "two\naction-default\n"
+        }
+      ]
+    },
+    {
+      "case": "bzlmod-client",
+      "reader_should_hit": false,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix",
+            "free_bytes": 831174164480
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 571341189120,
+          "system_drive": "C:\\",
+          "system_free_bytes": 160733548544
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-a",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/bzlmod-client",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no"
+          ],
+          "exit_code": 0,
+          "seconds": 10.043129054000019,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-environment-refresh-review",
+            "--nosystem_rc",
+            "--nohome_rc",
+            "--noworkspace_rc",
+            "--host_jvm_args=-Xmx2g",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/out-b",
+            "build",
+            "//app:all",
+            "--jobs=2",
+            "--local_resources=memory=2048",
+            "--experimental_strict_repo_env",
+            "--incompatible_strict_action_env",
+            "--incompatible_repo_env_ignores_action_env",
+            "--lockfile_mode=off",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/environment-refresh-matrix/cache/bzlmod-client",
+            "--experimental_active_directories=app",
+            "--color=no",
+            "--curses=no"
+          ],
+          "exit_code": 0,
+          "seconds": 9.79507386399996,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 74,
+            "reads": 7,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false
+          },
+          "output_sha256": "2806517fdc4afd72603ef78bca7849890a392c316dd1ef3aac32dfc194dd89f2",
+          "output": "repo-default\naction-default\n"
+        }
+      ]
+    }
+  ],
+  "passed": true
+}
