@@ -34,6 +34,10 @@ def main():
     parser.add_argument("--resolved-lockfile", required=True, type=Path)
     parser.add_argument("--action-cache", required=True, type=Path)
     parser.add_argument("--lock-file", required=True, type=Path)
+    parser.add_argument("--java-home", type=Path,
+                        help="Use the same valid JDK distribution for every local_java_repository")
+    parser.add_argument("--seed-cache", type=Path,
+                        help="Copy a completed cache from other worktrees; require hits in both fresh servers")
     parser.add_argument("--restart-controls", action="store_true",
                         help="Measure cache-off restarts with populated output bases at base, edited and reverted states")
     parser.add_argument("--resume", action="store_true",
@@ -45,6 +49,17 @@ def main():
     root.mkdir(parents=True, exist_ok=args.resume)
     requested_revision = subprocess.check_output(
         ["git", "-C", str(args.repository), "rev-parse", args.revision], text=True).strip()
+    java_home = args.java_home.resolve(strict=True) if args.java_home else None
+    if java_home:
+        assert (java_home / "bin/java").is_file(), java_home
+    seed_cache = args.seed_cache.resolve(strict=True) if args.seed_cache else None
+    seed_publications = {}
+    if seed_cache:
+        seed_publications = {
+            str(p.relative_to(seed_cache)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(seed_cache.rglob("*.manifest"))
+        }
+        assert seed_publications, "Seed must contain completed publications from other worktrees"
     names = ("a", "b", "control-a", "control-b")
     source_path = Path("cmd/cluster-agent/subcommands/version/command.go")
     originals = {}
@@ -71,6 +86,9 @@ def main():
         "resources": "two servers; each Xmx4g, jobs=2, local_resources memory=3072",
         "controls": "separate worktrees/output bases; edited actions execute without shared disk cache",
         "restart_controls": args.restart_controls,
+        "java_home": str(java_home) if java_home else None,
+        "seed_cache": str(seed_cache) if seed_cache else None,
+        "seed_publications": seed_publications,
         "feature_edit": str(source_path), "phases": [],
     }
     if args.resume:
@@ -78,6 +96,8 @@ def main():
         for key in ("binary_sha256", "source_revision", "lock_sha256", "resources"):
             assert saved[key] == protocol[key], (key, saved[key], protocol[key])
         assert saved.get("restart_controls", False) == args.restart_controls
+        for key in ("java_home", "seed_cache", "seed_publications"):
+            assert saved.get(key, {} if key == "seed_publications" else None) == protocol[key], key
         protocol = saved
         protocol.setdefault("resumptions", []).append({
             "completed_phases": [p["phase"] for p in saved["phases"]],
@@ -149,6 +169,8 @@ def main():
             "--disk_cache=" + (str(args.action_cache.resolve()) if disk_cache else ""),
             "--build_event_json_file=" + str(root / f"{phase}-{name}.bep.json"),
         ]
+        if java_home:
+            argv += ["--repo_env=JAVA_HOME=" + str(java_home)]
         if cache:
             argv += ["--experimental_local_skycache=" + str(root / "cache"),
                      "--experimental_active_directories=cmd/cluster-agent"]
@@ -250,13 +272,24 @@ def main():
     with args.lock_file.open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
+            if seed_cache:
+                if not args.resume:
+                    shutil.copytree(seed_cache, root / "cache")
+                    for name, digest in seed_publications.items():
+                        assert hashlib.sha256((root / "cache" / name).read_bytes()).hexdigest() == digest
+                else:
+                    assert (root / "cache").is_dir()
             baseline = pair("control-base", ("control-a", "control-b"), cache=False)
             assert baseline["a"] == baseline["b"]
             shutdown_pair(("control-a", "control-b"))
             if args.restart_controls:
                 pair("restarted-control-base", ("control-a", "control-b"), cache=False, expected=baseline)
                 shutdown_pair(("control-a", "control-b"))
-            pair("concurrent-base-writers", ("a", "b"), cache=True, expected=baseline, require_writes=True)
+            if seed_cache:
+                pair("concurrent-fresh-cross-worktree-readers", ("a", "b"), cache=True,
+                     expected=baseline, require_hits=True)
+            else:
+                pair("concurrent-base-writers", ("a", "b"), cache=True, expected=baseline, require_writes=True)
             pair("warm-base", ("a", "b"), cache=True, expected=baseline)
             shutdown_pair(("a", "b"))
             pair("restarted-base-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
