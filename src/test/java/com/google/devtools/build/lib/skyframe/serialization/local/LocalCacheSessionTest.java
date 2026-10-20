@@ -86,6 +86,21 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void directorySymlinksIncludeReferentContentsAndRejectCycles() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path outside = temporary.newFolder("outside").toPath();
+    Path nested = Files.createDirectory(outside.resolve("nested"));
+    Path source = Files.writeString(nested.resolve("source"), "one");
+    Files.createSymbolicLink(workspace.resolve("linked"), outside);
+    String before = snapshot(workspace, output).sourceDigest();
+    Files.writeString(source, "two");
+    assertThat(snapshot(workspace, output).sourceDigest()).isNotEqualTo(before);
+    Files.createSymbolicLink(nested.resolve("cycle"), workspace);
+    assertThrows(java.io.IOException.class, () -> snapshot(workspace, output));
+  }
+
+  @Test
   public void danglingSymlinkIsDifferentFromAnEmptyReferent() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

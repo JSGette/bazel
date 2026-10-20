@@ -15,9 +15,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -161,33 +163,38 @@ final class LocalInputSnapshot implements LongVersionGetter {
       update(digest, entry.getKey());
       update(digest, entry.getValue());
     }
-    captureDirectory(workspace, digest);
+    captureDirectory(workspace, digest, new HashSet<>());
     return HexFormat.of().formatHex(digest.digest());
   }
 
-  private void captureDirectory(Path directory, MessageDigest digest) throws IOException {
-    for (Path path : children(directory)) {
-      String relative = workspace.relativize(path).toString();
-      if (directory.equals(workspace)) {
-        if (path.getFileName().toString().equals(".git")) {
-          continue;
-        }
-        if (path.getFileName().toString().startsWith("bazel-") && Files.isSymbolicLink(path)) {
-          Path target = path.getParent().resolve(Files.readSymbolicLink(path)).normalize();
-          if (target.startsWith(outputBase)) {
+  private void captureDirectory(Path directory, MessageDigest digest, Set<Path> ancestors)
+      throws IOException {
+    Path realDirectory = directory.toRealPath();
+    if (ancestors.size() >= 256 || !ancestors.add(realDirectory)) {
+      throw new IOException("source directory symlink cycle or excessive depth: " + directory);
+    }
+    try {
+      for (Path path : children(directory)) {
+        String relative = workspace.relativize(path).toString();
+        if (directory.equals(workspace)) {
+          if (path.getFileName().toString().equals(".git")) {
             continue;
           }
+          if (path.getFileName().toString().startsWith("bazel-") && Files.isSymbolicLink(path)) {
+            Path target = path.getParent().resolve(Files.readSymbolicLink(path)).normalize();
+            if (target.startsWith(outputBase)) {
+              continue;
+            }
+          }
+        }
+        update(digest, relative);
+        update(digest, fingerprint(path, false));
+        if (Files.isDirectory(path)) {
+          captureDirectory(path, digest, ancestors);
         }
       }
-      update(digest, relative);
-      update(digest, fingerprint(path, false));
-      if (Files.isDirectory(path, NOFOLLOW_LINKS)) {
-        captureDirectory(path, digest);
-      } else if (Files.isSymbolicLink(path) && Files.isDirectory(path)) {
-        // Directory symlinks require a bounded, cycle-aware tree protocol; do not silently omit
-        // their contents from a snapshot in this first implementation.
-        throw new IOException("source directory symlink is not supported: " + path);
-      }
+    } finally {
+      ancestors.remove(realDirectory);
     }
   }
 
@@ -238,6 +245,10 @@ final class LocalInputSnapshot implements LongVersionGetter {
         try {
           BasicFileAttributes referent = Files.readAttributes(path, BasicFileAttributes.class);
           update(digest, kind(referent));
+          update(
+              digest,
+              java.nio.file.attribute.PosixFilePermissions.toString(
+                  Files.getPosixFilePermissions(path)));
           if (referent.isRegularFile()) {
             hashContents(path, digest);
           }
