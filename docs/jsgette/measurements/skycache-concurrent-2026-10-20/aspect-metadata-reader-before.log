@@ -1,0 +1,78 @@
+Starting local Bazel server (no_version) and connecting to it...
+WARNING: Option 'experimental_disk_cache_gc_max_size' is deprecated: Use --disk_cache_gc_max_size instead
+WARNING: Option 'incompatible_default_to_explicit_init_py' is deprecated
+INFO: Invocation ID: 51be4ae5-d642-4582-a7bc-919f905d8dac
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Computing main repo mapping:
+Loading:
+Loading: 3 packages loaded
+WARNING: Specifying --experimental_active_directories will override the active directories specified in the PROJECT.scl file
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 8 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (116 packages loaded, 30 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (117 packages loaded, 30 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (117 packages loaded, 30 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (994 packages loaded, 3030 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (995 packages loaded, 3030 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (995 packages loaded, 3043 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (2674 packages loaded, 8647 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (3657 packages loaded, 17,358 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4152 packages loaded, 24,719 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4153 packages loaded, 24,719 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4183 packages loaded, 25,448 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4187 packages loaded, 25,448 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4228 packages loaded, 28,319 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4446 packages loaded, 35,794 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4446 packages loaded, 35,794 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4491 packages loaded, 47,040 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4559 packages loaded, 47,637 targets configured, 24 aspect applications)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (4559 packages loaded, 48,080 targets configured (174 remote cache hits), 24 aspect applications)
+
+FATAL: bazel crashed due to an internal error. Printing stack trace:
+java.lang.RuntimeException: Unrecoverable error while evaluating node 'ConfiguredTargetKey{label=@@+http_archive+libxslt//:xslt, config=BuildConfigurationKey[de970f15bf81016f10764a43eb001e6bf1ca190da90e0bf2b1f918f7953ded48]}' (requested by nodes 'ConfiguredTargetKey{label=@@+http_archive+libxslt//:xslt_pkg, config=BuildConfigurationKey[de970f15bf81016f10764a43eb001e6bf1ca190da90e0bf2b1f918f7953ded48]}', 'ConfiguredTargetKey{label=@@+http_archive+libxslt//:xslt_pkg_patched, config=BuildConfigurationKey[de970f15bf81016f10764a43eb001e6bf1ca190da90e0bf2b1f918f7953ded48]}')
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:555)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(Unknown Source)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(Unknown Source)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(Unknown Source)
+Caused by: java.lang.UnsupportedOperationException: Only supported if transitive packages are tracked.
+	at com.google.devtools.build.lib.analysis.AspectValue.getKeyForTransitivePackageTracking(AspectValue.java:88)
+	at com.google.devtools.build.lib.analysis.producers.ConfiguredAspectProducer.processResult(ConfiguredAspectProducer.java:112)
+	at com.google.devtools.build.skyframe.state.TaskTreeNode.run(TaskTreeNode.java:94)
+	at com.google.devtools.build.skyframe.state.Driver.drive(Driver.java:87)
+	at com.google.devtools.build.lib.skyframe.DependencyResolver.computeDependencies(DependencyResolver.java:743)
+	at com.google.devtools.build.lib.skyframe.DependencyResolver.evaluate(DependencyResolver.java:438)
+	at com.google.devtools.build.lib.skyframe.ConfiguredTargetFunction.compute(ConfiguredTargetFunction.java:306)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more

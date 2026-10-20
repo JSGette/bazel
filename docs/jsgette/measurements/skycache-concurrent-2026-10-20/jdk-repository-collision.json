@@ -1,0 +1,45 @@
+{
+  "purpose": "intrusive JVM live/committed-heap diagnosis; not a timed performance comparison",
+  "mode": "off",
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-retry-symlink-packed-review",
+  "binary_sha256": "ad807a19f9f38f373891c8f6e6ff477d7cb618ff0acaa7e4301d061c524d843c",
+  "workspace": "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk-off-workspace",
+  "argv": [
+    "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk-off-workspace/tools/bazel",
+    "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk-off/output-base",
+    "--host_jvm_args=-Xmx4g",
+    "--max_idle_secs=120",
+    "--host_jvm_args=-XX:StartFlightRecording=filename=/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk-off/build.jfr,name=skycache-profile,settings=profile,dumponexit=true",
+    "build",
+    "//cmd/cluster-agent:cluster-agent",
+    "--config=no-remote-cache",
+    "--jobs=2",
+    "--local_resources=memory=3072",
+    "--lockfile_mode=off",
+    "--experimental_strict_repo_env",
+    "--color=no",
+    "--curses=no",
+    "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+    "--repo_env=JAVA_HOME=/home/jgett/.cache/bazel/_bazel_jgett/cache/repos/v1/contents/be9d1f488b48cd5544180bfdef7f8e6305d48f35f001c97b040bd54dd0910b6b/952e2d25-8fe3-4d73-a350-224e21e701ac"
+  ],
+  "captures": [],
+  "storage_preflight": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk-off",
+        "free_bytes": 642883182592
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 369935949824,
+      "system_drive": "C:\\",
+      "system_free_bytes": 158955216896
+    }
+  },
+  "exit_code": 1,
+  "diagnostic_build_seconds": 13.337329539999999
+}

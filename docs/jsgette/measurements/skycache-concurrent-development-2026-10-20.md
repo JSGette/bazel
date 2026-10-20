@@ -1272,3 +1272,51 @@ Evidence: [tests](skycache-concurrent-2026-10-20/candidate-retry-tests.json),
 [cache-off heap](skycache-concurrent-2026-10-20/heap-identity-off.json),
 [writer heap](skycache-concurrent-2026-10-20/heap-identity-writer.json),
 [cancelled diagnostic](skycache-concurrent-2026-10-20/heap-identity-reader-cancelled.json).
+
+
+## Step 22 — preserve aspect metadata for a genuinely independent reader
+
+Implementation: [24b3c00e35a1](https://github.com/JSGette/bazel/commit/24b3c00e35a1a6b91411aa6faef128c1b19fb6e5).
+The stricter Datadog probe starts from three different worktrees and output bases at the same pinned
+revision. The reader is created after the writer stops and initially has access to exactly one
+publication, made by that writer. This prevents success through reuse of its own prior publication.
+
+An explicit common JDK removes the generated local_java_repository error message that differed by
+output base in Step 21. Passing the downloaded Bazel repository itself as JAVA_HOME initially failed:
+its generated BUILD.bazel collided with local_java_repository's own file. The successful fixture uses
+a dedicated JDK view containing symlinks to distribution files only, excluding Bazel repository
+metadata. The original downloaded repository is unchanged. This is an explicit benchmark flag,
+not a global environment change, and does not normalize arbitrary build-file strings.
+
+That setup exposed a real correctness bug: the old reader reached 174 configured-target cache hits
+then crashed with exit 37 after 43.623 seconds. A locally computed parent's ConfiguredAspectProducer
+requested the key of a restored AspectValue for transitive-package tracking. The ordinary generated
+aspect codec omits that key and its transitive-package nested set, so the method threw
+UnsupportedOperationException. The failing log and protocol are retained.
+
+The local module now explicitly selects an aspect codec preserving its actions, aspect, providers,
+master-log flag, alias status, key and transitive-package metadata. Restored values implement the
+existing DeserializedSkyValue marker and support reserialization and metadata clearing. Both alias
+subclasses are explicitly registered, including the one with its own generated codec. The default
+remote codec remains unchanged. No evaluator edit is needed. The local source discriminator advances
+to v8-aspect-package-metadata, so older incompatible publications cannot be reused.
+
+All twelve focused targets / 165 cases pass with Cache&Carry enabled; the final run records three
+remote action hits. New tests cover tracked/untracked values, aliases, reserialization, the master-log
+flag, clearing, and unchanged default-codec behavior. The initial test fixture lacked its native-aspect
+reference dependency; that test-only failure was corrected and its build log preserved locally.
+
+The new independent Datadog reader completes successfully with 3,449
+configured-target hits and 26,327 shared store reads. All three builds
+produce the identical baseline executable SHA-256 `7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664`. These JFR and heap
+diagnostic runs are correctness and allocation evidence, not an uninstrumented speed comparison.
+Their measured durations are saved in the protocol. The next gate extends this independent-reader
+setup to two concurrent servers and independent feature edits/reverts before further performance work.
+
+Evidence: [focused tests](skycache-concurrent-2026-10-20/aspect-metadata-tests.json),
+[independent-worktree diagnostic](skycache-concurrent-2026-10-20/aspect-metadata-cross-worktree.json),
+[reader's sole input publication](skycache-concurrent-2026-10-20/aspect-metadata-reader-publications.json),
+[original crash](skycache-concurrent-2026-10-20/aspect-metadata-reader-before.log),
+[patched reader log](skycache-concurrent-2026-10-20/aspect-metadata-reader-after.log).
+
+The committed log copies trim trailing whitespace only; raw logs remain in the local run directories.

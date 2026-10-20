@@ -134,6 +134,16 @@ concurrent worktree builds pass; the microbenchmark removes most repeated reject
 Full-pass hashing still allocates heavily. Heap diagnostics separate collectible allocation from
 live heap, but native/PSS overhead remains unresolved.
 
+## Independent Datadog reader now verified (Step 22)
+
+A fresh reader with only another worktree's publication now passes with real configured-target hits
+and byte-identical output under an explicit shared valid JDK. This exposed and fixed missing aspect
+key/transitive-package metadata in the local codec. The generated remote codec and evaluator remain
+unchanged. Twelve focused targets / 165 cases pass. The Step 21 portability diagnosis and the original
+reader crash remain in the protocol. Next extend the stronger setup to two simultaneous fresh readers
+and independent edited/reverted worktrees; then address measured full-validation allocation, bounds,
+reader-safe collection and nearby-revision reuse. This does not yet establish production maturity.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
