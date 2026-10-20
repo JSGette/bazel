@@ -139,7 +139,8 @@ public class IncrementalInMemoryNodeEntry extends AbstractInMemoryNodeEntry<Dirt
 
   protected final synchronized Set<SkyKey> setStateFinishedAndReturnReverseDepsToSignal() {
     Set<SkyKey> reverseDepsToSignal = ReverseDepsUtility.consolidateDataAndReturnNewElements(this);
-    directDeps = getTemporaryDirectDeps().compress();
+    directDeps =
+        directDeps == null ? GroupedDeps.EMPTY_COMPRESSED : getTemporaryDirectDeps().compress();
     markDone();
     return reverseDepsToSignal;
   }
