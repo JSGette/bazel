@@ -177,3 +177,42 @@ Reproduce with `tools/skycache/local_worktree_probe.py --bazel /path/to/copied/b
 - This is a working experimental local analysis-sharing slice, not a production-maturity claim.
   Next: remove execution serialization overhead, measure the Datadog workload, address lifecycle/
   bounded storage and finer reuse, repeating tests and measurements before each commit.
+
+
+## Step 3 — omit execution records the local reader cannot use
+
+Implementation: [f5b9c1c1bebe](https://github.com/JSGette/bazel/commit/f5b9c1c1bebe09664a9bd6e4e46633206987f99b).
+The backend now declares whether it uploads execution values. The existing asynchronous uploader
+skips those values for local SkyCache, before serialization starts. The default supplier still
+accepts execution values, preserving the upstream behavior. This does not enable the unsupported
+MTSV-based analysis-only flag and does not change the evaluator.
+
+All six Java targets passed again (66 test cases), and the complete 12-build concurrent-worktree
+protocol passed before and after this change. Every corresponding output hash matches.
+Each restarted reader still reports 49 analysis hits, but now performs **51 writes**, versus
+149 before (98 fewer, 65.8% reduction). This removes unnecessary execution serialization,
+record files and fsyncs. The original hypothesis of zero writes was disproved: execution lookup
+keys themselves still serialize shared chunks. Skipping those always-miss lookups is the next
+separate performance change. Publication is still needed for the remaining writes.
+
+| Phase | New records per server before → after | Pair elapsed before → after |
+|---|---:|---:|
+| concurrent-empty-cache | 790 → 741 | 11.828 → 14.011 s |
+| warm | 0 → 0 | 0.238 → 0.235 s |
+| independent-source-edits | 487 → 483 | 1.216 → 1.481 s |
+| independent-starlark-edits | 787 → 738 | 0.871 → 0.862 s |
+| reverted-restarted-readers | 149 → 51 | 10.573 → 10.731 s |
+| corrupt-chunks-fallback | 790 → 741 | 10.314 → 12.081 s |
+
+
+These are single ordered samples, not randomized performance statistics. Several elapsed times
+are worse despite fewer writes; startup, first binary extraction, JIT and filesystem noise are
+not isolated. **The demonstrated benefit is reduced serialization/storage work, not a proven
+wall-time speedup.** Raw data includes record counts/bytes, sampled server RSS, exact commands and
+all output hashes:
+[before](skycache-concurrent-2026-10-20/execution-upload-baseline-results.json),
+[after](skycache-concurrent-2026-10-20/analysis-only-uploads-results.json).
+
+Next compatibility finding from inspecting Datadog: the checkout contains directory symlinks
+(`.claude/skills` and a procfs test fixture), which the conservative source scanner rejects.
+Support must include referent contents and cycle detection before claiming a Datadog SkyCache run.

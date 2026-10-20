@@ -1,197 +1,138 @@
 ---
 name: concurrent SkyCache across worktrees
-overview: Independent Bazel servers share immutable validated analysis records through a concurrent filesystem backend, with demand paging and a future gRPC transport.
+overview: Independent Bazel servers retain their graphs in RAM and safely share immutable validated analysis through a local disk cache.
 todos:
-  - id: go-measure
-    content: Complete real rules_go correctness and Datadog memory/latency comparisons
-    status: completed
   - id: concurrent-storage
-    content: Implement and test the immutable concurrent filesystem storage foundation
+    content: Concurrent immutable publication and duplicate-write optimization
     status: completed
   - id: exact-snapshot-reuse
-    content: Add portable exact-snapshot analysis reuse across simultaneous worktrees
+    content: Experimental exact-snapshot analysis reuse with two servers and worktree edits
+    status: completed
+  - id: storage-efficiency
+    content: Omit unused records; measure and optimize validation and record I/O
+    status: in_progress
+  - id: datadog-validation
+    content: Large rules_go workloads, independent worktrees, output equivalence and RAM/latency
+    status: in_progress
+  - id: bounded-storage
+    content: Reader-safe cleanup, crash recovery, resource bounds and observable statistics
     status: pending
-  - id: dependency-validation
-    content: Validate cached dependency witnesses across nearby commits and dirty trees
-    status: pending
-  - id: bounded-residency
-    content: Enforce byte budgets, batch I/O, compact storage, and measure whole-machine memory
+  - id: nearby-revisions
+    content: Per-entry dependency validation and reuse across differing snapshots
     status: pending
   - id: grpc-transport
-    content: Add gRPC using the same storage and publication conformance contract
+    content: A remote transport with the same immutable publication and validation contract
     status: pending
 isProject: false
 ---
 # Concurrent SkyCache
 
-> Direction updated 2026-10-20: keep the graph in RAM and minimize evaluator changes.
-> Build a shared disk analysis cache for independent Bazel servers. Active development,
-> decisions and measurements are recorded in the [development log](../measurements/skycache-concurrent-development-2026-10-20.md).
-> The paging and bounded-residency sections below describe the earlier proposal and are
-> no longer implementation requirements; the immutable-sharing and validation requirements remain.
+Updated 2026-10-20. This replaces the demand-paging roadmap. Keep each Bazel server's graph
+in RAM. Cache reuse is optional: a miss, unsupported value or damaged record must lead to local
+evaluation. Do not make disk storage authoritative for live Skyframe state, cap graph nodes by
+jobs/CPU, or add Rust/IPC to the evaluator.
 
-Architecture revised 2026-10-19 after the completed rules_go correctness and Datadog benchmark
-matrix. Concurrent filesystem publication is implemented and tested; portable cross-worktree
-analysis integration is next.
+The selected interface is disk-cache-like: independent Bazel instances using separate output
+bases can read and write the same cache directory concurrently while building worktrees of one
+repository. No designated writer, shared mutable graph, five-minute snapshot timer or shared
+server is required. Preserve existing Skyframe scheduling and invalidation machinery.
 
-## Objective and ownership
+## Implemented and measured
 
-Independent Bazel servers in simultaneous worktrees should reuse completed analysis from the same
-or nearby repository states. Each server owns its evaluation overlay: dirty/in-flight nodes,
-dependency scheduling, local versions, reverse-edge mutation, action execution state and output
-roots. Shared storage holds immutable portable values, shared chunks, dependency evidence and
-published lookup candidates. Several servers may publish and read concurrently; there is no
-exclusive lifetime writer and no requirement to wait for a five-minute snapshot.
+Implementation is on `jsgette/skycache-concurrent`; docs/results are on `jsgette/master`.
+See the [development protocol](../measurements/skycache-concurrent-development-2026-10-20.md)
+for commits, exact commands, raw results, failed experiments and limitations.
 
-The Rust code in this fork is a storage process, not a Rust Skyframe evaluator. Preserve Java's
-evaluation semantics while improving storage and residency. A full evaluator rewrite is a separate
-project and is not required for concurrent reuse.
+- Immutable, checksummed byte records with no-replace publication and file/directory durability.
+  Independent writer-JVM races, live readers, conflicting values and corrupted records are tested.
+- Duplicate puts validate existing bytes before staging another file. Storage microbenchmarks
+  show much less duplicate-write work; this is not a Bazel speedup claim.
+- A Bazel module at the upstream serialization/service seam enables asynchronous bidirectional
+  caching. Each command writes privately, then publishes an immutable manifest after successful
+  completion and input validation. Multiple commands can publish simultaneously.
+- Typed workspace/output paths relocate to the reader. Source package roots are restored, and
+  a local codec retains transitive package metadata needed by Skymeld's execution symlink forest.
+  No evaluator implementation was changed.
+- Two real Git worktrees and servers pass simultaneous cold/warm builds, separate source and
+  Starlark edits, reverts/restarts and deliberate shared-chunk corruption. Output bytes match.
+  Restarted readers demonstrate actual configured-target hits. A separate relocation probe
+  works after the writer workspace and output base become inaccessible.
+- Execution-value uploads are omitted for the local backend because its reader only accepts
+  analysis envelopes. A reused test command writes 51 records versus 149 before; always-miss
+  execution lookups still serialize keys and are the next optimization.
 
-## Evidence gates
-
-The existing native-genrule experiment saved about 10% of post-GC heap on a synthetic 1,024-action
-graph, but raised JVM-plus-Rust PSS about 24%, and added latency on disjoint and edited builds.
-It does not establish a whole-machine memory win. The completed
-[Go comparison](../measurements/skyframe-lazy-go-datadog-linux-2026-10-19.md) uses the same
-source-built binary in both modes on Datadog's cluster-agent (57,298 configured targets,
-318,018 graph nodes). It reports graph residency, process-tree PSS, live heap, latency, I/O and
-matching output hashes through full-GC reload and source/Starlark/library edits and reverts.
-
-The Go prototype is also a negative performance result: at a 256-eligible-node limit, 314,159
-nodes remain pinned and 3,603 are cold. Post-warm live heap rises from 248.4 to 381.4 MiB (+54%);
-warm-build median rises from 0.598 to 24.019 seconds (40x). Peak process-tree PSS is about 4 GiB in
-both modes. Keep demand paging opt-in. Complete portable sharing independently, and require
-compact metadata, byte accounting and removal of repeated serialization before widening residency.
-
-The current local codec pins configurations and Starlark definitions. Its node IDs, key dictionary,
-versions and identity references belong to one evaluator generation. Those bytes must never be
-published as portable SkyCache records. The existing alternative graph also retains Java handles
-for every node and a Rust in-memory location index. Counting evicted delegates is insufficient.
-
-Real rules_go validation has already found three requirements absent from the native-genrule
-fixture: artifact-array codecs for multi-output compile actions; explicit sharing of the transitive
-GoArchive provider DAG (otherwise the store exceeds 1 GiB before analysis finishes); and preservation
-of Runfiles identity inside GoArchiveData, so resident and decoded depsets do not pass duplicate
-packages to the linker. The first Go codec pins Runfiles and reports that cost. These findings make
-provider semantics and ownership an explicit acceptance gate for every new rule family.
+This is an experimental implementation. The small-worktree test is not large-repository or
+production-maturity evidence. The prior Go paging experiment is historical, with a measured
+latency/memory regression; its code remains on its separate branch.
 
 ## Invariants
 
-1. Separate optional cache misses from loss of authoritative paged evaluation state. A missing or
-   invalid shared cache entry causes recomputation. A missing private spill record fails the
-   operation or resets the evaluator at a safe command boundary; it must not silently disappear.
-2. Derive a compatibility namespace from repository identity, Bazel/codec versions, semantics,
-   configuration/transitions, toolchains and platforms. Explicitly rebind workspace/output roots.
-   Do not reuse local numeric Skyframe versions across JVMs.
-3. Start with exact source snapshots validated by content, file type/mode, symlink target and
-   relevant directory/absence witnesses. HEAD plus a list of dirty filenames is incorrect: editing
-   the same dirty file twice leaves that key unchanged. Include relevant untracked/ignored files,
-   external repositories and environment/toolchain inputs, or disable sharing for unsupported cases.
-4. Treat commit IDs as lookup hints once dependency validation exists. Preserve multiple candidate
-   versions per logical key; two worktrees must not overwrite each other's candidate. A conflicting
-   payload for an identical full semantic identity signals nondeterminism or an incomplete key.
-5. Publish complete immutable data before making a root/candidate visible. A successful publication
-   means the referenced closure is readable and has reached the required durability boundary.
-   Readers opened before publication must discover it without restarting; negative caches cannot
-   hide new entries indefinitely.
-6. GC cannot delete authoritative records, active reader pins or in-progress writer data. First
-   implement no deletion, then introduce fenced ownership/leases and a tested collector. A single
-   GC coordinator is compatible with many writers. Remote lease expiry requires a separate design.
+1. Each server owns its graph, in-flight work, invalidation state, action execution and outputs.
+   Shared records are immutable optional reuse data. Do not share mutable Java identities or
+   process-local version numbers as semantic identities.
+2. Compatibility covers binary/codec identity, configuration, semantics, platform/toolchain
+   inputs and source state. Rebase typed roots; never blindly rewrite arbitrary user strings.
+3. Git HEAD and dirty filenames are insufficient validity evidence. Verify content, file
+   types/modes, symlink chains, directory membership, missing paths, external repository
+   bindings and relevant environment. Fail closed for unsupported cases.
+4. Publish durable chunks before exposing roots. Retain explicit publication dependencies.
+   Readers opened earlier must discover later publications; negative caches are bounded.
+5. Corruption, incomplete writes and missing chunks cannot create successful stale reuse.
+   Recovery must preserve output equivalence and avoid failing an otherwise valid build.
+6. Collection cannot remove records needed by active readers, writers or live publications.
+   Keep a bounded storage policy separate from the in-memory graph.
+7. Respect ordinary Bazel's stable-input expectation within a command. Do not claim that
+   pre/post hashing is an atomic filesystem snapshot or protection against arbitrary ABA races.
 
-## Delivery sequence
+## Next implementation and measurement sequence
 
-### A. Measure and bound the local Go experiment
+### 1. Rule and filesystem compatibility
 
-Audit ordinary rules_go library Starlark actions, providers, argument mapping, resource callbacks,
-configuration and artifact identity. Leave input discovery/pruning, mutable enhanced actions,
-unsupported action classes and in-flight values pinned. Exercise actual large Datadog builds,
-warm runs, full-GC reloads, source edits/reverts and Starlark edits/reverts. Preserve generated output
-hashes and commands. Do not turn paging on by default based on node-count reduction alone.
+Support source directory symlinks with content traversal and bounded cycle detection.
+Exercise external repository changes, absolute symlinks and link-chain retargeting. Audit
+arbitrary host-specific strings in rule values. Add tests that require fresh execution roots,
+not merely action-cache hits. Validate cache-mode transitions and different environment values.
 
-Completed: exact command/action/provider identity tests; the full large-workload matrix; and an
-additional real Go-library source/BUILD compile-option edit matrix. Outputs match the in-memory
-control, including every revert. The result supports the codec experiment's tested correctness,
-not a production memory or latency improvement.
+Run the public Datadog Agent checkout at the recorded commit with substantial rules_go targets.
+Keep output bases isolated, use fixed JVM/action resource limits, and hold the host measurement
+lock. Record source/lockfile state, binary hash, target/configuration, graph-cold versus warm
+conditions, actual analysis hits, output hashes, server/process memory and cache growth.
+Compare same-binary cache-off, writer and reader behavior; do not conflate action-cache savings
+with analysis reuse. Expand to two live servers and semantic edits/reverts in both worktrees.
 
-### B. Concurrent filesystem storage foundation
+### 2. Storage and validation cost
 
-Implement an immutable, namespaced FingerprintValueStore at the existing serialization boundary.
-Use SHA-256 names/content checks, bounded record lengths, owner-private staging, atomic no-replace
-publication and file/directory durability. Independent processes can publish unrelated entries and
-idempotently publish identical entries; conflicting values are rejected rather than silently won
-by the last writer. Read directly from the filesystem to avoid per-process full indexes and stale
-startup-only discovery. No garbage collection or production module activation in this first slice.
+Establish baselines before each change. Measure source scanning, external-input validation,
+candidate discovery, serialization, durable writes, reads and retained metadata separately.
+Current limitations include one file per record, repeated fsync, linear candidate search and
+whole-source/whole-publication validation. Evaluate sealed packs, indexed lookup and bounded
+batch I/O while preserving publication and missing-chunk behavior. Avoid a full per-process
+in-memory index that grows with the entire shared cache.
 
-Acceptance: a reader opened before writers sees live publications; simultaneous processes can
-publish identical and distinct keys; conflicting writers cannot replace a completed entry; partial
-staging, truncation and corruption are never returned as valid values; incompatible namespaces miss.
+After each issue: implement one change, run focused regression checks, repeat measurements,
+save commands/raw results and explain tradeoffs, commit the implementation and docs separately,
+push both branches, then proceed. Report negative or inconclusive performance results.
 
-Implemented checkpoint: `ConcurrentFileFingerprintValueStore` at
-`src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/` passes these checks,
-including four independent live writer JVMs and a two-process conflicting publication race.
-The backend requires an existing durable root on a same-user local POSIX filesystem. It publishes
-with an atomic hard link (no replacement), checks the stored key and SHA-256 payload digest, and
-completes writes only after file and directory fsync. It is not registered as a Bazel module yet;
-cross-worktree analysis reuse depends on phase C, not merely on this byte-store implementation.
+### 3. Bounded lifecycle
 
-The first format may use one file per entry for a simple publication proof. The older packed
-prototype already demonstrated that this layout is expensive at analysis-cache scale. Benchmark it
-before activation; sealed packs and sparse disk indexes are the next storage optimization, not an
-excuse to omit concurrent publication correctness.
+Define a byte/age budget and cleanup policy. Begin with a conservative lock/lease protocol
+protecting active publications and their dependency closures. Test readers surviving collection,
+concurrent publishers, interrupted writes, abandoned staging and process death. Use a single
+collector coordinator if useful; never serialize all ordinary writers behind a lifetime lock.
+Add meaningful hit/miss/rejection, validation-time, I/O, failure and GC statistics.
 
-### C. Portable exact-snapshot analysis reuse
+### 4. Nearby commits and dirty worktrees
 
-Port the existing LocalSkycacheModule/serialization integration after auditing its guards. Supply
-exact snapshot identity and root rebinding; initially reject unsupported inputs. Use completed
-serialization write futures as the dependency-closure barrier, then publish an immutable candidate
-manifest. Do not relax upstream warm-upload gates without tests comparing cold and warm frontiers.
-Test two worktrees, two independent servers and different output bases building at the same time.
-Verify outputs and action keys against uncached analysis, including edits during a publication.
+Current exact source identities segregate differing trees, which is safe but loses partial reuse.
+Move toward per-entry transitive dependency witnesses and multiple candidates per logical key.
+Validate those witnesses before exposing a value. Git diff may narrow searches but cannot
+replace content checks. Cover repeated same-file edits, globs, additions/deletions/renames,
+configuration changes and independently dirty worktrees. Retain safe exact-snapshot fallback.
 
-### D. Reuse across nearby commits
+### 5. Future gRPC
 
-Wire dependency validation into retrieval, with trustworthy witnesses for contents, globs, missing
-paths, symlinks, external repositories, flags and environment. Git diff accelerates candidate
-selection but is not the correctness oracle. Check repeated edits of the same file, additions,
-deletions, renames and branch changes. Validate candidates before exposing portable values to the
-local evaluator. Report rejected candidates and why they were rejected.
-
-### E. Memory reduction and I/O scheduling
-
-Use a byte budget covering decoded values, pinned/active state, handles/indexes, caches and I/O
-buffers. Jobs/CPU times a factor controls admission and bounded prefetch, not a claim that the total
-graph has only that many nodes: waiting parents, dependency fanout and arbitrary SkyFunction-held
-references can exceed execution concurrency. Reserve progress capacity so reads required to finish
-work cannot deadlock behind the residency budget. An oversize or unsupported value has an explicit
-pin reason and measured cost.
-
-Audit global consumers as well as the evaluator: action-conflict checking, analysis-result
-collection and depset expansion can touch far more than the currently executing jobs. A lazy
-node map alone does not make these consumers streaming. Define which metadata is always resident,
-which references callers may retain, and how each global operation avoids repeated hydration.
-
-Batch requests and move I/O away from globally serialized eviction paths. Avoid repeated whole
-nested-set flattening and encode/decode work for still-retained values. Add private-store compaction
-and a sparse on-disk shared index. Measure JVM + Rust PSS and filesystem-cache residency, with guest
-page-cache and host/device-cache limitations stated separately. Require a repeatable memory benefit
-at acceptable latency before widening the value allowlist or changing defaults.
-
-### F. gRPC transport
-
-Keep filesystem paths out of semantic records. The existing FingerprintValueStore remains the byte
-transport seam; add batch get/put, immutable candidate publication/discovery and pin/release contracts
-where required rather than forcing these semantics into arbitrary-key overwrite. A later gRPC
-backend implements the same conformance tests with cancellation, deadlines, retries and idempotent
-publication. Remote storage is optional reuse; each evaluator retains a reliable private authority
-until remote durability and lease guarantees can safely serve that role.
-
-## Existing prototype audit
-
-`origin/jsgette/skycache-local` at `4d3d1534be` already has a module, bounded RAM tier and packed
-fingerprint store. Its per-writer pack files are useful precedent, but startup-only indexes miss
-live publications and sweeping protects only the local writer's current pack. Do not point several
-servers at it as a supported concurrent cache. Its GitChangeSource validation is still roadmap work.
-The previous local plan's dirty-filename key and blanket rejection of gRPC are superseded.
-
-The shared-server proposal remains an alternative to evaluate separately. It is not the selected
-architecture for this request, which requires independent simultaneous Bazel instances/worktrees.
+Keep the existing FingerprintValueStore/service interface as the transport boundary. Separate
+immutable bytes, candidate publication/discovery and reader lifetime protection. Before remote
+reuse, define portable external-root/toolchain identity, batch requests, cancellation, deadlines,
+idempotent retry and remote lease semantics. The filesystem implementation and its conformance
+tests remain the reference; no network service is needed for the current milestone.
