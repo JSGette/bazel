@@ -640,3 +640,34 @@ Raw evidence: [Datadog](skycache-concurrent-2026-10-20/datadog-shared-put.json),
 [final lock samples](skycache-concurrent-2026-10-20/shared-put-final-lock-diagnostics.json),
 [final diagnostic writer](skycache-concurrent-2026-10-20/shared-put-final-writer-diagnostic.json),
 [storage checks](skycache-concurrent-2026-10-20/shared-put-storage.json).
+
+
+## Step 12 — check Windows backing capacity before WSL measurements
+
+Implementation: [f1a2d75b7be2](https://github.com/JSGette/bazel/commit/f1a2d75b7be2bc16aba405f7e0c48841307c3247).
+Both checked-in probes now check storage before creating a run directory and again before each
+measured command/pair. The checks run outside the timed interval and their results are saved in
+the protocol. Linux filesystem capacity alone was insufficient in the Step 10 interruption:
+an expandable WSL VHD can report free virtual space when its Windows backing volume is full.
+
+On WSL the helper resolves `WSL_DISTRO_NAME` against the current user's distro registry, then
+checks the backing volume and Windows system volume. No distro GUID or E: path is hardcoded.
+Ordinary Linux runs only require filesystem checks. A WSL host query that cannot be completed
+stops the probe with an explanation instead of silently assuming the host has capacity.
+
+Chosen reserves are 30 GiB on the probe/action-cache filesystems and WSL backing volume, plus
+10 GiB on the Windows system volume. These are conservative measurement preconditions, not
+runtime cache quotas. They do not replace the planned cache size limits and garbage collection.
+The helper makes no deletions, moves or filesystem repairs. A destructive automatic cleanup
+fallback was rejected.
+
+Four focused tests pass: host full with guest space, system-volume reserve on a different
+backing drive, guest full, and ordinary Linux without Windows. A live check correctly finds
+Ubuntu at `E:\\WSL\\Ubuntu`, with 562.0 GiB backing
+space and 150.4 GiB system-drive space at that instant.
+The final Step 11 Datadog sequence and all six two-worktree phases also exercise the guard.
+Python compilation checks pass for both probes and the new helper/tests.
+
+Evidence: [live storage check](skycache-concurrent-2026-10-20/storage-preflight-live.json) and
+the `storage_preflight` fields in Step 11's [Datadog](skycache-concurrent-2026-10-20/datadog-shared-put.json)
+and [worktree](skycache-concurrent-2026-10-20/shared-put-worktrees.json) protocols.
