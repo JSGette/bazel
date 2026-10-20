@@ -1041,3 +1041,64 @@ Evidence: [store comparison](skycache-concurrent-2026-10-20/packed-store-compari
 [Datadog packed gate](skycache-concurrent-2026-10-20/datadog-concurrent-packed.json),
 [action summaries](skycache-concurrent-2026-10-20/packed-action-summaries.json),
 [writer build metrics](skycache-concurrent-2026-10-20/packed-writer-bep-memory.json).
+
+
+## Step 19 — independent-publication identity, then a warm-graph counterexample
+
+Implementation: `bd2dac14190f18e5cedf8b6b181ecb552f270b46`. This is a correctness fix with a deliberately recorded
+remaining failure; the previous eighteen-build Datadog gate does not establish arbitrary
+graph-composition correctness.
+
+The new fixture builds the left and right halves of a three-node provider diamond in independent
+servers/caches. It then copies both complete immutable publications into a fresh shared cache
+and asks a third worktree/server to expand the combined depset through an actual action command
+line. Both writers saw zero shared reads, so this exercises publications that could have finished
+independently in a concurrent run. No action disk cache is used. The fixture saves results before
+assertions and always shuts down its own servers.
+
+Both the packed and previous file backends produce **four arguments instead of three**, with the
+leaf duplicated, despite successful builds and four analysis hits. Removing only the Runfiles
+provider field gives the expected three. Per-writer UUIDs preserve one writer's shared identity
+but cannot identify the same producer across independent writers.
+
+Runfiles creation now records the complete configured-target/aspect key and a per-evaluation
+creation ordinal in a weak identity-keyed provenance map. The factory scopes are thread-local
+and nested scopes restore their parent. No evaluator change, global equality override or
+content-only interning is introduced. Metadata is recorded even with the cache off so values
+retained in RAM can later be serialized. Separate originals within one producer retain separate
+ordinals; different producers remain distinct. Unscoped values retain the UUID fallback.
+The codec preserves provenance on restore and excludes the derived allArtifacts memo, whose
+presence depends on getter history. Its serialized contents remain part of the shared fingerprint.
+The source/cache schema discriminator is bumped, so old-format payloads cannot be reused.
+
+Ten test targets / 117 cases pass, including six new origin cases (independent writers, distinct
+ordinals, distinct producers, changed contents, nested scope cleanup and reserialization).
+Build/test uses `--config=efcache --bes_backend= --remote_upload_local_results=false`;
+the source build records eleven remote cache hits. The fresh real-worktree probe now produces
+exactly three arguments, four analysis hits, 82 shared reads and seven writes. Its reader takes
+9.266 s versus 9.227 s before; these single startup-dominated samples are correctness evidence,
+not a performance result. Additional provenance storage/creation cost needs the large-workload
+measurement after the remaining correctness issue is addressed.
+
+The next fixture first builds the reader's left branch against an empty cache, retains that
+graph and server, exposes both other writers' publications, then builds the full app. This still
+produces **four arguments**, with one analysis hit and 63 shared reads (0.252 s). The existing
+leaf is a live original while the newly restored branch contains its decoded copy. Stable payload
+identity alone cannot reconnect these objects. This is now the next correctness blocker; do not
+call this implementation mature or use cold-reader success as proof for warm graph composition.
+An earlier attempted mixed test changed active directories, but source inspection shows those
+flags control serialization selection rather than forcing retrieval misses. That test was
+discarded as mixed-evaluation evidence; the retained-server fixture is the valid reproducer.
+
+Rejected shortcuts: collapsing Runfiles by file contents would merge genuinely separate objects;
+changing all Runfiles equality would alter ordinary analysis semantics; filtering duplicate linker
+arguments would hide a graph error; discarding the in-memory graph conflicts with the requested
+design. The next change must preserve producer identity when restoring into an existing graph,
+including the opposite arrival order, and verify content compatibility before aliasing objects.
+
+Evidence: [packed failure](skycache-concurrent-2026-10-20/partitioned-identity-packed-before.json),
+[file failure](skycache-concurrent-2026-10-20/partitioned-identity-files-before.json),
+[field-removed control](skycache-concurrent-2026-10-20/partitioned-identity-no-runfiles-control.json),
+[cold reader fix](skycache-concurrent-2026-10-20/partitioned-identity-origin-after.json),
+[warm reader failure](skycache-concurrent-2026-10-20/warm-partitioned-identity-before.json),
+[tests](skycache-concurrent-2026-10-20/runfiles-origin-tests.json).

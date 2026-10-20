@@ -106,6 +106,16 @@ latency/memory regression; its code remains on its separate branch.
 7. Respect ordinary Bazel's stable-input expectation within a command. Do not claim that
    pre/post hashing is an atomic filesystem snapshot or protection against arbitrary ABA races.
 
+## Current correctness blocker (Step 19)
+
+Independent partial publications exposed a Runfiles identity bug: the combined provider diamond
+produced four arguments instead of three. Stable producer-key/creation-ordinal provenance now
+fixes the cold-reader case (117 focused cases pass). A reader retaining its locally built left
+branch in RAM still duplicates the common leaf when it imports the right branch. Fix this warm
+graph composition and both arrival orders before additional performance/maturity claims. The
+eighteen-build Datadog gates did not cover this case. Preserve reference semantics and reject
+content-only merging of distinct producer objects. Keep the graph in RAM and avoid evaluator edits.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
