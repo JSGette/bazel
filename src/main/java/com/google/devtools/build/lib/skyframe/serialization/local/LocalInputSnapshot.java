@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -103,14 +104,40 @@ final class LocalInputSnapshot implements LongVersionGetter {
   void observe(Path path, boolean listing) throws IOException {
     Path normalized = path.toAbsolutePath().normalize();
     remember(new Witness(logicalPath(normalized), listing, fingerprint(normalized, listing)));
-    // The resolved file alone does not prove that the path's ancestor symlinks still resolve to it.
-    for (Path parent = normalized.getParent(); parent != null; parent = parent.getParent()) {
-      if (Files.isSymbolicLink(parent)) {
-        remember(new Witness(logicalPath(parent), false, fingerprint(parent, false)));
+    // Follow each component, retaining every link in the chain. In particular, do not normalize
+    // "link/.." lexically: the parent is determined after resolving "link".
+    var remaining = new ArrayDeque<Path>();
+    normalized.forEach(remaining::addLast);
+    Path resolved = normalized.getRoot();
+    int links = 0;
+    while (!remaining.isEmpty()) {
+      String component = remaining.removeFirst().toString();
+      if (component.equals(".")) {
+        continue;
       }
-      if (parent.equals(workspace) || parent.equals(external)) {
-        break;
+      if (component.equals("..")) {
+        resolved = resolved.getParent() == null ? resolved : resolved.getParent();
+        continue;
       }
+      Path next = resolved.resolve(component);
+      if (!Files.isSymbolicLink(next)) {
+        resolved = next;
+        continue;
+      }
+      if (++links > 256) {
+        throw new IOException("input symlink cycle or excessive depth: " + normalized);
+      }
+      remember(new Witness(logicalPath(next), false, fingerprint(next, false)));
+      Path target = Files.readSymbolicLink(next);
+      if (target.isAbsolute()) {
+        resolved = target.getRoot();
+      }
+      for (int i = target.getNameCount() - 1; i >= 0; --i) {
+        remaining.addFirst(target.getName(i));
+      }
+    }
+    if (!resolved.equals(normalized)) {
+      remember(new Witness(logicalPath(resolved), listing, fingerprint(resolved, listing)));
     }
   }
 
@@ -158,11 +185,13 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   private String captureSource() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v1");
+    update(digest, "local-source-v2");
+    update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());
       update(digest, entry.getValue());
     }
+    update(digest, "source-files");
     captureDirectory(workspace, digest, new HashSet<>());
     return HexFormat.of().formatHex(digest.digest());
   }
@@ -313,5 +342,12 @@ final class LocalInputSnapshot implements LongVersionGetter {
       throws IOException {
     observe(Path.of(path.getPathString()), false);
     return MINIMAL;
+  }
+
+  @Override
+  public boolean recordExternalSymlinkDependencies(com.google.devtools.build.lib.vfs.Path path)
+      throws IOException {
+    observe(Path.of(path.getPathString()), false);
+    return true;
   }
 }

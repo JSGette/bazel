@@ -18,6 +18,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -146,6 +147,47 @@ public final class FileDependencySerializerTest {
     assertThat(e).hasCauseThat().isInstanceOf(MissingSkyframeEntryException.class);
     assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(1);
     assertThat(serializer.getCounters().nodesWaitingForDeps.get()).isEqualTo(0);
+  }
+
+  @Test
+  public void externalSymlinkUsesIndependentDependencyEvidenceAndPropagatesFailure()
+      throws Exception {
+    RootedPath path = RootedPath.toRootedPath(root, PathFragment.create("external-link"));
+    FileKey key = FileKey.create(path);
+    FileValue value = mock(FileValue.class);
+    when(value.isSymlink()).thenReturn(true);
+    when(value.getUnresolvedLinkTarget()).thenReturn(PathFragment.create("/outside/file"));
+    when(value.realRootedPath(path)).thenReturn(path);
+    when(value.exists()).thenReturn(true);
+    when(value.isDirectory()).thenReturn(false);
+    when(nodeEntry.getValue()).thenReturn(value);
+    when(graph.getIfPresent(key)).thenReturn(nodeEntry);
+    when(versionGetter.recordExternalSymlinkDependencies(path.asPath()))
+        .thenThrow(new java.io.IOException("could not persist link evidence"));
+    var result = (FutureFileDataInfo) serializer.registerDependency(key);
+    var error = assertThrows(ExecutionException.class, result::get);
+    assertThat(error).hasCauseThat().hasMessageThat().contains("could not persist link evidence");
+    verify(versionGetter).recordExternalSymlinkDependencies(path.asPath());
+    assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(1);
+  }
+
+  @Test
+  public void externalSymlinkCanUseIndependentlyValidatedDependencies() throws Exception {
+    RootedPath path = RootedPath.toRootedPath(root, PathFragment.create("external-link"));
+    FileKey key = FileKey.create(path);
+    FileValue value = mock(FileValue.class);
+    when(value.isSymlink()).thenReturn(true);
+    when(value.getUnresolvedLinkTarget()).thenReturn(PathFragment.create("../outside/file"));
+    when(value.realRootedPath(path)).thenReturn(path);
+    when(value.exists()).thenReturn(true);
+    when(value.isDirectory()).thenReturn(false);
+    when(nodeEntry.getValue()).thenReturn(value);
+    when(graph.getIfPresent(key)).thenReturn(nodeEntry);
+    when(versionGetter.recordExternalSymlinkDependencies(path.asPath())).thenReturn(true);
+    when(writer.put(any(), any())).thenReturn(WriteStatuses.immediateWriteStatus(true));
+    ((FutureFileDataInfo) serializer.registerDependency(key)).get();
+    verify(versionGetter).recordExternalSymlinkDependencies(path.asPath());
+    assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(0);
   }
 
   @Test

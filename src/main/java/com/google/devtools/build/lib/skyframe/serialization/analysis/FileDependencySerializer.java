@@ -559,6 +559,18 @@ final class FileDependencySerializer {
       Path linkPath,
       PathFragment link,
       FileInvalidationDataUploader uploader) {
+    PathFragment linkParent = parentRootedPath.getRootRelativePath();
+    PathFragment unresolvedTarget = linkParent.getRelative(link);
+    if (link.isAbsolute() || unresolvedTarget.containsUplevelReferences()) {
+      try {
+        if (versionGetter.recordExternalSymlinkDependencies(linkPath)) {
+          uploader.updateMtsvIfGreater(getVersion(linkPath, /* exists= */ true));
+          return immediateVoidFuture();
+        }
+      } catch (IOException e) {
+        return immediateFailedFuture(e);
+      }
+    }
     if (link.isAbsolute()) {
       if (isInTest()) {
         // Test environments may use absolute symlinks, which aren't allowed in production
@@ -569,8 +581,6 @@ final class FileDependencySerializer {
           String.format("Absolute symlink not permitted: %s contained %s", linkPath, link));
     }
     Symlink.Builder symlinkData = uploader.addSymlinksBuilder().setContents(link.getPathString());
-    PathFragment linkParent = parentRootedPath.getRootRelativePath();
-    PathFragment unresolvedTarget = linkParent.getRelative(link);
 
     // Assumes that there are no external symlinks, e.g. ones that go above root.
     checkArgument(

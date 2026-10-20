@@ -112,6 +112,53 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void intermediateDirectorySymlinkRetargetingRejectsPublication() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path first = temporary.newFolder("first").toPath();
+    Path second = temporary.newFolder("second").toPath();
+    Path intermediate = temporary.getRoot().toPath().resolve("intermediate");
+    Files.createSymbolicLink(intermediate, first);
+    Path outer = Files.createDirectories(output.resolve("external")).resolve("sdk");
+    Files.createSymbolicLink(outer, intermediate);
+    var inputs = snapshot(workspace, output);
+    inputs.observe(outer, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    writer.put(new Key("entry"), new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    var before = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(before.get(new Key("entry")).get()).isEqualTo(new byte[] {7});
+    before.finish(false);
+    // Outer link text and the referent's kind/mode remain identical.
+    Files.delete(intermediate);
+    Files.createSymbolicLink(intermediate, second);
+    var after = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThrows(ExecutionException.class, () -> after.get(new Key("entry")).get());
+    after.finish(false);
+  }
+
+  @Test
+  public void linkResolutionPreservesParentTraversalAfterIntermediateSymlink() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path outside = temporary.newFolder("outside").toPath();
+    Path actual = Files.createDirectories(outside.resolve("target/deeper"));
+    Path file = Files.writeString(actual.getParent().resolve("file"), "actual");
+    Files.writeString(outside.resolve("file"), "lexically normalized, incorrect");
+    Files.createSymbolicLink(outside.resolve("inner"), actual);
+    Path alias = outside.resolve("alias");
+    Files.createSymbolicLink(alias, Path.of("inner/../file"));
+    var inputs = snapshot(workspace, output);
+    inputs.observe(alias, false);
+    assertThat(inputs.witnesses().stream().map(LocalInputSnapshot.Witness::path).toList())
+        .contains("absolute/" + file);
+    assertThat(inputs.isUnchanged()).isTrue();
+    Files.writeString(file, "edited");
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
   public void privateWritesRemainHiddenUntilSuccessfulPublication() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

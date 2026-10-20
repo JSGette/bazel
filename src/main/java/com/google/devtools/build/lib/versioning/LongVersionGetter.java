@@ -60,4 +60,15 @@ public interface LongVersionGetter {
    * </ul>
    */
   long getNonexistentPathVersion(Path path) throws IOException;
+
+  /**
+   * Records dependencies for a symlink that escapes the serializer's versioned root.
+   *
+   * <p>Returning true requires independently persisted evidence for the entire resolution chain and
+   * referent, validated before cached values are reused. Ordinary version services do not support
+   * this; content-validated local backends may opt in. Failure must prevent publication.
+   */
+  default boolean recordExternalSymlinkDependencies(Path path) throws IOException {
+    return false;
+  }
 }
