@@ -240,3 +240,36 @@ guaranteed-miss filesystem lookups.
 [Raw after protocol](skycache-concurrent-2026-10-20/skip-execution-lookups-results.json);
 the before protocol is Step 3's analysis-only-upload result. Cache corruption fallback and
 independent source/Starlark edits continue to pass.
+
+
+## Step 5 — source directory links and first large-workload attempt
+
+Implementation: [389c0570d7a8](https://github.com/JSGette/bazel/commit/389c0570d7a8bf0ac0e089fac27a1f1c20515d1f).
+Source hashing follows directory symlinks, includes referent contents/modes, and checks an
+ancestor-realpath set with a depth bound. A cycle disables this optional cache; it cannot cause
+unbounded traversal or an incomplete successful source snapshot. The new test detects edits
+behind a directory link and rejects a cycle. All six test targets pass (67 test cases).
+
+The public Datadog Agent worktree at `0cde96beb70963d0838119c308b9d0422ee66be0` now passes the
+source scan with caching enabled. A saved resolved lockfile is copied into the isolated worktree
+and kept unchanged with lockfile_mode=off. Its checksum, dirty status, commands and binary hash
+are in the [raw first-attempt protocol](skycache-concurrent-2026-10-20/datadog-first-attempt.json).
+The benchmark intentionally uses the source-built binary through Datadog's wrapper, overriding
+the repository's usual pinned-binary guidance for this explicitly requested fork experiment.
+No .bazelrc change or internal Datadog cache is used.
+
+Cache-off cluster-agent control: 5,473 loaded packages, 57,298 configured targets, 60 aspect
+applications. Cold graph: 35.360 seconds and
+3413.4 MiB peak process-tree PSS. Warm:
+0.709 seconds. Both output hashes:
+`7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664`.
+The ordinary action disk cache and OS/repository caches were already warm; the first run used
+a fresh output base. These are single controls, not a comparison establishing cache benefit.
+
+**The cache-enabled writer failed**, exit 37 after 22.503 seconds.
+The source scanner stayed enabled. The stack trace reaches FingerprintValueService.put's
+latency listener, where DecimalBucketer rejects a negative elapsed value measured with
+Instant.now. A wall-clock interval became negative on this WSL host, and a statistics callback
+propagated the error through analysis-key serialization into the evaluator. No successful
+Datadog SkyCache publication/reuse is claimed. Next fix: use a monotonic elapsed-time source,
+test asynchronous latency accounting, and repeat the same workload.
