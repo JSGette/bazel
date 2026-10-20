@@ -142,21 +142,20 @@ public abstract class CycleInfo {
 
     // If a cycle is already known, but we are processing a value in the middle of the cycle, we
     // need to shift the cycle so that the value is at the head.
-    private CycleInfoWithDetails(Iterable<SkyKey> cycle, int cycleStart) {
+    private CycleInfoWithDetails(ImmutableList<SkyKey> cycle, int cycleStart) {
       Preconditions.checkState(cycleStart >= 0, cycleStart);
-      ImmutableList.Builder<SkyKey> cycleTail = ImmutableList.builder();
-      ImmutableList.Builder<SkyKey> cycleHead = ImmutableList.builder();
-      int index = 0;
-      for (SkyKey key : cycle) {
-        if (index >= cycleStart) {
-          cycleHead.add(key);
-        } else {
-          cycleTail.add(key);
+      int cycleSize = cycle.size();
+      Preconditions.checkState(cycleStart < cycleSize, "%s >= %s ??", cycleStart, cycleSize);
+      ImmutableList.Builder<SkyKey> normalizedCycle =
+          ImmutableList.builderWithExpectedSize(cycleSize);
+      int index = cycleStart;
+      for (int remaining = cycleSize; remaining > 0; remaining--) {
+        normalizedCycle.add(cycle.get(index));
+        if (++index == cycleSize) {
+          index = 0;
         }
-        index++;
       }
-      Preconditions.checkState(cycleStart < index, "%s >= %s ??", cycleStart, index);
-      this.cycle = cycleHead.addAll(cycleTail.build()).build();
+      this.cycle = normalizedCycle.build();
       this.pathToCycle = ImmutableList.of();
     }
 
