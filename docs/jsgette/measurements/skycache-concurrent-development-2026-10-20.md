@@ -358,3 +358,37 @@ This remains a hypothesis until the precise rejection is captured. Next: expose 
 failure reason and run a diagnostic reproduction before changing keying or storage behavior.
 Accepting conflicting values or removing the publication validity check is explicitly rejected.
 
+
+
+## Step 8 — explain rejected publications and require actual benchmark reuse
+
+Implementation: [f705441bf72a](https://github.com/JSGette/bazel/commit/f705441bf72a964583948d5662fd97a459c5131e).
+Discarded local publications now emit their reason. A conflicting-put regression verifies
+that failure remains optional for the build, reports the cause, and exposes no publication.
+Seven targets / 80 cases passed, and the custom binary built successfully.
+
+The diagnostic Datadog run completed with the expected output hash in 113.418
+seconds, peak process-tree PSS 5180.8 MiB, and
+155,450 private writes. It failed the newly strict benchmark acceptance
+check because publication was discarded. The script therefore stops before a useless warm/restart
+comparison. This is diagnostic evidence, not an optimization result.
+
+The warning identifies a conflicting immutable record; decoding its stored key gives
+`:bin/ld.lld` (11 bytes, existing value length zero). This confirms a collision in the legacy
+file-invalidation key space, whose keys use root-relative paths and a version while the local
+backend uses multiple repository roots and MINIMAL versions. Source inspection identifies
+three writes in FileDependencySerializer. Its invalidation payloads are unused by the local
+reader: reuse is gated by the publication's content witnesses instead.
+
+Next choice: omit those legacy invalidation writes for the independently content-validated
+local backend, while retaining dependency traversal and evidence recording. Preserve normal
+upstream behavior. Accepting conflicting writes, suppressing publication validation, and
+inventing a global process-local version number are rejected.
+
+[Diagnostic protocol](skycache-concurrent-2026-10-20/datadog-rejection-diagnostics-results.json)
+and [decoded key](skycache-concurrent-2026-10-20/datadog-rejection-key.json).
+A standalone reproducible Linux harness is now in `tools/skycache/datadog_probe.py`; it accepts
+explicit binary/repository/lockfile/action-cache/measurement-lock paths, records output hashes,
+and requires a publication and actual configured-target hits. It factors out the diagnostic
+runner's algorithm; argument parsing and Python syntax were checked. Its first full invocation
+will be the next implementation measurement.
