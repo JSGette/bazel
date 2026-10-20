@@ -10,6 +10,7 @@ import com.google.common.eventbus.Subscribe;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.devtools.build.lib.analysis.BlazeDirectories;
 import com.google.devtools.build.lib.analysis.Runfiles;
+import com.google.devtools.build.lib.analysis.RunfilesOrigin;
 import com.google.devtools.build.lib.buildtool.buildevent.BuildCompleteEvent;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
@@ -63,6 +64,7 @@ public final class LocalSkycacheModule extends SerializationModule {
           .add(new ValueSharingAdapter<>(new LocalSourceArtifactCodec()))
           .addReferenceConstant(Runfiles.EMPTY)
           .add(new ValueSharingAdapter<>(new LocalRunfilesCodec()))
+          .add(new ValueSharingAdapter<>(new LocalSymlinkEntryCodec()))
           .add(RemoteConfiguredTargetValue.codecWithTransitivePackages())
           .build();
     };
@@ -81,6 +83,7 @@ public final class LocalSkycacheModule extends SerializationModule {
 
   @Override
   public void beforeCommand(CommandEnvironment env) {
+    RunfilesOrigin.setSharingEnabled(false);
     environment = null;
     buildSucceeded = false;
     services.session = null;
@@ -113,6 +116,7 @@ public final class LocalSkycacheModule extends SerializationModule {
       }
       var inputs = new LocalInputSnapshot(workspace, outputBase, inputEnvironment(env));
       services.session = new LocalCacheSession(root, inputs);
+      RunfilesOrigin.setSharingEnabled(true);
       services.client = new LocalAnalysisCacheClient(services.session);
       services.clientId =
           new ClientId.SnapshotClientId(inputs.sourceDigest() + "/" + env.getCommandId(), 0);
@@ -121,6 +125,7 @@ public final class LocalSkycacheModule extends SerializationModule {
       environment = env;
       env.getEventBus().register(this);
     } catch (IOException e) {
+      RunfilesOrigin.setSharingEnabled(false);
       setMode(env, "off");
       env.getReporter().handle(Event.warn("Local SkyCache disabled: " + e.getMessage()));
     }
@@ -164,6 +169,7 @@ public final class LocalSkycacheModule extends SerializationModule {
 
   @Override
   public void afterCommand() {
+    RunfilesOrigin.setSharingEnabled(false);
     var env = environment;
     var session = services.session;
     if (env != null && session != null) {
@@ -198,6 +204,12 @@ public final class LocalSkycacheModule extends SerializationModule {
     @Nullable private LocalCacheSession session;
     @Nullable private LocalAnalysisCacheClient client;
     @Nullable private ClientId clientId;
+
+    @Override
+    public boolean discardFailedUpload(String reason) {
+      var current = session;
+      return current != null && current.discardFailedUpload(reason);
+    }
 
     @Override
     public boolean uploadsExecutionValues() {

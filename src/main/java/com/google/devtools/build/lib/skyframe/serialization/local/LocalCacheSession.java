@@ -126,6 +126,20 @@ final class LocalCacheSession implements FingerprintValueStore {
     return failure;
   }
 
+  /** Prevents any optional upload failure from exposing a partial publication. */
+  boolean discardFailedUpload(String reason) {
+    lifecycle.writeLock().lock();
+    try {
+      if (closed) {
+        return false;
+      }
+      failure = reason;
+      return true;
+    } finally {
+      lifecycle.writeLock().unlock();
+    }
+  }
+
   String statisticsJson(boolean published) {
     return String.format(
         java.util.Locale.ROOT,

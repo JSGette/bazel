@@ -181,9 +181,9 @@ public final class Runfiles implements RunfilesApi {
 
   /**
    * Behavior upon finding a conflict between two runfile entries. A conflict means that two
-   * different artifacts have the same runfiles path specified.  For example, adding artifact
-   * "a.foo" at path "bar" when there is already an artifact "b.foo" at path "bar".  The policies
-   * are ordered from least strict to most strict.
+   * different artifacts have the same runfiles path specified. For example, adding artifact "a.foo"
+   * at path "bar" when there is already an artifact "b.foo" at path "bar". The policies are ordered
+   * from least strict to most strict.
    *
    * <p>Note that conflicts are found relatively late, when the manifest file is created, not when
    * the symlinks are added to runfiles.
@@ -209,6 +209,57 @@ public final class Runfiles implements RunfilesApi {
     this.rootSymlinks = Preconditions.checkNotNull(rootSymlinks);
     this.emptyFilesSupplier = Preconditions.checkNotNull(emptyFilesSupplier);
     this.conflictPolicy = conflictPolicy;
+  }
+
+  /** Field comparison after producer/ordinal identity matches; derived memos are excluded. */
+  boolean sameContentsForSharing(Runfiles other, boolean restoring) {
+    if (!prefix.equals(other.prefix)
+        || conflictPolicy != other.conflictPolicy
+        || artifacts.getOrder() != other.artifacts.getOrder()
+        || symlinks.getOrder() != other.symlinks.getOrder()
+        || rootSymlinks.getOrder() != other.rootSymlinks.getOrder()
+        || !emptyFilesSupplier.equals(other.emptyFilesSupplier)) {
+      return false;
+    }
+    var leftArtifacts = artifacts.toList();
+    var rightArtifacts = other.artifacts.toList();
+    if (leftArtifacts.size() != rightArtifacts.size()) {
+      return false;
+    }
+    for (int i = 0; i < leftArtifacts.size(); i++) {
+      if (!sameArtifactForSharing(leftArtifacts.get(i), rightArtifacts.get(i), restoring)) {
+        return false;
+      }
+    }
+    return sameSymlinksForSharing(symlinks, other.symlinks, restoring)
+        && sameSymlinksForSharing(rootSymlinks, other.rootSymlinks, restoring);
+  }
+
+  private static boolean sameSymlinksForSharing(
+      NestedSet<SymlinkEntry> left, NestedSet<SymlinkEntry> right, boolean restoring) {
+    var leftEntries = left.toList();
+    var rightEntries = right.toList();
+    if (!leftEntries.equals(rightEntries)) {
+      return false;
+    }
+    for (int i = 0; i < leftEntries.size(); i++) {
+      if (!sameArtifactForSharing(
+          leftEntries.get(i).getArtifact(), rightEntries.get(i).getArtifact(), restoring)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static boolean sameArtifactForSharing(Artifact left, Artifact right, boolean restoring) {
+    // Artifact.equals deliberately tolerates an unassigned generating-action index during rule
+    // evaluation. That is insufficient when reconnecting a decoded value to an older graph.
+    if (restoring
+        && ((left instanceof Artifact.DerivedArtifact a && !a.hasGeneratingActionKey())
+            || (right instanceof Artifact.DerivedArtifact b && !b.hasGeneratingActionKey()))) {
+      return false;
+    }
+    return left.equals(right);
   }
 
   @Override
@@ -430,9 +481,7 @@ public final class Runfiles implements RunfilesApi {
     return rootSymlinks;
   }
 
-  /**
-   * Returns the manifest expander specified for this runfiles tree.
-   */
+  /** Returns the manifest expander specified for this runfiles tree. */
   private EmptyFilesSupplier getEmptyFilesProvider() {
     return emptyFilesSupplier;
   }
@@ -459,9 +508,7 @@ public final class Runfiles implements RunfilesApi {
     return allArtifacts;
   }
 
-  /**
-   * Returns if there are no runfiles.
-   */
+  /** Returns if there are no runfiles. */
   public boolean isEmpty() {
     return artifacts.isEmpty() && symlinks.isEmpty() && rootSymlinks.isEmpty();
   }
@@ -540,11 +587,12 @@ public final class Runfiles implements RunfilesApi {
     /** Build the Runfiles object with this policy */
     private ConflictPolicy conflictPolicy = ConflictPolicy.WARN;
 
-    /**
-     * Only used for Runfiles.EMPTY.
-     */
+    private boolean recordOrigin = true;
+
+    /** Only used for Runfiles.EMPTY. */
     private Builder() {
       this.prefix = "";
+      this.recordOrigin = false;
     }
 
     /**
@@ -556,18 +604,18 @@ public final class Runfiles implements RunfilesApi {
       this.prefix = workspace;
     }
 
-    /**
-     * Builds a new Runfiles object.
-     */
+    /** Builds a new Runfiles object. */
     public Runfiles build() {
-      return RunfilesOrigin.record(
+      Runfiles value =
           new Runfiles(
               prefix,
               artifactsBuilder.build(),
               symlinksBuilder.build(),
               rootSymlinksBuilder.build(),
               emptyFilesSupplier,
-              conflictPolicy));
+              conflictPolicy);
+      // EMPTY must never consume a producer's ordinal, even on first class initialization.
+      return recordOrigin ? RunfilesOrigin.record(value) : value;
     }
 
     /** Adds an artifact to the internal collection of artifacts. */
@@ -599,7 +647,7 @@ public final class Runfiles implements RunfilesApi {
     /** Adds a symlink. */
     @CanIgnoreReturnValue
     public Builder addSymlink(PathFragment link, Artifact target) {
-      symlinksBuilder.add(new SymlinkEntry(link, target));
+      symlinksBuilder.add(RunfilesOrigin.record(new SymlinkEntry(link, target)));
       return this;
     }
 
@@ -607,7 +655,8 @@ public final class Runfiles implements RunfilesApi {
     @CanIgnoreReturnValue
     Builder addSymlinks(Map<PathFragment, Artifact> symlinks) {
       for (Map.Entry<PathFragment, Artifact> symlink : symlinks.entrySet()) {
-        symlinksBuilder.add(new SymlinkEntry(symlink.getKey(), symlink.getValue()));
+        symlinksBuilder.add(
+            RunfilesOrigin.record(new SymlinkEntry(symlink.getKey(), symlink.getValue())));
       }
       return this;
     }
@@ -622,7 +671,7 @@ public final class Runfiles implements RunfilesApi {
     /** Adds a root symlink. */
     @CanIgnoreReturnValue
     public Builder addRootSymlink(PathFragment link, Artifact target) {
-      rootSymlinksBuilder.add(new SymlinkEntry(link, target));
+      rootSymlinksBuilder.add(RunfilesOrigin.record(new SymlinkEntry(link, target)));
       return this;
     }
 
@@ -630,7 +679,8 @@ public final class Runfiles implements RunfilesApi {
     @CanIgnoreReturnValue
     public Builder addRootSymlinks(Map<PathFragment, Artifact> symlinks) {
       for (Map.Entry<PathFragment, Artifact> symlink : symlinks.entrySet()) {
-        rootSymlinksBuilder.add(new SymlinkEntry(symlink.getKey(), symlink.getValue()));
+        rootSymlinksBuilder.add(
+            RunfilesOrigin.record(new SymlinkEntry(symlink.getKey(), symlink.getValue())));
       }
       return this;
     }
@@ -641,6 +691,7 @@ public final class Runfiles implements RunfilesApi {
       rootSymlinksBuilder.addTransitive(symlinks);
       return this;
     }
+
     /**
      * Specify a function that can create additional manifest entries based on the input entries,
      * see {@link EmptyFilesSupplier} for more details.
@@ -648,6 +699,13 @@ public final class Runfiles implements RunfilesApi {
     @CanIgnoreReturnValue
     public Builder setEmptyFilesSupplier(EmptyFilesSupplier supplier) {
       emptyFilesSupplier = Preconditions.checkNotNull(supplier);
+      return this;
+    }
+
+    /** Sets the final policy before construction or cache identity reconciliation. */
+    @CanIgnoreReturnValue
+    public Builder setConflictPolicy(ConflictPolicy policy) {
+      conflictPolicy = Preconditions.checkNotNull(policy);
       return this;
     }
 

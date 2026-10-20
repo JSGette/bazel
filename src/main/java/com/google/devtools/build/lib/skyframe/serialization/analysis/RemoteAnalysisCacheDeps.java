@@ -75,6 +75,7 @@ public class RemoteAnalysisCacheDeps
   private final boolean emitUploadedEvents;
   private final boolean uploadExecutionValues;
   private final boolean retrieveExecutionValues;
+  private final Predicate<String> uploadFailureHandler;
 
   private final ListenableFuture<ObjectCodecs> objectCodecs;
   private final CompressionService compressionService;
@@ -125,6 +126,7 @@ public class RemoteAnalysisCacheDeps
     this.emitUploadedEvents = emitUploadedEvents;
     this.uploadExecutionValues = servicesSupplier.uploadsExecutionValues();
     this.retrieveExecutionValues = servicesSupplier.retrievesExecutionValues();
+    this.uploadFailureHandler = servicesSupplier::discardFailedUpload;
     this.minimizeMemory = minimizeMemory;
     this.serializedFrontierProfile = serializedFrontierProfile;
     this.activeDirectoriesMatcher = activeDirectoriesMatcher;
@@ -170,6 +172,7 @@ public class RemoteAnalysisCacheDeps
     this.emitUploadedEvents = false;
     this.uploadExecutionValues = false;
     this.retrieveExecutionValues = false;
+    this.uploadFailureHandler = reason -> false;
     this.serializedFrontierProfile = "";
     this.activeDirectoriesMatcher = Optional.empty();
     this.eventHandler = null;
@@ -363,7 +366,8 @@ public class RemoteAnalysisCacheDeps
                 versionGetter,
                 emitUploadedEvents,
                 fileOp,
-                uploadExecutionValues);
+                uploadExecutionValues,
+                uploadFailureHandler);
       }
       return skycacheUploadClient;
     }

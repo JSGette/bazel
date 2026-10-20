@@ -15,7 +15,6 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Shared payload preserving Runfiles identity across independently serialized nested-set branches.
@@ -25,14 +24,15 @@ import java.util.UUID;
  * creates unequal copies and can duplicate provider leaves when a depset is expanded.
  *
  * <p>The complete producing key and creation ordinal distinguish separate originals while allowing
- * independent writers to agree on the same producer's value. Unscoped objects retain a nonce.
- * FingerprintValueService restores one object for each shared payload fingerprint. Content-only
- * interning would incorrectly merge distinct originals. This does not intern newly evaluated
- * values. The memoized allArtifacts field is omitted: whether its getter ran is not part of the
- * value.
+ * independent writers to agree on the same producer's value. Unscoped objects cannot be published
+ * safely and are rejected. FingerprintValueService restores one object for each shared payload
+ * fingerprint. Content-only interning would incorrectly merge distinct originals. Restored values
+ * reconnect to equivalent live values with the same origin. The memoized allArtifacts field is
+ * omitted: whether its getter ran is not part of the value.
  */
 @SuppressWarnings("SunApi")
 final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
+  private static final int MAGIC = 0x52464933;
   private static final List<DynamicCodec.FieldHandler> FIELDS =
       DynamicCodec.getFieldHandlerMap(Runfiles.class).entrySet().stream()
           .filter(entry -> !entry.getKey().getName().equals("allArtifacts"))
@@ -53,15 +53,12 @@ final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
   public void serialize(SerializationContext context, Runfiles value, CodedOutputStream out)
       throws SerializationException, IOException {
     var origin = RunfilesOrigin.get(value);
-    out.writeBoolNoTag(origin != null);
-    if (origin != null) {
-      context.serialize(origin.owner(), out);
-      out.writeInt32NoTag(origin.ordinal());
-    } else {
-      UUID identity = UUID.randomUUID();
-      out.writeFixed64NoTag(identity.getMostSignificantBits());
-      out.writeFixed64NoTag(identity.getLeastSignificantBits());
+    if (origin == null) {
+      throw new SerializationException("missing creator provenance for Runfiles");
     }
+    out.writeFixed32NoTag(MAGIC);
+    context.serialize(origin.owner(), out);
+    out.writeInt32NoTag(origin.ordinal());
     for (var field : FIELDS) {
       field.serialize(context, out, value);
     }
@@ -71,19 +68,14 @@ final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
   public DeferredValue<Runfiles> deserializeDeferred(
       AsyncDeserializationContext context, CodedInputStream in)
       throws SerializationException, IOException {
+    if (in.readFixed32() != MAGIC) {
+      throw new SerializationException("invalid Runfiles identity payload");
+    }
     Object[] owner = new Object[1];
-    boolean hasOrigin = in.readBool();
-    int ordinal;
-    if (hasOrigin) {
-      context.deserialize(in, owner, (target, value) -> target[0] = value);
-      ordinal = in.readInt32();
-      if (ordinal < 0) {
-        throw new SerializationException("negative Runfiles creation ordinal");
-      }
-    } else {
-      in.readFixed64();
-      in.readFixed64();
-      ordinal = 0;
+    context.deserialize(in, owner, (target, value) -> target[0] = value);
+    int ordinal = in.readInt32();
+    if (ordinal < 0) {
+      throw new SerializationException("negative Runfiles creation ordinal");
     }
     Runfiles value;
     try {
@@ -96,10 +88,11 @@ final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
     }
     // Deferred completion waits for the fields, including nested shared values, to be restored.
     return () -> {
-      if (hasOrigin) {
-        RunfilesOrigin.restore(value, new RunfilesOrigin.Origin(owner[0], ordinal));
+      var restored = RunfilesOrigin.restore(value, new RunfilesOrigin.Origin(owner[0], ordinal));
+      if (restored == null) {
+        throw new SerializationException("Runfiles producer is being evaluated: " + owner[0]);
       }
-      return value;
+      return restored;
     };
   }
 }

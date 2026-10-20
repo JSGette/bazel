@@ -46,6 +46,7 @@ java_library(
         "LocalSkycacheModule.java",
         "LocalSkycacheOptions.java",
         "LocalSourceArtifactCodec.java",
+        "LocalSymlinkEntryCodec.java",
     ],
     deps = [
         ":packed_store",
@@ -53,6 +54,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
         "//src/main/java/com/google/devtools/build/lib/analysis:blaze_directories",
         "//src/main/java/com/google/devtools/build/lib/analysis:runfiles",
+        "//src/main/java/com/google/devtools/build/lib/analysis:symlink_entry",
         "//src/main/java/com/google/devtools/build/lib/buildtool:build_result",
         "//src/main/java/com/google/devtools/build/lib/buildtool/buildevent",
         "//src/main/java/com/google/devtools/build/lib/cmdline",

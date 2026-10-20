@@ -54,6 +54,15 @@ public interface RemoteAnalysisCachingServicesSupplier extends BlazeService {
     return true;
   }
 
+  /**
+   * Handles a failed optional asynchronous upload. Returning true must atomically discard every
+   * unpublished record/root from this invocation. False preserves the normal fatal upload policy.
+   * Interruptions, cancellation and Errors are never sent to this handler.
+   */
+  default boolean discardFailedUpload(String reason) {
+    return false;
+  }
+
   /** Additional backend compatibility/input identity; empty preserves the default cache keys. */
   default String getCacheKeyDistinguisher() {
     return "";

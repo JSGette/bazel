@@ -3,10 +3,13 @@
 # Licensed under the Apache License, Version 2.0. See the repository LICENSE.
 """Verify identity when separate publications contribute branches of a provider diamond.
 
-Usage: partitioned_provider_identity_probe.py BAZEL NEW_DIRECTORY [no-runfiles] [warm-left]
+Usage: partitioned_provider_identity_probe.py BAZEL NEW_DIRECTORY [no-runfiles] [warm-left|warm-off|on-to-off] [symlinks] [generated] [analysis-only]
 The optional no-runfiles control removes the identity-bearing provider field.
 warm-left first evaluates the reader's left branch against an empty cache, then exposes
-the other writers' publications without restarting its server. All actions run locally.
+the other writers' publications without restarting its server. warm-off does the initial
+build without SkyCache. on-to-off first restores the right branch, then disables caching
+before building the complete graph. analysis-only omits child outputs from action inputs.
+All actions run locally.
 The protocol is saved before any output-equivalence assertion.
 """
 
@@ -19,6 +22,7 @@ import time
 
 binary = Path(sys.argv[1])
 root = Path(sys.argv[2])
+assert sum(mode in sys.argv[3:] for mode in ("warm-left", "warm-off", "on-to-off")) <= 1
 root.mkdir(parents=True, exist_ok=False)
 seed = root / "seed"
 seed.mkdir()
@@ -67,6 +71,18 @@ if "no-runfiles" in sys.argv[3:]:
     definition = seed / "defs.bzl"
     definition.write_text(definition.read_text().replace(
         "runfiles = ctx.runfiles(files = [ctx.file.src])", "runfiles = None"))
+if "symlinks" in sys.argv[3:]:
+    definition = seed / "defs.bzl"
+    definition.write_text(definition.read_text().replace(
+        "ctx.runfiles(files = [ctx.file.src])",
+        'ctx.runfiles(files = [ctx.file.src], symlinks = {"input-alias": ctx.file.src})'))
+if "generated" in sys.argv[3:]:
+    definition = seed / "defs.bzl"
+    definition.write_text(definition.read_text().replace(
+        "ctx.runfiles(files = [ctx.file.src]", "ctx.runfiles(files = [ctx.file.src, out]"))
+if "analysis-only" in sys.argv[3:]:
+    definition = seed / "defs.bzl"
+    definition.write_text(definition.read_text().replace(" + [v.file for v in values]", ""))
 for name, deps in [("leaf", []), ("left", ["//leaf:lib"]), ("right", ["//leaf:lib"])]:
     package = seed / name
     package.mkdir()
@@ -102,21 +118,24 @@ def copy_publications(cache):
 
 
 def build(role, target, startup, workspace, cache):
+    output_base = Path(next(a.removeprefix("--output_base=") for a in startup if a.startswith("--output_base=")))
+    stats = output_base / "local-skycache.json"
+    stats.unlink(missing_ok=True)
     argv = startup + ["build", "//app:" + target, "--jobs=2", "--lockfile_mode=off",
         "--experimental_strict_repo_env", "--experimental_local_skycache=" + str(cache),
         "--experimental_active_directories=app", "--color=no", "--curses=no"]
+    if cache is None:
+        argv = [a for a in argv if not a.startswith("--experimental_local_skycache=")]
     environment = dict(os.environ, PWD=str(workspace))
     started = time.monotonic()
     with (root / (role + ".log")).open("w") as log:
         result = subprocess.run(argv, cwd=workspace, env=environment, stdout=log, stderr=subprocess.STDOUT)
     row = {"role": role, "target": target, "argv": argv,
            "exit_code": result.returncode, "seconds": time.monotonic() - started}
-    output_base = Path(next(a.removeprefix("--output_base=") for a in startup if a.startswith("--output_base=")))
     if result.returncode == 0:
         output = next((output_base / "execroot/_main/bazel-out").glob("*/bin/app/" + target + ".txt"))
         row["output"] = output.read_text()
-    stats = output_base / "local-skycache.json"
-    if stats.exists():
+    if cache is not None and stats.exists():
         row["skycache"] = json.loads(stats.read_text())
     text = (root / (role + ".log")).read_text()
     row["analysis_hits"] = sum(int(hit) for hit in re.findall(r"CONFIGURED_TARGET: (\d+)/\d+", text))
@@ -139,12 +158,18 @@ with open("/home/jgett/REPOS/.work/skyframe-measurements.lock", "a") as lock:
         environment = dict(os.environ, PWD=str(workspace))
         try:
             if name == "reader":
-                if "warm-left" in sys.argv[3:]:
-                    warm = build("warm-left", "left_probe", startup, workspace, cache)
-                    assert warm["analysis_hits"] == 0 and warm["skycache"]["shared_reads"] == 0, warm
+                if "warm-left" in sys.argv[3:] or "warm-off" in sys.argv[3:]:
+                    warm_cache = None if "warm-off" in sys.argv[3:] else cache
+                    warm = build("warm-left", "left_probe", startup, workspace, warm_cache)
+                    assert warm["analysis_hits"] == 0 and warm.get("skycache", {}).get("shared_reads", 0) == 0, warm
                     assert warm["output"] == "count=2\n@@//leaf:lib\n@@//left:lib\n", warm
                 copy_publications(root / "cache-left")
                 copy_publications(root / "cache-right")
+                if "on-to-off" in sys.argv[3:]:
+                    warm = build("cached-right", "right_probe", startup, workspace, cache)
+                    assert warm["analysis_hits"] > 0 and warm["skycache"]["shared_reads"] > 0, warm
+                    assert warm["output"] == "count=2\n@@//leaf:lib\n@@//right:lib\n", warm
+                    cache = None
             row = build(name, target, startup, workspace, cache)
             if name != "reader":
                 assert row["skycache"]["published"] and row["skycache"]["shared_reads"] == 0, row
@@ -153,5 +178,10 @@ with open("/home/jgett/REPOS/.work/skyframe-measurements.lock", "a") as lock:
             subprocess.run(startup + ["shutdown"], cwd=workspace, env=environment,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     expected = "count=3\n@@//leaf:lib\n@@//left:lib\n@@//right:lib\n"
-    assert results[-1]["analysis_hits"] > 0 and results[-1]["skycache"]["shared_reads"] > 0, results
+    if "on-to-off" in sys.argv[3:]:
+        assert results[-1]["analysis_hits"] == 0 and "skycache" not in results[-1], results
+    else:
+        assert results[-1]["analysis_hits"] > 0 and results[-1]["skycache"]["shared_reads"] > 0, results
     assert results[-1]["output"] == expected, results
+    if "warm-left" in sys.argv[3:] or "warm-off" in sys.argv[3:]:
+        assert results[-1]["analysis_hits"] == 1, results

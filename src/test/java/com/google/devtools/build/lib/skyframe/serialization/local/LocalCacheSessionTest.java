@@ -46,6 +46,25 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void discardedOptionalUploadCannotPublishEvenAfterSuccessfulBuild() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+    var key = new Key("entry");
+    assertThat(writer.put(key, new byte[] {7}).get()).isTrue();
+    assertThat(writer.discardFailedUpload("optional serialization failure")).isTrue();
+    assertThat(writer.put(new Key("later"), new byte[] {8}).get()).isFalse();
+    assertThat(writer.finish(true)).isFalse();
+    assertThat(writer.failureReason()).isEqualTo("optional serialization failure");
+    assertThat(writer.discardFailedUpload("after close")).isFalse();
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    reader.finish(false);
+  }
+
+  @Test
   public void failedPackSealCannotPublishAndClosesItsDescriptor() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

@@ -1157,11 +1157,10 @@ public final class StarlarkRuleContext
         builder.addRootSymlink(PathFragment.create(entry.getKey()), entry.getValue());
       }
     }
-    Runfiles runfiles = builder.build();
     if (checkConflicts && !skipConflictChecking) {
-      runfiles.setConflictPolicy(Runfiles.ConflictPolicy.ERROR);
+      builder.setConflictPolicy(Runfiles.ConflictPolicy.ERROR);
     }
-    return runfiles;
+    return builder.build();
   }
 
   private static boolean isNonEmptyDict(Object o) {

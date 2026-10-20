@@ -34,6 +34,8 @@ def main():
     parser.add_argument("--resolved-lockfile", required=True, type=Path)
     parser.add_argument("--action-cache", required=True, type=Path)
     parser.add_argument("--lock-file", required=True, type=Path)
+    parser.add_argument("--restart-controls", action="store_true",
+                        help="Measure cache-off restarts with populated output bases at base, edited and reverted states")
     parser.add_argument("--resume", action="store_true",
                         help="Revalidate saved phases and continue this probe's existing worktrees")
     args = parser.parse_args()
@@ -68,12 +70,14 @@ def main():
         "memory_scope": "combined process-tree RSS/PSS of both servers, clients and descendants; 200 ms samples; excludes page cache and probe",
         "resources": "two servers; each Xmx4g, jobs=2, local_resources memory=3072",
         "controls": "separate worktrees/output bases; edited actions execute without shared disk cache",
+        "restart_controls": args.restart_controls,
         "feature_edit": str(source_path), "phases": [],
     }
     if args.resume:
         saved = json.loads((root / "results.json").read_text())
         for key in ("binary_sha256", "source_revision", "lock_sha256", "resources"):
             assert saved[key] == protocol[key], (key, saved[key], protocol[key])
+        assert saved.get("restart_controls", False) == args.restart_controls
         protocol = saved
         protocol.setdefault("resumptions", []).append({
             "completed_phases": [p["phase"] for p in saved["phases"]],
@@ -249,6 +253,9 @@ def main():
             baseline = pair("control-base", ("control-a", "control-b"), cache=False)
             assert baseline["a"] == baseline["b"]
             shutdown_pair(("control-a", "control-b"))
+            if args.restart_controls:
+                pair("restarted-control-base", ("control-a", "control-b"), cache=False, expected=baseline)
+                shutdown_pair(("control-a", "control-b"))
             pair("concurrent-base-writers", ("a", "b"), cache=True, expected=baseline, require_writes=True)
             pair("warm-base", ("a", "b"), cache=True, expected=baseline)
             shutdown_pair(("a", "b"))
@@ -263,6 +270,10 @@ def main():
             pair("control-edits-no-disk-cache", ("control-a", "control-b"), cache=False,
                  expected=feature_outputs, disk_cache=False, edited=True)
             shutdown_pair(("control-a", "control-b"))
+            if args.restart_controls:
+                pair("restarted-control-edited", ("control-a", "control-b"), cache=False,
+                     expected=feature_outputs, edited=True)
+                shutdown_pair(("control-a", "control-b"))
             pair("first-restarted-edited-readers", ("a", "b"), cache=True, expected=feature_outputs,
                  require_hits=True, edited=True)
             shutdown_pair(("a", "b"))
@@ -272,6 +283,10 @@ def main():
             for name in names:
                 (root / name / source_path).write_text(originals[name])
             pair("reverted-restarted-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
+            if args.restart_controls:
+                shutdown_pair(("a", "b"))
+                pair("reverted-restarted-control", ("control-a", "control-b"), cache=False, expected=baseline)
+                shutdown_pair(("control-a", "control-b"))
             protocol["passed"] = True
             (root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
         finally:

@@ -36,8 +36,14 @@ import com.google.devtools.build.skyframe.InMemoryGraph;
 import com.google.devtools.build.skyframe.SkyFunction;
 import com.google.devtools.build.skyframe.SkyKey;
 import com.google.devtools.build.skyframe.SkyValue;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 /** Client for uploading to Skycache during computation. */
@@ -46,6 +52,7 @@ public final class SkycacheUploadClient {
   private final SelectedEntrySerializer selectedEntrySerializer;
   private final SelectedEntrySerializer.SerializationStatus writeStatuses;
   private final boolean uploadExecutionValues;
+  private final Predicate<String> uploadFailureHandler;
 
   public SkycacheUploadClient(
       CompressionService compressionService,
@@ -57,9 +64,11 @@ public final class SkycacheUploadClient {
       LongVersionGetter versionGetter,
       boolean emitUploadedEvents,
       FileOpNodeMemoizingLookup fileOpNodes,
-      boolean uploadExecutionValues) {
+      boolean uploadExecutionValues,
+      Predicate<String> uploadFailureHandler) {
 
     this.uploadExecutionValues = uploadExecutionValues;
+    this.uploadFailureHandler = uploadFailureHandler;
     var fileDependencySerializer =
         new FileDependencySerializer(
             versionGetter,
@@ -144,6 +153,9 @@ public final class SkycacheUploadClient {
       return;
     }
     String message = "Skycache upload failed: " + getErrorMessage(errors);
+    if (canDiscardUploadFailures(errors) && uploadFailureHandler.test(message)) {
+      return;
+    }
     FailureDetail detail =
         FailureDetail.newBuilder()
             .setMessage(message)
@@ -153,5 +165,32 @@ public final class SkycacheUploadClient {
             .build();
     throw new ExecutionException(
         new AbruptExitException(DetailedExitCode.of(detail), errors.get(0)));
+  }
+
+  /** Checks every failure, cause and suppressed exception, not just the first reported message. */
+  static boolean canDiscardUploadFailures(List<Throwable> errors) {
+    if (Thread.currentThread().isInterrupted() || errors.isEmpty()) {
+      return false;
+    }
+    Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+    var pending = new ArrayDeque<>(errors);
+    while (!pending.isEmpty()) {
+      Throwable failure = pending.removeFirst();
+      if (!visited.add(failure)) {
+        continue;
+      }
+      if (failure instanceof Error
+          || failure instanceof InterruptedException
+          || failure instanceof java.io.InterruptedIOException
+          || failure instanceof java.nio.channels.ClosedByInterruptException
+          || failure instanceof CancellationException) {
+        return false;
+      }
+      if (failure.getCause() != null) {
+        pending.addLast(failure.getCause());
+      }
+      Collections.addAll(pending, failure.getSuppressed());
+    }
+    return true;
   }
 }

@@ -41,6 +41,9 @@ import com.google.devtools.build.lib.skyframe.serialization.WriteStatuses;
 import com.google.devtools.build.lib.util.AbruptExitException;
 import com.google.devtools.build.lib.versioning.LongVersionGetter;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -165,6 +168,35 @@ public final class BazelSkycacheIntegrationTest extends SkycacheIntegrationTestB
 
     assertThat(failingStore.getFailCounter()).isEqualTo(1);
     assertContainsEvent("Simulated write failure for " + failingStore.getFailedKey());
+  }
+
+  @Test
+  public void asynchronousUploadFailureKeepsTheDefaultFatalPolicy() throws Exception {
+    setupScenarioWithAspects();
+    failingStore.failNextPut();
+    addOptions("--experimental_remote_analysis_cache_mode=async_upload");
+    var thrown = assertThrows(AbruptExitException.class, () -> buildTarget("//bar:one"));
+    assertThat(thrown).hasMessageThat().contains("Simulated write failure");
+    assertThat(failingStore.getFailCounter()).isEqualTo(1);
+  }
+
+  @Test
+  public void optionalUploadPolicyNeverHidesErrorsInterruptionsOrCancellation() {
+    assertThat(SkycacheUploadClient.canDiscardUploadFailures(List.of(new IOException("disk"))))
+        .isTrue();
+    assertThat(
+            SkycacheUploadClient.canDiscardUploadFailures(
+                List.of(
+                    new IOException("disk"), new ExecutionException(new OutOfMemoryError("test")))))
+        .isFalse();
+    assertThat(
+            SkycacheUploadClient.canDiscardUploadFailures(
+                List.of(new ExecutionException(new InterruptedException("test")))))
+        .isFalse();
+    var suppressed = new IOException("disk");
+    suppressed.addSuppressed(new CancellationException("test"));
+    assertThat(SkycacheUploadClient.canDiscardUploadFailures(List.of(suppressed))).isFalse();
+    assertThat(SkycacheUploadClient.canDiscardUploadFailures(List.of())).isFalse();
   }
 
   @Test
