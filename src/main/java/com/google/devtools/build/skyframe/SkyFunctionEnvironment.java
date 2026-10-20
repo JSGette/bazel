@@ -17,7 +17,6 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
@@ -1275,10 +1274,13 @@ public class SkyFunctionEnvironment extends AbstractSkyFunctionEnvironment
     void ensurePreviouslyRequestedDepsFetched()
         throws UndonePreviouslyRequestedDeps, InterruptedException {
       SkyFunctionEnvironment env = this;
-      ImmutableList<SkyKey> keysToFetch =
-          env.previouslyRequestedDeps.toSet().stream()
-              .filter(k -> !env.previouslyRequestedDepsValues.containsKey(k))
-              .collect(toImmutableList());
+      ImmutableList.Builder<SkyKey> keysToFetchBuilder = ImmutableList.builder();
+      for (SkyKey key : env.previouslyRequestedDeps.getAllElementsAsIterable()) {
+        if (!env.previouslyRequestedDepsValues.containsKey(key)) {
+          keysToFetchBuilder.add(key);
+        }
+      }
+      ImmutableList<SkyKey> keysToFetch = keysToFetchBuilder.build();
       NodeBatch batch =
           env.evaluatorContext.getGraph().getBatch(env.skyKey, Reason.PREFETCH, keysToFetch);
       ImmutableList.Builder<SkyKey> missingRequestedDeps = null;
