@@ -154,6 +154,10 @@ public final class LocalSkycacheModule extends SerializationModule {
         env.getReporter()
             .handle(Event.warn("Local SkyCache publication skipped: " + e.getMessage()));
       }
+      if (session.failureReason() != null) {
+        env.getReporter()
+            .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
+      }
       String statistics = session.statisticsJson(published);
       env.getReporter().handle(Event.info("Local SkyCache: " + statistics));
       try {

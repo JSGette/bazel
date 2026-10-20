@@ -196,6 +196,22 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void conflictingPutReportsWhyTheOptionalPublicationWasDiscarded() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+    var key = new Key("same-key");
+    assertThat(writer.put(key, new byte[] {1}).get()).isTrue();
+    assertThat(writer.put(key, new byte[] {2}).get()).isFalse();
+    assertThat(writer.failureReason()).contains("conflicting immutable shared cache value");
+    assertThat(writer.finish(true)).isFalse();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    reader.finish(false);
+  }
+
+  @Test
   public void externalInputsAndAbsentPathsAreValidatedAtLookup() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

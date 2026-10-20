@@ -91,6 +91,10 @@ final class LocalCacheSession implements FingerprintValueStore {
     return sharedReads.get();
   }
 
+  String failureReason() {
+    return failure;
+  }
+
   String statisticsJson(boolean published) {
     return String.format(
         java.util.Locale.ROOT,
