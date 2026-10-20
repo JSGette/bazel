@@ -112,6 +112,90 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void identicalPathsWithDifferentDigestsAreNotInterchangeable() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file = temporary.newFile("input").toPath();
+    Files.writeString(file, "one");
+    var inputsA = snapshot(workspace, output);
+    inputsA.observe(file, false);
+    var first = new LocalCacheSession(cache, inputsA);
+    first.put(new Key("a"), new byte[] {1}).get();
+    assertThat(first.finish(true)).isTrue();
+    Path publications = cache.resolve("publications-v2").resolve(inputsA.sourceDigest());
+    Path manifestA;
+    try (var paths = Files.list(publications)) {
+      manifestA = paths.findFirst().orElseThrow();
+    }
+    Files.writeString(file, "two");
+    var inputsB = snapshot(workspace, output);
+    inputsB.observe(file, false);
+    var second = new LocalCacheSession(cache, inputsB);
+    second.put(new Key("b"), new byte[] {2}).get();
+    assertThat(second.finish(true)).isTrue();
+    Path manifestB;
+    try (var paths = Files.list(publications)) {
+      manifestB = paths.filter(path -> !path.equals(manifestA)).findFirst().orElseThrow();
+    }
+    // Make the first candidate valid, so a cache keyed only by path would incorrectly admit the
+    // next.
+    boolean aFirst = manifestA.compareTo(manifestB) < 0;
+    Files.writeString(file, aFirst ? "one" : "two");
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    try {
+      assertThat(reader.get(new Key(aFirst ? "a" : "b")).get())
+          .isEqualTo(new byte[] {(byte) (aFirst ? 1 : 2)});
+      assertThrows(ExecutionException.class, () -> reader.get(new Key(aFirst ? "b" : "a")).get());
+    } finally {
+      reader.finish(false);
+    }
+  }
+
+  @Test
+  public void equalWitnessListsMustBeRevalidatedOnTheNextDiscoveryPass() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file = temporary.newFile("input").toPath();
+    Files.writeString(file, "one");
+    var inputs = snapshot(workspace, output);
+    inputs.observe(file, false);
+    var first = new LocalCacheSession(cache, inputs);
+    first.put(new Key("a"), new byte[] {1}).get();
+    assertThat(first.finish(true)).isTrue();
+    Path publications = cache.resolve("publications-v2").resolve(inputs.sourceDigest());
+    Path manifestA;
+    try (var paths = Files.list(publications)) {
+      manifestA = paths.findFirst().orElseThrow();
+    }
+    var inputsB = snapshot(workspace, output);
+    inputsB.observe(file, false);
+    var second = new LocalCacheSession(cache, inputsB);
+    second.put(new Key("b"), new byte[] {2}).get();
+    assertThat(second.finish(true)).isTrue();
+    Path manifestB;
+    try (var paths = Files.list(publications)) {
+      manifestB = paths.filter(path -> !path.equals(manifestA)).findFirst().orElseThrow();
+    }
+    Path hidden = temporary.getRoot().toPath().resolve("hidden-publication");
+    Files.move(manifestB, hidden);
+    var clock = new AtomicLong();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output), clock::get);
+    try {
+      assertThat(reader.get(new Key("a")).get()).isEqualTo(new byte[] {1});
+      FileTime modified = Files.getLastModifiedTime(file);
+      Files.writeString(file, "two");
+      Files.setLastModifiedTime(file, modified);
+      Files.move(hidden, manifestB);
+      clock.addAndGet(2_000_000_000L);
+      assertThrows(ExecutionException.class, () -> reader.get(new Key("b")).get());
+    } finally {
+      reader.finish(false);
+    }
+  }
+
+  @Test
   public void discardedOptionalUploadCannotPublishEvenAfterSuccessfulBuild() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

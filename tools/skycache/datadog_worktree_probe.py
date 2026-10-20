@@ -38,6 +38,8 @@ def main():
                         help="Use the same valid JDK distribution for every local_java_repository")
     parser.add_argument("--seed-cache", type=Path,
                         help="Copy a completed cache from other worktrees; require hits in both fresh servers")
+    parser.add_argument("--base-only", action="store_true",
+                        help="Stop after fresh, warm and restarted base builds; omit edit/revert phases")
     parser.add_argument("--restart-controls", action="store_true",
                         help="Measure cache-off restarts with populated output bases at base, edited and reverted states")
     parser.add_argument("--resume", action="store_true",
@@ -86,6 +88,7 @@ def main():
         "resources": "two servers; each Xmx4g, jobs=2, local_resources memory=3072",
         "controls": "separate worktrees/output bases; edited actions execute without shared disk cache",
         "restart_controls": args.restart_controls,
+        "base_only": args.base_only,
         "java_home": str(java_home) if java_home else None,
         "seed_cache": str(seed_cache) if seed_cache else None,
         "seed_publications": seed_publications,
@@ -96,6 +99,7 @@ def main():
         for key in ("binary_sha256", "source_revision", "lock_sha256", "resources"):
             assert saved[key] == protocol[key], (key, saved[key], protocol[key])
         assert saved.get("restart_controls", False) == args.restart_controls
+        assert saved.get("base_only", False) == args.base_only
         for key in ("java_home", "seed_cache", "seed_publications"):
             assert saved.get(key, {} if key == "seed_publications" else None) == protocol[key], key
         protocol = saved
@@ -293,6 +297,10 @@ def main():
             pair("warm-base", ("a", "b"), cache=True, expected=baseline)
             shutdown_pair(("a", "b"))
             pair("restarted-base-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
+            if args.base_only:
+                protocol["passed"] = True
+                (root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
+                return
             edit(("a", "b"))
             feature_outputs = pair("edited-warm-graphs", ("a", "b"), cache=True,
                                    disk_cache=False, edited=True, require_writes=True)

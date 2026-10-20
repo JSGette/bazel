@@ -54,6 +54,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private static final int MAGIC = 0x534b5332;
   private static final int MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
   private static final int MAX_WITNESSES = 1_000_000;
+  private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
 
   private record Manifest(
       String id, List<LocalInputSnapshot.Witness> witnesses, List<String> parents) {}
@@ -321,6 +322,12 @@ final class LocalCacheSession implements FingerprintValueStore {
   // Called with refresh's monitor held.
   private void refreshCandidates() throws IOException {
     rejectedInputs.clear();
+    // Equal immutable lists describe exactly the same input checks. Reuse only checks made in
+    // this pass; a later discovery must observe content changes even if metadata is unchanged.
+    // Keys are lists already retained by opened candidates, so the bounded map retains no
+    // additional unique input objects. List equality checks paths, operation kinds and digests.
+    var validatedWitnessLists =
+        new HashMap<List<LocalInputSnapshot.Witness>, List<LocalInputSnapshot.Witness>>();
     var available = new HashMap<String, Candidate>();
     for (Candidate candidate : candidates) {
       available.put(candidate.id(), candidate);
@@ -344,22 +351,31 @@ final class LocalCacheSession implements FingerprintValueStore {
             continue;
           }
           Manifest manifest = readManifest(path);
+          var witnesses = validatedWitnessLists.get(manifest.witnesses());
           boolean matches = true;
-          for (var witness : manifest.witnesses()) {
-            if (!inputs.matches(witness)) {
-              rejectWitness(filename, witness);
-              matches = false;
-              break;
+          if (witnesses == null) {
+            witnesses = manifest.witnesses();
+            for (var witness : witnesses) {
+              if (!inputs.matches(witness)) {
+                rejectWitness(filename, witness);
+                matches = false;
+                break;
+              }
             }
           }
           if (matches) {
             rejectedWitnesses.remove(filename);
             Candidate candidate =
                 new Candidate(
-                    manifest.id(), PackedFingerprintValueStore.open(objects, manifest.id()),
-                    manifest.witnesses(), manifest.parents());
+                    manifest.id(),
+                    PackedFingerprintValueStore.open(objects, manifest.id()),
+                    witnesses,
+                    manifest.parents());
             opened.add(candidate);
             available.put(candidate.id(), candidate);
+            if (validatedWitnessLists.size() < MAX_VALIDATED_WITNESS_LISTS) {
+              validatedWitnessLists.put(witnesses, witnesses);
+            }
           }
         } catch (IOException e) {
           rejected.incrementAndGet();

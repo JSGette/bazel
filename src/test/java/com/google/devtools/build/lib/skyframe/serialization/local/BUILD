@@ -137,3 +137,20 @@ java_binary(
     main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputHashingBenchmark",
     deps = ["//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module"],
 )
+
+java_binary(
+    name = "LocalWitnessListBenchmark",
+    testonly = True,
+    srcs = ["LocalWitnessListBenchmark.java"],
+    jvm_flags = [
+        "-Xms256m",
+        "-Xmx1g",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessListBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)
