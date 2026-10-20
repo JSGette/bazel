@@ -81,7 +81,7 @@ for commits, exact commands, raw results, failed experiments and limitations.
 - Worktree identities now use effective repository/action/test environments; explicitly exposed
   values remain significant. A nine-case real Bazel matrix and the natural-environment worktree
   probe pass. Missing/regenerated repository inputs trigger a content-validated retry before
-  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). The isolated Runfiles identity defect is now fixed and verified by four regression tests and a real-worktree diamond probe. Repeat the full Datadog gate before integrating packing or claiming maturity.
+  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). The isolated Runfiles identity defect is now fixed and verified by four regression tests and a real-worktree diamond probe. The full Datadog gate now passes eighteen builds, including two independent semantic Go edits, exact hashes against cache-disabled controls, repeated restarted readers and reverts. Measure packed storage next; production maturity is not established.
 
 This is an experimental implementation. The small-worktree test is not large-repository or
 production-maturity evidence. The prior Go paging experiment is historical, with a measured

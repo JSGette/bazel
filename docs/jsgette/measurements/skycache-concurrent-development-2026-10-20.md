@@ -885,3 +885,50 @@ Evidence: [before](skycache-concurrent-2026-10-20/runfiles-identity-before.json)
 [after](skycache-concurrent-2026-10-20/runfiles-identity-after.json),
 [worktree probe](skycache-concurrent-2026-10-20/runfiles-worktrees.json),
 [tests](skycache-concurrent-2026-10-20/runfiles-tests.json).
+
+
+## Step 16 — complete Datadog two-worktree edit/restart/revert gate
+
+The full gate passes after the Runfiles identity fix in `f7a44a9412a8`: nine phases,
+eighteen successful builds of `//cmd/cluster-agent:cluster-agent` at Datadog revision
+`0cde96beb70963d0838119c308b9d0422ee66be0`. Each phase runs two independent Bazel servers
+concurrently, each with a 4 GiB JVM limit, two jobs and a 3072 MiB local-resource setting.
+Each server has its own output base and worktree. Both writers publish to the same local
+SkyCache. Source builds/tests use Cache&Carry with uploads disabled; measured Datadog
+commands use the protocol's local action-cache controls.
+
+| Concurrent phase | Pair wall seconds | Peak combined process PSS (GiB) | Analysis hits (A, B) |
+| --- | ---: | ---: | --- |
+| control-base | 40.929 | 6.220 | 0, 0 |
+| concurrent-base-writers | 147.322 | 5.871 | 0, 0 |
+| warm-base | 1.637 | 5.780 | 0, 0 |
+| restarted-base-readers | 57.288 | 8.311 | 4501, 4501 |
+| edited-warm-graphs | 430.389 | 13.578 | 0, 0 |
+| control-edits-no-disk-cache | 337.663 | 10.282 | 0, 0 |
+| first-restarted-edited-readers | 85.882 | 12.178 | 4501, 4501 |
+| restarted-edited-readers | 63.792 | 7.632 | 4501, 4501 |
+| reverted-restarted-readers | 75.757 | 8.157 | 4501, 4501 |
+
+During the edited-build memory peak, one auxiliary WSL attachment used for a source-file
+inspection timed out with `Wsl/Service/0x8007274c`; other pending reads completed and both
+builds succeeded. No resource limits or running servers were changed in response. PSS
+excludes filesystem page cache and is sampled, so it does not describe total VM pressure.
+
+The two semantic Go edits embed different feature markers in the version command. Edited
+experimental builds and independent controls disable shared action caching and execute the
+large workload. Each experimental binary's SHA-256 exactly matches its independent control;
+the two edited hashes differ from each other and from baseline. Both restart passes retain
+the appropriate feature hash. Reverting both worktrees and restarting restores the baseline
+hash, with actual analysis-cache hits. This exercises deferred Go linker argument expansion
+that failed in Step 14, without suppressing duplicate arguments or weakening output checks.
+
+This establishes this workload's concurrent correctness gate, not production maturity.
+The restarted base-reader pair remains slower and uses more process memory than the
+ordinary action-cache control. File-per-record publication is also expensive. The next
+measured change is packed storage: private append-only packs, durable sealing before
+manifest publication, and compact reader indexes. The RAM-resident Skyframe graph remains.
+GC/quotas, nearby-revision partial reuse, memory profiling and optional-serialization failure
+handling remain unfinished. Raw BEP/environment logs are retained locally only.
+
+Full commands, binary/source hashes, outputs, counters and host storage checks:
+[Datadog concurrent gate](skycache-concurrent-2026-10-20/datadog-concurrent-runfiles.json).
