@@ -59,14 +59,24 @@ for commits, exact commands, raw results, failed experiments and limitations.
   works after the writer workspace and output base become inaccessible.
 - Execution-value uploads are omitted for the local backend because its reader only accepts
   analysis envelopes. Unsupported execution lookups are also bypassed. A reused test command
-  writes 51 records versus 149 before and issues 49 fewer reads. Remaining duplicate writes
-  need separate optimization.
+  initially wrote 51 records versus 149 before and issued 49 fewer reads. The subsequent
+  shared-put optimization now removes those remaining duplicate writes as well.
 
 - A full Datadog cluster-agent writer/restarted-reader sequence now succeeds with identical
   output hashes and 4,501 configured-target hits. Schemaful provider codecs preserve depset types
-  across fresh/differently primed processes. Eight focused targets / 86 cases pass. The reader
+  across fresh/differently primed processes. Eight focused targets / 93 cases pass. The reader
   still uses more peak memory than its control and the writer remains expensive; concurrent
   Datadog worktrees, nearby-revision reuse and resource bounds remain unfinished.
+- Identical puts reuse validated publications while preserving immutable-key conflicts,
+  read-your-writes and parent closure. The Datadog reader writes zero records instead of 4,477,
+  retains all 4,501 hits and creates no empty namespace/publication. Its measured wall time
+  falls from 31.2 to 22.5 seconds in the recorded comparison. A 64-lock design was rejected
+  after stack samples showed write contention; 4,096 locks restore cold-writer time to the
+  baseline range. These results do not establish a general speed or memory guarantee.
+- Both measurement probes check Linux capacity and, on WSL, the actual Windows backing volume
+  and system-drive reserve before each phase. Four regression checks and live WSL validation
+  pass. This protects measurements from the earlier host-full/guest-free failure mode; runtime
+  cache quotas and reader-safe garbage collection are still pending.
 
 This is an experimental implementation. The small-worktree test is not large-repository or
 production-maturity evidence. The prior Go paging experiment is historical, with a measured
