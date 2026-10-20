@@ -154,6 +154,15 @@ deadline expires. Optimize measured file-hashing allocation and repeated validat
 skipping content checks or changing evaluator semantics. Keep candidate bounds, safe GC/quotas and
 nearby-revision reuse in the remaining sequence; do not label the implementation production mature.
 
+## Hashing allocation reduced; concurrent validation timeout remains (Step 24)
+
+A bounded 1 MiB scratch-buffer pool removes most per-file hashing allocation without changing
+digests or skipping content checks. 167 focused cases, a fresh independent Datadog reader and
+old/new restart/warm checks pass. The microbenchmark allocation reduction is large, but single-run
+process PSS rises and neither isolated warm run reproduces the earlier two-server timeout. Do not
+claim that timeout or memory overhead is solved. Next investigate repeated publication/witness
+validation under concurrent load, keeping the existing invalidation safety checks and in-RAM graph.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

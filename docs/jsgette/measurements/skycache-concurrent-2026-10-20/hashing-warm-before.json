@@ -1,0 +1,106 @@
+{
+  "source_diagnostic": "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-reader",
+  "binary_sha256": "575048627c65212c7b384a6af0536ab6769f05b4c118f526c8e0de932efbac73",
+  "purpose": "single-process restart then warm build; no JFR or heap captures during timing",
+  "memory_scope": "process-tree RSS/PSS every200ms, excludes page cache",
+  "initial_publications": {
+    "publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/0547e94c6aac81cbd14998d7f1766cad7e44847d3b58b9015a7665e751fcf813.manifest": "9e3a50a4586e3c5ba372d5f815715dc0971a2bb5786b4163322144e318658afb",
+    "publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/9b3c3c02f1e68f03d4a1ca5f07b524a02c645a3d2adfe355f903954765d49303.manifest": "177fdfc32f390ff48ade68744f9cd00381665f698b0ae8893fe844fda0e039b1"
+  },
+  "runs": [
+    {
+      "label": "restarted",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-reader-workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-reader/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--config=no-remote-cache",
+        "--jobs=2",
+        "--local_resources=memory=3072",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-cache",
+        "--experimental_active_directories=cmd/cluster-agent",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25"
+      ],
+      "exit_code": 0,
+      "seconds": 36.47124239200002,
+      "peak_pss_kib": 4295517,
+      "analysis_hits": 4501,
+      "skycache": {
+        "writes": 0,
+        "reads": 153436,
+        "shared_reads": 153430,
+        "rejected_publications": 0,
+        "deduplicated_writes": 4477,
+        "published": false,
+        "failed": false
+      },
+      "invalidation_log": [],
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+    },
+    {
+      "label": "warm",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-reader-workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-reader/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--config=no-remote-cache",
+        "--jobs=2",
+        "--local_resources=memory=3072",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk3-cache",
+        "--experimental_active_directories=cmd/cluster-agent",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25"
+      ],
+      "exit_code": 0,
+      "seconds": 8.042941791999965,
+      "peak_pss_kib": 4428853,
+      "analysis_hits": 0,
+      "skycache": {
+        "writes": 0,
+        "reads": 4511,
+        "shared_reads": 4501,
+        "rejected_publications": 0,
+        "deduplicated_writes": 4476,
+        "published": false,
+        "failed": false
+      },
+      "invalidation_log": [
+        "261020 22:30:32.783:I 64 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=5}"
+      ],
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+    }
+  ],
+  "storage_preflight": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent/hashing-warm-before",
+        "free_bytes": 563581063168
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 291199426560,
+      "system_drive": "C:\\",
+      "system_free_bytes": 156650528768
+    }
+  },
+  "passed": true
+}

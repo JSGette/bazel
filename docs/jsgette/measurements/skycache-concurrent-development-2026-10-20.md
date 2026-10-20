@@ -1377,3 +1377,60 @@ Nearby-revision reuse, runtime candidate bounds, reader-safe collection and quot
 Evidence: [full protocol](skycache-concurrent-2026-10-20/datadog-independent-gate.json),
 [warm invalidation logs](skycache-concurrent-2026-10-20/independent-warm-invalidation.json),
 [JFR allocation view](skycache-concurrent-2026-10-20/independent-reader-allocation-sites.txt).
+
+
+## Step 24 — bounded reuse of hashing scratch buffers
+
+Implementation: [f098fe591e4e](https://github.com/JSGette/bazel/commit/f098fe591e4e494dd28ba3b584434164fd7d6237).
+The file-witness hasher now borrows 64 KiB scratch arrays from a thread-safe pool with sixteen slots.
+It retains at most 1 MiB per process. Concurrent overflow allocates temporarily and is discarded if
+the pool is full on return; buffers return in a finally block. Reads and hashing run outside the pool
+lock. Every content byte is still checked, including a partial final read. There is no digest/schema,
+publication, evaluator or graph-retention change. Unbounded thread-local retention and metadata-only
+validation were rejected. This fixes a measured allocation source, not all resident-memory overhead.
+
+The full-validation microbenchmark uses 4,096 external 1 KiB files plus eight files of lengths
+0, 1, 65,535, 65,536, 65,537, 131,071, 131,072 and 262,145 bytes. It warms up twice, measures five
+passes with ThreadMXBean, and uses the same 256 MiB initial / 1 GiB maximum heap. Median allocated
+bytes fall from 276,609,760 to 8,005,192 (97.11% reduction), and
+median time from 30.720 to 17.364 ms. The aggregate witness-digest signature is identical
+before and after. This is a hot-file full-validation benchmark, not a whole-build speedup estimate.
+
+Two new regression cases pass with the original and modified hasher: 24 concurrent threads validate
+32 distinct files spanning multiple buffers; and alternating large/short/empty files are checked
+before changing the last byte while preserving size and timestamp. All twelve focused targets /
+167 cases pass. Cache&Carry is enabled in both benchmark builds/tests (one remote action hit each)
+and the final full source/test run (three remote hits).
+
+The new binary passes a fresh three-worktree Datadog control/writer/reader diagnostic. The reader
+starts with exactly one publication from the other writer, obtains 4,285
+configured-target hits and 30,347 shared reads, and produces the
+baseline executable. The JFR/heap runs are diagnostic. Their hit counts differ from Step 22, so do
+not attribute the difference in fresh-reader wall time solely to the buffer pool.
+
+A separate uninstrumented check restarts each binary in its own populated diagnostic output base,
+then runs a second command on the same server. Runs are serialized under the measurement lock;
+both use the same target, resource limits, action cache and explicit JDK. Both restarted readers get
+4,501 configured-target hits and 153,430 shared store reads; all outputs match. Both warm commands
+retain imported nodes except for five invalidated keys and have zero configured-target retrievals.
+
+| Single-server check | Before seconds | After seconds | Before peak PSS GiB | After peak PSS GiB |
+| --- | ---: | ---: | ---: | ---: |
+| Restarted reader | 36.471 | 26.013 | 4.097 | 4.460 |
+| Warm reader | 8.043 | 7.598 | 4.224 | 4.482 |
+
+These are single runs, not repeated randomized performance trials. Process PSS is higher after the
+change, so **no PSS reduction is established**, despite the large microbenchmark allocation reduction.
+Neither isolated warm check hits the invalidation deadline. They do not reproduce or resolve the
+two-server timeout with the larger publication set from Step 23. The next issue is the cost of
+repeated publication/witness validation under concurrent load, followed by candidate/index bounds,
+reader-safe collection/quotas and nearby-revision reuse. The prior 24-build gate used the pre-buffer
+binary; this step's runtime proof is the fresh independent reader plus restart/warm comparisons.
+
+Evidence: [before benchmark](skycache-concurrent-2026-10-20/input-hashing-before.json),
+[after benchmark](skycache-concurrent-2026-10-20/input-hashing-after.json),
+[167 cases](skycache-concurrent-2026-10-20/hashing-buffer-tests.json),
+[fresh independent reader](skycache-concurrent-2026-10-20/hashing-buffer-cross-worktree.json),
+[before restart/warm](skycache-concurrent-2026-10-20/hashing-warm-before.json),
+[after restart/warm](skycache-concurrent-2026-10-20/hashing-warm-after.json),
+[new allocation profile](skycache-concurrent-2026-10-20/hashing-reader-allocation-sites.txt).
