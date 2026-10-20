@@ -54,6 +54,24 @@ java_binary(
 )
 
 java_test(
+    name = "LocalRunfilesCodecTest",
+    size = "small",
+    srcs = ["LocalRunfilesCodecTest.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/analysis:runfiles",
+        "//src/main/java/com/google/devtools/build/lib/collect/nestedset",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/protobuf:protobuf_lite",
+        "//third_party/java/truth",
+    ],
+)
+
+java_test(
     name = "LocalCacheSessionTest",
     size = "medium",
     srcs = ["LocalCacheSessionTest.java"],

@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.devtools.build.lib.analysis.BlazeDirectories;
+import com.google.devtools.build.lib.analysis.Runfiles;
 import com.google.devtools.build.lib.buildtool.buildevent.BuildCompleteEvent;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
@@ -60,6 +61,8 @@ public final class LocalSkycacheModule extends SerializationModule {
                   runtime.getRuleClassProvider().getRunfilesPrefix()))
           .add(new LocalPathCodec(directories.getWorkspace(), directories.getOutputBase()))
           .add(new ValueSharingAdapter<>(new LocalSourceArtifactCodec()))
+          .addReferenceConstant(Runfiles.EMPTY)
+          .add(new ValueSharingAdapter<>(new LocalRunfilesCodec()))
           .add(RemoteConfiguredTargetValue.codecWithTransitivePackages())
           .build();
     };
