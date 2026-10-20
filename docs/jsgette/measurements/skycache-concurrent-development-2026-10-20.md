@@ -751,3 +751,85 @@ Evidence: [before](skycache-concurrent-2026-10-20/environment-before-worktrees.j
 [first miss](skycache-concurrent-2026-10-20/environment-first-repository-miss.json),
 [matching witnesses](skycache-concurrent-2026-10-20/environment-manifest-comparison.json),
 [regeneration miss](skycache-concurrent-2026-10-20/environment-regenerated-repository-miss.json).
+
+
+## Step 14 — substantial concurrency gate exposes Go archive duplication
+
+Harness: [ce20336fd298](https://github.com/JSGette/bazel/commit/ce20336fd2982f3909e7ed488d2ec1cfb62b5959).
+Tested binary SHA-256: `d546b6cae2da579c263be5d9f8391004faef074ab8b669b84172674d8f5ef78d`.
+Datadog revision: `0cde96beb70963d0838119c308b9d0422ee66be0`.
+**This gate failed; the implementation is not yet reliable for the complete worktree-edit
+workflow.** Twelve builds succeeded, followed by two failed restarted edited builds.
+The remaining repeat/revert phases were not reached.
+
+Four real Git worktrees provide two simultaneously running SkyCache-enabled servers and
+two separate controls. The workload is `//cmd/cluster-agent:cluster-agent`, with each JVM
+limited to 4 GiB heap, two action jobs and 3 GiB local execution memory. Both experimental
+servers share one local SkyCache directory. Cache&Carry remains enabled for Bazel source
+builds/tests (`--config=efcache`, uploads disabled). The measurement uses a warmed local
+action cache; experimental and control edits disable shared action caching to verify their
+outputs independently. Raw BEP/environment/JVM logs remain local.
+
+| Concurrent phase | Pair wall seconds | Combined peak PSS GiB | Analysis hits A/B | Exit codes A/B |
+| --- | ---: | ---: | ---: | ---: |
+| control-base | 40.594 | 6.281 | 0/0 | 0/0 |
+| concurrent-base-writers | 145.147 | 5.925 | 0/0 | 0/0 |
+| warm-base | 1.799 | 5.558 | 0/0 | 0/0 |
+| restarted-base-readers | 60.306 | 8.370 | 4501/4501 | 0/0 |
+| edited-warm-graphs | 455.187 | 13.586 | 0/0 | 0/0 |
+| control-edits-no-disk-cache | 358.658 | 9.629 | 0/0 | 0/0 |
+| concurrent-edited-writers | 69.614 | 8.090 | 4501/4501 | 1/1 |
+
+PSS/RSS samples cover both servers, clients and descendants every 200 ms, excluding the
+probe and filesystem page cache. Pair time includes output hashing; per-build elapsed
+times and full commands are in the JSON. These are single observations, not estimates
+of typical performance. The restarted baseline reader pair is slower and uses more RAM
+than the control pair; this is not a demonstrated performance improvement.
+
+### What passed
+
+Both initial cache writers concurrently published 278,629 records and produced the same
+baseline binary. Warm graph builds succeeded. Both restarted baseline readers obtained
+4,501 configured-target hits, wrote zero records and matched the baseline SHA-256.
+
+The probe changed the version-command string independently to
+`Cluster Agent SkyCache-feature-a` and `Cluster Agent SkyCache-feature-b` in
+`cmd/cluster-agent/subcommands/version/command.go`. Both experimental builds succeeded,
+each binary contained only its own feature marker, and their SHA-256 values exactly
+matched separate cache-disabled control builds:
+
+- Feature A: `ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e`.
+- Feature B: `bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674`.
+
+Disabling the shared action cache caused full 6,789-action rebuilds in both experimental
+and control worktrees. That behavior is not specific to SkyCache. Experimental builds
+took 455.187 seconds as a pair versus 358.658 seconds for the controls, with materially
+higher peak process memory.
+
+### What failed and what remains unproven
+
+After the next restart, both edited readers restored 4,501 configured targets but Go
+linking failed: the protobuf `internal/detrand` package appeared repeatedly in the linker
+inputs. One captured parameter file contains the exact same archive argument five times.
+The first failures were the `protoc-gen-go` / `protoc-gen-go-grpc` tools. This is a real
+build failure, not merely a benchmark assertion. Cache statistics reported no store
+failure, so successful byte retrieval does not establish correct graph reconstruction.
+
+The next investigation must isolate provider/depset sharing or field-equality loss with
+a small regression before applying a serialization fix. Do not deduplicate linker strings
+as a workaround: that could hide inconsistent providers. Repeat the substantial test,
+including restarted edited readers and reverts, after the underlying defect is fixed.
+
+Separately, the harness originally demanded new writes in a restarted phase whose edited
+graph had already been published. The harness now correctly requires publication during
+the edit phase and shared reads on the next restart, and supports revalidating checkpoints
+before resuming. That correction does not excuse either nonzero build exit; failed phases
+are still rejected. The original protocol is retained unchanged.
+
+A private packed-store draft was prepared while these builds ran, and its six unit tests
+passed with Cache&Carry configured. It is not connected to the implementation or committed;
+integration and performance claims wait for the graph-correctness fix. Runtime quotas/GC,
+reader memory profiling, and partial nearby-revision reuse remain unfinished.
+
+Evidence: [protocol](skycache-concurrent-2026-10-20/datadog-concurrent-before-archive-fix.json),
+[duplicate archive](skycache-concurrent-2026-10-20/datadog-archive-duplication.json).

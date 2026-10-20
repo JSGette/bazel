@@ -81,7 +81,7 @@ for commits, exact commands, raw results, failed experiments and limitations.
 - Worktree identities now use effective repository/action/test environments; explicitly exposed
   values remain significant. A nine-case real Bazel matrix and the natural-environment worktree
   probe pass. Missing/regenerated repository inputs trigger a content-validated retry before
-  the negative TTL expires. Large concurrent Datadog validation is the next gate.
+  the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). Fix this serialization correctness defect before integrating packing or claiming maturity.
 
 This is an experimental implementation. The small-worktree test is not large-repository or
 production-maturity evidence. The prior Go paging experiment is historical, with a measured
