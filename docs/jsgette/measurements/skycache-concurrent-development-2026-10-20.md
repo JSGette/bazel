@@ -1102,3 +1102,99 @@ Evidence: [packed failure](skycache-concurrent-2026-10-20/partitioned-identity-p
 [cold reader fix](skycache-concurrent-2026-10-20/partitioned-identity-origin-after.json),
 [warm reader failure](skycache-concurrent-2026-10-20/warm-partitioned-identity-before.json),
 [tests](skycache-concurrent-2026-10-20/runfiles-origin-tests.json).
+
+
+## Step 20 — retained graph identity, cache-mode transitions and optional publication failures
+
+Implementation: [5ddc5832719b](https://github.com/JSGette/bazel/commit/5ddc5832719b7e841952a05f4364682c0c126e82).
+The Step 19 warm-reader counterexample is fixed while keeping the graph in RAM. Runfiles and
+SymlinkEntry retain their existing reference equality. Typed weak indexes reconnect restored
+objects to matching live values from the same complete producing key and creation ordinal.
+Field checks include ordered artifacts, nested-set order, conflict policy, prefix and empty-file
+supplier equality. The allArtifacts memo is deliberately excluded. Symlink entries require
+their own identity codec: fixing Runfiles alone still produced four arguments instead of three
+when the provider contained symlinks. Distinct same-path entries keep distinct creation ordinals,
+preserving conflict precedence. EMPTY never consumes a producer ordinal on class initialization.
+Starlark sets conflict policy before construction so identity reconciliation sees final policy.
+
+Two lifecycle hazards were found during review. Artifact.equals tolerates a missing action index
+while a rule is being evaluated; matching a new output against an old command's artifact could
+therefore reuse the wrong action. Construction now reuses only an identity restored and validated
+in the current command. Restore requires complete generating-action keys and is serialized against
+producer entry; a producer still being evaluated makes the lookup miss instead of exposing unfinished
+objects. Completed compatible objects can reconnect across commands. Weak-reference collection,
+concurrent identity selection, changed action indices, abandoned evaluation and command epochs have
+focused tests. This assumes deterministic rule evaluation under the validated input snapshot.
+
+The prior UUID fallback for unscoped values was rejected because independent writers cannot agree
+on that identity. Nonconstant Runfiles/SymlinkEntry without creator provenance now reject publication.
+The payload/schema discriminator is bumped to local-source-v7-provenance-only. Content-only
+interning, global equality changes and unconditional interning of previous command values were
+discarded because they can merge distinct semantic objects or retain a wrong generating action.
+
+Enabling SkyCache after a cache-off build exposed a separate optional-upload failure: the retained
+graph lacked a FILE dependency witness for left/input. The action output was correct, but the
+command previously exited 1 after upload. The local backend now atomically discards the entire
+unpublished session and warns, allowing the build to succeed. Missing witnesses are not invented
+and partially serialized roots are not exposed. The default remote backend retains its fatal
+upload behavior. Errors, cancellation, interruption and their nested/suppressed causes cannot be
+swallowed by the optional-failure hook; regression tests cover both policies. Repairing upload
+coverage after cache-off warmup remains a reuse-efficiency limitation.
+
+Eleven focused targets / 156 cases pass. Source compilation and tests use Cache&Carry via
+`--config=efcache --bes_backend= --remote_upload_local_results=false`; the final build records three
+remote hits, with unchanged tests served by Bazel's action cache. An initial missing strict test
+dependency was corrected before this successful run. Cold and warm partial-publication probes,
+generated output artifacts, symlinks and both cache-mode transitions produce exactly three arguments.
+The final cold-generated reader has four analysis hits; the warm-generated reader has one.
+The off-to-on reader also succeeds with one hit while intentionally discarding its optional upload.
+On-to-off is tested both with child actions as inputs and with analysis-only provider use. Existing
+SkyframeExecutor.invalidateWithExternalService already deletes imported DeserializedSkyValue nodes
+when caching is disabled, because those values lack file/directory transitive edges. That existing
+behavior explains why the transition is safe without a new invalidation path or whole-graph flush.
+These small startup-dominated runs establish correctness, not speed.
+
+The large Datadog gate now includes populated-output-base cache-off restart controls at the base,
+edited and reverted states. All 24 builds pass: simultaneous writers/readers, retained warm graphs,
+two distinct semantic Go edits, independently executed cache-off edit controls, repeated restarts
+and reverts. Corresponding outputs have identical SHA-256 hashes and only their own feature marker.
+Changed builds and their correctness controls use no action disk cache; other phases use the same
+local action cache. Remote action caching is disabled only for this measurement to isolate SkyCache.
+Each server has Xmx4g, jobs=2 and a 3072 MiB action-memory limit; pair PSS includes descendants,
+sampled every 200 ms, and excludes the OS page cache. No compiler/profiler overlaps timed phases.
+
+| Concurrent phase | Pair wall s | Peak combined PSS GiB | Analysis hits A, B |
+| --- | ---: | ---: | --- |
+| control-base | 39.391 | 6.242 | 0, 0 |
+| restarted-control-base | 23.405 | 5.653 | 0, 0 |
+| concurrent-base-writers | 56.887 | 9.072 | 0, 0 |
+| warm-base | 1.685 | 8.743 | 0, 0 |
+| restarted-base-readers | 50.202 | 8.428 | 4501, 4501 |
+| edited-warm-graphs | 353.396 | 14.117 | 0, 0 |
+| control-edits-no-disk-cache | 328.116 | 10.101 | 0, 0 |
+| restarted-control-edited | 37.252 | 6.771 | 0, 0 |
+| first-restarted-edited-readers | 49.360 | 8.460 | 4501, 4501 |
+| restarted-edited-readers | 28.801 | 8.516 | 4501, 4501 |
+| reverted-restarted-readers | 52.752 | 8.278 | 4501, 4501 |
+| reverted-restarted-control | 26.391 | 5.822 | 0, 0 |
+
+These are individual phase samples, not statistically controlled estimates. Compare restarted
+readers with restarted controls, not only with the slower initial fresh-output-base control.
+The base SkyCache restart is 2.14 times the wall time and
+1.49 times the peak PSS of its
+cache-off restart control despite 4,501 analysis hits per server. This is a negative performance
+result, not evidence that analysis reuse is already faster or smaller on this workload.
+Action summaries are retained to distinguish execution-cache differences. The memory overhead and
+reader latency still need profiling; correctness success is not a production-maturity claim.
+Next work remains bounded candidate/index memory, quotas and reader-safe collection, per-entry
+validation for nearby revisions, meaningful hit/miss statistics and further rule/portability audits.
+
+Evidence: [tests](skycache-concurrent-2026-10-20/live-identity-tests.json),
+[symlink counterexample](skycache-concurrent-2026-10-20/warm-symlink-identity-before.json),
+[upload counterexample](skycache-concurrent-2026-10-20/off-to-on-upload-failure-before.json),
+[guard matrix](skycache-concurrent-2026-10-20/live-identity-guard-matrix.json),
+[final provenance matrix](skycache-concurrent-2026-10-20/live-identity-provenance-matrix.json),
+[on-to-off](skycache-concurrent-2026-10-20/live-identity-on-to-off.json),
+[analysis-only on-to-off](skycache-concurrent-2026-10-20/live-identity-on-to-off-analysis.json),
+[Datadog gate](skycache-concurrent-2026-10-20/datadog-concurrent-live-identity.json),
+[action summaries](skycache-concurrent-2026-10-20/live-identity-action-summaries.json).

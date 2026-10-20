@@ -84,7 +84,7 @@ for commits, exact commands, raw results, failed experiments and limitations.
   the negative TTL expires. Large concurrent Datadog validation exposed duplicate Go archive inputs after restoring edited graphs (12 builds passed, then both restarted edited builds failed). The isolated Runfiles identity defect is now fixed and verified by four regression tests and a real-worktree diamond probe. The full Datadog gate now passes eighteen builds, including two independent semantic Go edits, exact hashes against cache-disabled controls, repeated restarted readers and reverts. Packed storage is integrated and measured with the full gate repeated; production maturity is not established.
 
 This is an experimental implementation. The passing Datadog gates establish tested concurrent workloads, not
-production maturity. Add partial-publication identity and mixed restored/recomputed graph probes. The prior Go paging experiment is historical, with a measured
+production maturity. Partial-publication identity and mixed restored/recomputed graph probes now pass; expand beyond the tested rule/value families. The prior Go paging experiment is historical, with a measured
 latency/memory regression; its code remains on its separate branch.
 
 ## Invariants
@@ -106,15 +106,18 @@ latency/memory regression; its code remains on its separate branch.
 7. Respect ordinary Bazel's stable-input expectation within a command. Do not claim that
    pre/post hashing is an atomic filesystem snapshot or protection against arbitrary ABA races.
 
-## Current correctness blocker (Step 19)
+## Retained graph composition verified (Step 20)
 
-Independent partial publications exposed a Runfiles identity bug: the combined provider diamond
-produced four arguments instead of three. Stable producer-key/creation-ordinal provenance now
-fixes the cold-reader case (117 focused cases pass). A reader retaining its locally built left
-branch in RAM still duplicates the common leaf when it imports the right branch. Fix this warm
-graph composition and both arrival orders before additional performance/maturity claims. The
-eighteen-build Datadog gates did not cover this case. Preserve reference semantics and reject
-content-only merging of distinct producer objects. Keep the graph in RAM and avoid evaluator edits.
+Producer/ordinal identity now reconnects decoded Runfiles and symlink entries to compatible live
+objects while retaining reference equality. Command epochs and active-producer guards avoid
+reusing unfinished or old generating-action identities. Unscoped identity rejects publication.
+Optional local upload failures discard the whole private publication, preserving successful
+builds; cancellation/fatal failures and ordinary remote behavior remain unchanged. Eleven targets /
+156 cases and cold/warm partial-publication, generated-artifact and cache-mode-transition probes
+pass. The expanded 24-build Datadog gate also passes, now including matched cache-off restarts.
+Repairing missing upload witnesses after cache-off warmup remains an efficiency limitation.
+Keep the in-memory graph. Existing SkyframeExecutor invalidation already deletes imported values
+when caching is disabled; no extra invalidation path or whole-graph flush was added.
 
 ## Next implementation and measurement sequence
 

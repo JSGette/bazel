@@ -1,0 +1,410 @@
+[
+  {
+    "case": "cold-generated",
+    "argv": [
+      "python3",
+      "/home/jgett/REPOS/bazel-skycache-concurrent/tools/skycache/partitioned_provider_identity_probe.py",
+      "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+      "/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated",
+      "symlinks",
+      "generated"
+    ],
+    "exit_code": 0,
+    "results": [
+      {
+        "role": "left",
+        "target": "left_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated/out-left",
+          "build",
+          "//app:left_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated/cache-left",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 11.206201681000003,
+        "output": "count=2\n@@//leaf:lib\n@@//left:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "right",
+        "target": "right_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated/out-right",
+          "build",
+          "//app:right_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated/cache-right",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.232138757000001,
+        "output": "count=2\n@@//leaf:lib\n@@//right:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "reader",
+        "target": "probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated/out-reader",
+          "build",
+          "//app:probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-cold-generated/shared-cache",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.355216034999998,
+        "output": "count=3\n@@//leaf:lib\n@@//left:lib\n@@//right:lib\n",
+        "skycache": {
+          "writes": 7,
+          "reads": 90,
+          "shared_reads": 88,
+          "rejected_publications": 0,
+          "deduplicated_writes": 81,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 4
+      }
+    ]
+  },
+  {
+    "case": "warm-generated",
+    "argv": [
+      "python3",
+      "/home/jgett/REPOS/bazel-skycache-concurrent/tools/skycache/partitioned_provider_identity_probe.py",
+      "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+      "/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated",
+      "warm-left",
+      "symlinks",
+      "generated"
+    ],
+    "exit_code": 0,
+    "results": [
+      {
+        "role": "left",
+        "target": "left_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/out-left",
+          "build",
+          "//app:left_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/cache-left",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.354587080000002,
+        "output": "count=2\n@@//leaf:lib\n@@//left:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "right",
+        "target": "right_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/out-right",
+          "build",
+          "//app:right_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/cache-right",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.184618842999996,
+        "output": "count=2\n@@//leaf:lib\n@@//right:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "warm-left",
+        "target": "left_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/out-reader",
+          "build",
+          "//app:left_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/shared-cache",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.232915121000005,
+        "output": "count=2\n@@//leaf:lib\n@@//left:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "reader",
+        "target": "probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/out-reader",
+          "build",
+          "//app:probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-warm-generated/shared-cache",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 0.23887119600000517,
+        "output": "count=3\n@@//leaf:lib\n@@//left:lib\n@@//right:lib\n",
+        "skycache": {
+          "writes": 8,
+          "reads": 69,
+          "shared_reads": 67,
+          "rejected_publications": 0,
+          "deduplicated_writes": 81,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 1
+      }
+    ]
+  },
+  {
+    "case": "off-to-on-generated",
+    "argv": [
+      "python3",
+      "/home/jgett/REPOS/bazel-skycache-concurrent/tools/skycache/partitioned_provider_identity_probe.py",
+      "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+      "/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated",
+      "warm-off",
+      "symlinks",
+      "generated"
+    ],
+    "exit_code": 0,
+    "results": [
+      {
+        "role": "left",
+        "target": "left_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/out-left",
+          "build",
+          "//app:left_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/cache-left",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.164731011,
+        "output": "count=2\n@@//leaf:lib\n@@//left:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "right",
+        "target": "right_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/out-right",
+          "build",
+          "//app:right_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/cache-right",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.305564923000006,
+        "output": "count=2\n@@//leaf:lib\n@@//right:lib\n",
+        "skycache": {
+          "writes": 87,
+          "reads": 7,
+          "shared_reads": 0,
+          "rejected_publications": 0,
+          "deduplicated_writes": 0,
+          "published": true,
+          "failed": false
+        },
+        "analysis_hits": 0
+      },
+      {
+        "role": "warm-left",
+        "target": "left_probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/out-reader",
+          "build",
+          "//app:left_probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 9.130010901000006,
+        "output": "count=2\n@@//leaf:lib\n@@//left:lib\n",
+        "analysis_hits": 0
+      },
+      {
+        "role": "reader",
+        "target": "probe",
+        "argv": [
+          "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+          "--nosystem_rc",
+          "--nohome_rc",
+          "--noworkspace_rc",
+          "--host_jvm_args=-Xmx2g",
+          "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/out-reader",
+          "build",
+          "//app:probe",
+          "--jobs=2",
+          "--lockfile_mode=off",
+          "--experimental_strict_repo_env",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/identity-provenance-off-to-on-generated/shared-cache",
+          "--experimental_active_directories=app",
+          "--color=no",
+          "--curses=no"
+        ],
+        "exit_code": 0,
+        "seconds": 0.3583796350000057,
+        "output": "count=3\n@@//leaf:lib\n@@//left:lib\n@@//right:lib\n",
+        "skycache": {
+          "writes": 7,
+          "reads": 69,
+          "shared_reads": 67,
+          "rejected_publications": 0,
+          "deduplicated_writes": 81,
+          "published": false,
+          "failed": true
+        },
+        "analysis_hits": 1
+      }
+    ]
+  }
+]
