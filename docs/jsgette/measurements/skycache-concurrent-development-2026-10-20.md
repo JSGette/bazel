@@ -932,3 +932,36 @@ handling remain unfinished. Raw BEP/environment logs are retained locally only.
 
 Full commands, binary/source hashes, outputs, counters and host storage checks:
 [Datadog concurrent gate](skycache-concurrent-2026-10-20/datadog-concurrent-runfiles.json).
+
+
+## Step 17 — transient WSL host-storage query recovery
+
+Harness fix: [c567bf2639c8](https://github.com/JSGette/bazel/commit/c567bf2639c8dc9cde5ea6e556e8825d33cc9c4a).
+The first packed Datadog attempt completed four phases/eight builds successfully: both
+writers, warm commands and restarted readers produced the baseline hash. Writer pair time
+was 56.464 s versus 147.322 s with separate files, but peak PSS rose to 9,765,751 KiB from
+6,156,028 KiB. Both writer logs report 5,704 disk-cache hits and 1,085 internal actions, with
+no local compiler actions; the memory increase requires a separate JVM diagnostic rather
+than an assumption that it is pack-index overhead. Restarted readers took 50.496 s and each
+obtained 4,501 hits, zero writes and the expected hash. These are partial results, not a full gate.
+
+The next phase stopped before its timer/builds because `powershell.exe` returned status 1
+inside the WSL host-capacity query. A fresh query subsequently succeeded. Direct host checks
+also showed approximately 449.9 GB free on E: and 158.5 GB on C:, so this was an observation
+failure, not a reported capacity shortage. Auxiliary WSL attachment attempts also timed out
+under load; the exact interop failure cause was not captured by the original harness.
+
+The capacity query now retries transient subprocess/decoding failures up to three times,
+waiting 0.5 and 1.0 seconds between attempts. Each retry obtains current Windows data; it
+does not reuse stale capacity or disable thresholds. Persistent failure remains fatal and
+now includes the captured stderr diagnostic. Six guard tests pass, covering transient recovery,
+persistent rejection, host/guest limits and the independent system-drive reserve. Live WSL
+validation succeeds. These checks run outside measured phases; there is no Bazel code change
+in this commit, and packed implementation work remains uncommitted pending its full gate.
+
+The interrupted probe shut down its servers. Although saved successful phases can be resumed,
+that would change the next phase's warm-graph condition. The chosen protocol is a fresh full
+run with the same binary and resources. Preserve the interrupted attempt instead of merging
+its timings silently with a resumed run.
+
+Evidence: [interrupted packed attempt](skycache-concurrent-2026-10-20/datadog-packed-preflight-interruption.json).
