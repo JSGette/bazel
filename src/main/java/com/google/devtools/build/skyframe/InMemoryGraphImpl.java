@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 
 /**
@@ -212,18 +213,23 @@ public class InMemoryGraphImpl implements InMemoryGraph {
 
     // The key is typically already present. Record whether this thread newly created a node so that
     // we can skip calling removeWeak if it was already present.
-    boolean[] newlyCreated = new boolean[1];
-    InMemoryNodeEntry nodeEntry =
-        nodeMap.computeIfAbsent(
-            skyKey,
-            k -> {
-              newlyCreated[0] = true;
-              return newNodeEntry(k);
-            });
-    if (newlyCreated[0]) {
+    NodeEntryCreator creator = new NodeEntryCreator();
+    InMemoryNodeEntry nodeEntry = nodeMap.computeIfAbsent(skyKey, creator);
+    if (creator.newlyCreated) {
       interner.removeWeak(skyKey);
     }
     return nodeEntry;
+  }
+
+  /** Tracks whether this invocation's mapping function ran. */
+  private final class NodeEntryCreator implements Function<SkyKey, InMemoryNodeEntry> {
+    private boolean newlyCreated;
+
+    @Override
+    public InMemoryNodeEntry apply(SkyKey key) {
+      newlyCreated = true;
+      return InMemoryGraphImpl.this.newNodeEntry(key);
+    }
   }
 
   @Override
