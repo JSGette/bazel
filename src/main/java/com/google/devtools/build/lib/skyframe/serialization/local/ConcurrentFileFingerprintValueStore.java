@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
@@ -77,6 +78,18 @@ public final class ConcurrentFileFingerprintValueStore implements FingerprintVal
       }
       byte[] value = serializedBytes.clone();
       Path destination = entry(key);
+      try {
+        if (!Arrays.equals(read(destination, key), value)) {
+          throw new IOException("conflicting immutable shared cache value for " + destination);
+        }
+        // Another process may have linked the entry without syncing its new shard/entry yet.
+        // Preserve the publication durability guarantee without rewriting identical payloads.
+        syncDirectory(namespace);
+        syncDirectory(destination.getParent());
+        return immediateWriteStatus(false);
+      } catch (NoSuchFileException e) {
+        // This is only a fast path. The no-replace link below still resolves competing writers.
+      }
       Path shard = directory(namespace, destination.getParent().getFileName().toString());
       Path staging =
           Files.createTempFile(

@@ -68,6 +68,29 @@ public final class ConcurrentFileFingerprintValueStoreTest {
   }
 
   @Test
+  public void identicalPutDoesNotRequireCreatingAnotherFile() throws Exception {
+    Path root = directory.newFolder("readonly-shard").toPath();
+    var store = ConcurrentFileFingerprintValueStore.create(root, NAMESPACE);
+    var key = new Key("already durable");
+    store.put(key, value("payload")).get();
+    Path shard;
+    try (var files = Files.walk(root)) {
+      shard =
+          files.filter(p -> p.toString().endsWith(".entry")).findFirst().orElseThrow().getParent();
+    }
+    var original = Files.getPosixFilePermissions(shard);
+    try {
+      Files.setPosixFilePermissions(
+          shard, java.nio.file.attribute.PosixFilePermissions.fromString("r-x------"));
+      assertThat(store.put(key, value("payload")).get()).isFalse();
+      assertThrows(ExecutionException.class, () -> store.put(key, value("conflict")).get());
+      assertThat(store.get(key).get()).isEqualTo(value("payload"));
+    } finally {
+      Files.setPosixFilePermissions(shard, original);
+    }
+  }
+
+  @Test
   public void corruptionTruncationAndUnpublishedStagingAreMisses() throws Exception {
     Path root = directory.newFolder().toPath();
     var store = ConcurrentFileFingerprintValueStore.create(root, NAMESPACE);
