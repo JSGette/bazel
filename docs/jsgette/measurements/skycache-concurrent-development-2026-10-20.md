@@ -1566,3 +1566,65 @@ Evidence: [before publication benchmark](skycache-concurrent-2026-10-20/inherite
 [171 cases](skycache-concurrent-2026-10-20/inherited-validation-tests.json),
 [independent Datadog diagnostic](skycache-concurrent-2026-10-20/inherited-validation-cross-worktree.json),
 [fixture correction](skycache-concurrent-2026-10-20/inherited-validation-fixture-correction.json).
+
+
+## Step 27 — bound optional candidate discovery and retained metadata
+
+Implementation: [9509c3bcffd8](https://github.com/JSGette/bazel/commit/9509c3bcffd84eba820d9d70a62726c24b6bbfbf).
+Per-object bounds did not prevent a growing cache from opening an unbounded number of pack indexes
+and descriptors, or retaining an unbounded directory listing and rejected-publication bookkeeping.
+The session now applies admission budgets before opening new candidates. The defaults are 64
+publications and 256 MiB of combined encoded manifests plus indexes per invocation, configurable
+with --experimental_local_skycache_max_publications and --experimental_local_skycache_max_metadata_mb.
+Zero disables the corresponding shared-read capacity while private writes remain available. Negative
+values disable the optional cache with a warning. These settings do not limit or evict Skyframe nodes.
+
+The byte budget counts each candidate conservatively even when identical witness lists share Java
+objects. It is **not a total JVM heap or RSS limit**: decoded objects, transient copies, values,
+private-write bookkeeping and the graph use additional memory. Manifest reads now use a bounded
+buffer sized from the opened channel; index opening independently enforces the remaining budget
+against its opened channel before allocation. A preflight file-size check alone was rejected.
+
+Directory enumeration stops after 4,097 entries to detect the fixed 4,096-entry scan limit before
+sorting or retaining filenames. An overfull publication directory admits no new candidates for
+that pass, rather than selecting an arbitrary incomplete subset. Previously pinned readers remain
+open for concurrent gets until finish. Deleted entries leave the inspected/rejected maps, bounding
+negative bookkeeping by the directory limit. Newly opened candidates still pass the existing full
+input validation and parent-closure pruning. Incomplete candidates close their descriptors; no
+parent dependency is dropped to fit a budget. Skips and peak admitted metadata/counts are reported
+in local-skycache.json, even after finish closes the stores.
+
+This is a capacity/reuse tradeoff, not garbage collection. A chain whose full closure cannot fit
+falls back to misses. A directory beyond the scan limit also falls back until its contents are
+reduced. Private writes can continue to grow disk usage; reader-safe GC and quotas remain required.
+Changing these limits cannot make a corrupt or stale publication valid.
+
+The benchmark uses 128 independent publications with identical 256-file witness lists. Two warmups
+and five measured missing-key lookups force discovery. Before the change it retains 128 pack
+descriptors; after it retains 64, and every reader closes all of them. Median discovery time is
+7.536 -> 4.467 ms; allocation is 22,198,096 -> 11,483,656 bytes. The new run does
+less work because it admits fewer candidates: do not describe this as equal-capacity acceleration
+or infer a whole-build memory reduction.
+
+Five new regression tests cover count-limit fallback with private writes, the exact combined
+manifest/index byte boundary and independent opened-index enforcement, closure larger than the
+count limit, an overfull directory after a reader has pinned a publication, and zero/negative
+limits. All twelve focused targets / 176 cases pass. One test initially lacked the strict direct
+packed_store dependency; the BUILD correction and failure evidence are recorded. Cache&Carry was
+enabled for both benchmark source/test runs (one remote hit each) and the full source/test run
+(three remote hits).
+
+The new binary passes a fresh Datadog off/writer/reader diagnostic. The reader starts with one other
+worktree's publication, gets 4,324 configured-target hits and
+30,596 shared store reads, publishes successfully, and produces the baseline
+executable. Its peak admitted candidate count is 1 and encoded
+metadata is 32,478,246 bytes, with no admission/scan-limit skips.
+JFR and heap captures make this diagnostic, not a clean timing comparison. The latest paired
+runtime comparison is Step 25, and the latest full artificial-edit/revert gate is Step 23; repeat
+that full gate after the remaining lifecycle and invalidation work.
+
+Evidence: [before admission benchmark](skycache-concurrent-2026-10-20/candidate-admission-before.json),
+[after admission benchmark](skycache-concurrent-2026-10-20/candidate-admission-after.json),
+[176 cases](skycache-concurrent-2026-10-20/candidate-admission-tests.json),
+[Datadog diagnostic](skycache-concurrent-2026-10-20/candidate-admission-cross-worktree.json),
+[fixture correction](skycache-concurrent-2026-10-20/candidate-admission-fixture-correction.json).

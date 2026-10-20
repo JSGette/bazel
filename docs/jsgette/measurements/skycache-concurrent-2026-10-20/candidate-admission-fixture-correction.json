@@ -1,0 +1,7 @@
+{
+  "failure": "New budget-boundary test directly used PackedFingerprintValueStore but the test target lacked its strict direct BUILD dependency.",
+  "evidence": [
+    "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java:247: error: [strict] Using type com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore from an indirect dependency (TOOL_INFO: \"//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store\"). See command below **"
+  ],
+  "correction": "Added packed_store to LocalCacheSessionTest deps, then reran the test/benchmark successfully."
+}

@@ -185,6 +185,17 @@ fresh independent Datadog reader pass. The eight-parent publication microbenchma
 resources and improve accounting, then design reader-safe GC/quotas and nearby-revision reuse.
 The latter still requires dependency-scoped validation; do not simply remove the whole-source guard.
 
+## Candidate discovery admission is bounded (Step 27)
+
+Default per-invocation caps are 64 shared publications and 256 MiB combined encoded manifest/index
+bytes, with two experimental tuning flags. A fixed 4,096-entry directory limit bounds listing and
+negative bookkeeping. These are optional-cache admission limits, not a total JVM/graph memory cap.
+Closure and content checks remain mandatory; pinned readers survive later discovery limits and
+private writes remain available. 176 focused cases, a 128-publication descriptor benchmark and a
+fresh independent Datadog reader pass. Overfull directories and dependency closures safely miss;
+disk growth is not yet bounded. Next improve accounting and design reader-safe GC/quotas and
+dependency-scoped nearby-revision reuse, followed by the full concurrent edit/revert matrix.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
