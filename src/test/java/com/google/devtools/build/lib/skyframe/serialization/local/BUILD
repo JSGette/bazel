@@ -125,3 +125,15 @@ java_test(
         "//third_party/java/truth",
     ],
 )
+
+java_binary(
+    name = "LocalInputHashingBenchmark",
+    testonly = True,
+    srcs = ["LocalInputHashingBenchmark.java"],
+    jvm_flags = [
+        "-Xms256m",
+        "-Xmx1g",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputHashingBenchmark",
+    deps = ["//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module"],
+)

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
 
@@ -36,6 +37,11 @@ import javax.annotation.Nullable;
  */
 final class LocalInputSnapshot implements LongVersionGetter {
   record Witness(String path, boolean listing, String digest) {}
+
+  // Bound retained scratch space to 1 MiB per process, independently of analysis thread count.
+  // Concurrent overflow borrows allocate temporary buffers; returning to a full pool discards them.
+  private static final ArrayBlockingQueue<byte[]> HASH_BUFFERS = new ArrayBlockingQueue<>(16);
+  private static final int HASH_BUFFER_BYTES = 65536;
 
   // A cheap retry hint, never validity evidence. Any retry still verifies the content witness.
   record InputStamp(Path path, @Nullable Object fileKey, @Nullable FileTime modified, long size) {}
@@ -321,10 +327,18 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   private static void hashContents(Path path, MessageDigest digest) throws IOException {
     try (InputStream input = Files.newInputStream(path)) {
-      byte[] buffer = new byte[65536];
-      int count;
-      while ((count = input.read(buffer)) != -1) {
-        digest.update(buffer, 0, count);
+      byte[] buffer = HASH_BUFFERS.poll();
+      if (buffer == null) {
+        buffer = new byte[HASH_BUFFER_BYTES];
+      }
+      try {
+        int count;
+        while ((count = input.read(buffer)) != -1) {
+          digest.update(buffer, 0, count);
+        }
+      } finally {
+        // No waiter needs this buffer: a full pool simply declines to retain the overflow.
+        HASH_BUFFERS.offer(buffer);
       }
     }
   }

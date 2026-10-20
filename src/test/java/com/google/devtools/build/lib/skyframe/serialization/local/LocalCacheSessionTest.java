@@ -46,6 +46,72 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void concurrentInputValidationKeepsHashBuffersExclusive() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path files = temporary.newFolder("inputs").toPath();
+    var inputs = snapshot(workspace, output);
+    for (int index = 0; index < 32; index++) {
+      byte[] bytes = new byte[131072 + index * 17];
+      for (int i = 0; i < bytes.length; i++) {
+        bytes[i] = (byte) (i * 73 + index);
+      }
+      inputs.observe(Files.write(files.resolve("input-" + index), bytes), false);
+    }
+    var witnesses = inputs.witnesses();
+    var barrier = new CyclicBarrier(24);
+    var tasks = new java.util.ArrayList<java.util.concurrent.Callable<Void>>();
+    for (int worker = 0; worker < 24; worker++) {
+      int offset = worker;
+      tasks.add(
+          () -> {
+            barrier.await();
+            for (int round = 0; round < 3; round++) {
+              for (int index = 0; index < witnesses.size(); index++) {
+                assertThat(inputs.matches(witnesses.get((index + offset) % witnesses.size())))
+                    .isTrue();
+              }
+            }
+            return null;
+          });
+    }
+    try (var executor = Executors.newFixedThreadPool(24)) {
+      for (var future : executor.invokeAll(tasks)) {
+        future.get();
+      }
+    }
+  }
+
+  @Test
+  public void inputValidationChecksPartialFinalBufferAndDoesNotReuseOldBytes() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path files = temporary.newFolder("inputs").toPath();
+    var inputs = snapshot(workspace, output);
+    byte[] bytes = new byte[131073];
+    java.util.Arrays.fill(bytes, (byte) 37);
+    Path large = Files.write(files.resolve("large"), bytes);
+    Path shortFile = Files.write(files.resolve("short"), new byte[] {12});
+    Path empty = Files.write(files.resolve("empty"), new byte[0]);
+    for (Path file : java.util.List.of(large, shortFile, empty)) {
+      inputs.observe(file, false);
+    }
+    var witnesses = inputs.witnesses();
+    for (int round = 0; round < 3; round++) {
+      for (var witness : witnesses) {
+        assertThat(inputs.matches(witness)).isTrue();
+      }
+    }
+    FileTime modified = Files.getLastModifiedTime(large);
+    bytes[bytes.length - 1]++;
+    Files.write(large, bytes);
+    Files.setLastModifiedTime(large, modified);
+    for (var witness : witnesses) {
+      assertThat(inputs.matches(witness)).isEqualTo(!witness.path().endsWith("/large"));
+    }
+  }
+
+  @Test
   public void discardedOptionalUploadCannotPublishEvenAfterSuccessfulBuild() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();
