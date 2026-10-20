@@ -1,0 +1,501 @@
+{
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+  "binary_sha256": "be72f4df3d16c60fe2dc14ae24fadbc320deca2855bf6d46ecd00c0135747c03",
+  "purpose": "correctness; two concurrent servers, not a speed benchmark",
+  "environment": "identical client environment; PWD and OLDPWD unset",
+  "phases": [
+    {
+      "phase": "concurrent-empty-cache",
+      "seconds": 11.362480074999894,
+      "peak_combined_server_rss_kib": 976424,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 11.160557663999953,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 790,
+            "reads": 117,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 11.3616772150001,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 790,
+            "reads": 117,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ]
+    },
+    {
+      "phase": "warm",
+      "seconds": 0.3835092750000513,
+      "peak_combined_server_rss_kib": 1036684,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.38299144600000545,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": false,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.2408477630001471,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": false,
+            "failed": false
+          }
+        }
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "seconds": 1.191403482999931,
+      "peak_combined_server_rss_kib": 1106232,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 1.1811579230000007,
+          "output_sha256": "5f789304a2c3f68c25f05df20151c9d1611aec0f0015596053a36af39ec60701",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 487,
+            "reads": 10,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 1.1905897760000244,
+          "output_sha256": "3e06a2d68abe7ecfff6d8ce017cb52a9a15f22e4a075f4b0782681185f0e7b59",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 487,
+            "reads": 10,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "seconds": 0.9252564790001543,
+      "peak_combined_server_rss_kib": 1219660,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.8805634810000811,
+          "output_sha256": "3e0e37342b8610bfbbdd2d74014335ea51666a34b9881876bf32908e8933b826",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 787,
+            "reads": 115,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.9244745640000929,
+          "output_sha256": "45a61479ced25ff3fe03a0b31beca991e43400474fa57d00f44c66f42e2e180f",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 787,
+            "reads": 115,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "seconds": 11.176601494999886,
+      "peak_combined_server_rss_kib": 897836,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 11.176092298999947,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 149,
+            "reads": 459,
+            "shared_reads": 456,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 10.885748812999964,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 149,
+            "reads": 459,
+            "shared_reads": 456,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "seconds": 11.464843307000137,
+      "peak_combined_server_rss_kib": 1041960,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 11.464330297999823,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 790,
+            "reads": 332,
+            "shared_reads": 66,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 11.222650103999968,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 790,
+            "reads": 332,
+            "shared_reads": 66,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ]
+    }
+  ],
+  "corruption": {
+    "damaged_chunks": 4130,
+    "preserved_possible_roots": 296
+  },
+  "passed": true,
+  "commands": [
+    {
+      "phase": "concurrent-empty-cache",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/concurrent-empty-cache-a.bep.json"
+      ]
+    },
+    {
+      "phase": "concurrent-empty-cache",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/concurrent-empty-cache-b.bep.json"
+      ]
+    },
+    {
+      "phase": "warm",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/warm-a.bep.json"
+      ]
+    },
+    {
+      "phase": "warm",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/warm-b.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/independent-source-edits-a.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/independent-source-edits-b.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/independent-starlark-edits-a.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/independent-starlark-edits-b.bep.json"
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/reverted-restarted-readers-a.bep.json"
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/reverted-restarted-readers-b.bep.json"
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/corrupt-chunks-fallback-a.bep.json"
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-session-v11-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/worktrees-v11/corrupt-chunks-fallback-b.bep.json"
+      ]
+    }
+  ]
+}
