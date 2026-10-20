@@ -1,0 +1,17 @@
+[
+  {
+    "failure": "Combined tree test directly used KeyBytesProvider without its strict BUILD dependency.",
+    "correction": "Added the direct test dependency and reran.",
+    "evidence": [
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/FileDependencySerializerTest.java:284: error: [strict] Using type com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider from an indirect dependency (TOOL_INFO: \"//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider\"). See command below **"
+    ]
+  },
+  {
+    "failure": "Second loop iteration restubbed a Mockito answer with when(), invoking the previous answer with null and causing HexFormat.formatHex to throw.",
+    "correction": "Use doAnswer for both writer restubs; both iterations now run and compare root fingerprints.",
+    "evidence": [
+      "INFO: Build completed, 1 test FAILED, 11 total actions",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:FileDependencySerializerTest FAILED in 1.1s"
+    ]
+  }
+]

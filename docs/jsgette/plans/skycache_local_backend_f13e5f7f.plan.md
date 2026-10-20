@@ -196,6 +196,17 @@ fresh independent Datadog reader pass. Overfull directories and dependency closu
 disk growth is not yet bounded. Next improve accounting and design reader-safe GC/quotas and
 dependency-scoped nearby-revision reuse, followed by the full concurrent edit/revert matrix.
 
+## Dependency evidence publication is implemented (Step 28)
+
+The local backend now persists content-addressed file/listing evidence with parent references and
+the existing composite dependency tree. All 182 focused cases and a fresh Datadog off/writer/reader
+diagnostic pass; storage overhead is measured. Full-source partitioning and manifest validation
+remain mandatory, so nearby-revision reuse is still incomplete. Prioritize a bounded transitive
+reader, then candidate-specific validation and stable repository/environment identity. Preserve
+external bindings, final revalidation and the evaluated-input relationship before relaxing guards.
+Do not reinterpret content hashes as monotonic versions. Keep the graph in RAM and evaluator
+unchanged. Statistics and reader-safe GC/quotas follow; rerun the full two-server edit/revert matrix.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

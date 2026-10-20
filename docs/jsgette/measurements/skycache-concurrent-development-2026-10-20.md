@@ -1628,3 +1628,72 @@ Evidence: [before admission benchmark](skycache-concurrent-2026-10-20/candidate-
 [176 cases](skycache-concurrent-2026-10-20/candidate-admission-tests.json),
 [Datadog diagnostic](skycache-concurrent-2026-10-20/candidate-admission-cross-worktree.json),
 [fixture correction](skycache-concurrent-2026-10-20/candidate-admission-fixture-correction.json).
+
+
+## Step 28 — persist content-addressed file and directory dependency evidence
+
+Implementation: [2a2dc9922ce1](https://github.com/JSGette/bazel/commit/2a2dc9922ce181f7b149e864a7888895baa45ba7).
+Nearby-revision reuse is a core requirement, so its validation groundwork takes priority over
+traffic statistics. Previously the local backend traversed file dependencies but suppressed their
+legacy path/version records: safety came from a complete source digest and publication-wide input
+manifest. Removing that guard would be unsound because local versions are MINIMAL and one logical
+analysis key may have different values at different revisions.
+
+An opt-in IndependentFileDependencyProvider now supplies deterministic opaque file/listing evidence
+to the existing serialization layer. The local payload contains canonical parent dependency keys
+and portable path/content witnesses, including symlink resolution. It is stored under a
+local-input-v1/content-fingerprint key. Existing nested dependency nodes are now persisted too,
+using their existing ordering, content fingerprints and optional Zstd format. A leaf content change
+therefore changes its containing tree fingerprint. Native version providers keep their original
+format; older independent providers may still omit legacy records. No evaluator change is made and
+the entire Skyframe graph remains in RAM.
+
+Payload decoding enforces 1 MiB, 512 parents and 1,024 witnesses, rejects missing witnesses and
+trailing/truncated data, and preserves all parent keys. Capture errors fail the upload dependency.
+The local source schema advances from v8 to v9 so older entries cannot claim this evidence exists.
+The full source digest, publication-wide admission checks, inherited manifest validation and final
+input revalidation are **still enforced**. This step does not enable sharing across revisions.
+
+Six new cases cover deterministic evidence across workspace roots, same-size/mtime content edits,
+symlink retargeting with identical referent bytes, directory listing changes, malformed payloads,
+leaf write completion/capture failure, and persisted parent/listing references whose changed leaf
+changes the composite fingerprint. These behaviors are grouped across six tests. All twelve
+focused targets / 182 cases pass. Two fixture mistakes (strict dependency and Mockito restubbing)
+were fixed and rerun. Cache&Carry was enabled throughout: the initial full build had five remote
+hits and the final successful run had three. An XML collection after a compile failure was stale;
+it was not accepted as verification. The published test summary comes from the final successful run.
+
+The Datadog off/writer/reader diagnostic passes with identical expected executables. Exactly one
+other worktree's publication exists before the reader starts. The reader gets
+585 configured-target hits and 11,938 shared reads,
+then publishes successfully. These JFR/heap-instrumented runs are diagnostics, not a clean timing
+comparison, and do not establish a speed or peak-memory improvement.
+Configured-target reuse is lower than Step 27's 4,324 hits (now 585).
+The retained full-publication guard also admits a larger evidence manifest. Repository materialization
+and discovery timing affect fresh-reader hits; this run does not isolate their contributions.
+Treat the lower reuse as an open regression signal, not harmless variance. The next per-entry reader
+must be measured with repositories ready and followed by fresh/concurrent controls before any
+performance conclusion. No admission budget was exhausted in this diagnostic.
+
+The storage audit compares the Step 27 and Step 28 writer publications for the same Datadog target:
+records increase from 279,741 to 443,154; pack bytes from
+3,959,749,929 to 4,024,945,017; index bytes from 13,427,616 to
+21,271,440. The new writer has 89,477 leaf records, occupying
+50,846,689 record bytes plus their fixed-width index entries. Composite trees
+also consume storage. The audit checks leaf checksums/encoding and finds no missing referenced
+leaf-parent keys across the published packs. It is not a complete tree validator or equal-work
+latency benchmark. This is a measured cost for future selective validation, not a speedup.
+
+Next build a bounded reader for complete nested/leaf evidence, with malformed, missing, compressed,
+cyclic and edited-input tests. Only then can candidate-specific lookup, stable repository/environment
+identity and selective witness inheritance replace the global source partition. The reader must
+try another candidate when one entry is stale, retain all pack dependencies, and preserve external
+repository-name bindings. Evidence must correspond to evaluated FileValues, not merely a later
+filesystem observation. Dropping the source guard now or treating content hashes as monotonic
+versions was rejected. Statistics and reader-safe GC/quotas remain open, followed by the full
+two-instance independent-edit/revert gate.
+
+Evidence: [182 cases](skycache-concurrent-2026-10-20/dependency-evidence-tests.json),
+[storage audit](skycache-concurrent-2026-10-20/dependency-evidence-storage.json),
+[Datadog diagnostic](skycache-concurrent-2026-10-20/dependency-evidence-cross-worktree.json),
+[fixture corrections](skycache-concurrent-2026-10-20/dependency-evidence-fixture-corrections.json).
