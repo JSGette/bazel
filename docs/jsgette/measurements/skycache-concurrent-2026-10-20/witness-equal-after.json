@@ -1,0 +1,188 @@
+{
+  "source": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after",
+  "binary_sha256": "7f2c2360e25347925b69ce7ebc565c37a549173eea56f0777dcf1904af505436",
+  "purpose": "paired restarted/warm comparison with populated output bases and equal imported target counts",
+  "memory_scope": "combined process tree PSS sampled every 200 ms; excludes page cache",
+  "runs": [
+    {
+      "phase": "restarted",
+      "seconds": 38.76244582999999,
+      "builds": [
+        {
+          "name": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/out-a",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 38.584749058,
+          "analysis_hits": 4501,
+          "skycache": {
+            "writes": 0,
+            "reads": 155660,
+            "shared_reads": 155654,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "name": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/out-b",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 38.761696639000036,
+          "analysis_hits": 4501,
+          "skycache": {
+            "writes": 0,
+            "reads": 155660,
+            "shared_reads": 155654,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ],
+      "peak_combined_pss_kib": 8807404
+    },
+    {
+      "phase": "warm",
+      "seconds": 11.109605305000002,
+      "builds": [
+        {
+          "name": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/out-a",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 11.108738770000002,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 4511,
+            "shared_reads": 4501,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4476,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [
+            "261020 23:06:01.364:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=5}"
+          ],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "name": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/out-b",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 11.092582245000017,
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 4511,
+            "shared_reads": 4501,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4476,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [
+            "261020 23:06:01.321:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=5}"
+          ],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ],
+      "peak_combined_pss_kib": 8896358
+    }
+  ],
+  "storage_preflight": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent/witness-equal-after",
+        "free_bytes": 497000620032
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 228347781120,
+      "system_drive": "C:\\",
+      "system_free_bytes": 157372801024
+    }
+  },
+  "passed": true
+}

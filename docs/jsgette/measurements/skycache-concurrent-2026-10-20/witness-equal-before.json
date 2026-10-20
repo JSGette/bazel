@@ -1,0 +1,190 @@
+{
+  "source": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before",
+  "binary_sha256": "845ae8d46974d1e3dbc6a93c9f9d59d549aa5e99083bc495384b0e4ae3b2b5da",
+  "purpose": "paired restarted/warm comparison with populated output bases and equal imported target counts",
+  "memory_scope": "combined process tree PSS sampled every 200 ms; excludes page cache",
+  "runs": [
+    {
+      "phase": "restarted",
+      "seconds": 57.703406804,
+      "builds": [
+        {
+          "name": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/out-a",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 57.70145630500002,
+          "analysis_hits": 4501,
+          "skycache": {
+            "writes": 0,
+            "reads": 153436,
+            "shared_reads": 153430,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "name": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/out-b",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 57.49844238100002,
+          "analysis_hits": 4501,
+          "skycache": {
+            "writes": 0,
+            "reads": 153436,
+            "shared_reads": 153430,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ],
+      "peak_combined_pss_kib": 9098010
+    },
+    {
+      "phase": "warm",
+      "seconds": 17.901656607000007,
+      "builds": [
+        {
+          "name": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/out-a",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 17.900694899999962,
+          "analysis_hits": 4501,
+          "skycache": {
+            "writes": 0,
+            "reads": 157941,
+            "shared_reads": 157931,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4514,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [
+            "261020 23:04:58.712:W 61 [com.google.devtools.build.lib.skyframe.serialization.analysis.AnalysisCacheInvalidator.submitInvalidationLookupsBatched] Skycache: Timeout waiting to submit (4506) analysis cache invalidation requests. Invalidating everything.",
+            "261020 23:04:58.715:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=4506}"
+          ],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "name": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/out-b",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 17.790401727000017,
+          "analysis_hits": 4501,
+          "skycache": {
+            "writes": 0,
+            "reads": 157941,
+            "shared_reads": 157931,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4512,
+            "published": false,
+            "failed": false
+          },
+          "invalidation_log": [
+            "261020 23:04:58.709:W 62 [com.google.devtools.build.lib.skyframe.serialization.analysis.AnalysisCacheInvalidator.submitInvalidationLookupsBatched] Skycache: Timeout waiting to submit (4506) analysis cache invalidation requests. Invalidating everything.",
+            "261020 23:04:58.711:I 62 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=4506}"
+          ],
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ],
+      "peak_combined_pss_kib": 9891905
+    }
+  ],
+  "storage_preflight": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent/witness-equal-before",
+        "free_bytes": 496983834624
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 228381335552,
+      "system_drive": "C:\\",
+      "system_free_bytes": 157364711424
+    }
+  },
+  "passed": true
+}

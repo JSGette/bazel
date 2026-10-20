@@ -1,0 +1,418 @@
+{
+  "before": {
+    "phases": [
+      {
+        "phase": "control-base",
+        "seconds": 40.831293329999994,
+        "peak_combined_pss_gib": 4.501867294311523,
+        "analysis_hits": [
+          0,
+          0
+        ],
+        "logs": [
+          {
+            "worktree": "control-a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/control-base-control-a.log",
+            "lines": [
+              "INFO: Elapsed time: 40.586s, Critical Path: 0.57s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          },
+          {
+            "worktree": "control-b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/control-base-control-b.log",
+            "lines": [
+              "INFO: Elapsed time: 40.586s, Critical Path: 0.52s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "restarted-control-base",
+        "seconds": 23.47533366900001,
+        "peak_combined_pss_gib": 5.780017852783203,
+        "analysis_hits": [
+          0,
+          0
+        ],
+        "logs": [
+          {
+            "worktree": "control-a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/restarted-control-base-control-a.log",
+            "lines": [
+              "INFO: Elapsed time: 22.806s, Critical Path: 0.11s"
+            ]
+          },
+          {
+            "worktree": "control-b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/restarted-control-base-control-b.log",
+            "lines": [
+              "INFO: Elapsed time: 22.870s, Critical Path: 0.11s"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "concurrent-fresh-cross-worktree-readers",
+        "seconds": 138.39227027799998,
+        "peak_combined_pss_gib": 8.352170944213867,
+        "analysis_hits": [
+          4750,
+          6621
+        ],
+        "logs": [
+          {
+            "worktree": "a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/concurrent-fresh-cross-worktree-readers-a.log",
+            "lines": [
+              "INFO: Elapsed time: 107.005s, Critical Path: 0.52s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          },
+          {
+            "worktree": "b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/concurrent-fresh-cross-worktree-readers-b.log",
+            "lines": [
+              "INFO: Elapsed time: 121.830s, Critical Path: 0.48s",
+              "INFO: 6789 processes: 5703 disk cache hit, 1085 internal, 1 linux-sandbox."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "warm-base",
+        "seconds": 19.143631760999995,
+        "peak_combined_pss_gib": 8.601506233215332,
+        "analysis_hits": [
+          3976,
+          3965
+        ],
+        "logs": [
+          {
+            "worktree": "a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/warm-base-a.log",
+            "lines": [
+              "INFO: Elapsed time: 18.783s, Critical Path: 1.54s",
+              "INFO: 6 processes: 5394 action cache hit, 2 disk cache hit, 4 internal."
+            ]
+          },
+          {
+            "worktree": "b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/warm-base-b.log",
+            "lines": [
+              "INFO: Elapsed time: 18.981s, Critical Path: 1.53s",
+              "INFO: 6 processes: 5368 action cache hit, 2 disk cache hit, 4 internal."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "restarted-base-readers",
+        "seconds": 35.56042813800002,
+        "peak_combined_pss_gib": 8.504266738891602,
+        "analysis_hits": [
+          4501,
+          4501
+        ],
+        "logs": [
+          {
+            "worktree": "a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/restarted-base-readers-a.log",
+            "lines": [
+              "INFO: Elapsed time: 34.734s, Critical Path: 1.87s"
+            ]
+          },
+          {
+            "worktree": "b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/restarted-base-readers-b.log",
+            "lines": [
+              "INFO: Elapsed time: 34.315s, Critical Path: 2.27s"
+            ]
+          }
+        ]
+      }
+    ],
+    "invalidation": [
+      {
+        "worktree": "a",
+        "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/out-a/java.log.jgette.jgett.log.java.20261021-004418.6428",
+        "lines": [
+          "261020 22:46:45.478:W 61 [com.google.devtools.build.lib.skyframe.serialization.analysis.AnalysisCacheInvalidator.submitInvalidationLookupsBatched] Skycache: Timeout waiting to submit (4770) analysis cache invalidation requests. Invalidating everything.",
+          "261020 22:46:45.481:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=4750, ASPECT=20}"
+        ]
+      },
+      {
+        "worktree": "b",
+        "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/out-b/java.log.jgette.jgett.log.java.20261021-004418.6426",
+        "lines": [
+          "261020 22:46:45.427:W 61 [com.google.devtools.build.lib.skyframe.serialization.analysis.AnalysisCacheInvalidator.submitInvalidationLookupsBatched] Skycache: Timeout waiting to submit (6635) analysis cache invalidation requests. Invalidating everything.",
+          "261020 22:46:45.429:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=6621, ASPECT=14}"
+        ]
+      }
+    ],
+    "overlap": [
+      {
+        "source": "673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919",
+        "distinct_ordered_witness_lists": 1,
+        "publications": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/23f0460881622b3a66194ac2875b297772e45a0a1b33638ec23845e740074e6e.manifest",
+            "id": "23f0460881622b3a66194ac2875b297772e45a0a1b33638ec23845e740074e6e",
+            "parents": [
+              "366ee235b0309f2484371d28e59cfb83a234ef24dd345ef2f4cd0d85ad4fd2d5",
+              "e8698625c81e5adfe57f76b6d154c068330629e457ebaf2259bc61e60c08f803"
+            ],
+            "manifest_bytes": 19050762,
+            "witness_count": 84613
+          },
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/366ee235b0309f2484371d28e59cfb83a234ef24dd345ef2f4cd0d85ad4fd2d5.manifest",
+            "id": "366ee235b0309f2484371d28e59cfb83a234ef24dd345ef2f4cd0d85ad4fd2d5",
+            "parents": [
+              "e8698625c81e5adfe57f76b6d154c068330629e457ebaf2259bc61e60c08f803"
+            ],
+            "manifest_bytes": 19050696,
+            "witness_count": 84613
+          },
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/e8698625c81e5adfe57f76b6d154c068330629e457ebaf2259bc61e60c08f803.manifest",
+            "id": "e8698625c81e5adfe57f76b6d154c068330629e457ebaf2259bc61e60c08f803",
+            "parents": [],
+            "manifest_bytes": 19050630,
+            "witness_count": 84613
+          },
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-before/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/eb1d4982da87e8899562f979a3563577c4f10948357bb10ea278d95277cb12b9.manifest",
+            "id": "eb1d4982da87e8899562f979a3563577c4f10948357bb10ea278d95277cb12b9",
+            "parents": [
+              "366ee235b0309f2484371d28e59cfb83a234ef24dd345ef2f4cd0d85ad4fd2d5",
+              "e8698625c81e5adfe57f76b6d154c068330629e457ebaf2259bc61e60c08f803"
+            ],
+            "manifest_bytes": 19050762,
+            "witness_count": 84613
+          }
+        ],
+        "total_witnesses": 338452,
+        "unique_exact_witnesses": 84613,
+        "duplicates": 253839,
+        "simulations": [
+          {
+            "max_count": 16384,
+            "max_estimated_bytes": 8388608,
+            "retained_count": 13375,
+            "estimated_bytes": 8388602,
+            "duplicate_checks_avoided_if_all_witnesses_match": 40125
+          },
+          {
+            "max_count": 65536,
+            "max_estimated_bytes": 33554432,
+            "retained_count": 52284,
+            "estimated_bytes": 33554428,
+            "duplicate_checks_avoided_if_all_witnesses_match": 156852
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "phases": [
+      {
+        "phase": "control-base",
+        "seconds": 46.741200291999995,
+        "peak_combined_pss_gib": 5.589727401733398,
+        "analysis_hits": [
+          0,
+          0
+        ],
+        "logs": [
+          {
+            "worktree": "control-a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/control-base-control-a.log",
+            "lines": [
+              "INFO: Elapsed time: 45.513s, Critical Path: 0.48s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          },
+          {
+            "worktree": "control-b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/control-base-control-b.log",
+            "lines": [
+              "INFO: Elapsed time: 45.224s, Critical Path: 0.55s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "restarted-control-base",
+        "seconds": 23.997183139,
+        "peak_combined_pss_gib": 5.6476640701293945,
+        "analysis_hits": [
+          0,
+          0
+        ],
+        "logs": [
+          {
+            "worktree": "control-a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/restarted-control-base-control-a.log",
+            "lines": [
+              "INFO: Elapsed time: 22.937s, Critical Path: 0.15s"
+            ]
+          },
+          {
+            "worktree": "control-b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/restarted-control-base-control-b.log",
+            "lines": [
+              "INFO: Elapsed time: 23.340s, Critical Path: 0.12s"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "concurrent-fresh-cross-worktree-readers",
+        "seconds": 129.497487438,
+        "peak_combined_pss_gib": 8.12939453125,
+        "analysis_hits": [
+          1092,
+          4140
+        ],
+        "logs": [
+          {
+            "worktree": "a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/concurrent-fresh-cross-worktree-readers-a.log",
+            "lines": [
+              "INFO: Elapsed time: 100.950s, Critical Path: 2.18s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          },
+          {
+            "worktree": "b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/concurrent-fresh-cross-worktree-readers-b.log",
+            "lines": [
+              "INFO: Elapsed time: 112.742s, Critical Path: 0.43s",
+              "INFO: 6789 processes: 5704 disk cache hit, 1085 internal."
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "warm-base",
+        "seconds": 4.998048974,
+        "peak_combined_pss_gib": 8.139236450195312,
+        "analysis_hits": [
+          0,
+          0
+        ],
+        "logs": [
+          {
+            "worktree": "a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/warm-base-a.log",
+            "lines": [
+              "INFO: Skycache: Invalidation lookup took 3.405 s. 0/1106 keys will be invalidated.",
+              "INFO: Elapsed time: 4.806s, Critical Path: 0.03s"
+            ]
+          },
+          {
+            "worktree": "b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/warm-base-b.log",
+            "lines": [
+              "INFO: Skycache: Invalidation lookup took 3.390 s. 0/4167 keys will be invalidated.",
+              "INFO: Elapsed time: 4.820s, Critical Path: 0.02s"
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "restarted-base-readers",
+        "seconds": 29.551861083000006,
+        "peak_combined_pss_gib": 8.658597946166992,
+        "analysis_hits": [
+          4501,
+          4501
+        ],
+        "logs": [
+          {
+            "worktree": "a",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/restarted-base-readers-a.log",
+            "lines": [
+              "INFO: Elapsed time: 28.735s, Critical Path: 2.45s",
+              "INFO: 6 processes: 6783 action cache hit, 2 disk cache hit, 4 internal."
+            ]
+          },
+          {
+            "worktree": "b",
+            "log": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/restarted-base-readers-b.log",
+            "lines": [
+              "INFO: Elapsed time: 28.502s, Critical Path: 2.60s"
+            ]
+          }
+        ]
+      }
+    ],
+    "invalidation": [],
+    "overlap": [
+      {
+        "source": "673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919",
+        "distinct_ordered_witness_lists": 1,
+        "publications": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/399a3b2bfa0731848db237733c1da8c0fbde06a32955b77583897acf6ebd9b0e.manifest",
+            "id": "399a3b2bfa0731848db237733c1da8c0fbde06a32955b77583897acf6ebd9b0e",
+            "parents": [
+              "86a2638165bff5b948c793c5d3f2953113297ef11fd0b564e9e4fa83a145bcc6",
+              "d3ec694529bdcc6e9098259eab7cce830b5fa9caec3cb8a38ac60657f679c0ee"
+            ],
+            "manifest_bytes": 19050762,
+            "witness_count": 84613
+          },
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/86a2638165bff5b948c793c5d3f2953113297ef11fd0b564e9e4fa83a145bcc6.manifest",
+            "id": "86a2638165bff5b948c793c5d3f2953113297ef11fd0b564e9e4fa83a145bcc6",
+            "parents": [],
+            "manifest_bytes": 19050630,
+            "witness_count": 84613
+          },
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/d3ec694529bdcc6e9098259eab7cce830b5fa9caec3cb8a38ac60657f679c0ee.manifest",
+            "id": "d3ec694529bdcc6e9098259eab7cce830b5fa9caec3cb8a38ac60657f679c0ee",
+            "parents": [
+              "86a2638165bff5b948c793c5d3f2953113297ef11fd0b564e9e4fa83a145bcc6"
+            ],
+            "manifest_bytes": 19050696,
+            "witness_count": 84613
+          },
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-witness-lists-after/cache/publications-v2/673f690eebd3ab1bec6574993741afe36c2da4016dee6a11ad17460ff3d58919/ef58994da5ed8783412d80379ab66221acdb781d42227fff7d11946fcc0cfa68.manifest",
+            "id": "ef58994da5ed8783412d80379ab66221acdb781d42227fff7d11946fcc0cfa68",
+            "parents": [
+              "86a2638165bff5b948c793c5d3f2953113297ef11fd0b564e9e4fa83a145bcc6",
+              "d3ec694529bdcc6e9098259eab7cce830b5fa9caec3cb8a38ac60657f679c0ee"
+            ],
+            "manifest_bytes": 19050762,
+            "witness_count": 84613
+          }
+        ],
+        "total_witnesses": 338452,
+        "unique_exact_witnesses": 84613,
+        "duplicates": 253839,
+        "simulations": [
+          {
+            "max_count": 16384,
+            "max_estimated_bytes": 8388608,
+            "retained_count": 13375,
+            "estimated_bytes": 8388602,
+            "duplicate_checks_avoided_if_all_witnesses_match": 40125
+          },
+          {
+            "max_count": 65536,
+            "max_estimated_bytes": 33554432,
+            "retained_count": 52284,
+            "estimated_bytes": 33554428,
+            "duplicate_checks_avoided_if_all_witnesses_match": 156852
+          }
+        ]
+      }
+    ]
+  }
+}

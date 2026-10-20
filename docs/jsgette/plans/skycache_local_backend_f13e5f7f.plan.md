@@ -163,6 +163,19 @@ process PSS rises and neither isolated warm run reproduces the earlier two-serve
 claim that timeout or memory overhead is solved. Next investigate repeated publication/witness
 validation under concurrent load, keeping the existing invalidation safety checks and in-RAM graph.
 
+## Identical publication checks reused within discovery (Step 25)
+
+A bounded per-discovery memo validates identical complete witness lists once and shares their
+immutable metadata. It preserves full checks for changed lists and later passes, parent closure,
+final publication validation, and the existing evaluator/deadline. 169 focused cases and twenty
+paired Datadog builds pass. The isolated benchmark improves from 114.292 to 22.794 ms;
+the paired logs contain 2 invalidation timeouts before and 0 after.
+An additional eight builds with 4,501 imported configured targets per server confirm
+2 old versus 0 new submission timeouts.
+The development report records wall time, PSS, hit counts and single-run limitations. Next inspect
+publication-time inherited validation, then bound runtime resources and address safe GC/quotas and
+nearby-revision reuse. Step 23 remains the full artificial-edit/revert gate for the earlier binary.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

@@ -1434,3 +1434,85 @@ Evidence: [before benchmark](skycache-concurrent-2026-10-20/input-hashing-before
 [before restart/warm](skycache-concurrent-2026-10-20/hashing-warm-before.json),
 [after restart/warm](skycache-concurrent-2026-10-20/hashing-warm-after.json),
 [new allocation profile](skycache-concurrent-2026-10-20/hashing-reader-allocation-sites.txt).
+
+
+## Step 25 — reuse identical complete input checks within one discovery
+
+Implementation: [8621a2c9ecf9](https://github.com/JSGette/bazel/commit/8621a2c9ecf940f32eb924640795da1760bfd994).
+The Step 23 base cache has four publications with exactly the same ordered 84,613 input witnesses:
+338,452 checks, of which 253,839 repeat identical path/operation/digest evidence. A simulated broad
+per-witness memo needed substantially more retained metadata and covered less of that duplication.
+The selected optimization instead remembers at most 32 complete, successfully validated lists
+inside one candidate-discovery pass. Equality checks the complete records, not just a hash or path.
+Matching candidates share the immutable list. Memo keys already belong to opened candidates, so
+the map adds bounded references without retaining another set of input strings.
+
+Each new discovery pass starts empty. Lists retained from earlier passes do not seed the memo;
+changed digests still receive full validation. Failed-witness retry, parent-closure checks and the
+final publication validation remain unchanged. The 10-second deadline and Skyframe evaluator are
+unchanged. A cross-command memo and a metadata-only shortcut were rejected.
+
+The eight-publication / 4,096-file microbenchmark runs two warmups and five measured fresh readers
+with a 256 MiB initial / 1 GiB maximum heap. Median discovery time falls from 114.292 to
+22.794 ms; measured allocation falls from 79,322,352 to 26,990,600 bytes
+(65.97% less). This isolates duplicate validation on hot files, not whole-build
+speed. Two new regression cases pass before and after: identical paths with different content
+digests cannot substitute for one another, and a later discovery observes changed content even
+when size and timestamp are preserved. All twelve focused targets / 169 cases pass. Cache&Carry
+was enabled for both benchmark builds/tests (one actual remote hit each) and the full source/test
+run (three remote hits).
+
+The new binary also passes a separate off/writer/fresh-reader Datadog diagnostic. The fresh reader
+starts with exactly one other worktree's publication, gets 3,729 configured-target
+hits and 28,236 shared store reads, and produces the expected executable.
+That JFR/heap run creates the binary-compatible seed for the following uninstrumented comparison.
+Old and new binaries need separate seeds because their embedded bazel_tools bindings differ.
+
+Both paired runs use two fresh worktrees, two independent seed publications, the same pinned
+Datadog revision/target, explicit JDK, jobs/heap limits, local action cache and exclusive measurement
+lock. All twenty builds pass and have the baseline executable hash. The new --base-only harness
+mode ends after restarts and shuts down its owned servers; the default full edit/revert matrix is
+unchanged. Step 23 remains the full 24-build artificial-edit/revert proof, using its earlier binary.
+
+| Phase (two servers) | Before s | After s | Before PSS GiB | After PSS GiB | Before CT hits A/B | After CT hits A/B |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| control-base | 40.831 | 46.741 | 4.502 | 5.590 | 0/0 | 0/0 |
+| restarted-control-base | 23.475 | 23.997 | 5.780 | 5.648 | 0/0 | 0/0 |
+| concurrent-fresh-cross-worktree-readers | 138.392 | 129.497 | 8.352 | 8.129 | 4750/6621 | 1092/4140 |
+| warm-base | 19.144 | 4.998 | 8.602 | 8.139 | 3976/3965 | 0/0 |
+| restarted-base-readers | 35.560 | 29.552 | 8.504 | 8.659 | 4501/4501 | 4501/4501 |
+
+The preserved Java logs contain 2 invalidation-submission timeouts before and
+0 after. Full log excerpts and action-count summaries are in the comparison JSON.
+Final publication sets, expressed as (publications, distinct complete witness lists, total witnesses),
+are before `[(4, 1, 338452)]` and after `[(4, 1, 338452)]`. Fresh readers can admit repositories
+at different points and therefore obtain different hit counts; do not treat their wall-time change
+as a controlled estimate of this optimization alone. These are single local runs, not randomized
+trials, and filesystem-cache/VM state was not held constant. The restarted cache-off control gives
+a useful reference for host variability. No general production-maturity claim follows from this gate.
+
+An additional eight-build comparison reuses each completed pair's output bases, restarts both
+servers, and then runs a warm command. Every restarted server imports exactly 4,501 configured
+targets, addressing the unequal imported-node count in the first comparison. All outputs match.
+The old warm pair has 2 submission timeouts and the new warm pair has
+0. The raw results retain per-server invalidation logs. This is still one
+trial per binary; restart-time and PSS variation preclude a broad speed or memory claim.
+
+| Equal-target-count pair | Before s | After s | Before PSS GiB | After PSS GiB | Before CT reloads A/B | After CT reloads A/B |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| restarted | 57.703 | 38.762 | 8.677 | 8.399 | 4501/4501 | 4501/4501 |
+| warm | 17.902 | 11.110 | 9.434 | 8.484 | 4501/4501 | 0/0 |
+
+Next inspect repeated inherited-input validation during publication, then runtime candidate/index
+bounds, safe collection/quotas and reuse across nearby source revisions. Keep full content checks,
+all parent dependencies, and the in-RAM graph.
+
+Evidence: [isolated before](skycache-concurrent-2026-10-20/witness-list-before.json),
+[isolated after](skycache-concurrent-2026-10-20/witness-list-after.json),
+[169 cases](skycache-concurrent-2026-10-20/witness-list-tests.json),
+[paired comparison and logs](skycache-concurrent-2026-10-20/witness-list-comparison.json),
+[full paired before](skycache-concurrent-2026-10-20/witness-list-paired-before.json),
+[full paired after](skycache-concurrent-2026-10-20/witness-list-paired-after.json),
+[equal-count before](skycache-concurrent-2026-10-20/witness-equal-before.json),
+[equal-count after](skycache-concurrent-2026-10-20/witness-equal-after.json),
+[independent reader](skycache-concurrent-2026-10-20/witness-list-cross-worktree.json).
