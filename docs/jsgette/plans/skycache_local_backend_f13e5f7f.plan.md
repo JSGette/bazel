@@ -144,6 +144,16 @@ reader crash remain in the protocol. Next extend the stronger setup to two simul
 and independent edited/reverted worktrees; then address measured full-validation allocation, bounds,
 reader-safe collection and nearby-revision reuse. This does not yet establish production maturity.
 
+## Two independent concurrent Datadog readers verified (Step 23)
+
+The stronger 24-build gate passes: two fresh worktrees start with only other worktrees' publications,
+both get actual hits and publish, and independent semantic edits/reverts match cache-disabled controls.
+The full table/protocol is in the development report. Performance remains worse than cache-off in
+important phases. Warm imported nodes are discarded after the existing invalidation submission
+deadline expires. Optimize measured file-hashing allocation and repeated validation work without
+skipping content checks or changing evaluator semantics. Keep candidate bounds, safe GC/quotas and
+nearby-revision reuse in the remaining sequence; do not label the implementation production mature.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

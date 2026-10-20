@@ -1320,3 +1320,60 @@ Evidence: [focused tests](skycache-concurrent-2026-10-20/aspect-metadata-tests.j
 [patched reader log](skycache-concurrent-2026-10-20/aspect-metadata-reader-after.log).
 
 The committed log copies trim trailing whitespace only; raw logs remain in the local run directories.
+
+
+## Step 23 — concurrent independent readers, feature edits and reverts
+
+Harness: [26dbf43ea3ed](https://github.com/JSGette/bazel/commit/26dbf43ea3ed6cad5885ff9ae2172d4c47babe40).
+The test now accepts an explicit common JDK and an inactive seed cache produced in other worktrees.
+It copies that cache into a new test root, records and verifies publication checksums, and requires
+both fresh servers to report configured-target hits and shared store reads. Resume checks include
+the JDK and seed evidence. The Python syntax and diff checks pass, and the actual 24-build run below
+validates the harness. The product binary is the Step 22 build, whose 165 focused cases passed.
+
+Both new Datadog worktrees consume independent publications while running simultaneously, and both
+publish successfully. A reports 4,580 configured-target hits and B
+9,101; their executable hashes equal the cache-disabled baseline.
+The seed contains two completed publications from the separate Step 22 writer and reader. Neither
+new worktree has a prior publication of its own. Subsequent phases verify warm graphs, restarts,
+different semantic version-string edits, separately built cache-disabled controls, and reverts.
+All 24 builds pass, and both edited outputs match their respective independent controls while
+differing from each other and from the baseline. No stale feature marker appears after reverting.
+
+| Phase (two servers) | Wall seconds | Peak combined PSS GiB | Configured-target hits A/B |
+| --- | ---: | ---: | ---: |
+| control-base | 40.184 | 5.615 | 0/0 |
+| restarted-control-base | 22.793 | 5.713 | 0/0 |
+| concurrent-fresh-cross-worktree-readers | 152.481 | 8.448 | 4580/9101 |
+| warm-base | 27.028 | 8.400 | 3949/3966 |
+| restarted-base-readers | 35.811 | 8.786 | 4501/4501 |
+| edited-warm-graphs | 367.943 | 13.443 | 0/0 |
+| control-edits-no-disk-cache | 340.642 | 9.278 | 0/0 |
+| restarted-control-edited | 38.611 | 6.079 | 0/0 |
+| first-restarted-edited-readers | 53.056 | 8.339 | 4501/4501 |
+| restarted-edited-readers | 29.599 | 8.214 | 4501/4501 |
+| reverted-restarted-readers | 41.831 | 8.462 | 4501/4501 |
+| reverted-restarted-control | 26.955 | 5.875 | 0/0 |
+
+These are single local measurements with disk/action-cache and graph states described by the raw
+argv, not statistical speedup estimates. Pair wall time includes client completion and publication;
+Bazel's own elapsed-time line ends earlier. Edited phases and their correctness controls disable the
+action disk cache. The first fresh readers are slower and use more memory than the fresh cache-off
+controls despite correct sharing. This gate establishes behavior, not production performance.
+
+The unexpectedly expensive warm phase has a concrete cause: both servers hit the upstream 10-second
+deadline while submitting invalidation requests (4,594 and 9,127 nodes), then invalidate all imported
+nodes. The versions were unchanged. This is safe fallback with avoidable work; preserving imported
+nodes without rechecking their inputs would be unsafe because those nodes lack normal file edges.
+The next optimization targets local validation cost while retaining those checks and the in-RAM graph.
+
+The separate Step 22 reader JFR reports LocalInputSnapshot.hashContents as 36.60% of sampled allocation
+pressure. That method currently creates a 64 KiB array for every file. This percentage is sampled
+weighted allocation evidence, not a measured fraction of wall time. Next measure a bounded reusable
+buffer pool, verify digest equivalence and concurrent isolation, then repeat end-to-end measurements.
+Reject unbounded thread-local retention and any shortcut that trusts size/mtime in place of content.
+Nearby-revision reuse, runtime candidate bounds, reader-safe collection and quotas remain open.
+
+Evidence: [full protocol](skycache-concurrent-2026-10-20/datadog-independent-gate.json),
+[warm invalidation logs](skycache-concurrent-2026-10-20/independent-warm-invalidation.json),
+[JFR allocation view](skycache-concurrent-2026-10-20/independent-reader-allocation-sites.txt).
