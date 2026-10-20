@@ -22,7 +22,13 @@ todos:
     status: pending
 isProject: false
 ---
-# Concurrent SkyCache and demand-paged Skyframe
+# Concurrent SkyCache
+
+> Direction updated 2026-10-20: keep the graph in RAM and minimize evaluator changes.
+> Build a shared disk analysis cache for independent Bazel servers. Active development,
+> decisions and measurements are recorded in the [development log](../measurements/skycache-concurrent-development-2026-10-20.md).
+> The paging and bounded-residency sections below describe the earlier proposal and are
+> no longer implementation requirements; the immutable-sharing and validation requirements remain.
 
 Architecture revised 2026-10-19 after the completed rules_go correctness and Datadog benchmark
 matrix. Concurrent filesystem publication is implemented and tested; portable cross-worktree
