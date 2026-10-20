@@ -392,3 +392,68 @@ explicit binary/repository/lockfile/action-cache/measurement-lock paths, records
 and requires a publication and actual configured-target hits. It factors out the diagnostic
 runner's algorithm; argument parsing and Python syntax were checked. Its first full invocation
 will be the next implementation measurement.
+
+
+## Step 9 — independent input manifests; first successful Datadog publication
+
+Implementation: [e41a096844c9](https://github.com/JSGette/bazel/commit/e41a096844c916d9bee7222f3c74d5816a22c911).
+A default-off LongVersionGetter capability lets the local backend omit the three legacy
+FileDependencySerializer record writes while retaining full dependency traversal. Directory
+and root existence are explicitly observed. Every symlink chain uses local filesystem evidence;
+normal upstream version services retain their prior behavior. Source identity v3 excludes
+publications predating the stronger directory/root evidence. Strict immutable conflict checks
+remain unchanged.
+
+The first trial omitted writes but still used graph-based resolution for ordinary relative links.
+Datadog upload failed on two GCC symlink targets whose FILE_STATE nodes were absent. The final
+change uses the independently recorded chain for relative links too. Regression tests cover this
+case, directory/root observation, and absence of legacy writes; seven targets / 82 cases pass.
+
+The before and final after probes each pass all 12 builds in two live servers/worktrees,
+including independent source/Starlark edits, reverts/restarts and corrupt-chunk fallback.
+Restarted readers retain 49 configured-target hits each and identical expected output bytes.
+
+| Phase | Before writes/server | After writes/server | Before pair seconds | After pair seconds |
+| --- | ---: | ---: | ---: | ---: |
+| concurrent-empty-cache | 741 | 445 | 11.597 | 11.204 |
+| warm | 0 | 0 | 0.238 | 0.214 |
+| independent-source-edits | 483 | 187 | 1.158 | 1.235 |
+| independent-starlark-edits | 738 | 442 | 0.865 | 0.685 |
+| reverted-restarted-readers | 51 | 51 | 10.805 | 10.565 |
+| corrupt-chunks-fallback | 741 | 445 | 10.523 | 10.579 |
+
+Cold writes fall from 741 to 445 (39.9%); the 51 writes in a fully reused command are unaffected.
+Through the restarted-reader phase, stored entry count falls from 4,026 to 2,250 (44.1%).
+These small fixtures establish correctness and less storage work, not a general wall-time gain.
+
+Datadog final attempt:
+
+| Run | Exit | Wall seconds | Peak process-tree PSS MiB |
+| --- | ---: | ---: | ---: |
+| control-cold | 0 | 34.848 | 3302.9 |
+| control-warm | 0 | 0.684 | 3324.6 |
+| writer-cold | 0 | 185.519 | 3122.6 |
+| writer-warm | 0 | 1.148 | 3129.8 |
+| reader-restart | 37 | 22.316 | 2663.2 |
+
+The writer successfully publishes 278,627 records and produces the expected cluster-agent hash
+`7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664`. The warm writer hash matches.
+The restarted reader reports **seven remote configured-target hits in progress output**, with
+only 13 configured targets at analysis completion, but then crashes in CppCompileAction:
+StarlarkProvider.rewrapDepset has no element class for a deserialized, unwrapped NestedSet.
+This is the next serialization compatibility issue, not successful end-to-end reuse.
+
+The failed reader's raw protocol contains zero hits because the old parser only consumed the
+final hit summary, which a crash never emitted. Its `skycache` object is stale from the warm
+writer because the old harness left that output file in place. Disregard those two fields for
+this failed row. The exit code/time/PSS are from the failed reader itself. The next harness
+revision must remove stale command statistics and retain progress-hit evidence on crashes.
+
+The writer is much slower than the cache-off control; there is no performance-win claim.
+Next priorities are restoring provider depset type metadata, then duplicate writes, packed I/O,
+validation cost and resource bounds.
+
+Raw protocols: [before](skycache-concurrent-2026-10-20/independent-invalidation-before.json),
+[final after](skycache-concurrent-2026-10-20/independent-invalidation-final-after.json),
+[first Datadog trial](skycache-concurrent-2026-10-20/datadog-independent-invalidation-first.json),
+[final Datadog attempt](skycache-concurrent-2026-10-20/datadog-independent-invalidation-final.json).

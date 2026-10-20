@@ -1,0 +1,513 @@
+{
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+  "binary_sha256": "1ffb6c8f47545ba00c918c9a2c56ccc38aa8737d5a25f10e85e5b8af9adccc31",
+  "purpose": "correctness; two concurrent servers, not a speed benchmark",
+  "environment": "identical client environment; PWD and OLDPWD unset",
+  "phases": [
+    {
+      "phase": "concurrent-empty-cache",
+      "seconds": 14.49199051000005,
+      "peak_combined_server_rss_kib": 937828,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 14.405894851999847,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 445,
+            "reads": 68,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 14.490824355000086,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 445,
+            "reads": 68,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ],
+      "cache_entry_files": 890,
+      "cache_entry_bytes": 282668
+    },
+    {
+      "phase": "warm",
+      "seconds": 0.2421222589998706,
+      "peak_combined_server_rss_kib": 996888,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.24161710099997435,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": false,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.23149283799989462,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": false,
+            "failed": false
+          }
+        }
+      ],
+      "cache_entry_files": 890,
+      "cache_entry_bytes": 282668
+    },
+    {
+      "phase": "independent-source-edits",
+      "seconds": 1.0618450959998427,
+      "peak_combined_server_rss_kib": 1075824,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 1.0560781339997902,
+          "output_sha256": "5f789304a2c3f68c25f05df20151c9d1611aec0f0015596053a36af39ec60701",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 187,
+            "reads": 6,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 1.061089678999906,
+          "output_sha256": "3e06a2d68abe7ecfff6d8ce017cb52a9a15f22e4a075f4b0782681185f0e7b59",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 187,
+            "reads": 6,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ],
+      "cache_entry_files": 1264,
+      "cache_entry_bytes": 406360
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "seconds": 0.6827027529998304,
+      "peak_combined_server_rss_kib": 1159788,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.6785669079999934,
+          "output_sha256": "3e0e37342b8610bfbbdd2d74014335ea51666a34b9881876bf32908e8933b826",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 442,
+            "reads": 66,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.6817909430001237,
+          "output_sha256": "45a61479ced25ff3fe03a0b31beca991e43400474fa57d00f44c66f42e2e180f",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 442,
+            "reads": 66,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ],
+      "cache_entry_files": 2148,
+      "cache_entry_bytes": 686312
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "seconds": 10.454170395999881,
+      "peak_combined_server_rss_kib": 857512,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 10.453671235999991,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 51,
+            "reads": 410,
+            "shared_reads": 407,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 10.056188478999957,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 51,
+            "reads": 410,
+            "shared_reads": 407,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ],
+      "cache_entry_files": 2250,
+      "cache_entry_bytes": 694444
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "seconds": 10.843828281000015,
+      "peak_combined_server_rss_kib": 990892,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 10.776856066999926,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 445,
+            "reads": 283,
+            "shared_reads": 66,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 10.843083022999963,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 445,
+            "reads": 283,
+            "shared_reads": 66,
+            "rejected_publications": 0,
+            "published": true,
+            "failed": false
+          }
+        }
+      ],
+      "cache_entry_files": 3140,
+      "cache_entry_bytes": 429092
+    }
+  ],
+  "corruption": {
+    "damaged_chunks": 1978,
+    "preserved_possible_roots": 272
+  },
+  "passed": true,
+  "commands": [
+    {
+      "phase": "concurrent-empty-cache",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/concurrent-empty-cache-a.bep.json"
+      ]
+    },
+    {
+      "phase": "concurrent-empty-cache",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/concurrent-empty-cache-b.bep.json"
+      ]
+    },
+    {
+      "phase": "warm",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/warm-a.bep.json"
+      ]
+    },
+    {
+      "phase": "warm",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/warm-b.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/independent-source-edits-a.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/independent-source-edits-b.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/independent-starlark-edits-a.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/independent-starlark-edits-b.bep.json"
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/reverted-restarted-readers-a.bep.json"
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/reverted-restarted-readers-b.bep.json"
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "worktree": "a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-a",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/corrupt-chunks-fallback-a.bep.json"
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "worktree": "b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/bazel-independent-invalidation-review",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/out-b",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/independent-invalidation-after/corrupt-chunks-fallback-b.bep.json"
+      ]
+    }
+  ]
+}
