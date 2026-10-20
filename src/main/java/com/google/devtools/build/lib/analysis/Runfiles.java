@@ -560,13 +560,14 @@ public final class Runfiles implements RunfilesApi {
      * Builds a new Runfiles object.
      */
     public Runfiles build() {
-      return new Runfiles(
-          prefix,
-          artifactsBuilder.build(),
-          symlinksBuilder.build(),
-          rootSymlinksBuilder.build(),
-          emptyFilesSupplier,
-          conflictPolicy);
+      return RunfilesOrigin.record(
+          new Runfiles(
+              prefix,
+              artifactsBuilder.build(),
+              symlinksBuilder.build(),
+              rootSymlinksBuilder.build(),
+              emptyFilesSupplier,
+              conflictPolicy));
     }
 
     /** Adds an artifact to the internal collection of artifacts. */

@@ -237,7 +237,7 @@ public final class ConfiguredTargetFactory {
           InvalidExecGroupException,
           AnalysisFailurePropagationException {
     if (target instanceof Rule) {
-      try {
+      try (var runfilesScope = RunfilesOrigin.enter(configuredTargetKey)) {
         CurrentRuleTracker.beginConfiguredTarget(((Rule) target).getRuleClassObject());
         return createRule(
             analysisEnvironment,
@@ -734,13 +734,16 @@ public final class ConfiguredTargetFactory {
       return erroredConfiguredAspect(ruleContext, null);
     }
 
-    ConfiguredAspect configuredAspect =
-        aspectFactory.create(
-            associatedTarget.getLabel(),
-            configuredTarget,
-            ruleContext,
-            aspect.getParameters(),
-            ruleClassProvider.getToolsRepository());
+    ConfiguredAspect configuredAspect;
+    try (var runfilesScope = RunfilesOrigin.enter(aspectKey)) {
+      configuredAspect =
+          aspectFactory.create(
+              associatedTarget.getLabel(),
+              configuredTarget,
+              ruleContext,
+              aspect.getParameters(),
+              ruleClassProvider.getToolsRepository());
+    }
 
     if (ruleContext.getConflictFinder() != null && configuredAspect != null) {
       for (ActionAnalysisMetadata action : configuredAspect.getActions()) {

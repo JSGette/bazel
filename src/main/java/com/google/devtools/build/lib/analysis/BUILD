@@ -1055,7 +1055,10 @@ java_library(
 
 java_library(
     name = "runfiles",
-    srcs = ["Runfiles.java"],
+    srcs = [
+        "Runfiles.java",
+        "RunfilesOrigin.java",
+    ],
     deps = [
         ":symlink_entry",
         "//src/main/java/com/google/devtools/build/lib/actions",

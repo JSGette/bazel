@@ -5,6 +5,7 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
 import static com.google.devtools.build.lib.unsafe.UnsafeProvider.unsafe;
 
 import com.google.devtools.build.lib.analysis.Runfiles;
+import com.google.devtools.build.lib.analysis.RunfilesOrigin;
 import com.google.devtools.build.lib.skyframe.serialization.AsyncDeserializationContext;
 import com.google.devtools.build.lib.skyframe.serialization.DeferredObjectCodec;
 import com.google.devtools.build.lib.skyframe.serialization.DynamicCodec;
@@ -23,15 +24,20 @@ import java.util.UUID;
  * affects equality of Starlark providers containing it. Repeating its inline dynamic encoding
  * creates unequal copies and can duplicate provider leaves when a depset is expanded.
  *
- * <p>A nonce keeps distinct original Runfiles objects distinct even when all fields are identical.
- * FingerprintValueService's identity-keyed put cache encodes each original object once; its reader
- * cache then restores one object for that fingerprint. Content-only interning would incorrectly
- * merge distinct originals. The ordinary field handlers preserve the existing field representation.
+ * <p>The complete producing key and creation ordinal distinguish separate originals while allowing
+ * independent writers to agree on the same producer's value. Unscoped objects retain a nonce.
+ * FingerprintValueService restores one object for each shared payload fingerprint. Content-only
+ * interning would incorrectly merge distinct originals. This does not intern newly evaluated
+ * values. The memoized allArtifacts field is omitted: whether its getter ran is not part of the
+ * value.
  */
 @SuppressWarnings("SunApi")
 final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
   private static final List<DynamicCodec.FieldHandler> FIELDS =
-      List.copyOf(DynamicCodec.getFieldHandlerMap(Runfiles.class).values());
+      DynamicCodec.getFieldHandlerMap(Runfiles.class).entrySet().stream()
+          .filter(entry -> !entry.getKey().getName().equals("allArtifacts"))
+          .map(entry -> entry.getValue())
+          .toList();
 
   @Override
   public boolean autoRegister() {
@@ -46,9 +52,16 @@ final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
   @Override
   public void serialize(SerializationContext context, Runfiles value, CodedOutputStream out)
       throws SerializationException, IOException {
-    UUID identity = UUID.randomUUID();
-    out.writeFixed64NoTag(identity.getMostSignificantBits());
-    out.writeFixed64NoTag(identity.getLeastSignificantBits());
+    var origin = RunfilesOrigin.get(value);
+    out.writeBoolNoTag(origin != null);
+    if (origin != null) {
+      context.serialize(origin.owner(), out);
+      out.writeInt32NoTag(origin.ordinal());
+    } else {
+      UUID identity = UUID.randomUUID();
+      out.writeFixed64NoTag(identity.getMostSignificantBits());
+      out.writeFixed64NoTag(identity.getLeastSignificantBits());
+    }
     for (var field : FIELDS) {
       field.serialize(context, out, value);
     }
@@ -58,9 +71,20 @@ final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
   public DeferredValue<Runfiles> deserializeDeferred(
       AsyncDeserializationContext context, CodedInputStream in)
       throws SerializationException, IOException {
-    // The identity is embodied by this shared payload's fingerprint, not by a Runfiles field.
-    in.readFixed64();
-    in.readFixed64();
+    Object[] owner = new Object[1];
+    boolean hasOrigin = in.readBool();
+    int ordinal;
+    if (hasOrigin) {
+      context.deserialize(in, owner, (target, value) -> target[0] = value);
+      ordinal = in.readInt32();
+      if (ordinal < 0) {
+        throw new SerializationException("negative Runfiles creation ordinal");
+      }
+    } else {
+      in.readFixed64();
+      in.readFixed64();
+      ordinal = 0;
+    }
     Runfiles value;
     try {
       value = (Runfiles) unsafe().allocateInstance(Runfiles.class);
@@ -71,6 +95,11 @@ final class LocalRunfilesCodec extends DeferredObjectCodec<Runfiles> {
       field.deserialize(context, in, value);
     }
     // Deferred completion waits for the fields, including nested shared values, to be restored.
-    return () -> value;
+    return () -> {
+      if (hasOrigin) {
+        RunfilesOrigin.restore(value, new RunfilesOrigin.Origin(owner[0], ordinal));
+      }
+      return value;
+    };
   }
 }
