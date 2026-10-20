@@ -105,6 +105,9 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def command(label, cache):
+        stats = output_base / "local-skycache.json"
+        # A server crash can skip final statistics. Never attribute an earlier command's file.
+        stats.unlink(missing_ok=True)
         argv = startup + build + (["--experimental_local_skycache=" + str(root / "cache"),
                                   "--experimental_active_directories=cmd/cluster-agent"] if cache else [])
         argv += ["--build_event_json_file=" + str(root / (label + ".bep.json"))]
@@ -127,11 +130,18 @@ def main():
                "peak_tree_rss_kib": max((s[1] for s in samples), default=0),
                "peak_tree_pss_kib": max((s[2] for s in samples), default=0)}
         log_text = (root / (label + ".log")).read_text()
-        stats = output_base / "local-skycache.json"
         if cache and stats.exists():
             row["skycache"] = json.loads(stats.read_text())
         hits = re.findall(r"CONFIGURED_TARGET: (\d+)/(\d+)", log_text)
-        row["analysis_hits"] = sum(int(a) for a, _ in hits)
+        progress_hits = re.findall(r"(\d+) remote cache hits", log_text)
+        row["analysis_hits"] = (
+            sum(int(a) for a, _ in hits) if hits
+            else max((int(a) for a in progress_hits), default=0)
+        )
+        row["analysis_hits_source"] = (
+            "final configured-target summary" if hits else
+            "progress output (may include other node types)" if progress_hits else "none"
+        )
         row["cache_disabled"] = "Local SkyCache disabled:" in log_text
         row["publication_failures"] = re.findall(r"Local SkyCache publication (?:discarded|skipped): (.*)", log_text)
         if code == 0:
