@@ -158,6 +158,9 @@ def main():
             sampler.join()
         record = {"phase": phase, "seconds": time.monotonic() - started,
                   "peak_combined_server_rss_kib": peak_rss[0], "builds": results}
+        entries = list((root / "cache/objects").rglob("*.entry"))
+        record["cache_entry_files"] = len(entries)
+        record["cache_entry_bytes"] = sum(path.stat().st_size for path in entries)
         protocol["phases"].append(record)
         protocol_path.write_text(json.dumps(protocol, indent=2) + "\n")
         print(json.dumps(record), flush=True)

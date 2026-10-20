@@ -45,6 +45,7 @@ public final class SkycacheUploadClient {
 
   private final SelectedEntrySerializer selectedEntrySerializer;
   private final SelectedEntrySerializer.SerializationStatus writeStatuses;
+  private final boolean uploadExecutionValues;
 
   public SkycacheUploadClient(
       CompressionService compressionService,
@@ -55,8 +56,10 @@ public final class SkycacheUploadClient {
       EventBus eventBus,
       LongVersionGetter versionGetter,
       boolean emitUploadedEvents,
-      FileOpNodeMemoizingLookup fileOpNodes) {
+      FileOpNodeMemoizingLookup fileOpNodes,
+      boolean uploadExecutionValues) {
 
+    this.uploadExecutionValues = uploadExecutionValues;
     var fileDependencySerializer =
         new FileDependencySerializer(
             versionGetter,
@@ -89,7 +92,7 @@ public final class SkycacheUploadClient {
 
   public void tryUpload(SkyKey key, SkyValue value, SkyFunction.Environment env)
       throws InterruptedException {
-    if (getLabel(key) == null) {
+    if (getLabel(key) == null || (!uploadExecutionValues && !(key instanceof ActionLookupKey))) {
       return;
     }
     writeStatuses.selectedEntryStartingCapped();

@@ -73,6 +73,7 @@ public class RemoteAnalysisCacheDeps
   private final FrontierNodeVersion frontierNodeVersion;
   private final boolean skycacheAnalysisOnly;
   private final boolean emitUploadedEvents;
+  private final boolean uploadExecutionValues;
 
   private final ListenableFuture<ObjectCodecs> objectCodecs;
   private final CompressionService compressionService;
@@ -121,6 +122,7 @@ public class RemoteAnalysisCacheDeps
     this.bailOutOnMissingFingerprint = bailOutOnMissingFingerprint;
     this.skycacheAnalysisOnly = skycacheAnalysisOnly;
     this.emitUploadedEvents = emitUploadedEvents;
+    this.uploadExecutionValues = servicesSupplier.uploadsExecutionValues();
     this.minimizeMemory = minimizeMemory;
     this.serializedFrontierProfile = serializedFrontierProfile;
     this.activeDirectoriesMatcher = activeDirectoriesMatcher;
@@ -164,6 +166,7 @@ public class RemoteAnalysisCacheDeps
     this.minimizeMemory = false;
     this.skycacheAnalysisOnly = false;
     this.emitUploadedEvents = false;
+    this.uploadExecutionValues = false;
     this.serializedFrontierProfile = "";
     this.activeDirectoriesMatcher = Optional.empty();
     this.eventHandler = null;
@@ -356,7 +359,8 @@ public class RemoteAnalysisCacheDeps
                 eventBus,
                 versionGetter,
                 emitUploadedEvents,
-                fileOp);
+                fileOp,
+                uploadExecutionValues);
       }
       return skycacheUploadClient;
     }

@@ -44,6 +44,11 @@ import javax.annotation.Nullable;
 @SkybridgeInterface
 public interface RemoteAnalysisCachingServicesSupplier extends BlazeService {
 
+  /** Whether this backend accepts execution values in addition to analysis values. */
+  default boolean uploadsExecutionValues() {
+    return true;
+  }
+
   /** Additional backend compatibility/input identity; empty preserves the default cache keys. */
   default String getCacheKeyDistinguisher() {
     return "";
