@@ -273,3 +273,40 @@ Instant.now. A wall-clock interval became negative on this WSL host, and a stati
 propagated the error through analysis-key serialization into the evaluator. No successful
 Datadog SkyCache publication/reuse is claimed. Next fix: use a monotonic elapsed-time source,
 test asynchronous latency accounting, and repeat the same workload.
+
+
+## Step 6 — monotonic store latency accounting
+
+Implementation: [478adf722d2b](https://github.com/JSGette/bazel/commit/478adf722d2b50151177cf974ccf00563b2c2d7d).
+FingerprintValueService measures put/get completion latency with System.nanoTime rather than
+Instant.now. A regression test holds both operations pending, advances an injected nanosecond
+clock across signed-long wraparound, and verifies the recorded 10-microsecond bucket only after
+completion. This changes statistics, not graph evaluation or cache identities. Clamping negative
+wall-clock durations was discarded because it would hide incorrect elapsed-time measurements.
+
+Validation: all seven test targets passed, including the 290-case serialization suite and the
+67 local/analysis test cases (357 total). The initial test compile caught ignored futures; the
+final test consumes and asserts both results. The custom Bazel binary built successfully.
+
+Datadog repeat, same commit, target, resolved lockfile, JVM and action-cache policy as step 5:
+
+| Run | Exit | Wall seconds | Peak process-tree PSS MiB | Analysis hits |
+| --- | ---: | ---: | ---: | ---: |
+| control-cold | 0 | 36.421 | 3346.7 | 0 |
+| control-warm | 0 | 0.727 | 3363.0 | 0 |
+| writer-cold | 1 | 38.582 | 1791.5 | 0 |
+
+The [raw protocol](skycache-concurrent-2026-10-20/datadog-monotonic-clock-results.json)
+contains exact commands, binary/source/lock hashes and output hashes.
+
+The timing exception did not recur. The writer analyzed 57,298 targets and reached successful
+action completion, but the command failed during upload because FileDependencySerializer
+rejects an absolute symlink from the Datadog Go coverage SDK into rules_go's Go SDK.
+The optional cache produced 57,140 private records (233 MiB allocated on disk), with no
+publication. Thus the lower sampled PSS is not a successful-cache memory result or a speedup.
+The two control output hashes match step 5. No writer output hash is asserted on the failed run.
+
+Next action: preserve the upstream service's default restrictions and add a narrow opt-in
+dependency-validation hook for the local backend, with complete symlink-chain evidence.
+Skipping absolute links without validating their referents was discarded as unsafe.
+

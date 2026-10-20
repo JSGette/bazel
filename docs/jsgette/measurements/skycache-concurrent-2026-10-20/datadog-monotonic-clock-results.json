@@ -1,0 +1,97 @@
+{
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-monotonic-clock-review",
+  "binary_sha256": "94c78b44e1a9ec8f9ab289f83c4612732dccd6a539c358c72651df98d2c9e3c6",
+  "source_commit": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "lock_sha256": "7f32675fc29a9cb837256a760cfca19dfab2bf040492cfa0c9bb40444b8d9290",
+  "source_status": " M MODULE.bazel.lock\n",
+  "memory_scope": "process-tree RSS/PSS, sampled every 200 ms; excludes filesystem page cache",
+  "runs": [
+    {
+      "label": "control-cold",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "--config=no-remote-cache",
+        "--jobs=4",
+        "--local_resources=memory=4096",
+        "--lockfile_mode=off",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "//cmd/cluster-agent:cluster-agent",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/control-cold.bep.json"
+      ],
+      "exit_code": 0,
+      "seconds": 36.42114013699998,
+      "peak_tree_rss_kib": 3433704,
+      "peak_tree_pss_kib": 3427008,
+      "analysis_hits": 0,
+      "cache_disabled": false,
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+    },
+    {
+      "label": "control-warm",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "--config=no-remote-cache",
+        "--jobs=4",
+        "--local_resources=memory=4096",
+        "--lockfile_mode=off",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "//cmd/cluster-agent:cluster-agent",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/control-warm.bep.json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7272713270000111,
+      "peak_tree_rss_kib": 3450392,
+      "peak_tree_pss_kib": 3443729,
+      "analysis_hits": 0,
+      "cache_disabled": false,
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+    },
+    {
+      "label": "writer-cold",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/workspace/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/output-base",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=120",
+        "build",
+        "--config=no-remote-cache",
+        "--jobs=4",
+        "--local_resources=memory=4096",
+        "--lockfile_mode=off",
+        "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+        "//cmd/cluster-agent:cluster-agent",
+        "--color=no",
+        "--curses=no",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/cache",
+        "--experimental_active_directories=cmd/cluster-agent",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/datadog-monotonic-clock-review/writer-cold.bep.json"
+      ],
+      "exit_code": 1,
+      "seconds": 38.58199196800001,
+      "peak_tree_rss_kib": 1841240,
+      "peak_tree_pss_kib": 1834511,
+      "skycache": {
+        "writes": 57140,
+        "reads": 57622,
+        "shared_reads": 0,
+        "rejected_publications": 0,
+        "published": false,
+        "failed": false
+      },
+      "analysis_hits": 0,
+      "cache_disabled": false
+    }
+  ]
+}
