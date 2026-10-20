@@ -120,6 +120,7 @@ java_test(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
         "//third_party/java/guava:concurrent",
         "//third_party/java/junit",
         "//third_party/java/truth",
@@ -164,6 +165,23 @@ java_binary(
         "-Xmx1g",
     ],
     main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalInheritedValidationBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)
+
+java_binary(
+    name = "LocalAdmissionBenchmark",
+    testonly = True,
+    srcs = ["LocalAdmissionBenchmark.java"],
+    jvm_flags = [
+        "-Xms256m",
+        "-Xmx1g",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalAdmissionBenchmark",
     deps = [
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",

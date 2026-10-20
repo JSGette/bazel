@@ -56,19 +56,34 @@ final class LocalCacheSession implements FingerprintValueStore {
   private static final int MAX_WITNESSES = 1_000_000;
   private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
 
+  record ReadLimits(int publications, long metadataBytes, int scanEntries) {
+    static final ReadLimits DEFAULT = new ReadLimits(64, 256L * 1024 * 1024, 4096);
+
+    ReadLimits {
+      if (publications < 0 || metadataBytes < 0 || scanEntries < 1) {
+        throw new IllegalArgumentException("invalid local SkyCache read limits");
+      }
+    }
+  }
+
   private record Manifest(
-      String id, List<LocalInputSnapshot.Witness> witnesses, List<String> parents) {}
+      String id,
+      List<LocalInputSnapshot.Witness> witnesses,
+      List<String> parents,
+      long encodedBytes) {}
 
   private record Candidate(
       String id,
       PackedFingerprintValueStore store,
       List<LocalInputSnapshot.Witness> witnesses,
-      List<String> parents) {}
+      List<String> parents,
+      long metadataBytes) {}
 
   private record SharedPut(Candidate candidate, String valueDigest) {}
 
   private final LocalInputSnapshot inputs;
   private final LongSupplier nanoTime;
+  private final ReadLimits limits;
   private final Path objects;
   private final Path publications;
   private final String id;
@@ -97,6 +112,10 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final AtomicLong sharedReads = new AtomicLong();
   private final AtomicLong rejected = new AtomicLong();
   private final AtomicLong deduplicatedWrites = new AtomicLong();
+  private volatile long readLimitSkips;
+  private volatile long scanLimitHits;
+  private volatile int peakCandidateCount;
+  private volatile long peakCandidateMetadataBytes;
 
   LocalCacheSession(Path root, LocalInputSnapshot inputs) throws IOException {
     this(root, inputs, System::nanoTime);
@@ -104,6 +123,12 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   LocalCacheSession(Path root, LocalInputSnapshot inputs, LongSupplier nanoTime)
       throws IOException {
+    this(root, inputs, nanoTime, ReadLimits.DEFAULT);
+  }
+
+  LocalCacheSession(Path root, LocalInputSnapshot inputs, LongSupplier nanoTime, ReadLimits limits)
+      throws IOException {
+    this.limits = limits;
     this.inputs = inputs;
     this.nanoTime = nanoTime;
     durableDirectory(root.toAbsolutePath().normalize());
@@ -148,14 +173,20 @@ final class LocalCacheSession implements FingerprintValueStore {
     return String.format(
         java.util.Locale.ROOT,
         "{\"writes\":%d,\"reads\":%d,\"shared_reads\":%d,\"rejected_publications\":%d,"
-            + "\"deduplicated_writes\":%d,\"published\":%s,\"failed\":%s}",
+            + "\"deduplicated_writes\":%d,\"published\":%s,\"failed\":%s,"
+            + "\"read_limit_skips\":%d,\"scan_limit_hits\":%d,\"peak_candidate_count\":%d,"
+            + "\"peak_candidate_metadata_bytes\":%d}",
         writes.get(),
         reads.get(),
         sharedReads.get(),
         rejected.get(),
         deduplicatedWrites.get(),
         published,
-        failure != null);
+        failure != null,
+        readLimitSkips,
+        scanLimitHits,
+        peakCandidateCount,
+        peakCandidateMetadataBytes);
   }
 
   @Override
@@ -332,25 +363,58 @@ final class LocalCacheSession implements FingerprintValueStore {
     for (Candidate candidate : candidates) {
       available.put(candidate.id(), candidate);
     }
+    long metadataBytes = candidates.stream().mapToLong(Candidate::metadataBytes).sum();
     List<Path> paths;
     try (var stream = Files.list(publications)) {
-      paths =
-          stream.filter(p -> p.getFileName().toString().endsWith(".manifest")).sorted().toList();
+      // Bound the listing itself before sorting or retaining filenames. An overfull directory
+      // admits no new candidates; already pinned readers remain usable for this invocation.
+      paths = stream.limit((long) limits.scanEntries() + 1).toList();
     }
+    if (paths.size() > limits.scanEntries()) {
+      scanLimitHits++;
+      return;
+    }
+    paths =
+        paths.stream()
+            .filter(p -> p.getFileName().toString().endsWith(".manifest"))
+            .sorted()
+            .toList();
+    var filenames = new HashSet<String>();
+    paths.forEach(path -> filenames.add(path.getFileName().toString()));
+    // Deleted/replaced directory entries must not leave unbounded negative bookkeeping behind.
+    inspected.retainAll(filenames);
+    rejectedWitnesses.keySet().retainAll(filenames);
     List<Candidate> opened = new ArrayList<>();
     try {
       for (Path path : paths) {
         String filename = path.getFileName().toString();
-        if (!inspected.add(filename)) {
+        if (inspected.contains(filename)) {
           continue;
         }
+        if (available.size() >= limits.publications()) {
+          readLimitSkips++;
+          continue;
+        }
+        inspected.add(filename);
         try {
           var previousMismatch = rejectedWitnesses.get(filename);
           if (previousMismatch != null && !inputs.matches(previousMismatch)) {
             rejectWitness(filename, previousMismatch);
             continue;
           }
-          Manifest manifest = readManifest(path);
+          long remaining = limits.metadataBytes() - metadataBytes;
+          if (Files.size(path) > remaining) {
+            readLimitSkips++;
+            inspected.remove(filename);
+            continue;
+          }
+          Manifest manifest = readManifest(path, remaining);
+          long indexBudget = remaining - manifest.encodedBytes();
+          if (Files.size(objects.resolve(manifest.id()).resolve("index")) > indexBudget) {
+            readLimitSkips++;
+            inspected.remove(filename);
+            continue;
+          }
           var witnesses = validatedWitnessLists.get(manifest.witnesses());
           boolean matches = true;
           if (witnesses == null) {
@@ -365,14 +429,19 @@ final class LocalCacheSession implements FingerprintValueStore {
           }
           if (matches) {
             rejectedWitnesses.remove(filename);
+            var store = PackedFingerprintValueStore.open(objects, manifest.id(), indexBudget);
             Candidate candidate =
                 new Candidate(
                     manifest.id(),
-                    PackedFingerprintValueStore.open(objects, manifest.id()),
+                    store,
                     witnesses,
-                    manifest.parents());
+                    manifest.parents(),
+                    manifest.encodedBytes() + store.indexBytes());
             opened.add(candidate);
             available.put(candidate.id(), candidate);
+            metadataBytes += candidate.metadataBytes();
+            peakCandidateCount = Math.max(peakCandidateCount, available.size());
+            peakCandidateMetadataBytes = Math.max(peakCandidateMetadataBytes, metadataBytes);
             if (validatedWitnessLists.size() < MAX_VALIDATED_WITNESS_LISTS) {
               validatedWitnessLists.put(witnesses, witnesses);
             }
@@ -548,12 +617,24 @@ final class LocalCacheSession implements FingerprintValueStore {
     }
   }
 
-  private Manifest readManifest(Path path) throws IOException {
-    long size = Files.size(path);
-    if (size < 32 || size > MAX_MANIFEST_BYTES + 32) {
-      throw new IOException("invalid manifest length");
+  private Manifest readManifest(Path path, long remainingBytes) throws IOException {
+    byte[] bytes;
+    try (var channel = FileChannel.open(path, READ, LinkOption.NOFOLLOW_LINKS)) {
+      long size = channel.size();
+      if (size < 32 || size > MAX_MANIFEST_BYTES + 32 || size > remainingBytes) {
+        throw new IOException("invalid or over-budget manifest length");
+      }
+      bytes = new byte[(int) size];
+      var contents = ByteBuffer.wrap(bytes);
+      while (contents.hasRemaining()) {
+        if (channel.read(contents) < 0) {
+          throw new java.io.EOFException("truncated input manifest");
+        }
+      }
+      if (channel.size() != size) {
+        throw new IOException("manifest length changed while reading");
+      }
     }
-    byte[] bytes = Files.readAllBytes(path);
     byte[] payload = java.util.Arrays.copyOf(bytes, bytes.length - 32);
     if (!MessageDigest.isEqual(
         HexFormat.of().parseHex(sha256(payload)),
@@ -588,7 +669,7 @@ final class LocalCacheSession implements FingerprintValueStore {
           || !Files.isDirectory(objects.resolve(namespace), LinkOption.NOFOLLOW_LINKS)) {
         throw new IOException("incomplete publication");
       }
-      return new Manifest(namespace, List.copyOf(witnesses), List.copyOf(parents));
+      return new Manifest(namespace, List.copyOf(witnesses), List.copyOf(parents), bytes.length);
     }
   }
 

@@ -21,4 +21,25 @@ public abstract class LocalSkycacheOptions extends OptionsBase {
               + "Enables bidirectional analysis caching while retaining the in-memory graph. "
               + "Experimental: validates complete project snapshots and observed external inputs.")
   public abstract String getDirectory();
+
+  @Option(
+      name = "experimental_local_skycache_max_publications",
+      defaultValue = "64",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help =
+          "Maximum shared publications opened per invocation. Zero disables shared reads; private"
+              + " writes remain available.")
+  public abstract int getMaxPublications();
+
+  @Option(
+      name = "experimental_local_skycache_max_metadata_mb",
+      defaultValue = "256",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help =
+          "Maximum combined encoded manifest and index MiB admitted per invocation. This is not a"
+              + " total JVM memory limit; decoded metadata and graph objects use additional"
+              + " memory.")
+  public abstract int getMaxMetadataMb();
 }

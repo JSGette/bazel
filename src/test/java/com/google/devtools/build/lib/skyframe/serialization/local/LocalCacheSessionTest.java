@@ -197,6 +197,167 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void candidateCountLimitPreservesPrivateWrites() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    for (int i = 0; i < 3; i++) {
+      var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+      writer.put(new Key("entry-" + i), new byte[] {(byte) i}).get();
+      assertThat(writer.finish(true)).isTrue();
+    }
+    var reader =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            System::nanoTime,
+            new LocalCacheSession.ReadLimits(1, 1024 * 1024, 100));
+    assertThrows(ExecutionException.class, () -> reader.get(new Key("missing")).get());
+    assertThat(openCacheDescriptors(cache)).isEqualTo(1);
+    assertThat(reader.statisticsJson(false)).contains("\"peak_candidate_count\":1");
+    assertThat(reader.put(new Key("private"), new byte[] {7}).get()).isTrue();
+    assertThat(reader.get(new Key("private")).get()).isEqualTo(new byte[] {7});
+    assertThat(reader.finish(true)).isTrue();
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    var later = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(later.get(new Key("private")).get()).isEqualTo(new byte[] {7});
+    later.finish(false);
+  }
+
+  @Test
+  public void metadataBudgetIncludesManifestAndIndexAtExactBoundary() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var inputs = snapshot(workspace, output);
+    var writer = new LocalCacheSession(cache, inputs);
+    writer.put(new Key("entry"), new byte[] {1}).get();
+    assertThat(writer.finish(true)).isTrue();
+    Path manifest;
+    try (var paths = Files.list(cache.resolve("publications-v2").resolve(inputs.sourceDigest()))) {
+      manifest = paths.findFirst().orElseThrow();
+    }
+    String id = manifest.getFileName().toString().replace(".manifest", "");
+    Path format = cache.resolve("objects/packed-v1");
+    Path index = format.resolve(id).resolve("index");
+    long bytes = Files.size(manifest) + Files.size(index);
+    // The store also checks the opened channel's size, independently of a caller's preflight.
+    assertThrows(
+        IOException.class,
+        () -> PackedFingerprintValueStore.open(format, id, Files.size(index) - 1));
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    var tooSmall =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            System::nanoTime,
+            new LocalCacheSession.ReadLimits(1, bytes - 1, 100));
+    assertThrows(ExecutionException.class, () -> tooSmall.get(new Key("entry")).get());
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    assertThat(tooSmall.statisticsJson(false)).contains("\"read_limit_skips\":1");
+    tooSmall.finish(false);
+    var exact =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            System::nanoTime,
+            new LocalCacheSession.ReadLimits(1, bytes, 100));
+    assertThat(exact.get(new Key("entry")).get()).isEqualTo(new byte[] {1});
+    assertThat(exact.statisticsJson(false)).contains("\"peak_candidate_metadata_bytes\":" + bytes);
+    exact.finish(false);
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+  }
+
+  @Test
+  public void candidateLimitNeverAdmitsAnIncompleteParentClosure() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var parent = new LocalCacheSession(cache, snapshot(workspace, output));
+    parent.put(new Key("parent"), new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(child.get(new Key("parent")).get()).isEqualTo(new byte[] {1});
+    child.put(new Key("child"), new byte[] {2}).get();
+    assertThat(child.finish(true)).isTrue();
+    var limited =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            System::nanoTime,
+            new LocalCacheSession.ReadLimits(1, 1024 * 1024, 100));
+    assertThrows(ExecutionException.class, () -> limited.get(new Key("child")).get());
+    assertThat(openCacheDescriptors(cache)).isAtMost(1);
+    limited.finish(false);
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    var enough =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            System::nanoTime,
+            new LocalCacheSession.ReadLimits(2, 1024 * 1024, 100));
+    assertThat(enough.get(new Key("child")).get()).isEqualTo(new byte[] {2});
+    enough.finish(false);
+  }
+
+  @Test
+  public void oversizedDiscoveryPreservesPinnedReadersAndPrivateWrites() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var first = new LocalCacheSession(cache, snapshot(workspace, output));
+    first.put(new Key("first"), new byte[] {1}).get();
+    assertThat(first.finish(true)).isTrue();
+    var clock = new AtomicLong();
+    var reader =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            clock::get,
+            new LocalCacheSession.ReadLimits(10, 1024 * 1024, 2));
+    assertThat(reader.get(new Key("first")).get()).isEqualTo(new byte[] {1});
+    for (int i = 0; i < 2; i++) {
+      var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+      writer.put(new Key("new-" + i), new byte[] {(byte) i}).get();
+      assertThat(writer.finish(true)).isTrue();
+    }
+    clock.addAndGet(2_000_000_000L);
+    assertThrows(ExecutionException.class, () -> reader.get(new Key("new-0")).get());
+    assertThat(reader.statisticsJson(false)).contains("\"scan_limit_hits\":1");
+    assertThat(reader.get(new Key("first")).get()).isEqualTo(new byte[] {1});
+    assertThat(openCacheDescriptors(cache)).isEqualTo(1);
+    assertThat(reader.put(new Key("private"), new byte[] {4}).get()).isTrue();
+    assertThat(reader.finish(true)).isTrue();
+    var later = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(later.get(new Key("private")).get()).isEqualTo(new byte[] {4});
+    later.finish(false);
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+  }
+
+  @Test
+  public void zeroReadBudgetAllowsPrivatePublicationAndNegativeLimitsAreRejected()
+      throws Exception {
+    assertThrows(IllegalArgumentException.class, () -> new LocalCacheSession.ReadLimits(-1, 1, 1));
+    assertThrows(IllegalArgumentException.class, () -> new LocalCacheSession.ReadLimits(1, -1, 1));
+    assertThrows(IllegalArgumentException.class, () -> new LocalCacheSession.ReadLimits(1, 1, 0));
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var writer =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            System::nanoTime,
+            new LocalCacheSession.ReadLimits(0, 0, 1));
+    assertThat(writer.put(new Key("private"), new byte[] {5}).get()).isTrue();
+    assertThat(writer.get(new Key("private")).get()).isEqualTo(new byte[] {5});
+    assertThat(writer.finish(true)).isTrue();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(reader.get(new Key("private")).get()).isEqualTo(new byte[] {5});
+    reader.finish(false);
+  }
+
+  @Test
   public void discardedOptionalUploadCannotPublishEvenAfterSuccessfulBuild() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

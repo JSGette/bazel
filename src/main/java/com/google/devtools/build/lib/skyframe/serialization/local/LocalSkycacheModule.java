@@ -117,7 +117,13 @@ public final class LocalSkycacheModule extends SerializationModule {
         throw new IOException("the shared cache resolves inside the source workspace");
       }
       var inputs = new LocalInputSnapshot(workspace, outputBase, inputEnvironment(env));
-      services.session = new LocalCacheSession(root, inputs);
+      services.session =
+          new LocalCacheSession(
+              root,
+              inputs,
+              System::nanoTime,
+              new LocalCacheSession.ReadLimits(
+                  options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
       RunfilesOrigin.setSharingEnabled(true);
       services.client = new LocalAnalysisCacheClient(services.session);
       services.clientId =
@@ -126,7 +132,7 @@ public final class LocalSkycacheModule extends SerializationModule {
       setMode(env, "async_bidi");
       environment = env;
       env.getEventBus().register(this);
-    } catch (IOException e) {
+    } catch (IOException | IllegalArgumentException e) {
       RunfilesOrigin.setSharingEnabled(false);
       setMode(env, "off");
       env.getReporter().handle(Event.warn("Local SkyCache disabled: " + e.getMessage()));

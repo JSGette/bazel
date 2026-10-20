@@ -88,6 +88,12 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
 
   /** Opens only a sealed namespace, verifying index bounds, checksum and data-file length. */
   static PackedFingerprintValueStore open(Path format, String id) throws IOException {
+    return open(format, id, MAX_INDEX_BYTES);
+  }
+
+  /** Enforces the caller's remaining metadata budget against the opened file before allocation. */
+  static PackedFingerprintValueStore open(Path format, String id, long maxIndexBytes)
+      throws IOException {
     checkId(id);
     Path namespace = format.resolve(id);
     byte[] index;
@@ -96,7 +102,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     }
     try (FileChannel channel = FileChannel.open(namespace.resolve("index"), READ, NOFOLLOW_LINKS)) {
       long size = channel.size();
-      if (size < INDEX_HEADER_BYTES + 32 || size > MAX_INDEX_BYTES) {
+      if (size < INDEX_HEADER_BYTES + 32 || size > MAX_INDEX_BYTES || size > maxIndexBytes) {
         throw new IOException("packed cache index size outside bounds");
       }
       index = new byte[(int) size];
@@ -145,6 +151,10 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       data.close();
       throw e;
     }
+  }
+
+  int indexBytes() {
+    return index == null ? 0 : index.length;
   }
 
   private PackedFingerprintValueStore(
