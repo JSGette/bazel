@@ -1,0 +1,504 @@
+{
+  "purpose": "intrusive JVM live/committed-heap diagnosis; not a timed performance comparison",
+  "mode": "off",
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-provenance-symlink-packed-review",
+  "binary_sha256": "e4a3c013d6754ac6d5bcc22772f851cd2cf6e39d95d98b5ccdef6de933d228a8",
+  "workspace": "/home/jgett/REPOS/.work/skycache-concurrent/heap-live-identity-off-workspace",
+  "argv": [
+    "/home/jgett/REPOS/.work/skycache-concurrent/heap-live-identity-off-workspace/tools/bazel",
+    "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/heap-live-identity-off/output-base",
+    "--host_jvm_args=-Xmx4g",
+    "--max_idle_secs=120",
+    "--host_jvm_args=-XX:StartFlightRecording=filename=/home/jgett/REPOS/.work/skycache-concurrent/heap-live-identity-off/build.jfr,name=skycache-profile,settings=profile,dumponexit=true",
+    "build",
+    "//cmd/cluster-agent:cluster-agent",
+    "--config=no-remote-cache",
+    "--jobs=2",
+    "--local_resources=memory=3072",
+    "--lockfile_mode=off",
+    "--experimental_strict_repo_env",
+    "--color=no",
+    "--curses=no",
+    "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache"
+  ],
+  "captures": [
+    {
+      "label": "before-heap",
+      "command": [
+        "/home/jgett/.cache/bazel/_bazel_jgett/install/2035c875229a3b7258f0293eb9f2d110/embedded_tools/jdk/bin/jcmd",
+        "914",
+        "GC.heap_info"
+      ],
+      "before_pss_kib": 3196002,
+      "before_rss_kib": 3199368,
+      "processes": 1,
+      "exit_code": 0,
+      "heap_info": "914:\ngarbage-first heap   total reserved 4194304K, committed 2146304K, used 1379257K [0x0000000700000000, 0x0000000800000000)\n region size 2M, 463 eden (926M), 40 survivor (80M), 162 old (324M), 10 humongous (20M), 373 free (746M)\n"
+    },
+    {
+      "label": "before-all-objects",
+      "command": [
+        "/home/jgett/.cache/bazel/_bazel_jgett/install/2035c875229a3b7258f0293eb9f2d110/embedded_tools/jdk/bin/jcmd",
+        "914",
+        "GC.class_histogram",
+        "-all"
+      ],
+      "before_pss_kib": 3196002,
+      "before_rss_kib": 3199368,
+      "processes": 1,
+      "exit_code": 0,
+      "largest_classes": [
+        {
+          "instances": 5882502,
+          "bytes": 460865672,
+          "class": "[B (java.base@27)"
+        },
+        {
+          "instances": 1610987,
+          "bytes": 154971520,
+          "class": "[Ljava.lang.Object; (java.base@27)"
+        },
+        {
+          "instances": 65466,
+          "bytes": 83791592,
+          "class": "[Ljdk.internal.vm.FillerElement; (java.base@27)"
+        },
+        {
+          "instances": 2963614,
+          "bytes": 71126736,
+          "class": "java.lang.String (java.base@27)"
+        },
+        {
+          "instances": 35150,
+          "bytes": 65782208,
+          "class": "[J (java.base@27)"
+        },
+        {
+          "instances": 189398,
+          "bytes": 48470144,
+          "class": "[I (java.base@27)"
+        },
+        {
+          "instances": 701010,
+          "bytes": 33648480,
+          "class": "build.bazel.remote.execution.v2.FileNode$Builder"
+        },
+        {
+          "instances": 792846,
+          "bytes": 31713840,
+          "class": "build.bazel.remote.execution.v2.Digest$Builder"
+        },
+        {
+          "instances": 1214388,
+          "bytes": 29145312,
+          "class": "java.util.HashMap$Node (java.base@27)"
+        },
+        {
+          "instances": 701083,
+          "bytes": 28043320,
+          "class": "build.bazel.remote.execution.v2.FileNode"
+        },
+        {
+          "instances": 792972,
+          "bytes": 25375104,
+          "class": "build.bazel.remote.execution.v2.Digest"
+        },
+        {
+          "instances": 44494,
+          "bytes": 25185288,
+          "class": "[Ljava.util.HashMap$Node; (java.base@27)"
+        },
+        {
+          "instances": 1398831,
+          "bytes": 22381296,
+          "class": "java.util.KeyValueHolder (java.base@27)"
+        },
+        {
+          "instances": 776116,
+          "bytes": 18626784,
+          "class": "java.util.concurrent.ConcurrentHashMap$Node (java.base@27)"
+        },
+        {
+          "instances": 418294,
+          "bytes": 13385408,
+          "class": "java.util.LinkedHashMap$Entry (java.base@27)"
+        },
+        {
+          "instances": 318073,
+          "bytes": 12722920,
+          "class": "com.google.devtools.build.skyframe.IncrementalInMemoryNodeEntry"
+        },
+        {
+          "instances": 793432,
+          "bytes": 12694912,
+          "class": "com.google.protobuf.ByteString$LiteralByteString"
+        },
+        {
+          "instances": 25183,
+          "bytes": 8431424,
+          "class": "[Ljava.util.concurrent.ConcurrentHashMap$Node; (java.base@27)"
+        },
+        {
+          "instances": 230112,
+          "bytes": 7363584,
+          "class": "net.starlark.java.syntax.Identifier"
+        },
+        {
+          "instances": 433231,
+          "bytes": 6931696,
+          "class": "com.google.devtools.build.lib.vfs.PathFragment$RelativePathFragment"
+        },
+        {
+          "instances": 269751,
+          "bytes": 6474024,
+          "class": "java.util.ArrayList (java.base@27)"
+        },
+        {
+          "instances": 101904,
+          "bytes": 5706624,
+          "class": "sun.security.provider.SHA2$SHA256 (java.base@27)"
+        },
+        {
+          "instances": 87277,
+          "bytes": 5585728,
+          "class": "build.bazel.remote.execution.v2.Directory$Builder"
+        },
+        {
+          "instances": 130293,
+          "bytes": 5211720,
+          "class": "com.google.common.collect.LinkedHashMultimap$ValueEntry"
+        },
+        {
+          "instances": 871,
+          "bytes": 4941664,
+          "class": "[Lcom.google.devtools.build.lib.actions.ActionInput;"
+        },
+        {
+          "instances": 100068,
+          "bytes": 4002720,
+          "class": "net.starlark.java.eval.Printer"
+        },
+        {
+          "instances": 233916,
+          "bytes": 3742656,
+          "class": "com.google.devtools.build.lib.vfs.PathFragment$UnixStyleAbsolutePathFragment"
+        },
+        {
+          "instances": 89314,
+          "bytes": 3572560,
+          "class": "com.google.protobuf.CodedOutputStream$ArrayEncoder"
+        },
+        {
+          "instances": 63078,
+          "bytes": 3532368,
+          "class": "java.util.LinkedHashMap (java.base@27)"
+        },
+        {
+          "instances": 87279,
+          "bytes": 3491160,
+          "class": "build.bazel.remote.execution.v2.Directory"
+        },
+        {
+          "instances": 87268,
+          "bytes": 3490720,
+          "class": "build.bazel.remote.execution.v2.DirectoryNode$Builder"
+        },
+        {
+          "instances": 141550,
+          "bytes": 3397200,
+          "class": "com.google.devtools.build.lib.vfs.RootedPath"
+        },
+        {
+          "instances": 136173,
+          "bytes": 3268152,
+          "class": "com.google.common.collect.Iterators$ArrayItr"
+        },
+        {
+          "instances": 63593,
+          "bytes": 3052464,
+          "class": "com.google.devtools.build.lib.unix.UnixFileStatus"
+        },
+        {
+          "instances": 87299,
+          "bytes": 2793568,
+          "class": "build.bazel.remote.execution.v2.DirectoryNode"
+        },
+        {
+          "instances": 170493,
+          "bytes": 2727888,
+          "class": "com.google.common.collect.ImmutableMapEntry"
+        },
+        {
+          "instances": 66720,
+          "bytes": 2668800,
+          "class": "net.starlark.java.eval.StarlarkFunction$ArgumentProcessor"
+        },
+        {
+          "instances": 80706,
+          "bytes": 2582592,
+          "class": "java.util.TreeMap$Entry (java.base@27)"
+        },
+        {
+          "instances": 51826,
+          "bytes": 2487648,
+          "class": "net.starlark.java.eval.StarlarkThread$Frame"
+        },
+        {
+          "instances": 75616,
+          "bytes": 2419712,
+          "class": "com.github.benmanes.caffeine.cache.PSMS"
+        }
+      ]
+    },
+    {
+      "label": "after-full-gc-live-objects",
+      "command": [
+        "/home/jgett/.cache/bazel/_bazel_jgett/install/2035c875229a3b7258f0293eb9f2d110/embedded_tools/jdk/bin/jcmd",
+        "914",
+        "GC.class_histogram"
+      ],
+      "before_pss_kib": 3199186,
+      "before_rss_kib": 3202552,
+      "processes": 1,
+      "exit_code": 0,
+      "largest_classes": [
+        {
+          "instances": 847160,
+          "bytes": 73712920,
+          "class": "[B (java.base@27)"
+        },
+        {
+          "instances": 469959,
+          "bytes": 31458776,
+          "class": "[Ljava.lang.Object; (java.base@27)"
+        },
+        {
+          "instances": 762434,
+          "bytes": 18298416,
+          "class": "java.lang.String (java.base@27)"
+        },
+        {
+          "instances": 318073,
+          "bytes": 12722920,
+          "class": "com.google.devtools.build.skyframe.IncrementalInMemoryNodeEntry"
+        },
+        {
+          "instances": 434814,
+          "bytes": 10435536,
+          "class": "java.util.concurrent.ConcurrentHashMap$Node (java.base@27)"
+        },
+        {
+          "instances": 230112,
+          "bytes": 7363584,
+          "class": "net.starlark.java.syntax.Identifier"
+        },
+        {
+          "instances": 231298,
+          "bytes": 3700768,
+          "class": "com.google.devtools.build.lib.vfs.PathFragment$RelativePathFragment"
+        },
+        {
+          "instances": 1166,
+          "bytes": 3638432,
+          "class": "[Ljava.util.concurrent.ConcurrentHashMap$Node; (java.base@27)"
+        },
+        {
+          "instances": 141293,
+          "bytes": 3391032,
+          "class": "com.google.devtools.build.lib.vfs.RootedPath"
+        },
+        {
+          "instances": 16906,
+          "bytes": 2955064,
+          "class": "[I (java.base@27)"
+        },
+        {
+          "instances": 77441,
+          "bytes": 2478112,
+          "class": "java.util.LinkedHashMap$Entry (java.base@27)"
+        },
+        {
+          "instances": 72146,
+          "bytes": 2308672,
+          "class": "com.google.common.collect.MapMakerInternalMap$WeakKeyDummyValueEntry"
+        },
+        {
+          "instances": 6487,
+          "bytes": 2232776,
+          "class": "[Ljdk.internal.vm.FillerElement; (java.base@27)"
+        },
+        {
+          "instances": 87504,
+          "bytes": 2100096,
+          "class": "com.google.devtools.build.lib.packages.PrivateVisibilityInputFile"
+        },
+        {
+          "instances": 126462,
+          "bytes": 2023392,
+          "class": "com.google.devtools.build.lib.cmdline.Label"
+        },
+        {
+          "instances": 15339,
+          "bytes": 1942856,
+          "class": "java.lang.Class (java.base@27)"
+        },
+        {
+          "instances": 107998,
+          "bytes": 1727968,
+          "class": "com.google.devtools.build.lib.collect.nestedset.NestedSet$Flat"
+        },
+        {
+          "instances": 41591,
+          "bytes": 1663640,
+          "class": "com.google.devtools.build.lib.vfs.DigestUtils$CachedDigest"
+        },
+        {
+          "instances": 100040,
+          "bytes": 1600640,
+          "class": "com.google.devtools.build.lib.vfs.PathFragment$UnixStyleAbsolutePathFragment"
+        },
+        {
+          "instances": 49759,
+          "bytes": 1592288,
+          "class": "com.google.devtools.build.lib.actions.FileContentsProxy"
+        },
+        {
+          "instances": 65062,
+          "bytes": 1561488,
+          "class": "net.starlark.java.syntax.Location"
+        },
+        {
+          "instances": 48786,
+          "bytes": 1561152,
+          "class": "net.starlark.java.syntax.Resolver$Binding"
+        },
+        {
+          "instances": 7374,
+          "bytes": 1445416,
+          "class": "[Ljava.lang.String; (java.base@27)"
+        },
+        {
+          "instances": 89674,
+          "bytes": 1434784,
+          "class": "com.google.common.collect.RegularImmutableList"
+        },
+        {
+          "instances": 56072,
+          "bytes": 1433312,
+          "class": "[Lcom.google.devtools.build.skyframe.SkyKey;"
+        },
+        {
+          "instances": 35723,
+          "bytes": 1428920,
+          "class": "net.starlark.java.syntax.CallExpression"
+        },
+        {
+          "instances": 44206,
+          "bytes": 1414592,
+          "class": "net.starlark.java.syntax.DotExpression"
+        },
+        {
+          "instances": 57541,
+          "bytes": 1380984,
+          "class": "com.google.devtools.build.lib.skyframe.ConfiguredTargetKey"
+        },
+        {
+          "instances": 15271,
+          "bytes": 1343848,
+          "class": "java.lang.reflect.Method (java.base@27)"
+        },
+        {
+          "instances": 83516,
+          "bytes": 1336256,
+          "class": "com.google.devtools.build.lib.skyframe.FileKey"
+        },
+        {
+          "instances": 41614,
+          "bytes": 1331648,
+          "class": "com.github.benmanes.caffeine.cache.PSMS"
+        },
+        {
+          "instances": 81772,
+          "bytes": 1308352,
+          "class": "com.google.common.collect.SingletonImmutableList"
+        },
+        {
+          "instances": 40739,
+          "bytes": 1303648,
+          "class": "com.google.devtools.build.lib.analysis.configuredtargets.InputFileConfiguredTarget"
+        },
+        {
+          "instances": 12559,
+          "bytes": 1274816,
+          "class": "[Ljava.util.HashMap$Node; (java.base@27)"
+        },
+        {
+          "instances": 48748,
+          "bytes": 1169952,
+          "class": "com.google.devtools.build.lib.actions.FileStateValue$RegularFileStateValueWithContentsProxy"
+        },
+        {
+          "instances": 6210,
+          "bytes": 1108824,
+          "class": "[J (java.base@27)"
+        },
+        {
+          "instances": 63457,
+          "bytes": 1015312,
+          "class": "com.google.common.collect.ImmutableMapEntry"
+        },
+        {
+          "instances": 31410,
+          "bytes": 1005120,
+          "class": "net.starlark.java.syntax.StringLiteral"
+        },
+        {
+          "instances": 41614,
+          "bytes": 998736,
+          "class": "com.google.devtools.build.lib.actions.FileArtifactValue$RegularFileArtifactValue"
+        },
+        {
+          "instances": 41521,
+          "bytes": 996504,
+          "class": "com.google.devtools.build.lib.skyframe.NonRuleConfiguredTargetValue"
+        }
+      ]
+    },
+    {
+      "label": "after-heap",
+      "command": [
+        "/home/jgett/.cache/bazel/_bazel_jgett/install/2035c875229a3b7258f0293eb9f2d110/embedded_tools/jdk/bin/jcmd",
+        "914",
+        "GC.heap_info"
+      ],
+      "before_pss_kib": 2670054,
+      "before_rss_kib": 2673420,
+      "processes": 1,
+      "exit_code": 0,
+      "heap_info": "914:\ngarbage-first heap   total reserved 4194304K, committed 935936K, used 251907K [0x0000000700000000, 0x0000000800000000)\n region size 2M, 1 eden (2M), 0 survivor (0M), 132 old (264M), 5 humongous (10M), 319 free (638M)\n"
+    }
+  ],
+  "storage_preflight": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent/heap-live-identity-off",
+        "free_bytes": 659320238080
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 369935949824,
+      "system_drive": "C:\\",
+      "system_free_bytes": 154885713920
+    }
+  },
+  "exit_code": 0,
+  "diagnostic_build_seconds": 37.801914143000204,
+  "analysis_hits": 0,
+  "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+  "jcmd": "/home/jgett/.cache/bazel/_bazel_jgett/install/2035c875229a3b7258f0293eb9f2d110/embedded_tools/jdk/bin/jcmd",
+  "passed": true
+}

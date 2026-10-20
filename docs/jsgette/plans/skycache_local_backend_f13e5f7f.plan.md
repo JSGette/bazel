@@ -119,6 +119,21 @@ Repairing missing upload witnesses after cache-off warmup remains an efficiency 
 Keep the in-memory graph. Existing SkyframeExecutor invalidation already deletes imported values
 when caching is disabled; no extra invalidation path or whole-graph flush was added.
 
+## Fresh-worktree Datadog reuse still unproven (Step 21)
+
+The 24-build gate's readers can reuse their own output-base publications. A fresh-output-base
+diagnostic exposed a local-JDK generated error message containing that output base's absolute path,
+which makes the writer manifests themselves incompatible across worktrees. Correct rejection must
+remain; do not normalize arbitrary strings. Next, explicitly configure a valid common JDK and test
+a new reader with access only to another worktree's publication. Keep the original failure in the
+protocol. Small independent-publication fixtures already pass, but do not generalize that evidence.
+
+Repeated rejected validation now has a completion-based interval and checks the previous mismatch
+first, with full revalidation mandatory before admission. 158 focused cases and twelve small
+concurrent worktree builds pass; the microbenchmark removes most repeated rejection allocation.
+Full-pass hashing still allocates heavily. Heap diagnostics separate collectible allocation from
+live heap, but native/PSS overhead remains unresolved.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

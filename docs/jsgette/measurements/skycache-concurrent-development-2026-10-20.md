@@ -1198,3 +1198,77 @@ Evidence: [tests](skycache-concurrent-2026-10-20/live-identity-tests.json),
 [analysis-only on-to-off](skycache-concurrent-2026-10-20/live-identity-on-to-off-analysis.json),
 [Datadog gate](skycache-concurrent-2026-10-20/datadog-concurrent-live-identity.json),
 [action summaries](skycache-concurrent-2026-10-20/live-identity-action-summaries.json).
+
+
+## Step 21 — bounded retry cadence and remembered mismatches
+
+Implementation: [3df66c61e22f](https://github.com/JSGette/bazel/commit/3df66c61e22f66996514287b983daee734f55d9a).
+This is a retry-cost fix, followed by a newly identified limit on the previous large-workload proof.
+
+Separate intrusive JFR/heap diagnostics used dedicated worktrees/output bases and the same target,
+resource limits and action cache. The cache-off process had 1,379,257 KiB used heap before full GC
+and 251,907 KiB afterward; the writer had 2,714,367 and 362,984 KiB respectively. Committed heap
+also fell, while process PSS remained high immediately after the diagnostic. These samples distinguish
+collectible allocation from live Java objects; they do not explain native/process memory or prove
+absence of leaks. Raw JFR recordings and class histograms remain under the local measurement roots.
+They are diagnostic runs, not uninstrumented timing comparisons.
+
+The fresh-output-base reader barely advanced beyond six configured targets. A thread dump showed
+one analysis thread hashing publication witnesses while other analysis threads waited for the
+LocalCacheSession.refresh monitor. The owned client was interrupted after 215.531 seconds, producing
+exit 8; its JFR recording, cancellation reason and thread dump were preserved and its server shut
+down. The one-second negative interval started before validation, so a sufficiently expensive scan
+finished with its interval already expired. Each waiting lookup could then repeat the full scan.
+
+The interval now starts when discovery/validation completes, including exceptional completion.
+A rejected publication remembers its mismatching witness and checks that witness first on retry.
+If it still fails, the rest of the manifest is skipped. If it matches, the entire immutable manifest
+is read and all witnesses validated again. Metadata remains only an early retry hint; unchanged
+size/mtime/inode still get a content retry after the interval. An earlier witness changing while
+the previous mismatch is repaired cannot cause stale admission. The mismatch state is command-local
+and cleared on finish. No input validity requirement, graph state or serialized format is relaxed.
+
+A new slow-validation regression fails before the change (two rejections instead of one) and passes
+after it. A second test verifies full validation after repairing a remembered mismatch. All eleven
+focused targets / 158 cases pass; the source/test run used Cache&Carry and records three remote hits.
+The twelve-build two-worktree source/Starlark edit, revert, restart and damaged-chunk fallback probe
+also passes, preserving outputs and 49 analysis hits per restarted server.
+
+The synthetic benchmark publishes 4,096 external 1 KiB files and a final witness, removes that final
+file, and repeats rejected lookups while advancing an injected clock past the negative interval.
+It measures current-thread allocated bytes with ThreadMXBean and verifies that restoring the missing
+file eventually admits the publication. Excluding the initial full scan, median rejection falls from
+35.373 to 0.102 ms,
+and median allocation from 278,890,440 to
+8,736 bytes. The initial full scan still allocates
+about 280 MB. This isolates rejected-candidate work; it is not a whole-build speedup claim.
+
+The new-binary fresh Datadog build completes in 97.244 seconds with the expected output hash and
+34 rejected publication attempts, but **zero analysis/shared reads**. The diagnostic intentionally
+fails its reuse assertion. The original run was cancelled rather than completed, and the new binary
+changes its embedded-tool binding; do not interpret these as a controlled before/after build ratio.
+
+Inspection of old and new manifests found differing witnesses for external/bazel_tools and
+external/rules_java++toolchains+local_jdk/BUILD.bazel. This host has no system JDK. rules_java generates
+a fail_rule whose error message embeds its output base's absolute nosystemjdk path. Even the two
+original writer manifests disagree on those BUILD.bazel bytes. Their own restarted servers can
+validate their own publications, while a genuinely new worktree cannot. The validator correctly
+rejects those different bytes; blindly rewriting arbitrary strings would be unsafe.
+
+**Correction to the scope of the Step 20 evidence:** its 24-build gate proves simultaneous operation,
+correct edits/reverts and reuse on each populated output base. It does not prove that the Datadog
+readers consumed the other worktree's publication. The small independent-publication fixtures do
+prove cross-writer reuse for their tested rules. The next large probe must give a new reader access
+only to another worktree's publication and use an explicit valid, consistent JDK configuration.
+Keep the original failure recorded. Arbitrary host-specific generated content and nearby-revision
+per-entry validation remain limitations, not problems solved by the retry optimization.
+
+Evidence: [tests](skycache-concurrent-2026-10-20/candidate-retry-tests.json),
+[before microbenchmark](skycache-concurrent-2026-10-20/candidate-validation-before.json),
+[after microbenchmark](skycache-concurrent-2026-10-20/candidate-validation-after.json),
+[two-worktree gate](skycache-concurrent-2026-10-20/candidate-retry-worktrees.json),
+[fresh fallback](skycache-concurrent-2026-10-20/candidate-retry-fresh-reader.json),
+[manifest differences](skycache-concurrent-2026-10-20/fresh-reader-publication-differences.json),
+[cache-off heap](skycache-concurrent-2026-10-20/heap-identity-off.json),
+[writer heap](skycache-concurrent-2026-10-20/heap-identity-writer.json),
+[cancelled diagnostic](skycache-concurrent-2026-10-20/heap-identity-reader-cancelled.json).
