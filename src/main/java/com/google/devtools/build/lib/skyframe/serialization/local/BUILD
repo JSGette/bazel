@@ -52,6 +52,7 @@ java_library(
         ":packed_store",
         "//src/main/java/com/google/devtools/build/lib/actions:artifact_owner",
         "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
+        "//src/main/java/com/google/devtools/build/lib/analysis:aspect_value",
         "//src/main/java/com/google/devtools/build/lib/analysis:blaze_directories",
         "//src/main/java/com/google/devtools/build/lib/analysis:runfiles",
         "//src/main/java/com/google/devtools/build/lib/analysis:symlink_entry",

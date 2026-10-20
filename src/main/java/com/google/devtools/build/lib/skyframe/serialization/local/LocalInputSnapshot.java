@@ -205,7 +205,7 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   private String captureSource() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v7-provenance-only");
+    update(digest, "local-source-v8-aspect-package-metadata");
     update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());

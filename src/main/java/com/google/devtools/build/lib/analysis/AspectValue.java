@@ -18,15 +18,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.devtools.build.lib.actions.ActionAnalysisMetadata;
 import com.google.devtools.build.lib.actions.BasicActionLookupValue;
 import com.google.devtools.build.lib.collect.nestedset.NestedSet;
 import com.google.devtools.build.lib.packages.Aspect;
 import com.google.devtools.build.lib.packages.Package;
 import com.google.devtools.build.lib.skyframe.AspectKeyCreator.AspectKey;
+import com.google.devtools.build.lib.skyframe.serialization.AsyncDeserializationContext;
+import com.google.devtools.build.lib.skyframe.serialization.DeferredObjectCodec;
 import com.google.devtools.build.lib.skyframe.serialization.DeserializedSkyValue;
+import com.google.devtools.build.lib.skyframe.serialization.SerializationContext;
+import com.google.devtools.build.lib.skyframe.serialization.SerializationException;
 import com.google.devtools.build.lib.skyframe.serialization.VisibleForSerialization;
 import com.google.devtools.build.lib.skyframe.serialization.autocodec.AutoCodec;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import java.io.IOException;
 import javax.annotation.Nullable;
 
 /** An aspect in the context of the Skyframe graph. */
@@ -209,6 +217,113 @@ public class AspectValue extends BasicActionLookupValue
 
   public static boolean isForAliasTarget(AspectValue aspectValue) {
     return aspectValue instanceof AspectValueForAlias
-        || aspectValue instanceof AspectValueWithTransitivePackagesForAlias;
+        || aspectValue instanceof AspectValueWithTransitivePackagesForAlias
+        || (aspectValue instanceof RestoredAspectValue restored && restored.forAlias);
+  }
+
+  /** Local readers need this metadata when combining a restored aspect with a computed parent. */
+  public static DeferredObjectCodec<AspectValue> codecWithTransitivePackages() {
+    return new LocalAspectValueCodec();
+  }
+
+  private static final class RestoredAspectValue extends AspectValue
+      implements DeserializedSkyValue {
+    @Nullable private AspectKey key;
+    @Nullable private NestedSet<Package.Metadata> transitivePackages;
+    private final boolean forAlias;
+
+    private RestoredAspectValue(
+        ImmutableList<ActionAnalysisMetadata> actions,
+        Aspect aspect,
+        TransitiveInfoProviderMap providers,
+        boolean writesOutputToMasterLog,
+        @Nullable AspectKey key,
+        @Nullable NestedSet<Package.Metadata> transitivePackages,
+        boolean forAlias) {
+      super(actions, aspect, providers, writesOutputToMasterLog);
+      this.key = key;
+      this.transitivePackages = transitivePackages;
+      this.forAlias = forAlias;
+    }
+
+    @Override
+    public AspectKey getKeyForTransitivePackageTracking() {
+      return key != null ? key : super.getKeyForTransitivePackageTracking();
+    }
+
+    @Override
+    @Nullable
+    public NestedSet<Package.Metadata> getTransitivePackages() {
+      return transitivePackages;
+    }
+
+    @Override
+    public void clear(boolean clearEverything) {
+      super.clear(clearEverything);
+      key = null;
+      transitivePackages = null;
+    }
+  }
+
+  /** Explicitly selected by the local module; the ordinary generated codec stays unchanged. */
+  private static final class LocalAspectValueCodec extends DeferredObjectCodec<AspectValue> {
+    @Override
+    public boolean autoRegister() {
+      return false;
+    }
+
+    @Override
+    public Class<AspectValue> getEncodedClass() {
+      return AspectValue.class;
+    }
+
+    @Override
+    public ImmutableSet<Class<? extends AspectValue>> additionalEncodedClasses() {
+      return ImmutableSet.of(
+          AspectValueWithTransitivePackages.class,
+          AspectValueForAlias.class,
+          AspectValueWithTransitivePackagesForAlias.class,
+          RestoredAspectValue.class);
+    }
+
+    @Override
+    public void serialize(SerializationContext context, AspectValue value, CodedOutputStream out)
+        throws SerializationException, IOException {
+      out.writeBoolNoTag(isForAliasTarget(value));
+      out.writeBoolNoTag(value.getWritesOutputToMasterLog());
+      context.serialize(value.getActions(), out);
+      context.serialize(value.getAspect(), out);
+      context.serialize(value.getProviders(), out);
+      var packages = value.getTransitivePackages();
+      context.serialize(packages == null ? null : value.getKeyForTransitivePackageTracking(), out);
+      context.serialize(packages, out);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked") // The five fields have fixed types in this codec's format.
+    public DeferredValue<AspectValue> deserializeDeferred(
+        AsyncDeserializationContext context, CodedInputStream in)
+        throws SerializationException, IOException {
+      boolean alias = in.readBool();
+      boolean writesOutputToMasterLog = in.readBool();
+      Object[] fields = new Object[5];
+      for (int i = 0; i < fields.length; i++) {
+        int index = i;
+        context.deserialize(in, fields, (target, value) -> target[index] = value);
+      }
+      return () -> {
+        if ((fields[3] == null) != (fields[4] == null)) {
+          throw new SerializationException("incomplete aspect package-tracking metadata");
+        }
+        return new RestoredAspectValue(
+            (ImmutableList<ActionAnalysisMetadata>) fields[0],
+            (Aspect) fields[1],
+            (TransitiveInfoProviderMap) fields[2],
+            writesOutputToMasterLog,
+            (AspectKey) fields[3],
+            (NestedSet<Package.Metadata>) fields[4],
+            alias);
+      };
+    }
   }
 }

@@ -15,6 +15,7 @@ package com.google.devtools.build.lib.analysis;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.devtools.build.lib.skyframe.serialization.testutils.RoundTripping.roundTripMemoized;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
@@ -24,13 +25,18 @@ import com.google.devtools.build.lib.analysis.util.TestAspects;
 import com.google.devtools.build.lib.analysis.util.TestAspects.AttributeAspect;
 import com.google.devtools.build.lib.analysis.util.TestAspects.ExtraAttributeAspect;
 import com.google.devtools.build.lib.cmdline.Label;
+import com.google.devtools.build.lib.collect.nestedset.NestedSetBuilder;
+import com.google.devtools.build.lib.collect.nestedset.Order;
+import com.google.devtools.build.lib.packages.Aspect;
 import com.google.devtools.build.lib.packages.AspectDescriptor;
 import com.google.devtools.build.lib.packages.AspectParameters;
 import com.google.devtools.build.lib.packages.NativeAspectClass;
+import com.google.devtools.build.lib.packages.Package;
 import com.google.devtools.build.lib.skyframe.AspectKeyCreator;
 import com.google.devtools.build.lib.skyframe.AspectKeyCreator.AspectKey;
 import com.google.devtools.build.lib.skyframe.ConfiguredTargetKey;
 import com.google.devtools.build.lib.skyframe.serialization.AutoRegistry;
+import com.google.devtools.build.lib.skyframe.serialization.DeserializedSkyValue;
 import com.google.devtools.build.skyframe.SkyKey;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,15 +54,9 @@ public final class AspectValueTest extends AnalysisTestCase {
     Label l1 = Label.parseCanonical("//a:l1");
     Label l1b = Label.parseCanonical("//a:l1");
     Label l2 = Label.parseCanonical("//a:l2");
-    AspectParameters i1 = new AspectParameters.Builder()
-        .addAttribute("foo", "bar")
-        .build();
-    AspectParameters i1b = new AspectParameters.Builder()
-        .addAttribute("foo", "bar")
-        .build();
-    AspectParameters i2 = new AspectParameters.Builder()
-        .addAttribute("foo", "baz")
-        .build();
+    AspectParameters i1 = new AspectParameters.Builder().addAttribute("foo", "bar").build();
+    AspectParameters i1b = new AspectParameters.Builder().addAttribute("foo", "bar").build();
+    AspectParameters i2 = new AspectParameters.Builder().addAttribute("foo", "baz").build();
     AttributeAspect a1 = TestAspects.ATTRIBUTE_ASPECT;
     AttributeAspect a1b = TestAspects.ATTRIBUTE_ASPECT;
     ExtraAttributeAspect a2 = TestAspects.EXTRA_ATTRIBUTE_ASPECT;
@@ -152,6 +152,130 @@ public final class AspectValueTest extends AnalysisTestCase {
     assertThat(subject.get(0)).isNotSameInstanceAs(subject.get(1));
     var deserialized = roundTripMemoized(subject, AutoRegistry.get());
     assertThat(deserialized.get(0)).isSameInstanceAs(deserialized.get(1));
+  }
+
+  @Test
+  public void localCodec_preservesTrackingAndAlias() throws Exception {
+    var aspect = Aspect.forNative(TestAspects.ATTRIBUTE_ASPECT);
+    var key =
+        AspectKeyCreator.createAspectKey(
+            aspect.getDescriptor(),
+            ConfiguredTargetKey.builder().setLabel(Label.parseCanonical("//a:target")).build());
+    var registry =
+        AutoRegistry.get()
+            .getBuilder()
+            .add(AspectValue.codecWithTransitivePackages())
+            .addReferenceConstant(TestAspects.ATTRIBUTE_ASPECT)
+            .addReferenceConstant(aspect)
+            .build();
+    for (boolean tracked : new boolean[] {false, true}) {
+      var packages =
+          tracked ? NestedSetBuilder.<Package.Metadata>emptySet(Order.STABLE_ORDER) : null;
+      for (boolean alias : new boolean[] {false, true}) {
+        var original =
+            alias
+                ? AspectValue.createForAlias(
+                    key, aspect, ConfiguredAspect.NonApplicableAspect.INSTANCE, packages)
+                : AspectValue.create(
+                    key, aspect, ConfiguredAspect.NonApplicableAspect.INSTANCE, packages);
+        var restored = roundTripMemoized(original, registry);
+        // A reader may also publish values it imported. Check that subtype too.
+        for (var value : ImmutableList.of(restored, roundTripMemoized(restored, registry))) {
+          assertThat(value).isInstanceOf(DeserializedSkyValue.class);
+          assertThat(AspectValue.isForAliasTarget(value)).isEqualTo(alias);
+          assertThat(value.getAspect()).isSameInstanceAs(aspect);
+          assertThat(value.getActions()).isEmpty();
+          assertThat(value.getProviders().getProviderCount()).isEqualTo(0);
+          assertThat(value.getWritesOutputToMasterLog()).isFalse();
+          if (tracked) {
+            assertThat(value.getKeyForTransitivePackageTracking()).isEqualTo(key);
+            assertThat(value.getTransitivePackages()).isNotNull();
+            assertThat(value.getTransitivePackages().isEmpty()).isTrue();
+          } else {
+            assertThat(value.getTransitivePackages()).isNull();
+            assertThrows(
+                UnsupportedOperationException.class, value::getKeyForTransitivePackageTracking);
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void localCodec_preservesMasterLogFlag() throws Exception {
+    var aspect = Aspect.forNative(TestAspects.ATTRIBUTE_ASPECT);
+    var original =
+        new AspectValue(
+            ImmutableList.of(),
+            aspect,
+            ConfiguredAspect.NonApplicableAspect.INSTANCE.getProviders(),
+            true);
+    var registry =
+        AutoRegistry.get()
+            .getBuilder()
+            .add(AspectValue.codecWithTransitivePackages())
+            .addReferenceConstant(TestAspects.ATTRIBUTE_ASPECT)
+            .addReferenceConstant(aspect)
+            .build();
+    assertThat(roundTripMemoized(original, registry).getWritesOutputToMasterLog()).isTrue();
+  }
+
+  @Test
+  public void localCodec_clearDropsTrackingMetadata() throws Exception {
+    var aspect = Aspect.forNative(TestAspects.ATTRIBUTE_ASPECT);
+    var key =
+        AspectKeyCreator.createAspectKey(
+            aspect.getDescriptor(),
+            ConfiguredTargetKey.builder().setLabel(Label.parseCanonical("//a:target")).build());
+    var original =
+        AspectValue.create(
+            key,
+            aspect,
+            ConfiguredAspect.NonApplicableAspect.INSTANCE,
+            NestedSetBuilder.<Package.Metadata>emptySet(Order.STABLE_ORDER));
+    var registry =
+        AutoRegistry.get()
+            .getBuilder()
+            .add(AspectValue.codecWithTransitivePackages())
+            .addReferenceConstant(TestAspects.ATTRIBUTE_ASPECT)
+            .addReferenceConstant(aspect)
+            .build();
+    for (boolean everything : new boolean[] {false, true}) {
+      var restored = roundTripMemoized(original, registry);
+      restored.clear(everything);
+      assertThat(restored.isCleared()).isEqualTo(everything);
+      assertThat(restored.getTransitivePackages()).isNull();
+      assertThrows(
+          UnsupportedOperationException.class, restored::getKeyForTransitivePackageTracking);
+      if (!everything) {
+        assertThat(restored.getAspect()).isSameInstanceAs(aspect);
+      }
+    }
+  }
+
+  @Test
+  public void defaultCodec_stillOmitsTrackingMetadata() throws Exception {
+    var aspect = Aspect.forNative(TestAspects.ATTRIBUTE_ASPECT);
+    var key =
+        AspectKeyCreator.createAspectKey(
+            aspect.getDescriptor(),
+            ConfiguredTargetKey.builder().setLabel(Label.parseCanonical("//a:target")).build());
+    var original =
+        AspectValue.create(
+            key,
+            aspect,
+            ConfiguredAspect.NonApplicableAspect.INSTANCE,
+            NestedSetBuilder.<Package.Metadata>emptySet(Order.STABLE_ORDER));
+    var registry =
+        AutoRegistry.get()
+            .getBuilder()
+            .addReferenceConstant(TestAspects.ATTRIBUTE_ASPECT)
+            .addReferenceConstant(aspect)
+            .build();
+    var restored = roundTripMemoized(original, registry);
+    assertThat(restored).isInstanceOf(DeserializedSkyValue.class);
+    assertThat(restored.getTransitivePackages()).isNull();
+    assertThrows(UnsupportedOperationException.class, restored::getKeyForTransitivePackageTracking);
   }
 
   private static AspectKey createKey(

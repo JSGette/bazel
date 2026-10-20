@@ -8,6 +8,7 @@ import static java.util.concurrent.ForkJoinPool.commonPool;
 import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.devtools.build.lib.analysis.AspectValue;
 import com.google.devtools.build.lib.analysis.BlazeDirectories;
 import com.google.devtools.build.lib.analysis.Runfiles;
 import com.google.devtools.build.lib.analysis.RunfilesOrigin;
@@ -66,6 +67,7 @@ public final class LocalSkycacheModule extends SerializationModule {
           .add(new ValueSharingAdapter<>(new LocalRunfilesCodec()))
           .add(new ValueSharingAdapter<>(new LocalSymlinkEntryCodec()))
           .add(RemoteConfiguredTargetValue.codecWithTransitivePackages())
+          .add(AspectValue.codecWithTransitivePackages())
           .build();
     };
   }
