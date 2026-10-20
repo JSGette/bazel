@@ -62,13 +62,25 @@ public interface LongVersionGetter {
   long getNonexistentPathVersion(Path path) throws IOException;
 
   /**
-   * Records dependencies for a symlink that escapes the serializer's versioned root.
+   * Records symlink dependencies independently of the serializer's graph-based resolution.
    *
    * <p>Returning true requires independently persisted evidence for the entire resolution chain and
    * referent, validated before cached values are reused. Ordinary version services do not support
-   * this; content-validated local backends may opt in. Failure must prevent publication.
+   * this; content-validated local backends may opt in, including for links outside a versioned root
+   * or whose intermediate FILE_STATE nodes are absent. Failure must prevent publication.
    */
   default boolean recordExternalSymlinkDependencies(Path path) throws IOException {
+    return false;
+  }
+
+  /**
+   * Whether this service persists and validates a complete independent input manifest.
+   *
+   * <p>Such a backend does not consume the serializer's version/path invalidation records.
+   * Dependency traversal and all file, directory, missing-path and symlink observations are still
+   * required. Returning true must never make an entry reusable without validating that manifest.
+   */
+  default boolean usesIndependentInvalidationData() {
     return false;
   }
 }

@@ -18,6 +18,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -187,6 +188,51 @@ public final class FileDependencySerializerTest {
     when(writer.put(any(), any())).thenReturn(WriteStatuses.immediateWriteStatus(true));
     ((FutureFileDataInfo) serializer.registerDependency(key)).get();
     verify(versionGetter).recordExternalSymlinkDependencies(path.asPath());
+    assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(0);
+  }
+
+  @Test
+  public void independentManifestObservesDirectoriesAndRootsWithoutLegacyWrites() throws Exception {
+    when(versionGetter.usesIndependentInvalidationData()).thenReturn(true);
+    serializer =
+        new FileDependencySerializer(
+            versionGetter, graph, COMPRESSION_SERVICE, writer, executor, null);
+    RootedPath path = RootedPath.toRootedPath(root, PathFragment.create("directory"));
+    FileKey key = FileKey.create(path);
+    FileValue value = mock(FileValue.class);
+    when(value.realRootedPath(path)).thenReturn(path);
+    when(value.exists()).thenReturn(true);
+    when(value.isDirectory()).thenReturn(true);
+    when(nodeEntry.getValue()).thenReturn(value);
+    when(graph.getIfPresent(key)).thenReturn(nodeEntry);
+    ((FutureFileDataInfo) serializer.registerDependency(key)).get();
+    verify(versionGetter).getFilePathOrSymlinkVersion(root.asPath());
+    verify(versionGetter).getFilePathOrSymlinkVersion(path.asPath());
+    verify(writer, never()).put(any(), any());
+    assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(0);
+  }
+
+  @Test
+  public void independentManifestResolvesRelativeSymlinkWithoutGraphFileState() throws Exception {
+    when(versionGetter.usesIndependentInvalidationData()).thenReturn(true);
+    serializer =
+        new FileDependencySerializer(
+            versionGetter, graph, COMPRESSION_SERVICE, writer, executor, null);
+    RootedPath path = RootedPath.toRootedPath(root, PathFragment.create("relative-link"));
+    FileKey key = FileKey.create(path);
+    FileValue value = mock(FileValue.class);
+    when(value.isSymlink()).thenReturn(true);
+    when(value.getUnresolvedLinkTarget()).thenReturn(PathFragment.create("relative-target"));
+    when(value.realRootedPath(path)).thenReturn(path);
+    when(value.exists()).thenReturn(true);
+    when(value.isDirectory()).thenReturn(false);
+    when(nodeEntry.getValue()).thenReturn(value);
+    when(graph.getIfPresent(key)).thenReturn(nodeEntry);
+    when(versionGetter.recordExternalSymlinkDependencies(path.asPath())).thenReturn(true);
+    // No FILE_STATE node is installed for the target. Filesystem evidence covers the chain.
+    ((FutureFileDataInfo) serializer.registerDependency(key)).get();
+    verify(versionGetter).recordExternalSymlinkDependencies(path.asPath());
+    verify(writer, never()).put(any(), any());
     assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(0);
   }
 

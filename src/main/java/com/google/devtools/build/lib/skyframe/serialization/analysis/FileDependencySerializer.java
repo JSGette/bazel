@@ -20,6 +20,7 @@ import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static com.google.devtools.build.lib.actions.FileStateType.SYMLINK;
 import static com.google.devtools.build.lib.skyframe.serialization.WriteStatuses.aggregateWriteStatuses;
+import static com.google.devtools.build.lib.skyframe.serialization.WriteStatuses.immediateWriteStatus;
 import static com.google.devtools.build.lib.skyframe.serialization.analysis.FileDependencyKeySupport.DIRECTORY_KEY_DELIMITER;
 import static com.google.devtools.build.lib.skyframe.serialization.analysis.FileDependencyKeySupport.FILE_KEY_DELIMITER;
 import static com.google.devtools.build.lib.skyframe.serialization.analysis.FileDependencyKeySupport.MAX_KEY_LENGTH;
@@ -171,6 +172,7 @@ final class FileDependencySerializer {
   private final LongVersionGetter versionGetter;
   private final InMemoryGraph graph;
   private final KeyValueWriter writer;
+  private final boolean writeInvalidationData;
   private final SafeExecutor executor;
   private final Counters counters;
   @Nullable private final ProfileCollector profileCollector;
@@ -202,6 +204,7 @@ final class FileDependencySerializer {
     this.versionGetter = versionGetter;
     this.graph = graph;
     this.writer = writer;
+    this.writeInvalidationData = !versionGetter.usesIndependentInvalidationData();
     this.compressionService = compressionService;
     this.executor = executor;
     this.counters = new Counters();
@@ -306,9 +309,20 @@ final class FileDependencySerializer {
     RootedPath rootedPath = key.argument();
     RootedPath parentRootedPath;
     // Builtin files don't change.
-    if ((rootedPath.getRoot().getFileSystem() instanceof BundledFileSystem)
-        // Assumes that the root folder doesn't change.
-        || (parentRootedPath = rootedPath.getParentDirectory()) == null) {
+    if (rootedPath.getRoot().getFileSystem() instanceof BundledFileSystem) {
+      counters.nodesWaitingForDeps.decrementAndGet();
+      return future.completeWith(CONSTANT_FILE);
+    }
+    if ((parentRootedPath = rootedPath.getParentDirectory()) == null) {
+      if (!writeInvalidationData) {
+        try {
+          getVersion(rootedPath, /* exists= */ true);
+        } catch (IOException e) {
+          counters.nodesWaitingForDeps.decrementAndGet();
+          counters.nodesWithProcessingErrors.incrementAndGet();
+          return future.failWith(e);
+        }
+      }
       counters.nodesWaitingForDeps.decrementAndGet();
       return future.completeWith(CONSTANT_FILE);
     }
@@ -323,7 +337,7 @@ final class FileDependencySerializer {
     RootedPath realRootedPath = value.realRootedPath(rootedPath);
 
     long initialMtsv;
-    if (value.isDirectory()) {
+    if (value.isDirectory() && writeInvalidationData) {
       // Matches the behavior of PathVersionGetter.getVersionForExistingPathInternal.
       initialMtsv = LongVersionGetter.MINIMAL;
     } else {
@@ -418,7 +432,7 @@ final class FileDependencySerializer {
       counters.keyBytesWaitingForUpload.addAndGet(keyByteCount);
       counters.valueBytesWaitingForUpload.addAndGet(valueByteCount);
 
-      WriteStatus writeStatus = writer.put(keyBytes, dataBytes);
+      WriteStatus writeStatus = writeInvalidation(keyBytes, dataBytes);
       writeStatus.addListener(
           () -> {
             counters.nodesWaitingForUpload.decrementAndGet();
@@ -561,7 +575,9 @@ final class FileDependencySerializer {
       FileInvalidationDataUploader uploader) {
     PathFragment linkParent = parentRootedPath.getRootRelativePath();
     PathFragment unresolvedTarget = linkParent.getRelative(link);
-    if (link.isAbsolute() || unresolvedTarget.containsUplevelReferences()) {
+    if (!writeInvalidationData
+        || link.isAbsolute()
+        || unresolvedTarget.containsUplevelReferences()) {
       try {
         if (versionGetter.recordExternalSymlinkDependencies(linkPath)) {
           uploader.updateMtsvIfGreater(getVersion(linkPath, /* exists= */ true));
@@ -778,7 +794,7 @@ final class FileDependencySerializer {
             counters.keyBytesWaitingForUpload.addAndGet(keyByteCount);
             counters.valueBytesWaitingForUpload.addAndGet(valueByteCount);
 
-            WriteStatus writeStatus = writer.put(keyBytes, dataBytes);
+            WriteStatus writeStatus = writeInvalidation(keyBytes, dataBytes);
             writeStatus.addListener(
                 () -> {
                   counters.nodesWaitingForUpload.decrementAndGet();
@@ -992,7 +1008,7 @@ final class FileDependencySerializer {
       counters.keyBytesWaitingForUpload.addAndGet(keyByteCount);
       counters.valueBytesWaitingForUpload.addAndGet(valueByteCount);
 
-      WriteStatus writeStatus = writer.put(key, maybeCompressedBytes);
+      WriteStatus writeStatus = writeInvalidation(key, maybeCompressedBytes);
       writeStatus.addListener(
           () -> {
             counters.nodesWaitingForUpload.decrementAndGet();
@@ -1184,6 +1200,12 @@ final class FileDependencySerializer {
 
   private long getVersion(RootedPath rootedPath, boolean exists) throws IOException {
     return getVersion(rootedPath.asPath(), exists);
+  }
+
+  private WriteStatus writeInvalidation(KeyBytesProvider key, byte[] bytes) {
+    // Local content manifests validate independently of this legacy version/path key space.
+    // Still traverse every dependency above; only its redundant persistence is omitted.
+    return writeInvalidationData ? writer.put(key, bytes) : immediateWriteStatus(false);
   }
 
   private long getVersion(Path path, boolean exists) throws IOException {

@@ -185,7 +185,7 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   private String captureSource() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v2");
+    update(digest, "local-source-v3");
     update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());
@@ -348,6 +348,11 @@ final class LocalInputSnapshot implements LongVersionGetter {
   public boolean recordExternalSymlinkDependencies(com.google.devtools.build.lib.vfs.Path path)
       throws IOException {
     observe(Path.of(path.getPathString()), false);
+    return true;
+  }
+
+  @Override
+  public boolean usesIndependentInvalidationData() {
     return true;
   }
 }
