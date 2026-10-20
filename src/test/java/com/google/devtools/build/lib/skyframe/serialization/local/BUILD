@@ -2,6 +2,21 @@ load("@rules_java//java:defs.bzl", "java_binary", "java_test")
 
 package(default_applicable_licenses = ["//:license"])
 
+java_test(
+    name = "LocalPathCodecTest",
+    size = "small",
+    srcs = ["LocalPathCodecTest.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/build/lib/vfs",
+        "//src/main/java/com/google/devtools/build/lib/vfs/inmemoryfs",
+        "//third_party/java/junit",
+        "//third_party/java/protobuf:protobuf_lite",
+        "//third_party/java/truth",
+    ],
+)
+
 filegroup(
     name = "srcs",
     srcs = glob(["*"]),
@@ -35,5 +50,20 @@ java_binary(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:concurrent_file_store",
         "//third_party/java/guava:concurrent",
+    ],
+)
+
+java_test(
+    name = "LocalCacheSessionTest",
+    size = "medium",
+    srcs = ["LocalCacheSessionTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
     ],
 )

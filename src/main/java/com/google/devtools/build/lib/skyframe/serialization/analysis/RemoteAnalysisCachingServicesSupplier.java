@@ -44,6 +44,17 @@ import javax.annotation.Nullable;
 @SkybridgeInterface
 public interface RemoteAnalysisCachingServicesSupplier extends BlazeService {
 
+  /** Additional backend compatibility/input identity; empty preserves the default cache keys. */
+  default String getCacheKeyDistinguisher() {
+    return "";
+  }
+
+  /** Optional per-invocation identity for backends that validate local filesystem snapshots. */
+  @Nullable
+  default ClientId getClientIdOverride() {
+    return null;
+  }
+
   /**
    * Service definitions and parameters depend on the command options, which are allowed to vary
    * per-command.

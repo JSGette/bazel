@@ -141,6 +141,8 @@ public final class RemoteAnalysisCacheFactory {
 
     // Compute versions we are evaluating at
 
+    RemoteAnalysisCachingServicesSupplier servicesSupplier =
+        env.getBlazeWorkspace().remoteAnalysisCachingServicesSupplier();
     var workspaceInfoFromDiff = env.getWorkspaceInfoFromDiff();
     if (workspaceInfoFromDiff == null) {
       workspaceInfoFromDiff = new WorkspaceInfoFromDiff() {}; // Rely on default implementations
@@ -149,6 +151,9 @@ public final class RemoteAnalysisCacheFactory {
         workspaceInfoFromDiff
             .getSnapshot()
             .orElse(new LongVersionClientId(workspaceInfoFromDiff.getEvaluatingVersion().getVal()));
+    if (servicesSupplier.getClientIdOverride() != null) {
+      clientId = servicesSupplier.getClientIdOverride();
+    }
     HashCode blazeInstallMD5 = computeBlazeInstallMD5(env, options);
 
     byte[] starlarkSemanticsFingerprint =
@@ -166,13 +171,18 @@ public final class RemoteAnalysisCacheFactory {
     // failures.
     BuildOptions trimmedTopLevelOptions = trimConfigurations(topLevelOptions);
 
+    String distinguisher = nullToEmpty(options.getAnalysisCacheKeyDistinguisherForTesting());
+    String backendIdentity = servicesSupplier.getCacheKeyDistinguisher();
+    if (!backendIdentity.isEmpty()) {
+      distinguisher += "\0local:" + backendIdentity;
+    }
     FrontierNodeVersion frontierNodeVersion =
         new FrontierNodeVersion(
             trimmedTopLevelOptions.checksum(),
             blazeInstallMD5,
             starlarkSemanticsFingerprint,
             workspaceInfoFromDiff.getEvaluatingVersion(),
-            nullToEmpty(options.getAnalysisCacheKeyDistinguisherForTesting()),
+            distinguisher,
             env.getUseFakeStampData(),
             workspaceInfoFromDiff.getSnapshot());
     env.getRemoteAnalysisCachingEventListener().recordSkyValueVersion(frontierNodeVersion);
@@ -188,8 +198,6 @@ public final class RemoteAnalysisCacheFactory {
             env.getRuntime().getBlazeService(CompressionService.class),
             "expected CompressionService to be available");
 
-    RemoteAnalysisCachingServicesSupplier servicesSupplier =
-        env.getBlazeWorkspace().remoteAnalysisCachingServicesSupplier();
     try {
       servicesSupplier.configure(
           env.getOptions(), options.getMode(), clientId, env.getCommandId().toString());
