@@ -7,6 +7,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -528,6 +529,73 @@ public final class LocalCacheSessionTest {
     var reader = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThrows(ExecutionException.class, () -> reader.get(new Key("root")).get());
     assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    reader.finish(false);
+  }
+
+  @Test
+  public void equalInheritedInputsStillRequireEveryParent() throws Exception {
+    for (int missingParent = 0; missingParent < 2; missingParent++) {
+      Path workspace = temporary.newFolder().toPath();
+      Path output = temporary.newFolder().toPath();
+      Path cache = temporary.newFolder().toPath();
+      Path input = Files.writeString(temporary.newFile().toPath(), "one");
+      var parents = new java.util.ArrayList<Path>();
+      Path publications = null;
+      for (int i = 0; i < 2; i++) {
+        var inputs = snapshot(workspace, output);
+        inputs.observe(input, false);
+        var parent = new LocalCacheSession(cache, inputs);
+        parent.put(new Key("parent-" + i), new byte[] {(byte) i}).get();
+        assertThat(parent.finish(true)).isTrue();
+        publications = cache.resolve("publications-v2").resolve(inputs.sourceDigest());
+        try (var paths = Files.list(publications)) {
+          parents.add(paths.filter(path -> !parents.contains(path)).findFirst().orElseThrow());
+        }
+      }
+      var child = new LocalCacheSession(cache, snapshot(workspace, output));
+      for (int i = 0; i < 2; i++) {
+        assertThat(child.get(new Key("parent-" + i)).get()).isEqualTo(new byte[] {(byte) i});
+      }
+      child.put(new Key("child"), new byte[] {3}).get();
+      assertThat(child.finish(true)).isTrue();
+      var complete = new LocalCacheSession(cache, snapshot(workspace, output));
+      assertThat(complete.get(new Key("child")).get()).isEqualTo(new byte[] {3});
+      complete.finish(false);
+      Files.delete(parents.get(missingParent));
+      var incomplete = new LocalCacheSession(cache, snapshot(workspace, output));
+      assertThrows(ExecutionException.class, () -> incomplete.get(new Key("child")).get());
+      incomplete.finish(false);
+      assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void inheritedInputChangeBeforePublicationIsRejectedDespiteEqualLists() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path input = Files.writeString(temporary.newFile("input").toPath(), "one");
+    for (int i = 0; i < 2; i++) {
+      var inputs = snapshot(workspace, output);
+      inputs.observe(input, false);
+      var parent = new LocalCacheSession(cache, inputs);
+      parent.put(new Key("parent-" + i), new byte[] {(byte) i}).get();
+      assertThat(parent.finish(true)).isTrue();
+    }
+    var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    for (int i = 0; i < 2; i++) {
+      assertThat(child.get(new Key("parent-" + i)).get()).isEqualTo(new byte[] {(byte) i});
+    }
+    child.put(new Key("child"), new byte[] {3}).get();
+    FileTime modified = Files.getLastModifiedTime(input);
+    Files.writeString(input, "two");
+    Files.setLastModifiedTime(input, modified);
+    assertThrows(IOException.class, () -> child.finish(true));
+    assertThat(openCacheDescriptors(cache)).isEqualTo(0);
+    // Restore the parent evidence. The unpublished child must still remain unavailable.
+    Files.writeString(input, "one");
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThrows(ExecutionException.class, () -> reader.get(new Key("child")).get());
     reader.finish(false);
   }
 

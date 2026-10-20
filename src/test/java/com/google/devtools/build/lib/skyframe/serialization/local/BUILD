@@ -154,3 +154,20 @@ java_binary(
         "//third_party/java/guava:concurrent",
     ],
 )
+
+java_binary(
+    name = "LocalInheritedValidationBenchmark",
+    testonly = True,
+    srcs = ["LocalInheritedValidationBenchmark.java"],
+    jvm_flags = [
+        "-Xms256m",
+        "-Xmx1g",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalInheritedValidationBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)
