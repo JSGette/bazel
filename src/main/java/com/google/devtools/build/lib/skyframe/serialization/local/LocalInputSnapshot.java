@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 
 /**
  * Content evidence for a local analysis-cache invocation.
@@ -34,6 +36,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class LocalInputSnapshot implements LongVersionGetter {
   record Witness(String path, boolean listing, String digest) {}
+
+  // A cheap retry hint, never validity evidence. Any retry still verifies the content witness.
+  record InputStamp(Path path, @Nullable Object fileKey, @Nullable FileTime modified, long size) {}
 
   private final Path workspace;
   private final Path outputBase;
@@ -99,6 +104,21 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   boolean matches(Witness witness) throws IOException {
     return witness.digest().equals(fingerprint(resolve(witness.path()), witness.listing()));
+  }
+
+  InputStamp inputStamp(Witness witness) throws IOException {
+    return inputStamp(resolve(witness.path()));
+  }
+
+  static InputStamp inputStamp(Path path) throws IOException {
+    try {
+      // Follow links so a newly created referent or a changed repository binding triggers a retry.
+      var attributes = Files.readAttributes(path, BasicFileAttributes.class);
+      return new InputStamp(
+          path, attributes.fileKey(), attributes.lastModifiedTime(), attributes.size());
+    } catch (NoSuchFileException e) {
+      return new InputStamp(path, null, null, -1);
+    }
   }
 
   void observe(Path path, boolean listing) throws IOException {
@@ -185,7 +205,7 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   private String captureSource() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v3");
+    update(digest, "local-source-v4");
     update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());

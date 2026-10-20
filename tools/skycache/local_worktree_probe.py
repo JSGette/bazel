@@ -36,8 +36,6 @@ def main():
         lock = args.lock_file.open("a")
         fcntl.flock(lock, fcntl.LOCK_EX)
     environment = dict(os.environ)
-    environment.pop("PWD", None)
-    environment.pop("OLDPWD", None)
     seed = root / "seed"
     seed.mkdir()
     command_log = []
@@ -101,13 +99,18 @@ def main():
             "build", "//app:all", "--jobs=2", "--local_resources=memory=2048",
             "--experimental_local_skycache=" + str(root / "cache"),
             "--experimental_active_directories=app", "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
             "--color=no", "--curses=no",
             "--build_event_json_file=" + str(prefix) + ".bep.json",
         ]
         command_log.append({"phase": phase, "worktree": name, "argv": arguments})
         started = time.monotonic()
+        client_environment = dict(
+            environment, PWD=str(root / name), OLDPWD=str(seed),
+            SKYCACHE_UNRELATED_SESSION=f"{name}-{phase}",
+        )
         with Path(str(prefix) + ".log").open("w") as log:
-            result = subprocess.run(arguments, cwd=root / name, env=environment,
+            result = subprocess.run(arguments, cwd=root / name, env=client_environment,
                                     stdout=log, stderr=subprocess.STDOUT)
         log_text = Path(str(prefix) + ".log").read_text()
         assert result.returncode == 0, f"{phase}/{name} failed: see {prefix}.log"
@@ -125,7 +128,7 @@ def main():
         "binary": str(binary),
         "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
         "purpose": "correctness; two concurrent servers, not a speed benchmark",
-        "environment": "identical client environment; PWD and OLDPWD unset",
+        "environment": "strict repository environment; natural per-worktree PWD and distinct session markers",
         "initial_storage": initial_storage,
         "phases": [],
     }
@@ -155,8 +158,6 @@ def main():
             with ThreadPoolExecutor(max_workers=2) as pool:
                 futures = [pool.submit(build, name, phase) for name in ("a", "b")]
                 results = [future.result() for future in futures]
-            if require_hits:
-                assert all(row["analysis_hits"] > 0 for row in results), results
         finally:
             finished.set()
             sampler.join()
@@ -169,6 +170,8 @@ def main():
         protocol["phases"].append(record)
         protocol_path.write_text(json.dumps(protocol, indent=2) + "\n")
         print(json.dumps(record), flush=True)
+        if require_hits:
+            assert all(row["analysis_hits"] > 0 for row in results), results
 
     try:
         pair("concurrent-empty-cache")

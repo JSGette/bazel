@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.LongSupplier;
 
 /**
  * One invocation's private writes and immutable, validated publications from other invocations.
@@ -62,6 +64,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private record SharedPut(Candidate candidate, String valueDigest) {}
 
   private final LocalInputSnapshot inputs;
+  private final LongSupplier nanoTime;
   private final Path objects;
   private final Path publications;
   private final String id;
@@ -74,7 +77,11 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
   private final Set<String> usedParents = ConcurrentHashMap.newKeySet();
   private final Set<String> inspected = new HashSet<>();
+  // Protected by refresh's monitor. Input metadata is only a hint to retry full validation.
+  // Unchanged mismatches retain the negative TTL, avoiding full scans on every cache miss.
+  private final Map<Path, LocalInputSnapshot.InputStamp> rejectedInputs = new HashMap<>();
   private volatile List<Candidate> candidates = List.of();
+  private boolean hasRefreshed;
   private long nextRefresh;
   private volatile boolean closed;
   private volatile String failure;
@@ -85,7 +92,13 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final AtomicLong deduplicatedWrites = new AtomicLong();
 
   LocalCacheSession(Path root, LocalInputSnapshot inputs) throws IOException {
+    this(root, inputs, System::nanoTime);
+  }
+
+  LocalCacheSession(Path root, LocalInputSnapshot inputs, LongSupplier nanoTime)
+      throws IOException {
     this.inputs = inputs;
+    this.nanoTime = nanoTime;
     durableDirectory(root.toAbsolutePath().normalize());
     this.objects = durableDirectory(root.resolve("objects"));
     this.publications =
@@ -271,11 +284,13 @@ final class LocalCacheSession implements FingerprintValueStore {
   }
 
   private synchronized void refresh() throws IOException {
-    long now = System.nanoTime();
-    if (now < nextRefresh) {
+    long now = nanoTime.getAsLong();
+    if (hasRefreshed && now - nextRefresh < 0 && !rejectedInputsChanged()) {
       return;
     }
+    hasRefreshed = true;
     nextRefresh = now + 1_000_000_000L;
+    rejectedInputs.clear();
     var available = new HashMap<String, Candidate>();
     for (Candidate candidate : candidates) {
       available.put(candidate.id(), candidate);
@@ -295,6 +310,8 @@ final class LocalCacheSession implements FingerprintValueStore {
         boolean matches = true;
         for (var witness : candidate.witnesses()) {
           if (!inputs.matches(witness)) {
+            var stamp = inputs.inputStamp(witness);
+            rejectedInputs.put(stamp.path(), stamp);
             matches = false;
             break;
           }
@@ -317,6 +334,15 @@ final class LocalCacheSession implements FingerprintValueStore {
       removed = available.values().removeIf(c -> !available.keySet().containsAll(c.parents()));
     } while (removed);
     candidates = List.copyOf(available.values());
+  }
+
+  private boolean rejectedInputsChanged() throws IOException {
+    for (var stamp : rejectedInputs.values()) {
+      if (!stamp.equals(LocalInputSnapshot.inputStamp(stamp.path()))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   boolean finish(boolean success) throws IOException {

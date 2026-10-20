@@ -33,6 +33,8 @@ import com.google.devtools.common.options.OptionsParsingException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -106,7 +108,7 @@ public final class LocalSkycacheModule extends SerializationModule {
       if (root.toRealPath().startsWith(workspace)) {
         throw new IOException("the shared cache resolves inside the source workspace");
       }
-      var inputs = new LocalInputSnapshot(workspace, outputBase, env.getClientEnv());
+      var inputs = new LocalInputSnapshot(workspace, outputBase, inputEnvironment(env));
       services.session = new LocalCacheSession(root, inputs);
       services.client = new LocalAnalysisCacheClient(services.session);
       services.clientId =
@@ -119,6 +121,21 @@ public final class LocalSkycacheModule extends SerializationModule {
       setMode(env, "off");
       env.getReporter().handle(Event.warn("Local SkyCache disabled: " + e.getMessage()));
     }
+  }
+
+  private static Map<String, String> inputEnvironment(CommandEnvironment env) {
+    var inputs = new TreeMap<String, String>();
+    // Use Bazel's effective environments, including explicit overrides and inherited values.
+    // Without strict repo env, getRepoEnv still contains the full client environment.
+    env.getRepoEnv().forEach((name, value) -> inputs.put("repo/" + name, value));
+    env.getAllowlistedActionEnv().forEach((name, value) -> inputs.put("action/" + name, value));
+    env.getAllowlistedTestEnv().forEach((name, value) -> inputs.put("test/" + name, value));
+    // Module resolution reads this client variable directly, outside the repository env.
+    String allowedYankedVersions = env.getClientEnv().get("BZLMOD_ALLOW_YANKED_VERSIONS");
+    if (allowedYankedVersions != null) {
+      inputs.put("bzlmod/BZLMOD_ALLOW_YANKED_VERSIONS", allowedYankedVersions);
+    }
+    return inputs;
   }
 
   private static void setMode(CommandEnvironment env, String mode) {

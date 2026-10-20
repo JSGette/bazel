@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -449,5 +450,111 @@ public final class LocalCacheSessionTest {
     assertThat(child.put(key, new byte[] {2}).get()).isFalse();
     assertThat(child.failureReason()).contains("conflicting immutable shared cache value");
     assertThat(child.finish(true)).isFalse();
+  }
+
+  @Test
+  public void repositoryMaterializationRetriesDiscoveryWithoutWaitingForTimer() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path writerOutput = temporary.newFolder("writer-output").toPath();
+    Path readerOutput = temporary.newFolder("reader-output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path writerRepo = Files.createDirectories(writerOutput.resolve("external/repo"));
+    Path file = Files.writeString(writerRepo.resolve("input"), "expected");
+    var inputs = snapshot(workspace, writerOutput);
+    inputs.observe(file, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, readerOutput), () -> 0);
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    Path readerRepo = Files.createDirectories(readerOutput.resolve("external/repo"));
+    Files.writeString(readerRepo.resolve("input"), "expected");
+    // The repository now exists; the clock deliberately never advances past the negative TTL.
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+    assertThat(reader.sharedReads()).isEqualTo(1);
+    reader.finish(false);
+  }
+
+  @Test
+  public void initialDiscoverySupportsNegativeMonotonicClockValues() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output), () -> -1_000_000_000L);
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+    reader.finish(false);
+  }
+
+  @Test
+  public void materializedRepositoryMustStillMatchAndUnchangedMismatchesRemainThrottled()
+      throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path writerOutput = temporary.newFolder("writer-output").toPath();
+    Path readerOutput = temporary.newFolder("reader-output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file =
+        Files.writeString(
+            Files.createDirectories(writerOutput.resolve("external/repo")).resolve("input"),
+            "expected");
+    var inputs = snapshot(workspace, writerOutput);
+    inputs.observe(file, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    var clock = new AtomicLong();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, readerOutput), clock::get);
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    Path materialized =
+        Files.writeString(
+            Files.createDirectories(readerOutput.resolve("external/repo")).resolve("input"),
+            "different");
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    assertThat(reader.statisticsJson(false)).contains("\"rejected_publications\":2");
+    // An unchanged mismatch does not trigger full validation on every cache miss.
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    assertThat(reader.statisticsJson(false)).contains("\"rejected_publications\":2");
+    Files.writeString(materialized, "expected");
+    // Regeneration is also a retry hint, even though the path was already present.
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+    reader.finish(false);
+  }
+
+  @Test
+  public void unchangedMetadataStillGetsFullValidationAfterNegativeTtl() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path writerOutput = temporary.newFolder("writer-output").toPath();
+    Path readerOutput = temporary.newFolder("reader-output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file =
+        Files.writeString(
+            Files.createDirectories(writerOutput.resolve("external/repo")).resolve("input"),
+            "expected");
+    var inputs = snapshot(workspace, writerOutput);
+    inputs.observe(file, false);
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    Path materialized =
+        Files.writeString(
+            Files.createDirectories(readerOutput.resolve("external/repo")).resolve("input"),
+            "badvalue");
+    FileTime time = Files.getLastModifiedTime(materialized);
+    var clock = new AtomicLong();
+    var reader = new LocalCacheSession(cache, snapshot(workspace, readerOutput), clock::get);
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    Files.writeString(materialized, "expected");
+    Files.setLastModifiedTime(materialized, time);
+    // Size, mtime and inode are unchanged. The periodic full check must remain available.
+    assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    clock.set(1_000_000_001L);
+    assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+    reader.finish(false);
   }
 }
