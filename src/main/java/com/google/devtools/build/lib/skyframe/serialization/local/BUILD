@@ -40,6 +40,7 @@ java_library(
     srcs = [
         "LocalAnalysisCacheClient.java",
         "LocalCacheSession.java",
+        "LocalDependencyEvidence.java",
         "LocalInputSnapshot.java",
         "LocalPathCodec.java",
         "LocalRunfilesCodec.java",

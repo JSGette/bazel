@@ -40,6 +40,7 @@ import com.google.devtools.build.lib.skyframe.serialization.analysis.Invalidatio
 import com.google.devtools.build.lib.skyframe.serialization.analysis.InvalidationDataInfoOrFuture.FutureNodeDataInfo;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.InvalidationDataInfoOrFuture.NodeDataInfo;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.InvalidationDataInfoOrFuture.NodeInvalidationDataInfo;
+import com.google.devtools.build.lib.versioning.IndependentFileDependencyProvider;
 import com.google.devtools.build.lib.versioning.LongVersionGetter;
 import com.google.devtools.build.lib.vfs.DigestHashFunction;
 import com.google.devtools.build.lib.vfs.FileSystem;
@@ -234,6 +235,150 @@ public final class FileDependencySerializerTest {
     verify(versionGetter).recordExternalSymlinkDependencies(path.asPath());
     verify(writer, never()).put(any(), any());
     assertThat(serializer.getCounters().nodesWithProcessingErrors.get()).isEqualTo(0);
+  }
+
+  @Test
+  public void independentParentAndListingReferencesPersistAndChangeTheRootFingerprint()
+      throws Exception {
+    RootedPath directory = RootedPath.toRootedPath(root, PathFragment.create("dir"));
+    RootedPath file = RootedPath.toRootedPath(root, PathFragment.create("dir/file"));
+    for (RootedPath path : java.util.List.of(directory, file)) {
+      var entry = mock(InMemoryNodeEntry.class);
+      var value = mock(FileValue.class);
+      when(value.realRootedPath(path)).thenReturn(path);
+      when(value.exists()).thenReturn(true);
+      when(value.isDirectory()).thenReturn(path.equals(directory));
+      when(entry.getValue()).thenReturn(value);
+      when(graph.getIfPresent(FileKey.create(path))).thenReturn(entry);
+    }
+    PackedFingerprint previous = null;
+    for (int round = 0; round < 2; round++) {
+      int snapshot = round;
+      var provider = mock(IndependentFileDependencyProvider.class);
+      when(provider.usesIndependentInvalidationData()).thenReturn(true);
+      var observedParents =
+          new java.util.concurrent.ConcurrentHashMap<String, java.util.List<String>>();
+      when(provider.captureFileDependency(
+              any(),
+              org.mockito.ArgumentMatchers.anyBoolean(),
+              org.mockito.ArgumentMatchers.anyList()))
+          .thenAnswer(
+              call -> {
+                com.google.devtools.build.lib.vfs.Path path = call.getArgument(0);
+                boolean listing = call.getArgument(1);
+                java.util.List<String> parents = call.getArgument(2);
+                String name = path.getPathString() + ":" + listing;
+                observedParents.put(name, java.util.List.copyOf(parents));
+                return (name + parents + (path.equals(file.asPath()) ? snapshot : 0))
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+              });
+      var persisted = new java.util.concurrent.ConcurrentHashMap<String, byte[]>();
+      org.mockito.Mockito.doAnswer(
+              call ->
+                  PackedFingerprint.getFingerprintForTesting(
+                      java.util.HexFormat.of().formatHex((byte[]) call.getArgument(0))))
+          .when(writer)
+          .fingerprint(any());
+      org.mockito.Mockito.doAnswer(
+              call -> {
+                com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider key =
+                    call.getArgument(0);
+                persisted.put(
+                    java.util.HexFormat.of().formatHex(key.toBytes()), call.getArgument(1));
+                return WriteStatuses.immediateWriteStatus(true);
+              })
+          .when(writer)
+          .put(any(), any());
+      var selected =
+          new FileDependencySerializer(
+              provider, graph, COMPRESSION_SERVICE, writer, executor, null);
+      var nested =
+          (AbstractNestedFileOpNodes)
+              AbstractNestedFileOpNodes.from(
+                  ImmutableList.of(
+                      FileKey.create(file),
+                      com.google.devtools.build.lib.skyframe.DirectoryListingKey.create(
+                          directory)));
+      var rootInfo =
+          (NodeInvalidationDataInfo)
+              ((FutureNodeDataInfo) selected.registerDependency(nested)).get();
+      rootInfo.writeStatus().get();
+      assertThat(persisted).hasSize(4); // directory, file, listing, and their composite node
+      assertThat(persisted)
+          .containsKey(java.util.HexFormat.of().formatHex(rootInfo.cacheKey().toBytes()));
+      var directoryInfo =
+          (InvalidationDataInfoOrFuture.FileInvalidationDataInfo)
+              selected.registerDependency(FileKey.create(directory));
+      assertThat(observedParents.get(file.asPath().getPathString() + ":false"))
+          .containsExactly(directoryInfo.cacheKey());
+      assertThat(observedParents.get(directory.asPath().getPathString() + ":true"))
+          .containsExactly(directoryInfo.cacheKey());
+      if (previous != null) {
+        assertThat(rootInfo.cacheKey()).isNotEqualTo(previous);
+      }
+      previous = rootInfo.cacheKey();
+    }
+  }
+
+  @Test
+  public void independentLeafEvidenceIsPersistedWithAContentKey() throws Exception {
+    var provider = mock(IndependentFileDependencyProvider.class);
+    when(provider.usesIndependentInvalidationData()).thenReturn(true);
+    RootedPath path = RootedPath.toRootedPath(root, PathFragment.create("file"));
+    FileKey key = FileKey.create(path);
+    FileValue value = mock(FileValue.class);
+    when(value.realRootedPath(path)).thenReturn(path);
+    when(value.exists()).thenReturn(true);
+    when(nodeEntry.getValue()).thenReturn(value);
+    when(graph.getIfPresent(key)).thenReturn(nodeEntry);
+    byte[] bytes = {1, 2, 3};
+    when(provider.captureFileDependency(path.asPath(), false, java.util.List.of()))
+        .thenReturn(bytes);
+    var fingerprint = PackedFingerprint.fromBytes(new byte[16]);
+    when(writer.fingerprint(bytes)).thenReturn(fingerprint);
+    var status = new SettableWriteStatus();
+    when(writer.put(any(), any())).thenReturn(status);
+    var selected =
+        new FileDependencySerializer(provider, graph, COMPRESSION_SERVICE, writer, executor, null);
+    var result =
+        (InvalidationDataInfoOrFuture.FileInvalidationDataInfo)
+            ((FutureFileDataInfo) selected.registerDependency(key)).get();
+    String expectedKey =
+        "local-input-v1/" + java.util.HexFormat.of().formatHex(fingerprint.toBytes());
+    assertThat(result.cacheKey()).isEqualTo(expectedKey);
+    verify(writer)
+        .put(
+            new com.google.devtools.build.lib.skyframe.serialization.StringKey(expectedKey), bytes);
+    assertThat(result.writeStatus().isDone()).isFalse();
+    status.markSuccess(true);
+    assertThat(result.writeStatus().get()).isTrue();
+    assertThat(selected.getCounters().nodesUploaded.get()).isEqualTo(1);
+    verify(provider).getFilePathOrSymlinkVersion(root.asPath());
+  }
+
+  @Test
+  public void independentLeafCaptureFailureCannotBecomeAPublicationDependency() throws Exception {
+    var provider = mock(IndependentFileDependencyProvider.class);
+    when(provider.usesIndependentInvalidationData()).thenReturn(true);
+    RootedPath path = RootedPath.toRootedPath(root, PathFragment.create("file"));
+    FileKey key = FileKey.create(path);
+    FileValue value = mock(FileValue.class);
+    when(value.realRootedPath(path)).thenReturn(path);
+    when(value.exists()).thenReturn(true);
+    when(nodeEntry.getValue()).thenReturn(value);
+    when(graph.getIfPresent(key)).thenReturn(nodeEntry);
+    when(provider.captureFileDependency(path.asPath(), false, java.util.List.of()))
+        .thenThrow(new java.io.IOException("capture failed"));
+    var selected =
+        new FileDependencySerializer(provider, graph, COMPRESSION_SERVICE, writer, executor, null);
+    var error =
+        assertThrows(
+            ExecutionException.class,
+            () -> ((FutureFileDataInfo) selected.registerDependency(key)).get());
+    assertThat(error).hasCauseThat().hasCauseThat().hasMessageThat().isEqualTo("capture failed");
+    verify(writer, never()).put(any(), any());
+    assertThat(selected.getCounters().nodesWaitingForDeps.get()).isEqualTo(0);
+    assertThat(selected.getCounters().nodesWithProcessingErrors.get()).isEqualTo(1);
   }
 
   @Test

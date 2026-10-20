@@ -5,7 +5,7 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
-import com.google.devtools.build.lib.versioning.LongVersionGetter;
+import com.google.devtools.build.lib.versioning.IndependentFileDependencyProvider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
  * Observed file operations additionally cover Git metadata and files outside the project. This
  * deliberately favors conservative misses over treating a Git revision as a source snapshot.
  */
-final class LocalInputSnapshot implements LongVersionGetter {
+final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   record Witness(String path, boolean listing, String digest) {}
 
   // Bound retained scratch space to 1 MiB per process, independently of analysis thread count.
@@ -128,8 +128,26 @@ final class LocalInputSnapshot implements LongVersionGetter {
   }
 
   void observe(Path path, boolean listing) throws IOException {
+    captureWitnesses(path, listing).forEach(this::remember);
+  }
+
+  @Override
+  public byte[] captureFileDependency(
+      com.google.devtools.build.lib.vfs.Path path, boolean listing, List<String> parentKeys)
+      throws IOException {
+    return captureDependency(Path.of(path.getPathString()), listing, parentKeys);
+  }
+
+  byte[] captureDependency(Path path, boolean listing, List<String> parentKeys) throws IOException {
+    var observed = captureWitnesses(path, listing);
+    observed.forEach(this::remember);
+    return new LocalDependencyEvidence(parentKeys, observed).encode();
+  }
+
+  private List<Witness> captureWitnesses(Path path, boolean listing) throws IOException {
+    var observed = new java.util.ArrayList<Witness>();
     Path normalized = path.toAbsolutePath().normalize();
-    remember(new Witness(logicalPath(normalized), listing, fingerprint(normalized, listing)));
+    observed.add(new Witness(logicalPath(normalized), listing, fingerprint(normalized, listing)));
     // Follow each component, retaining every link in the chain. In particular, do not normalize
     // "link/.." lexically: the parent is determined after resolving "link".
     var remaining = new ArrayDeque<Path>();
@@ -153,7 +171,7 @@ final class LocalInputSnapshot implements LongVersionGetter {
       if (++links > 256) {
         throw new IOException("input symlink cycle or excessive depth: " + normalized);
       }
-      remember(new Witness(logicalPath(next), false, fingerprint(next, false)));
+      observed.add(new Witness(logicalPath(next), false, fingerprint(next, false)));
       Path target = Files.readSymbolicLink(next);
       if (target.isAbsolute()) {
         resolved = target.getRoot();
@@ -163,8 +181,9 @@ final class LocalInputSnapshot implements LongVersionGetter {
       }
     }
     if (!resolved.equals(normalized)) {
-      remember(new Witness(logicalPath(resolved), listing, fingerprint(resolved, listing)));
+      observed.add(new Witness(logicalPath(resolved), listing, fingerprint(resolved, listing)));
     }
+    return observed;
   }
 
   private void remember(Witness witness) {
@@ -211,7 +230,7 @@ final class LocalInputSnapshot implements LongVersionGetter {
 
   private String captureSource() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v8-aspect-package-metadata");
+    update(digest, "local-source-v9-dependency-evidence");
     update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());

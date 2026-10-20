@@ -84,6 +84,7 @@ import com.google.devtools.build.lib.skyframe.serialization.analysis.Invalidatio
 import com.google.devtools.build.lib.skyframe.serialization.proto.DirectoryListingInvalidationData;
 import com.google.devtools.build.lib.skyframe.serialization.proto.FileInvalidationData;
 import com.google.devtools.build.lib.skyframe.serialization.proto.Symlink;
+import com.google.devtools.build.lib.versioning.IndependentFileDependencyProvider;
 import com.google.devtools.build.lib.versioning.LongVersionGetter;
 import com.google.devtools.build.lib.vfs.Path;
 import com.google.devtools.build.lib.vfs.PathFragment;
@@ -204,7 +205,9 @@ final class FileDependencySerializer {
     this.versionGetter = versionGetter;
     this.graph = graph;
     this.writer = writer;
-    this.writeInvalidationData = !versionGetter.usesIndependentInvalidationData();
+    this.writeInvalidationData =
+        !versionGetter.usesIndependentInvalidationData()
+            || versionGetter instanceof IndependentFileDependencyProvider;
     this.compressionService = compressionService;
     this.executor = executor;
     this.counters = new Counters();
@@ -314,7 +317,7 @@ final class FileDependencySerializer {
       return future.completeWith(CONSTANT_FILE);
     }
     if ((parentRootedPath = rootedPath.getParentDirectory()) == null) {
-      if (!writeInvalidationData) {
+      if (versionGetter.usesIndependentInvalidationData()) {
         try {
           getVersion(rootedPath, /* exists= */ true);
         } catch (IOException e) {
@@ -404,6 +407,11 @@ final class FileDependencySerializer {
 
     private final FileInvalidationData.Builder data = FileInvalidationData.newBuilder();
     private final ArrayList<WriteStatus> writeStatuses = new ArrayList<>();
+
+    @Nullable
+    private final ArrayList<String> independentParents =
+        versionGetter instanceof IndependentFileDependencyProvider ? new ArrayList<>() : null;
+
     private long mtsv;
 
     private FileInvalidationDataUploader(
@@ -421,9 +429,26 @@ final class FileDependencySerializer {
 
     @Override
     public FileInvalidationDataInfo apply(Void unused) {
-      String cacheKey = computeCacheKey(rootedPath.getRootRelativePath(), mtsv, FILE_KEY_DELIMITER);
-      KeyBytesProvider keyBytes = getKeyBytes(cacheKey, data::setOverflowKey);
-      byte[] dataBytes = data.build().toByteArray();
+      String cacheKey;
+      KeyBytesProvider keyBytes;
+      byte[] dataBytes;
+      if (versionGetter instanceof IndependentFileDependencyProvider provider) {
+        try {
+          dataBytes =
+              provider.captureFileDependency(
+                  rootedPath.asPath(), false, checkNotNull(independentParents));
+        } catch (IOException e) {
+          counters.nodesWaitingForDeps.decrementAndGet();
+          counters.nodesWithProcessingErrors.incrementAndGet();
+          throw new java.io.UncheckedIOException(e);
+        }
+        cacheKey = independentKey(dataBytes);
+        keyBytes = new StringKey(cacheKey);
+      } else {
+        cacheKey = computeCacheKey(rootedPath.getRootRelativePath(), mtsv, FILE_KEY_DELIMITER);
+        keyBytes = getKeyBytes(cacheKey, data::setOverflowKey);
+        dataBytes = data.build().toByteArray();
+      }
       long keyByteCount = keyBytes.toBytes().length;
       long valueByteCount = dataBytes.length; // Don't hold on to the bytes any longer than needed
 
@@ -463,6 +488,9 @@ final class FileDependencySerializer {
      * refers to a constant path.
      */
     private void addParent(FileInvalidationDataInfo parent) {
+      if (independentParents != null) {
+        independentParents.add(parent.cacheKey());
+      }
       long parentMtsv = parent.mtsv();
       if (parentMtsv != LongVersionGetter.MINIMAL) {
         data.setParentMtsv(parentMtsv);
@@ -483,6 +511,9 @@ final class FileDependencySerializer {
      * would be called again.
      */
     private void addSymlinkParentInfo(FileInvalidationDataInfo parentInfo) {
+      if (independentParents != null) {
+        independentParents.add(parentInfo.cacheKey());
+      }
       updateMtsvIfGreater(parentInfo.mtsv());
       writeStatuses.add(parentInfo.writeStatus());
     }
@@ -575,7 +606,7 @@ final class FileDependencySerializer {
       FileInvalidationDataUploader uploader) {
     PathFragment linkParent = parentRootedPath.getRootRelativePath();
     PathFragment unresolvedTarget = linkParent.getRelative(link);
-    if (!writeInvalidationData
+    if (versionGetter.usesIndependentInvalidationData()
         || link.isAbsolute()
         || unresolvedTarget.containsUplevelReferences()) {
       try {
@@ -781,10 +812,29 @@ final class FileDependencySerializer {
           dirMtsv -> {
             long mtsv = max(dirMtsv, fileMtsv);
 
-            String cacheKey =
-                computeCacheKey(rootedPath.getRootRelativePath(), mtsv, DIRECTORY_KEY_DELIMITER);
-            KeyBytesProvider keyBytes = getKeyBytes(cacheKey, data::setOverflowKey);
-            byte[] dataBytes = data.build().toByteArray();
+            String cacheKey;
+            KeyBytesProvider keyBytes;
+            byte[] dataBytes;
+            if (versionGetter instanceof IndependentFileDependencyProvider provider) {
+              var parentKeys =
+                  info instanceof FileInvalidationDataInfo fileInfo
+                      ? java.util.List.of(fileInfo.cacheKey())
+                      : java.util.List.<String>of();
+              try {
+                dataBytes = provider.captureFileDependency(rootedPath.asPath(), true, parentKeys);
+              } catch (IOException e) {
+                counters.nodesWaitingForDeps.decrementAndGet();
+                counters.nodesWithProcessingErrors.incrementAndGet();
+                throw new java.io.UncheckedIOException(e);
+              }
+              cacheKey = independentKey(dataBytes);
+              keyBytes = new StringKey(cacheKey);
+            } else {
+              cacheKey =
+                  computeCacheKey(rootedPath.getRootRelativePath(), mtsv, DIRECTORY_KEY_DELIMITER);
+              keyBytes = getKeyBytes(cacheKey, data::setOverflowKey);
+              dataBytes = data.build().toByteArray();
+            }
 
             long keyByteCount = keyBytes.toBytes().length;
             long valueByteCount = dataBytes.length; // Do not hold on to the bytes
@@ -1202,9 +1252,14 @@ final class FileDependencySerializer {
     return getVersion(rootedPath.asPath(), exists);
   }
 
+  private String independentKey(byte[] bytes) {
+    return "local-input-v1/"
+        + java.util.HexFormat.of().formatHex(writer.fingerprint(bytes).toBytes());
+  }
+
   private WriteStatus writeInvalidation(KeyBytesProvider key, byte[] bytes) {
-    // Local content manifests validate independently of this legacy version/path key space.
-    // Still traverse every dependency above; only its redundant persistence is omitted.
+    // Whole-manifest-only providers can omit legacy records. Content-evidence providers persist
+    // their leaves and this shared dependency-tree format for entry-level validation.
     return writeInvalidationData ? writer.put(key, bytes) : immediateWriteStatus(false);
   }
 

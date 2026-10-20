@@ -47,6 +47,88 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void dependencyEvidenceIsPortableAndContentSensitive() throws Exception {
+    Path a = temporary.newFolder("a").toPath();
+    Path b = temporary.newFolder("b").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path fileA = Files.writeString(a.resolve("file"), "one");
+    Path fileB = Files.writeString(b.resolve("file"), "one");
+    var inputsA = snapshot(a, output);
+    var inputsB = snapshot(b, output);
+    byte[] evidenceA =
+        inputsA.captureDependency(fileA, false, java.util.List.of("parent-b", "parent-a"));
+    byte[] evidenceB =
+        inputsB.captureDependency(
+            fileB, false, java.util.List.of("parent-a", "parent-b", "parent-a"));
+    assertThat(evidenceA).isEqualTo(evidenceB);
+    var decoded = LocalDependencyEvidence.decode(evidenceA);
+    assertThat(decoded.parents()).containsExactly("parent-a", "parent-b").inOrder();
+    assertThat(decoded.witnesses()).hasSize(1);
+    assertThat(inputsB.matches(decoded.witnesses().getFirst())).isTrue();
+    FileTime modified = Files.getLastModifiedTime(fileB);
+    Files.writeString(fileB, "two");
+    Files.setLastModifiedTime(fileB, modified);
+    assertThat(inputsB.matches(decoded.witnesses().getFirst())).isFalse();
+    assertThat(inputsB.captureDependency(fileB, false, decoded.parents())).isNotEqualTo(evidenceA);
+    assertThat(inputsB.isUnchanged()).isFalse();
+  }
+
+  @Test
+  public void dependencyEvidenceRetainsSymlinkResolutionAndDirectoryMembership() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Files.writeString(workspace.resolve("one"), "same");
+    Files.writeString(workspace.resolve("two"), "same");
+    Path link = Files.createSymbolicLink(workspace.resolve("link"), Path.of("one"));
+    var inputs = snapshot(workspace, output);
+    var linkEvidence =
+        LocalDependencyEvidence.decode(inputs.captureDependency(link, false, java.util.List.of()));
+    assertThat(linkEvidence.witnesses()).hasSize(2);
+    for (var witness : linkEvidence.witnesses()) {
+      assertThat(inputs.matches(witness)).isTrue();
+    }
+    Files.delete(link);
+    Files.createSymbolicLink(link, Path.of("two"));
+    assertThat(
+            linkEvidence.witnesses().stream()
+                .allMatch(
+                    w -> {
+                      try {
+                        return inputs.matches(w);
+                      } catch (IOException e) {
+                        throw new java.io.UncheckedIOException(e);
+                      }
+                    }))
+        .isFalse();
+    var listing =
+        LocalDependencyEvidence.decode(
+            inputs.captureDependency(workspace, true, java.util.List.of()));
+    Files.writeString(workspace.resolve("added"), "new");
+    assertThat(inputs.matches(listing.witnesses().getFirst())).isFalse();
+  }
+
+  @Test
+  public void dependencyEvidenceRejectsMalformedAndOversizedPayloads() throws Exception {
+    var witness = new LocalInputSnapshot.Witness("workspace/file", false, "digest");
+    byte[] valid =
+        new LocalDependencyEvidence(java.util.List.of(), java.util.List.of(witness)).encode();
+    assertThrows(
+        IOException.class,
+        () -> LocalDependencyEvidence.decode(java.util.Arrays.copyOf(valid, valid.length - 1)));
+    assertThrows(
+        IOException.class,
+        () -> LocalDependencyEvidence.decode(java.util.Arrays.copyOf(valid, valid.length + 1)));
+    assertThrows(
+        IOException.class, () -> LocalDependencyEvidence.decode(new byte[1024 * 1024 + 1]));
+    byte[] badCount = valid.clone();
+    ByteBuffer.wrap(badCount).putInt(4, 513);
+    assertThrows(IOException.class, () -> LocalDependencyEvidence.decode(badCount));
+    assertThrows(
+        IOException.class,
+        () -> new LocalDependencyEvidence(java.util.List.of(), java.util.List.of()).encode());
+  }
+
+  @Test
   public void concurrentInputValidationKeepsHashBuffersExclusive() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();
