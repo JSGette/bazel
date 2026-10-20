@@ -89,8 +89,9 @@ latency/memory regression; its code remains on its separate branch.
 
 ### 1. Rule and filesystem compatibility
 
-Support source directory symlinks with content traversal and bounded cycle detection.
-Exercise external repository changes, absolute symlinks and link-chain retargeting. Audit
+Source directory symlinks, bounded cycle detection, external absolute links and intermediate
+link-chain retargeting now have content-validation support and regression tests. Expand external
+repository-change coverage and retain the large-workload results in the protocol. Audit
 arbitrary host-specific strings in rule values. Add tests that require fresh execution roots,
 not merely action-cache hits. Validate cache-mode transitions and different environment values.
 

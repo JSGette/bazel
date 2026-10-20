@@ -310,3 +310,51 @@ Next action: preserve the upstream service's default restrictions and add a narr
 dependency-validation hook for the local backend, with complete symlink-chain evidence.
 Skipping absolute links without validating their referents was discarded as unsafe.
 
+
+
+## Step 7 — external SDK symlinks and complete resolution chains
+
+Implementation: [c98bd27836c7](https://github.com/JSGette/bazel/commit/c98bd27836c7037fe796b2e28c3dba53dce83ddc).
+The local content validator opts into a new default-off LongVersionGetter hook for links outside
+the serializer's versioned root. It persists witnesses for each intermediate link and the
+resolved referent. FileDependencySerializer uses this evidence for absolute or above-root links;
+ordinary version services retain the previous restrictions. No evaluator logic changed.
+
+Component-by-component traversal preserves `link/..` filesystem semantics, bounds link depth,
+and catches intermediate directory-link retargeting even when the outer text and final directory
+kind/mode remain unchanged. The source identity changes to v2 to exclude older incomplete
+evidence, with an explicit environment count and source section separator. Validation errors
+propagate and prevent publication; unsupported links are never silently accepted.
+
+Validation: seven test targets, 79 cases, passed. New cases cover intermediate-link retargeting,
+parent traversal after a symlink, external evidence acceptance, and evidence-recording failure.
+The custom Bazel binary builds successfully.
+
+Datadog rerun under the same target/resource/action-cache policy:
+
+| Run | Exit | Wall seconds | Peak process-tree PSS MiB | Analysis hits |
+| --- | ---: | ---: | ---: | ---: |
+| control-cold | 0 | 35.361 | 3317.1 | 0 |
+| control-warm | 0 | 0.735 | 3335.2 | 0 |
+| writer-cold | 0 | 171.884 | 4929.9 | 0 |
+| writer-warm | 0 | 4.023 | 4943.5 | 0 |
+| reader-restart | 0 | 126.282 | 4929.5 | 0 |
+
+See the [raw protocol](skycache-concurrent-2026-10-20/datadog-external-symlinks-results.json)
+for commands and hashes.
+
+All five builds complete and produce the same cluster-agent output hash as the controls.
+However, both graph-cold cache commands report `failed:true,published:false`, and the restarted
+command has zero analysis hits. This is **not a successful Datadog reuse result**. The 171.884-second
+writer and 126.282-second restart costs include substantial serialization/private writing, with
+no reuse benefit; warm retained-graph time is 4.023 seconds versus 0.735 seconds cache-off.
+The graph stays in RAM; peak PSS is about 4.8 GiB with the cache enabled.
+
+The first command writes 281,494 records; the restarted command writes 217,915. The current
+failure flag does not expose whether a conflicting immutable put or changed input caused the
+rejection. A likely candidate is the upstream file-invalidation key space, which uses a
+root-relative path and version while this local backend observes multiple repository roots.
+This remains a hypothesis until the precise rejection is captured. Next: expose a concise
+failure reason and run a diagnostic reproduction before changing keying or storage behavior.
+Accepting conflicting values or removing the publication validity check is explicitly rejected.
+
