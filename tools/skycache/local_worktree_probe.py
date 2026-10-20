@@ -17,6 +17,7 @@ import struct
 import subprocess
 import threading
 import time
+from storage_preflight import check_storage
 
 
 def main():
@@ -27,6 +28,7 @@ def main():
     args = parser.parse_args()
     binary = args.bazel.resolve(strict=True)
     root = args.root.resolve()
+    initial_storage = check_storage([root])
     root.mkdir(parents=True, exist_ok=False)
     lock = None
     if args.lock_file:
@@ -124,11 +126,13 @@ def main():
         "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
         "purpose": "correctness; two concurrent servers, not a speed benchmark",
         "environment": "identical client environment; PWD and OLDPWD unset",
+        "initial_storage": initial_storage,
         "phases": [],
     }
     protocol_path = root / "results.json"
 
     def pair(phase, require_hits=False):
+        storage = check_storage([root])
         finished = threading.Event()
         peak_rss = [0]
 
@@ -157,6 +161,7 @@ def main():
             finished.set()
             sampler.join()
         record = {"phase": phase, "seconds": time.monotonic() - started,
+                  "storage_preflight": storage,
                   "peak_combined_server_rss_kib": peak_rss[0], "builds": results}
         entries = list((root / "cache/objects").rglob("*.entry"))
         record["cache_entry_files"] = len(entries)

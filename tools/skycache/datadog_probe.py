@@ -20,6 +20,7 @@ import subprocess
 import argparse
 import threading
 import time
+from storage_preflight import check_storage
 
 def process_memory(roots):
     """Sum live process RSS/PSS, following descendants."""
@@ -70,6 +71,7 @@ def main():
     parser.add_argument("--lock-file", required=True, type=Path, help="Host measurement coordination lock")
     args = parser.parse_args()
     root = args.root.resolve()
+    initial_storage = check_storage([root, args.action_cache])
     root.mkdir(parents=True, exist_ok=False)
     binary = args.bazel.resolve(strict=True)
     original = args.repository.resolve(strict=True)
@@ -90,7 +92,7 @@ def main():
                 "lock_sha256": hashlib.sha256((workspace / "MODULE.bazel.lock").read_bytes()).hexdigest(),
                 "source_status": subprocess.check_output(["git", "-C", str(workspace), "status", "--short"], text=True),
                 "memory_scope": "process-tree RSS/PSS, sampled every 200 ms; excludes filesystem page cache",
-                "runs": []}
+                "initial_storage": initial_storage, "runs": []}
     lock = args.lock_file.open("a")
     fcntl.flock(lock, fcntl.LOCK_EX)
 
@@ -105,6 +107,7 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def command(label, cache):
+        storage = check_storage([root, args.action_cache])
         stats = output_base / "local-skycache.json"
         # A server crash can skip final statistics. Never attribute an earlier command's file.
         stats.unlink(missing_ok=True)
@@ -127,6 +130,7 @@ def main():
                 finished.set()
                 thread.join()
         row = {"label": label, "argv": argv, "exit_code": code, "seconds": time.monotonic() - start,
+               "storage_preflight": storage,
                "peak_tree_rss_kib": max((s[1] for s in samples), default=0),
                "peak_tree_pss_kib": max((s[2] for s in samples), default=0)}
         log_text = (root / (label + ".log")).read_text()
