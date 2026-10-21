@@ -7,7 +7,7 @@ existing analysis serialization and service interfaces; the Skyframe evaluator i
 unchanged. There is no Rust evaluator, graph paging or graph-size limit derived from `--jobs`.
 
 Implementation: [`jsgette/skycache-concurrent`](https://github.com/JSGette/bazel/tree/jsgette/skycache-concurrent).
-The latest measured binary is built from `6f451b2dc6f783dda879ff3c7ed3fc8146d0f410`.
+The latest measured implementation binary is built from `6f451b2dc6f783dda879ff3c7ed3fc8146d0f410`.
 Earlier capped validation and NVMe results below retain their original binary provenance.
 Documentation and results are on `jsgette/master`. The [usage guide](skycache-local-usage.md) provides flags and operating details;
 the [development protocol](measurements/skycache-concurrent-development-2026-10-20.md) preserves
@@ -45,6 +45,17 @@ lease-aware collector coordinates discovery/deletion, removes child manifests be
 preserves unknown layouts. Default collection limits are a soft 5 GiB and seven days, attempted
 after 30 idle seconds. Process death releases leases. JSON reports expose cache hits, shared reads,
 writes, deduplication, validation, publication and collection behavior.
+
+## Architecture experiments (2026-10-21)
+
+Four timeboxed experiments are complete; none proves a reliable full-build speedup.
+The [experiment report](skycache-architecture-experiments-2026-10-21.md) selects compact input
+certificates as the primary mechanism lead (541 to 129 ms validation, 80% less allocation), with
+selective publication a secondary size/memory lead. The tested synchronous frontier loses latency;
+scan avoidance and bulk loading are not selected. All 15 planned full builds passed, but E1's setup
+binding audit and E3's memory sampler failed and remain explicitly qualified. Final control drift is
+10.9%; E3 is not a full-build result. Code is isolated on the pushed experiment branch; implementation
+remains unchanged at `6f451b2dc6`.
 
 ## Latest optimization batch
 

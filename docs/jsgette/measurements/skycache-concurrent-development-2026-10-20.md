@@ -3596,3 +3596,29 @@ transfer. Keep storage safety, graphs in RAM and every worker's ability to publi
 source guards or use commit/mtime-only correctness shortcuts. A performance gate must precede
 further protocol expansion. This is a proposed direction, not a claim that the alternative is
 implemented or faster. Sequential observations do not establish concurrent throughput.
+
+
+## Step 63 — four preregistered architecture experiments (2026-10-21)
+
+[Full protocol and decisions](../skycache-architecture-experiments-2026-10-21.md).
+Experimental code `e29c37affc` is pushed separately; implementation remains `6f451b2dc6`.
+Cache&Carry build executed 293 tests in 19 suites after one test visibility repair. All 15 scheduled
+Datadog builds passed, including two excluded preparations and a final off control. No retries or
+extra measurement builds were added. Graphs remain in RAM and the evaluator is unchanged.
+
+Default readers 21.447/20.204 s; E1 22.277/22.386 s; E2 34.018/20.774 s; E4 26.301/24.149 s.
+Initial off controls 18.777/18.764 s, final off 20.809 s. Fixed order, sparse samples and 10.9% control
+drift limit attribution. E1's whole-stage binding check failed solely on the new install's bazel_tools
+transition during preparations; the failure and original evidence remain. Journal hash-field collision
+was reconstructed/verified and migrated with originals retained. A pre-attempt environment rejection
+was traced exactly to WSL_INTEROP; no build was consumed.
+
+E3 Java completed its alternating 2-warmup/3-measured rounds per path, unchanged-fixture checks and
+three mutation probes. Validation fell 541.050 to 129.174 ms, allocations 776.224 to 153.002 MB;
+common admission stays about 2.13 s. The wrapper memory sampler failed every sample; its receipt stays
+failed and process memory is unavailable. An independent offline audit supports conditional mechanism
+evidence only. Full preparation costs 6.248 s (about 16 future validation reuses).
+
+Select certificates first; retain selective publication as a secondary size/memory lead. Current
+sync frontier shrinks packs 58% but restores more graph/repository work and loses latency. No switch
+is promoted. Raw/private evidence and curated public results preserve every failure and correction.

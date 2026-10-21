@@ -162,6 +162,13 @@ encoded metadata budgets do not bound decoded objects or the whole graph. See th
 
 ## Follow-up priorities
 
+The [four architecture experiments](../skycache-architecture-experiments-2026-10-21.md) supersede
+micro-optimization as the next performance focus: compact, correctly bound certificates first;
+selective publication without synchronous re-evaluation as a secondary design lead. Broad admission
+still costs about 2.13 s. No experimental path is promoted, and no net build-speed win is established.
+Retain source guards on writable commands, in-memory graphs, the evaluator and concurrent storage.
+
+
 1. Run fair repeated comparisons on native SSD-backed ext4 with identical starting outputs and
    randomized order. Report full command time, process memory and physical I/O; hits are not speedup.
 2. Profile hashing, dependency validation and metadata before changing code. Preserve content
