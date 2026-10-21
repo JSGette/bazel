@@ -130,6 +130,8 @@ def main():
                         help="After the full matrix, collect inactive data and verify rebuild/reuse")
     parser.add_argument("--reuse-output-bases-from", type=Path,
                         help="Copy stopped output bases from a completed probe into a new fixture")
+    parser.add_argument("--repository-cache", type=Path,
+                        help="Place native repository downloads and shared contents on this guarded filesystem")
     parser.add_argument("--disable-repository-cache", action="store_true",
                         help="Keep repository downloads in the selected output bases, not the default cache")
     args = parser.parse_args()
@@ -139,9 +141,13 @@ def main():
         parser.error("--build-timeout-seconds must be positive")
     if args.server_idle_seconds < args.build_timeout_seconds:
         parser.error("--server-idle-seconds must cover the independent build timeout")
+    if args.repository_cache and args.disable_repository_cache:
+        parser.error("--repository-cache cannot be combined with --disable-repository-cache")
     binary = args.bazel.resolve(strict=True)
     root = args.root.resolve()
-    initial_storage = check_storage([root, args.action_cache])
+    repository_cache = args.repository_cache.resolve() if args.repository_cache else None
+    write_paths = [root, args.action_cache] + ([repository_cache] if repository_cache else [])
+    initial_storage = check_storage(write_paths)
     root.mkdir(parents=True, exist_ok=args.resume or args.reuse_worktrees)
     results_root = args.results_root.resolve() if args.results_root else root
     if args.reuse_worktrees and results_root == root:
@@ -234,6 +240,7 @@ def main():
         "output_bases_copied_from": str(output_origin) if output_origin else None,
         "copied_output_symlink_relocations": output_relocations,
         "disable_repository_cache": args.disable_repository_cache,
+        "repository_cache": str(repository_cache) if repository_cache else None,
         "reused_fixture": str(root) if args.reuse_worktrees else None,
         "single_seed_writer": args.single_seed_writer,
         "collector_jar": str(collector_jar) if collector_jar else None,
@@ -251,7 +258,7 @@ def main():
         assert saved.get("cross_revision_smoke", False) == args.cross_revision_smoke
         assert saved.get("build_timeout_seconds", 1800) == args.build_timeout_seconds
         assert saved.get("server_idle_seconds", 120) == args.server_idle_seconds
-        for key in ("java_home", "seed_cache", "seed_publications", "reuse_worktrees", "single_seed_writer", "collector_jar", "collector_jar_sha256", "output_bases_copied_from", "disable_repository_cache"):
+        for key in ("java_home", "seed_cache", "seed_publications", "reuse_worktrees", "single_seed_writer", "collector_jar", "collector_jar_sha256", "output_bases_copied_from", "disable_repository_cache", "repository_cache"):
             assert saved.get(key, {} if key == "seed_publications" else False if key in ("reuse_worktrees", "single_seed_writer", "disable_repository_cache") else None) == protocol[key], key
         protocol = saved
         protocol.setdefault("resumptions", []).append({
@@ -326,7 +333,10 @@ def main():
             "--disk_cache=" + (str(args.action_cache.resolve()) if disk_cache else ""),
             "--build_event_json_file=" + str(results_root / f"{phase}-{name}.bep.json"),
         ]
-        if args.disable_repository_cache:
+        if repository_cache:
+            argv += ["--repository_cache=" + str(repository_cache),
+                     "--repo_contents_cache=" + str(repository_cache / "contents")]
+        elif args.disable_repository_cache:
             argv += ["--repository_cache="]
         if java_home:
             argv += ["--repo_env=JAVA_HOME=" + str(java_home)]
@@ -393,7 +403,7 @@ def main():
             print(json.dumps({"resumed_validated_phase": phase}), flush=True)
             return {r["worktree"].rsplit("-", 1)[-1]: r["output_sha256"]
                     for r in record["builds"]}
-        storage = check_storage([root, args.action_cache])
+        storage = check_storage(write_paths)
         samples = []
         finished = threading.Event()
         started = time.monotonic()
@@ -404,7 +414,7 @@ def main():
 
         storage_errors = []
         guard = threading.Thread(target=watch_storage,
-            args=([root, args.action_cache], finished, active_clients, client_lock, storage_errors),
+            args=(write_paths, finished, active_clients, client_lock, storage_errors),
             daemon=True)
         sampler = threading.Thread(target=sample, daemon=True)
         sampler.start()
@@ -470,7 +480,7 @@ def main():
 
     def collect_and_rebuild(baseline):
         shutdown_pair(names)
-        storage = check_storage([root, args.action_cache])
+        storage = check_storage(write_paths)
         argv = [str(java_home / "bin/java"), "-Xms64m", "-Xmx256m", "-jar", str(collector_jar),
                 str(root / "cache"), "1", "0"]
         completed = subprocess.run(argv, capture_output=True, text=True, timeout=120)
