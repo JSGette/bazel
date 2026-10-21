@@ -50,9 +50,12 @@ import java.util.function.LongSupplier;
  *
  * <p>Records become discoverable only after successful completion and input validation. A
  * publication lists every older publication from which it read chunks, keeping that closure
- * explicit for later garbage collection. There is no deletion in this initial session format.
+ * explicit for garbage collection. Lease-aware clients use an isolated layout; legacy publications
+ * remain untouched. Active reads and private writes pin their publication until this session
+ * closes.
  */
 final class LocalCacheSession implements FingerprintValueStore {
+  static final String MANAGED_DIRECTORY = "leased-v1";
   private static final int MAGIC = 0x534b5333;
   private static final int MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
   private static final int MAX_WITNESSES = 1_000_000;
@@ -79,7 +82,16 @@ final class LocalCacheSession implements FingerprintValueStore {
       PackedFingerprintValueStore store,
       List<LocalInputSnapshot.Witness> witnesses,
       List<String> parents,
-      long metadataBytes) {}
+      long metadataBytes,
+      LocalCacheLeaseManager.Lease lease)
+      implements AutoCloseable {
+    @Override
+    public void close() throws IOException {
+      try (lease) {
+        store.close();
+      }
+    }
+  }
 
   private record SharedPut(Candidate candidate, String valueDigest) {}
 
@@ -88,6 +100,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final ReadLimits limits;
   private final Path objects;
   private final Path publications;
+  private final LocalCacheLeaseManager leases;
   private final String id;
   private volatile PackedFingerprintValueStore privateStore;
   // Puts hold locks across private writes and shared reads. Keep more stripes than writers
@@ -128,6 +141,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final DecimalBucketer putLatencyMicros = new DecimalBucketer();
   private volatile long readLimitSkips;
   private volatile long scanLimitHits;
+  private volatile long catalogBusySkips;
   private volatile int peakCandidateCount;
   private volatile long peakCandidateMetadataBytes;
 
@@ -145,12 +159,13 @@ final class LocalCacheSession implements FingerprintValueStore {
     this.limits = limits;
     this.inputs = inputs;
     this.nanoTime = nanoTime;
-    durableDirectory(root.toAbsolutePath().normalize());
-    this.objects = durableDirectory(root.resolve("objects").resolve("packed-v1"));
+    Path managed = durableDirectory(root.toAbsolutePath().normalize().resolve(MANAGED_DIRECTORY));
+    this.objects = durableDirectory(managed.resolve("objects").resolve("packed-v1"));
     this.publications =
-        durableDirectory(root.resolve("publications-v3").resolve(inputs.cacheNamespace()));
+        durableDirectory(managed.resolve("publications-v3").resolve(inputs.cacheNamespace()));
     this.id =
         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    this.leases = LocalCacheLeaseManager.open(managed);
   }
 
   String cacheNamespace() {
@@ -217,7 +232,7 @@ final class LocalCacheSession implements FingerprintValueStore {
             + "\"peak_candidate_metadata_bytes\":%d,"
             + "\"cas_put_requests\":%d,\"cas_accepted_puts\":%d,\"cas_put_key_bytes\":%d,"
             + "\"cas_put_value_bytes\":%d,\"cas_get_requests\":%d,\"cas_get_hits\":%d,"
-            + "\"cas_get_misses\":%d,\"cas_received_value_bytes\":%d}",
+            + "\"cas_get_misses\":%d,\"cas_received_value_bytes\":%d,\"catalog_busy_skips\":%d}",
         writes.get(),
         reads.get(),
         sharedReads.get(),
@@ -236,7 +251,8 @@ final class LocalCacheSession implements FingerprintValueStore {
         getRequests.get(),
         foundGets.get(),
         missedGets.get(),
-        receivedValueBytes.get());
+        receivedValueBytes.get(),
+        catalogBusySkips);
   }
 
   @Override
@@ -313,9 +329,22 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   private synchronized PackedFingerprintValueStore storeForWrites() throws IOException {
     if (privateStore == null) {
-      privateStore = PackedFingerprintValueStore.create(objects, id);
+      try (var catalog = requireSharedCatalog()) {
+        // The pin outlives this short catalog operation, including a partially created pack.
+        leases.pinPublication(id);
+        privateStore = PackedFingerprintValueStore.create(objects, id);
+      }
     }
     return privateStore;
+  }
+
+  private LocalCacheLeaseManager.Lease requireSharedCatalog() throws IOException {
+    var catalog = leases.trySharedCatalog();
+    if (catalog == null) {
+      catalogBusySkips++;
+      throw new IOException("local SkyCache catalog is busy");
+    }
+    return catalog;
   }
 
   private SharedPut findIdenticalCandidate(KeyBytesProvider key, byte[] expected)
@@ -543,12 +572,27 @@ final class LocalCacheSession implements FingerprintValueStore {
           continue;
         }
         inspected.add(filename);
+        LocalCacheLeaseManager.Lease pin = null;
         try {
           var previousMismatch = rejectedWitnesses.get(filename);
           if (previousMismatch != null && !inputs.matches(previousMismatch)) {
             rejectWitness(filename, previousMismatch);
             continue;
           }
+          if (!filename.matches("[0-9a-f]{64}\\.manifest")) {
+            throw new IOException("invalid publication filename");
+          }
+          try (var catalog = leases.trySharedCatalog()) {
+            if (catalog == null) {
+              catalogBusySkips++;
+              inspected.remove(filename);
+              continue;
+            }
+            pin = leases.pinPublication(filename.substring(0, 64));
+          }
+          // The publication is pinned before reading its manifest. A collector must retain this
+          // publication and all its transitive parents; expensive content checks need no catalog
+          // lock. A path deleted before pinning simply fails the normal bounded manifest read.
           long remaining = limits.metadataBytes() - metadataBytes;
           if (Files.size(path) > remaining) {
             readLimitSkips++;
@@ -577,8 +621,10 @@ final class LocalCacheSession implements FingerprintValueStore {
                     store,
                     witnesses,
                     manifest.parents(),
-                    manifest.encodedBytes() + store.indexBytes());
+                    manifest.encodedBytes() + store.indexBytes(),
+                    pin);
             opened.add(candidate);
+            pin = null; // Ownership transfers to the opened candidate.
             available.put(candidate.id(), candidate);
             metadataBytes += candidate.metadataBytes();
             peakCandidateCount = Math.max(peakCandidateCount, available.size());
@@ -589,6 +635,10 @@ final class LocalCacheSession implements FingerprintValueStore {
           }
         } catch (IOException e) {
           rejected.incrementAndGet();
+        } finally {
+          if (pin != null) {
+            pin.close();
+          }
         }
       }
       // Existing candidates already have a complete closure. Only new candidates can be pruned.
@@ -608,7 +658,7 @@ final class LocalCacheSession implements FingerprintValueStore {
       for (Candidate candidate : opened) {
         if (!retained.contains(candidate.id())) {
           try {
-            candidate.store().close();
+            candidate.close();
           } catch (IOException e) {
             if (failure == null) {
               failure = e;
@@ -722,27 +772,29 @@ final class LocalCacheSession implements FingerprintValueStore {
       }
       // No manifest can reference private bytes that have not reached durable storage.
       privateStore.seal();
-      Path temporary =
-          Files.createTempFile(
-              publications,
-              ".pending-",
-              ".tmp",
-              PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
-      try {
-        try (FileChannel channel = FileChannel.open(temporary, WRITE)) {
-          ByteBuffer contents =
-              ByteBuffer.wrap(
-                  com.google.common.primitives.Bytes.concat(
-                      payload, HexFormat.of().parseHex(sha256(payload))));
-          while (contents.hasRemaining()) {
-            channel.write(contents);
+      try (var catalog = requireSharedCatalog()) {
+        Path temporary =
+            Files.createTempFile(
+                publications,
+                ".pending-",
+                ".tmp",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+        try {
+          try (FileChannel channel = FileChannel.open(temporary, WRITE)) {
+            ByteBuffer contents =
+                ByteBuffer.wrap(
+                    com.google.common.primitives.Bytes.concat(
+                        payload, HexFormat.of().parseHex(sha256(payload))));
+            while (contents.hasRemaining()) {
+              channel.write(contents);
+            }
+            channel.force(true);
           }
-          channel.force(true);
+          Files.createLink(publications.resolve(id + ".manifest"), temporary);
+          syncDirectory(publications);
+        } finally {
+          Files.deleteIfExists(temporary);
         }
-        Files.createLink(publications.resolve(id + ".manifest"), temporary);
-        syncDirectory(publications);
-      } finally {
-        Files.deleteIfExists(temporary);
       }
       return true;
     } finally {
@@ -781,6 +833,16 @@ final class LocalCacheSession implements FingerprintValueStore {
         } else {
           failure.addSuppressed(e);
         }
+      }
+    }
+    // Descriptors are closed before releasing reader, parent and private-writer pins.
+    try {
+      leases.close();
+    } catch (IOException e) {
+      if (failure == null) {
+        failure = e;
+      } else {
+        failure.addSuppressed(e);
       }
     }
     if (failure != null) {

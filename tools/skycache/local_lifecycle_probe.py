@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--root', required=True, type=Path)
     parser.add_argument('--lock-file', required=True, type=Path)
     parser.add_argument('--require-traffic-stats', action='store_true')
+    parser.add_argument('--legacy-bazel', type=Path, help='Also test mixed-layout operation, rollout and rollback.')
     args = parser.parse_args()
     binary = args.bazel.resolve(strict=True)
     root = args.root.resolve()
@@ -49,6 +50,28 @@ def main():
     seed = root / 'seed'
     count = 6
     names = ('a', 'b', 'control-a', 'control-b')
+    binaries = {name: binary for name in names}
+    legacy = args.legacy_bazel.resolve(strict=True) if args.legacy_bazel else None
+    if legacy:
+        binaries['a'] = binaries['control-a'] = legacy
+        protocol['legacy_binary'] = str(legacy)
+        protocol['legacy_binary_sha256'] = hashlib.sha256(legacy.read_bytes()).hexdigest()
+    previous_publications = {}
+
+    def check_publications():
+        nonlocal previous_publications
+        current = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                   for cache in ('cache', 'second-cache')
+                   for p in sorted((root/cache).rglob('*.manifest'))}
+        assert all(current.get(p) == digest for p, digest in previous_publications.items()), 'Existing publication changed or disappeared'
+        previous_publications = current
+        protocol['publication_inventory'] = current
+
+    def switch_binary(name, replacement):
+        for server in (name, 'control-' + name):
+            shutdown(server)
+            expected_pids.pop(server, None)
+            binaries[server] = replacement
     started_servers = set()
     expected_pids = {}
     rule_template = '''SUFFIX = "{suffix}"
@@ -59,7 +82,7 @@ def copy_rule(name, src):
 '''
 
     def startup(name):
-        return [str(binary), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
+        return [str(binaries[name]), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
                 '--host_jvm_args=-Xmx1g', '--max_idle_secs=120',
                 '--output_base=' + str(root / ('out-' + name))]
 
@@ -99,7 +122,7 @@ def copy_rule(name, src):
                             (repo_env + '\n' + cfg + '\n' + suffix + '\n').encode()
                             for i in range(count)) + (action_env + '\n').encode()
         output = (workspace / 'bazel-bin/app/all.txt').read_bytes() if completed.returncode == 0 else None
-        row = {'worktree': name, 'argv': argv, 'exit_code': completed.returncode,
+        row = {'worktree': name, 'binary': str(binaries[name]), 'argv': argv, 'exit_code': completed.returncode,
                'seconds': time.monotonic() - started, 'cache_enabled': cache_enabled,
                'analysis_hits': sum(int(x) for x in re.findall(r'CONFIGURED_TARGET: (\d+)/\d+', text)),
                'output_matches_expected': output == expected,
@@ -120,13 +143,14 @@ def copy_rule(name, src):
             row['server_pid'] = pid(name)
         return row
 
-    def phase(label, *, controls=True, require_hits=False, **settings):
+    def phase(label, *, controls=True, require_hits=False, require_hits_on=(), **settings):
         storage = check_storage([root])
         rows = []
         for pair in (('a', 'b'), ('control-a', 'control-b')) if controls else (('a', 'b'),):
             started_servers.update(pair)
             with ThreadPoolExecutor(max_workers=2) as pool:
                 rows.extend(f.result() for f in [pool.submit(build, n, label, **settings) for n in pair])
+        check_publications()
         protocol['phases'].append({'phase': label, 'settings': settings, 'builds': rows,
                                    'storage_preflight': storage})
         save()
@@ -160,9 +184,9 @@ def copy_rule(name, src):
             for name in ('a','b'):
                 assert next(r for r in rows if r['worktree'] == name)['output_sha256'] == next(
                     r for r in rows if r['worktree'] == 'control-' + name)['output_sha256']
-        if require_hits:
-            assert all(row['analysis_hits'] > 0 and row['skycache']['shared_reads'] > 0
-                       for row in rows if not row['worktree'].startswith('control-')), rows
+        required = {'a','b'} if require_hits else set(require_hits_on)
+        assert all(row['analysis_hits'] > 0 and row['skycache']['shared_reads'] > 0
+                   for row in rows if row['worktree'] in required), rows
 
     save()
     with args.lock_file.open('a') as lock:
@@ -226,6 +250,20 @@ environment_repo = repository_rule(implementation = _repo, environ = ["SKYCACHE_
                        q['server_pid']==expected_pids[q['worktree']] for q in queries), queries
             phase('build-after-query', repo_env='R2', action_env='E2', test_env='T2')
             phase('restore-original-environment')
+            if legacy:
+                inventory = protocol['publication_inventory']
+                assert any(p.startswith('cache/publications-v3/') for p in inventory)
+                assert any(p.startswith('cache/leased-v1/publications-v3/') for p in inventory)
+                protocol['before_migration_inventory'] = dict(inventory)
+                switch_binary('a', binary)
+                phase('roll-forward-to-leases', require_hits_on=('a',))
+                phase('both-leased-independent-edits', source_suffix='-leased-{side}')
+                phase('both-leased-revert')
+                switch_binary('a', legacy)
+                phase('roll-back-to-legacy', require_hits_on=('a',))
+                switch_binary('a', binary)
+                phase('roll-forward-again', require_hits_on=('a',))
+                protocol['layout_migration_passed'] = True
             protocol['passed'] = True
             save()
         finally:

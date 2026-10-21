@@ -164,11 +164,11 @@ def main():
         record = {"phase": phase, "seconds": time.monotonic() - started,
                   "storage_preflight": storage,
                   "peak_combined_server_rss_kib": peak_rss[0], "builds": results}
-        entries = list((root / "cache/objects").rglob("*.entry"))
+        entries = list((root / "cache/leased-v1/objects").rglob("*.entry"))
         record["cache_entry_files"] = len(entries)
         record["cache_entry_bytes"] = sum(path.stat().st_size for path in entries)
-        packs = list((root / "cache/objects").rglob("data.pack"))
-        indexes = list((root / "cache/objects").rglob("index"))
+        packs = list((root / "cache/leased-v1/objects").rglob("data.pack"))
+        indexes = list((root / "cache/leased-v1/objects").rglob("index"))
         record["cache_pack_files"] = len(packs)
         record["cache_index_files"] = len(indexes)
         record["cache_packed_bytes"] = sum(path.stat().st_size for path in packs + indexes)
@@ -227,7 +227,7 @@ def main():
             shutdown(name)
         damaged = 0
         preserved = 0
-        for path in (root / "cache/objects").rglob("*.entry"):
+        for path in (root / "cache/leased-v1/objects").rglob("*.entry"):
             data = path.read_bytes()
             if len(data) < 44:
                 continue
@@ -238,7 +238,7 @@ def main():
             else:
                 path.write_bytes(b"deliberately corrupt shared chunk")
                 damaged += 1
-        for path in (root / "cache/objects").rglob("data.pack"):
+        for path in (root / "cache/leased-v1/objects").rglob("data.pack"):
             index = (path.parent / "index").read_bytes()
             magic, pack_count, data_size = struct.unpack_from(">iiq", index)
             assert magic == 0x534B4901 and len(index) == 16 + pack_count * 48 + 32

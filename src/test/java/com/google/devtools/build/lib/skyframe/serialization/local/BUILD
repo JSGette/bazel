@@ -277,3 +277,15 @@ java_binary(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
     ],
 )
+
+java_test(
+    name = "LocalCacheLeaseManagerTest",
+    size = "medium",
+    srcs = ["LocalCacheLeaseManagerTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)

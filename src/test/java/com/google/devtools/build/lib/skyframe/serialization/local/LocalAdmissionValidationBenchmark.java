@@ -32,7 +32,9 @@ public final class LocalAdmissionValidationBenchmark {
     System.out.print("{\"sampled_roots\":" + roots.size() + ",\"rounds\":[");
     for (int round = -2; round < 5; round++) {
       var inputs = new LocalInputSnapshot(Path.of(args[1]), Path.of(args[2]), environment);
-      if (!Files.isDirectory(cache.resolve("publications-v3").resolve(inputs.cacheNamespace()))) {
+      if (!Files.isDirectory(cache.resolve("publications-v3").resolve(inputs.cacheNamespace()))
+          && !Files.isDirectory(
+              cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace()))) {
         throw new IllegalStateException(
             "fixture environment or repository namespace does not match");
       }

@@ -39,6 +39,7 @@ java_library(
     name = "local_skycache_module",
     srcs = [
         "LocalAnalysisCacheClient.java",
+        "LocalCacheLeaseManager.java",
         "LocalCacheSession.java",
         "LocalDependencyEvidence.java",
         "LocalDependencyValidator.java",
