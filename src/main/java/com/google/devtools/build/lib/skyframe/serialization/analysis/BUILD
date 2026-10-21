@@ -514,6 +514,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:__pkg__",
+        "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:__pkg__",
     ],
     deps = [
         "//src/main/java/com/google/devtools/build/lib/skybridge:skybridge_interface",

@@ -21,9 +21,15 @@ final class LocalAnalysisCacheClient implements RemoteAnalysisCacheClient {
 
   private static final LookupResult MISS = new Result(new byte[0], null, 0);
   private final LocalCacheSession session;
+  private final LocalDependencyValidator validator;
 
-  LocalAnalysisCacheClient(LocalCacheSession session) {
+  LocalAnalysisCacheClient(LocalCacheSession session, LocalDependencyValidator validator) {
     this.session = session;
+    this.validator = validator;
+  }
+
+  String validationStatisticsJson() {
+    return validator.statisticsJson();
   }
 
   @Override
@@ -36,7 +42,11 @@ final class LocalAnalysisCacheClient implements RemoteAnalysisCacheClient {
       if (type != 4) {
         return immediateFuture(MISS);
       }
-      byte[] invalidation = PackedFingerprint.readFrom(input).toBytes();
+      var root = PackedFingerprint.readFrom(input);
+      if (!validator.validate(root)) {
+        return immediateFuture(MISS);
+      }
+      byte[] invalidation = root.toBytes();
       byte[] value = Arrays.copyOfRange(bytes, input.getTotalBytesRead(), bytes.length);
       return immediateFuture(new Result(value, invalidation, 0));
     } catch (InterruptedException e) {

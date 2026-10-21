@@ -43,6 +43,17 @@ import javax.annotation.Nullable;
 
 /** Installs a concurrent local backend at the upstream analysis serialization/service boundary. */
 public final class LocalSkycacheModule extends SerializationModule {
+  private static final com.google.devtools.build.lib.skyframe.serialization.Fingerprinter
+      LOCAL_FINGERPRINTER =
+          com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService
+              .NONPROD_FINGERPRINTER;
+
+  @Override
+  protected com.google.devtools.build.lib.skyframe.serialization.Fingerprinter
+      getFingerprinterForAnalysisCaching() {
+    return LOCAL_FINGERPRINTER;
+  }
+
   private final Services services = new Services();
   @Nullable private CommandEnvironment environment;
   private boolean buildSucceeded;
@@ -125,7 +136,16 @@ public final class LocalSkycacheModule extends SerializationModule {
               new LocalCacheSession.ReadLimits(
                   options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
       RunfilesOrigin.setSharingEnabled(true);
-      services.client = new LocalAnalysisCacheClient(services.session);
+      services.client =
+          new LocalAnalysisCacheClient(
+              services.session,
+              new LocalDependencyValidator(
+                  services.session,
+                  inputs,
+                  LOCAL_FINGERPRINTER,
+                  env.getRuntime()
+                      .getBlazeService(
+                          com.google.devtools.build.lib.compress.CompressionService.class)));
       services.clientId =
           new ClientId.SnapshotClientId(inputs.sourceDigest() + "/" + env.getCommandId(), 0);
       env.setVersionGetter(inputs);
@@ -192,9 +212,14 @@ public final class LocalSkycacheModule extends SerializationModule {
         env.getReporter()
             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
       }
+      String validation = services.client.validationStatisticsJson();
+      env.getReporter().handle(Event.info("Local SkyCache dependency validation: " + validation));
       String statistics = session.statisticsJson(published);
       env.getReporter().handle(Event.info("Local SkyCache: " + statistics));
       try {
+        Files.writeString(
+            Path.of(env.getOutputBase().getPathString()).resolve("local-skycache-validation.json"),
+            validation);
         Files.writeString(
             Path.of(env.getOutputBase().getPathString()).resolve("local-skycache.json"),
             statistics);
