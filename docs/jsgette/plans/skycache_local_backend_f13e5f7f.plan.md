@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 59. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 60. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -71,6 +71,15 @@ The last six timings are correctness observations: earlier failed attempts warme
 Large post-GC writer/reader and repeated restart checks were omitted under the cap. Current focused
 collector tests and earlier real-server lifecycle evidence remain separate. Net performance benefit,
 broader compatibility, longer histories and remote transport remain open.
+
+## Performance work after diagnosis
+
+The [source/profile diagnosis](../skycache-performance-diagnosis-2026-10-21.md) prioritizes timing
+instrumentation, full-workspace capture cost, small synchronous record I/O, dependency-scoped
+admission and serialized validation. Release invocation-only metadata after command completion
+once lifecycle users are checked. Trace action-cache digest mismatches and match action-output
+states before claiming an isolated speed improvement. Keep the evaluator and graphs in RAM.
+No implementation changes were made during this diagnosis.
 
 ## Implemented design
 

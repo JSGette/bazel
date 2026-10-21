@@ -3535,3 +3535,26 @@ logs, commands, hardware mapping, memory samples and the harness remain private 
 readback-verified archive, SHA-256
 `725b474357e4ae24892c59e5207eda2840308c03d9c1a25cb660a27a111a2dd0`.
 Step 58 and the original capped 16-attempt reports remain unchanged.
+
+## Step 60 — source and saved-profile performance diagnosis (2026-10-21)
+
+No new builds, implementation edits or benchmark retries. Verified hashes of all four saved
+profiles, BEP files and logs, traced the local cache source, and enumerated the current source-tree
+footprint without content hashing. The full
+[diagnosis](../skycache-performance-diagnosis-2026-10-21.md) distinguishes direct timings,
+source-proven work and unmeasured attribution. The
+[curated data](skycache-concurrent-2026-10-20/performance-diagnosis-2026-10-21.json) records those
+metrics and their evidence hashes.
+
+The clearest measured increment is 4.159 seconds in cache setup (51.3% of the observed 8.113-second
+reader gap). The implementation always captures full-workspace content before it knows whether
+novel writes are needed. The dependency validator serializes a 163,378-record proof and the pack
+API performs small synchronous reads despite returning futures. Memo tables are working and their
+limits are not hit. Writer publication repeats full source capture. Completed invocation validation
+metadata remains referenced until another command, creating an idle-memory cleanup opportunity.
+
+BEP additionally identifies 2,297 writer / 2,248 reader action-cache DIGEST_MISMATCH misses, versus
+zero in controls; the exact changed digest components are untraced. GC notification spans are
+under one second and repository mapping time is common to both modes, so neither explains the
+multi-second regression alone. Phase durations are not added as an exact causal decomposition.
+Recommendations remain within the local backend/serialization layer and preserve correctness checks.

@@ -191,6 +191,16 @@ and the [curated comparison](measurements/skycache-concurrent-2026-10-20/nvme-ca
   focused collector tests and earlier real-server lifecycle results do not substitute for every
   omitted large-workload check.
 
+## Performance diagnosis
+
+Read-only profile/source review identifies a 4.16-second cache setup stage containing an
+unconditional whole-workspace content scan, a validator-wide lock over 163,378 dependency records,
+and hundreds of thousands of tiny synchronous pack operations. Memoization is effective but does
+not avoid that first proof. Writer final validation repeats the source scan. Extra action digest
+mismatches confound the full-build comparison; idle validation metadata also survives until the
+next command. Precise inner-method and heap attribution remain unmeasured. See the
+[ranked diagnosis and optimization order](skycache-performance-diagnosis-2026-10-21.md).
+
 ## Suggested next work
 
 Use this branch as an opt-in local prototype. Follow the negative NVMe on/off observations with
