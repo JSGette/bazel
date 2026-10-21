@@ -401,6 +401,17 @@ All 1,554 stale links were repaired, second scans are clean and 29 focused Pytho
 Failed publications remain preserved. A complete retry with an empty SkyCache is running; large
 reuse/edit/collection validation and final temporary-volume cleanup remain open.
 
+## Native repository sharing restored for final retry (Step 46)
+
+The repaired fixture still rejected independent reuse: all remaining 900 manifest differences
+concerned Python bytecode-cache paths. Disabling native repository caching had also disabled the
+repository contents cache, creating worktree-specific toolchain bindings. Preserve conservative
+input checks. The probe now explicitly places native downloads and shared contents on D, with
+capacity checks and resume-policy validation. Four native fetches verified identical Python
+repository/cache bindings, and 29 focused Python cases pass. The next complete matrix starts with
+an empty SkyCache and accepts no earlier phases. The final large gate, evidence archive and scratch
+cleanup remain open; this is a fixture correction, with no core or evaluator change.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

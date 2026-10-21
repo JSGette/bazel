@@ -10,9 +10,22 @@ The previous [paging experiment](skyframe-lazy-go-datadog-linux-2026-10-19.md) r
 
 ## Current status
 
-Concurrent immutable byte storage is tested. Integration with Bazel's current analysis
-serialization/service APIs is in progress. Two-server analysis reuse is not yet demonstrated
-by this checkpoint.
+Updated 2026-10-21, through Step 46. Experimental concurrent analysis reuse is implemented,
+with full in-memory graphs and no evaluator implementation changes. Current core checks cover
+265 Java cases across 17 targets. The 34-build file-membership runtime gate passes across two
+cached worktrees and two independent controls. Earlier substantial Datadog gates also demonstrate
+actual shared analysis hits, independent semantic edits and correct reverts.
+
+The final collector-enabled 32-build Datadog acceptance matrix is still pending. Recent attempts
+built correct outputs but failed independent reuse because copied fixture links and independently
+materialized Python repository paths differed. Those failures and their publication bytes are
+preserved. The current retry repairs the fixture and enables ordinary native repository sharing
+on the guarded D volume. It must still pass actual reuse, concurrent edits/reverts and collection
+recovery before the final acceptance audit can close. No production-maturity or general speedup
+claim is made. Timings from this temporary SATA HDD are compared within the same run only.
+
+The numbered steps below are chronological checkpoints; each describes the implementation and
+evidence available at that point. Later steps supersede their pending-work statements.
 
 ## Step 1: duplicate-write fast path
 
@@ -72,8 +85,9 @@ Pass a fresh directory, entry count, and payload bytes; do not reuse an existing
   and input-evidence validation must precede reuse.
 - Keep raw logs under .work; publish curated measurements and decisions on
   jsgette/master. Commit implementation milestones independently.
-- Use jobs=4 and at most a 4 GiB source-build JVM; performance measurements hold
-  the existing shared measurement lock exclusively.
+- Initial resource policy used jobs=4 and a 4 GiB source-build JVM. The later user instruction
+  allows all available resources for standalone work with memory headroom; paired benchmark
+  phases retain matching limits. Performance measurements hold the shared lock exclusively.
 
 - Retain atomic hard-link publication and directory fsync in the duplicate optimization.
   Discard the faster but incorrect assumption that seeing another writer's link proves that
