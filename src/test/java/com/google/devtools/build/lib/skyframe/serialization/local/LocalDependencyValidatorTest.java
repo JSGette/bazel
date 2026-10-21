@@ -148,6 +148,85 @@ public final class LocalDependencyValidatorTest {
   }
 
   @Test
+  public void trafficAnalysisAndBlobReadsAreSeparateAndFailuresCountOnce() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var inputs = snapshot();
+    var session = new LocalCacheSession(cache, inputs);
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {81});
+    writeEntry(session, inputs, file, key, (byte) 7);
+    byte[] evidence = inputs.captureDependency(file, false, List.of());
+    var leaf =
+        new StringKey("local-input-v1/" + NONPROD_FINGERPRINTER.fingerprint(evidence).toHex());
+    byte[] node = bytes(List.of(), List.of(leaf), List.of(), null);
+    var client = client(session, inputs);
+    var empty = client.getStats();
+    assertThat(client.lookup(key.toBytes()).get().value()).isEqualTo(new byte[] {7});
+    assertThat(client.lookup(new byte[] {0}).get().value()).isEmpty();
+    var missing = NONPROD_FINGERPRINTER.fingerprint(new byte[] {82});
+    assertThat(client.lookup(missing.toBytes()).get().value()).isEmpty();
+    var stats = client.getStats();
+    assertThat(stats.requestsSent()).isEqualTo(3);
+    assertThat(stats.batches()).isEqualTo(3);
+    assertThat(stats.bytesSent()).isEqualTo(33);
+    assertThat(stats.bytesReceived()).isEqualTo(17);
+    assertThat(stats.latencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(3);
+    assertThat(stats.batchLatencyMicros()).isEqualTo(stats.latencyMicros());
+    assertThat(empty.requestsSent()).isEqualTo(0);
+    var blobs = session.getStats();
+    assertThat(blobs.getBatches()).isEqualTo(2);
+    assertThat(blobs.entriesFound()).isEqualTo(2);
+    assertThat(blobs.valueBytesReceived()).isEqualTo(evidence.length + node.length);
+    session.finish(false);
+    assertThat(client.lookup(key.toBytes()).get().value()).isEmpty();
+    assertThat(client.getStats().requestsSent()).isEqualTo(4);
+    assertThat(client.getStats().bytesReceived()).isEqualTo(17);
+    assertThat(stats.requestsSent()).isEqualTo(3);
+    assertThat(session.getStats().getBatches()).isEqualTo(2);
+  }
+
+  @Test
+  public void trafficRetainedValidationResponsesAndConcurrentLookupsAreCounted() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var inputs = snapshot();
+    var session = new LocalCacheSession(cache, inputs);
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {83});
+    writeEntry(session, inputs, file, key, (byte) 8);
+    var initial = client(session, inputs);
+    assertThat(initial.lookup(key.toBytes()).get().value()).isEqualTo(new byte[] {8});
+    var client =
+        new LocalAnalysisCacheClient(
+            session,
+            new LocalDependencyValidator(session, inputs, NONPROD_FINGERPRINTER, compression),
+            initial.retainedRoots());
+    assertThat(client.isPreviouslyLoadedValueValid(key.toBytes()).get()).isTrue();
+    assertThat(client.isPreviouslyLoadedValueValid(new byte[] {0}).get()).isFalse();
+    try (var executor = Executors.newFixedThreadPool(4)) {
+      var futures = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+      for (int i = 0; i < 20; i++) {
+        futures.add(
+            executor.submit(
+                () -> {
+                  assertThat(client.lookup(key.toBytes()).get().value()).isEqualTo(new byte[] {8});
+                  return null;
+                }));
+      }
+      for (var future : futures) {
+        future.get();
+      }
+    }
+    var stats = client.getStats();
+    assertThat(stats.requestsSent()).isEqualTo(22);
+    assertThat(stats.bytesSent()).isEqualTo(337);
+    assertThat(stats.bytesReceived()).isEqualTo(342);
+    assertThat(stats.latencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(22);
+    session.finish(false);
+    assertThat(client.isPreviouslyLoadedValueValid(key.toBytes()).get()).isFalse();
+    assertThat(client.getStats().requestsSent()).isEqualTo(23);
+    assertThat(client.getStats().bytesReceived()).isEqualTo(343);
+    assertThat(initial.getStats().requestsSent()).isEqualTo(1);
+  }
+
+  @Test
   public void newerValidRevisionCannotKeepAnOlderImportedValueInRam() throws Exception {
     Path cache = temporary.newFolder("cache").toPath();
     var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {68});

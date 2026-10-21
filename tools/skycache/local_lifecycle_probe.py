@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--bazel', required=True, type=Path)
     parser.add_argument('--root', required=True, type=Path)
     parser.add_argument('--lock-file', required=True, type=Path)
+    parser.add_argument('--require-traffic-stats', action='store_true')
     args = parser.parse_args()
     binary = args.bazel.resolve(strict=True)
     root = args.root.resolve()
@@ -34,7 +35,8 @@ def main():
     protocol = {'binary': str(binary), 'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
                 'purpose': 'Correctness of warm cache/configuration/environment transitions; not speed measurement.',
                 'action_caches': 'Both disk and remote action caches disabled.',
-                'initial_storage': initial_storage, 'phases': [], 'passed': False}
+                'initial_storage': initial_storage, 'require_traffic_stats': args.require_traffic_stats,
+                'phases': [], 'passed': False}
     result_path = root / 'results.json'
 
     def save():
@@ -107,6 +109,13 @@ def copy_rule(name, src):
                'publication_warning': 'Local SkyCache publication ' in text}
         if stats:
             row['skycache'] = json.loads(stats[-1])
+        uploaded = re.findall(r'Skycache write: uploaded (\d+)/(\d+) key/value bytes and (\d+) entries \((\d+) batches\)', text)
+        downloaded = re.findall(r'Skycache read: (.+?) received in (\d+) requests,', text)
+        if uploaded:
+            row['native_write'] = dict(zip(('key_bytes','value_bytes','entries','batches'), map(int,uploaded[-1])))
+        if downloaded:
+            row['native_read'] = {'formatted_bytes':downloaded[-1][0], 'requests':int(downloaded[-1][1])}
+
         if completed.returncode == 0:
             row['server_pid'] = pid(name)
         return row
@@ -130,6 +139,18 @@ def copy_rule(name, src):
             assert ('skycache' in row) == row['cache_enabled'], row
             if row['cache_enabled']:
                 assert not row['skycache']['failed'], row
+                if args.require_traffic_stats:
+                    stats = row['skycache']
+                    native = row['native_write']
+                    assert native['key_bytes'] == stats['cas_put_key_bytes'], row
+                    assert native['value_bytes'] == stats['cas_put_value_bytes'], row
+                    assert native['entries'] == stats['cas_accepted_puts'], row
+                    assert native['batches'] == stats['cas_put_requests'], row
+                    assert stats['cas_get_requests'] == stats['cas_get_hits'] + stats['cas_get_misses'], row
+                    if row['analysis_hits'] > 0:
+                        assert row['native_read']['requests'] > 0, row
+                        assert float(row['native_read']['formatted_bytes'].split()[0]) > 0, row
+
             else:
                 assert row['analysis_hits'] == 0, row
             if name in expected_pids:

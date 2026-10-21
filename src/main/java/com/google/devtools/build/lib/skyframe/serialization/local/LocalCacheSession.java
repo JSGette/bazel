@@ -12,7 +12,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Striped;
 import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
 import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
+import com.google.devtools.build.lib.skyframe.serialization.StatsImpl;
 import com.google.devtools.build.lib.skyframe.serialization.WriteStatus;
+import com.google.devtools.build.lib.util.DecimalBucketer;
 import com.google.protobuf.ByteString;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -112,6 +114,18 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final AtomicLong sharedReads = new AtomicLong();
   private final AtomicLong rejected = new AtomicLong();
   private final AtomicLong deduplicatedWrites = new AtomicLong();
+  // Logical calls at the blob-store API, excluding analysis-candidate reads and internal probes.
+  // Sent bytes include rejected put attempts. Accepted puts include successful deduplication.
+  private final AtomicLong putRequests = new AtomicLong();
+  private final AtomicLong acceptedPuts = new AtomicLong();
+  private final AtomicLong putKeyBytes = new AtomicLong();
+  private final AtomicLong putValueBytes = new AtomicLong();
+  private final AtomicLong getRequests = new AtomicLong();
+  private final AtomicLong foundGets = new AtomicLong();
+  private final AtomicLong missedGets = new AtomicLong();
+  private final AtomicLong receivedValueBytes = new AtomicLong();
+  private final DecimalBucketer getLatencyMicros = new DecimalBucketer();
+  private final DecimalBucketer putLatencyMicros = new DecimalBucketer();
   private volatile long readLimitSkips;
   private volatile long scanLimitHits;
   private volatile int peakCandidateCount;
@@ -173,13 +187,37 @@ final class LocalCacheSession implements FingerprintValueStore {
     }
   }
 
+  @Override
+  public Stats getStats() {
+    var gets = getLatencyMicros.getBuckets();
+    var puts = putLatencyMicros.getBuckets();
+    // Each synchronous API call is one batch. These are logical payloads, not SSD I/O.
+    // FingerprintValueService supplies its own individual-call latency histogram when wrapping us.
+    return new StatsImpl(
+        receivedValueBytes.get(),
+        putValueBytes.get(),
+        putKeyBytes.get(),
+        acceptedPuts.get(),
+        foundGets.get(),
+        missedGets.get(),
+        getRequests.get(),
+        putRequests.get(),
+        gets,
+        puts,
+        gets,
+        puts);
+  }
+
   String statisticsJson(boolean published) {
     return String.format(
         java.util.Locale.ROOT,
         "{\"writes\":%d,\"reads\":%d,\"shared_reads\":%d,\"rejected_publications\":%d,"
             + "\"deduplicated_writes\":%d,\"published\":%s,\"failed\":%s,"
             + "\"read_limit_skips\":%d,\"scan_limit_hits\":%d,\"peak_candidate_count\":%d,"
-            + "\"peak_candidate_metadata_bytes\":%d}",
+            + "\"peak_candidate_metadata_bytes\":%d,"
+            + "\"cas_put_requests\":%d,\"cas_accepted_puts\":%d,\"cas_put_key_bytes\":%d,"
+            + "\"cas_put_value_bytes\":%d,\"cas_get_requests\":%d,\"cas_get_hits\":%d,"
+            + "\"cas_get_misses\":%d,\"cas_received_value_bytes\":%d}",
         writes.get(),
         reads.get(),
         sharedReads.get(),
@@ -190,17 +228,30 @@ final class LocalCacheSession implements FingerprintValueStore {
         readLimitSkips,
         scanLimitHits,
         peakCandidateCount,
-        peakCandidateMetadataBytes);
+        peakCandidateMetadataBytes,
+        putRequests.get(),
+        acceptedPuts.get(),
+        putKeyBytes.get(),
+        putValueBytes.get(),
+        getRequests.get(),
+        foundGets.get(),
+        missedGets.get(),
+        receivedValueBytes.get());
   }
 
   @Override
   public WriteStatus put(KeyBytesProvider key, byte[] bytes) {
+    long started = System.nanoTime();
+    byte[] rawKey = key.toBytes();
+    putRequests.incrementAndGet();
+    putKeyBytes.addAndGet(rawKey.length);
+    putValueBytes.addAndGet(bytes.length);
     lifecycle.readLock().lock();
     try {
       if (closed || failure != null) {
         return immediateWriteStatus(false);
       }
-      ByteString keyBytes = ByteString.copyFrom(key.toBytes());
+      ByteString keyBytes = ByteString.copyFrom(rawKey);
       Lock keyLock = putLocks.get(keyBytes);
       keyLock.lock();
       try {
@@ -213,6 +264,7 @@ final class LocalCacheSession implements FingerprintValueStore {
           // write, preserving the first put's value and the read-your-writes guarantee.
           if (Arrays.equals(read(previous.candidate().store(), key), bytes)) {
             deduplicatedWrites.incrementAndGet();
+            acceptedPuts.incrementAndGet();
             return immediateWriteStatus(false);
           }
         } else {
@@ -229,6 +281,7 @@ final class LocalCacheSession implements FingerprintValueStore {
             sharedPuts.put(keyBytes, shared);
             usedParents.add(shared.candidate().id());
             deduplicatedWrites.incrementAndGet();
+            acceptedPuts.incrementAndGet();
             return immediateWriteStatus(false);
           }
         }
@@ -236,6 +289,7 @@ final class LocalCacheSession implements FingerprintValueStore {
         if (novel) {
           writes.incrementAndGet();
         }
+        acceptedPuts.incrementAndGet();
         return immediateWriteStatus(novel);
       } finally {
         keyLock.unlock();
@@ -253,6 +307,7 @@ final class LocalCacheSession implements FingerprintValueStore {
       return immediateWriteStatus(false);
     } finally {
       lifecycle.readLock().unlock();
+      putLatencyMicros.add(Math.max(0, System.nanoTime() - started) / 1000);
     }
   }
 
@@ -276,25 +331,27 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   @Override
   public ListenableFuture<byte[]> get(KeyBytesProvider key) {
+    long started = System.nanoTime();
+    getRequests.incrementAndGet();
     lifecycle.readLock().lock();
     try {
       if (closed) {
-        return immediateFailedFuture(new MissingFingerprintValueException(key));
+        return recordMiss(new MissingFingerprintValueException(key));
       }
       reads.incrementAndGet();
       byte[] own = read(privateStore, key);
       if (own != null) {
-        return immediateFuture(own);
+        return recordFound(own);
       }
       if (!sharedPuts.isEmpty()) {
         SharedPut pinned = sharedPuts.get(ByteString.copyFrom(key.toBytes()));
         if (pinned != null) {
           byte[] value = read(pinned.candidate().store(), key);
           if (value == null || !pinned.valueDigest().equals(sha256(value))) {
-            return immediateFailedFuture(new MissingFingerprintValueException(key));
+            return recordMiss(new MissingFingerprintValueException(key));
           }
           sharedReads.incrementAndGet();
-          return immediateFuture(value);
+          return recordFound(value);
         }
       }
       byte[] shared = readCandidates(key);
@@ -303,16 +360,28 @@ final class LocalCacheSession implements FingerprintValueStore {
         shared = readCandidates(key);
       }
       return shared == null
-          ? immediateFailedFuture(new MissingFingerprintValueException(key))
-          : immediateFuture(shared);
+          ? recordMiss(new MissingFingerprintValueException(key))
+          : recordFound(shared);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      return immediateFailedFuture(e);
+      return recordMiss(e);
     } catch (IOException e) {
-      return immediateFailedFuture(new MissingFingerprintValueException(key, e));
+      return recordMiss(new MissingFingerprintValueException(key, e));
     } finally {
       lifecycle.readLock().unlock();
+      getLatencyMicros.add(Math.max(0, System.nanoTime() - started) / 1000);
     }
+  }
+
+  private ListenableFuture<byte[]> recordFound(byte[] value) {
+    foundGets.incrementAndGet();
+    receivedValueBytes.addAndGet(value.length);
+    return immediateFuture(value);
+  }
+
+  private ListenableFuture<byte[]> recordMiss(Exception failure) {
+    missedGets.incrementAndGet();
+    return immediateFailedFuture(failure);
   }
 
   /** A single candidate copied while its pack is pinned; validate outside lifecycle locks. */

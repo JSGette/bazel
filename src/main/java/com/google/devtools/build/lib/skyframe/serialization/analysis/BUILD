@@ -537,6 +537,7 @@ java_library(
         "//src/test/java/com/google/devtools/build/lib/metrics:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization:__pkg__",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:__pkg__",
+        "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:__pkg__",
     ],
     deps = [
         ":lookup_result",

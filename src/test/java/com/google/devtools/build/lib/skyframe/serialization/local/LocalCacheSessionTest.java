@@ -55,6 +55,122 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void trafficCountsLogicalRequestsAndAcceptedDuplicateWrites() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var session = new LocalCacheSession(cache, snapshot(workspace, output));
+    var key = new Key("key");
+    byte[] value = {1, 2, 3, 4};
+    var empty = session.getStats();
+    assertThrows(ExecutionException.class, () -> session.get(key).get());
+    assertThat(session.put(key, value).get()).isTrue();
+    assertThat(session.put(key, value).get()).isFalse();
+    assertThat(session.get(key).get()).isEqualTo(value);
+    var written = session.getStats();
+    assertThat(written.keyBytesSent()).isEqualTo(6);
+    assertThat(written.valueBytesSent()).isEqualTo(8);
+    assertThat(written.entriesWritten()).isEqualTo(2);
+    assertThat(written.setBatches()).isEqualTo(2);
+    assertThat(written.valueBytesReceived()).isEqualTo(4);
+    assertThat(written.entriesFound()).isEqualTo(1);
+    assertThat(written.entriesNotFound()).isEqualTo(1);
+    assertThat(written.getBatches()).isEqualTo(2);
+    assertThat(written.getLatencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(2);
+    assertThat(written.setLatencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(2);
+    assertThat(written.getBatchLatencyMicros()).isEqualTo(written.getLatencyMicros());
+    assertThat(empty.entriesWritten()).isEqualTo(0);
+    assertThat(session.statisticsJson(false)).contains("\"writes\":1");
+    assertThat(session.finish(true)).isTrue();
+    assertThat(session.put(key, value).get()).isFalse();
+    assertThrows(ExecutionException.class, () -> session.get(key).get());
+    var closed = session.getStats();
+    assertThat(closed.entriesWritten()).isEqualTo(2);
+    assertThat(closed.setBatches()).isEqualTo(3);
+    assertThat(closed.keyBytesSent()).isEqualTo(9);
+    assertThat(closed.valueBytesSent()).isEqualTo(12);
+    assertThat(closed.getBatches()).isEqualTo(3);
+    assertThat(closed.entriesNotFound()).isEqualTo(2);
+    assertThat(written.setBatches()).isEqualTo(2);
+    var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+    try {
+      assertThat(reader.get(key).get()).isEqualTo(value);
+      assertThat(reader.put(key, value).get()).isFalse();
+      var stats = reader.getStats();
+      assertThat(stats.entriesFound()).isEqualTo(1);
+      assertThat(stats.valueBytesReceived()).isEqualTo(4);
+      assertThat(stats.entriesWritten()).isEqualTo(1);
+      assertThat(stats.valueBytesSent()).isEqualTo(4);
+      assertThat(reader.statisticsJson(false)).contains("\"writes\":0");
+      assertThat(reader.deduplicatedWrites()).isEqualTo(1);
+    } finally {
+      reader.finish(false);
+    }
+  }
+
+  @Test
+  public void trafficCountsFailedWritesWithoutClaimingAcceptance() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var session = new LocalCacheSession(cache, snapshot(workspace, output));
+    var key = new Key("key");
+    assertThat(session.put(key, new byte[] {1}).get()).isTrue();
+    assertThat(session.put(key, new byte[] {2}).get()).isFalse();
+    assertThat(session.failureReason()).isNotNull();
+    assertThat(session.put(key, new byte[] {1}).get()).isFalse();
+    var stats = session.getStats();
+    assertThat(stats.entriesWritten()).isEqualTo(1);
+    assertThat(stats.setBatches()).isEqualTo(3);
+    assertThat(stats.valueBytesSent()).isEqualTo(3);
+    assertThat(stats.keyBytesSent()).isEqualTo(9);
+    assertThat(stats.setLatencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(3);
+    assertThat(session.finish(true)).isFalse();
+  }
+
+  @Test
+  public void trafficConcurrentRequestsHaveExactTotalsAndIndependentSessions() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var session = new LocalCacheSession(cache, snapshot(workspace, output));
+    var key = new Key("key");
+    try (var executor = Executors.newFixedThreadPool(4)) {
+      var futures = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+      for (int i = 0; i < 40; i++) {
+        futures.add(
+            executor.submit(
+                () -> {
+                  session.put(key, new byte[] {1}).get();
+                  assertThat(session.get(key).get()).isEqualTo(new byte[] {1});
+                  return null;
+                }));
+      }
+      for (var future : futures) {
+        future.get();
+      }
+    }
+    var stats = session.getStats();
+    assertThat(stats.entriesWritten()).isEqualTo(40);
+    assertThat(stats.valueBytesSent()).isEqualTo(40);
+    assertThat(stats.keyBytesSent()).isEqualTo(120);
+    assertThat(stats.entriesFound()).isEqualTo(40);
+    assertThat(stats.valueBytesReceived()).isEqualTo(40);
+    assertThat(stats.getBatches()).isEqualTo(40);
+    assertThat(stats.setBatches()).isEqualTo(40);
+    assertThat(stats.getLatencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(40);
+    assertThat(stats.setLatencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(40);
+    session.finish(false);
+    var next = new LocalCacheSession(cache, snapshot(workspace, output));
+    try {
+      assertThat(next.getStats().entriesWritten()).isEqualTo(0);
+      assertThat(next.getStats().getLatencyMicros()).isEmpty();
+    } finally {
+      next.finish(false);
+    }
+  }
+
+  @Test
   public void admissionHintsDoNotReplaceFreshDiscoveryOrFinalChecks() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();
