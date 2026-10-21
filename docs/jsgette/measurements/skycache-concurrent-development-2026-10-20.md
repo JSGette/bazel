@@ -3347,7 +3347,7 @@ Evidence: [retry7 failure and budget decision](skycache-concurrent-2026-10-20/fi
 
 ## Step 57 — capped validation and local prototype handoff
 
-**16 attempts:14 passed and two timed out.** The final six correctness builds passed after
+**16 attempts: 14 passed and two timed out.** The final six correctness builds passed after
 repository inputs moved to NVMe while retaining their logical paths. Both edited servers had
 real shared analysis reads and published successfully; each distinct edited executable matched
 its independent cache-off control. Warm reverts matched the original baseline. Raw BEP timestamps
@@ -3366,7 +3366,7 @@ confirm actual overlap in every successful paired phase. Sources were restored a
 | NVMe-inputs | `final-independent-edited-controls` | 1182.38 | 8.028 | 0/0 | passed |
 
 The two HDD failures remain failures: execution completed, but final input hashing exceeded
-the1800second deadline and publication did not complete. Native repository sharing restoration
+the 1,800-second deadline and publication did not complete. Native repository sharing restoration
 alone had not resolved this. The final storage change does not modify product code or validation.
 
 No matched speedup is claimed: earlier failed commands warmed local outputs, storage differs
@@ -3384,7 +3384,7 @@ Raw BEP/JVM/environment data remains private. Archive SHA-256: `5fb50a263da28009
 The four owned final Datadog worktrees were unregistered. The temporary 64 GiB C image and 128 GiB D
 image were normally unmounted, detached and removed. The original native fixtures and user
 repositories were preserved. The earlier full C image had already been removed. Task helpers
-received their stop signals after cleanup.
+were verified stopped after cleanup.
 
 This closes the requested local prototype handoff within the tested scope. It does not establish
 production readiness, a general performance improvement or a passing 16/16 run. The validation

@@ -12,7 +12,7 @@ todos:
     content: Measured validation costs; net whole-build benefit remains unproven
     status: completed
   - id: datadog-validation
-    content: Recorded16 attempts:14pass2timeout; final six correctness checks pass
+    content: 'Recorded 16 attempts: 14 passed, 2 timed out; final six correctness checks passed'
     status: completed
   - id: bounded-storage
     content: Lease-aware collection tested; large post-GC rebuild deferred by cap
@@ -108,7 +108,7 @@ The default soft collection policy is 5 GiB or seven days, attempted after 30 id
 data may exceed those limits. A zero dimension disables that dimension; both zero disables automatic
 collection. Focused tests and prior real-server lifecycle probes cover live-reader protection,
 concurrent publication, crash/process death, interruption, corruption and recovery. The large
-post-collection rebuild pair was omitted under the16-attempt cap; focused and prior lifecycle evidence remain separate.
+post-collection rebuild pair was omitted under the 16-attempt cap; focused and prior lifecycle evidence remain separate.
 
 Per-command JSON reports reads, shared reads, writes, deduplication, rejected candidates,
 publication failures, bounded-discovery counters and logical cache traffic. Dependency-validation

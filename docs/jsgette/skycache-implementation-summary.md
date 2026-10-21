@@ -62,7 +62,7 @@ benchmark reads by about 80% and median latency from 137.512 to 30.333 ms. Each 
 warmups and five measured rounds with zero physical reads. These are scoped improvements, not
 whole-build speedups; the development protocol retains every round and its regression tests.
 
-**16 attempts:14 passed and two timed out.** The final six correctness builds passed after
+**16 attempts: 14 passed and two timed out.** The final six correctness builds passed after
 repository inputs moved to NVMe while retaining their logical paths. Both edited servers had
 real shared analysis reads and published successfully; each distinct edited executable matched
 its independent cache-off control. Warm reverts matched the original baseline. Raw BEP timestamps
@@ -81,7 +81,7 @@ confirm actual overlap in every successful paired phase. Sources were restored a
 | NVMe-inputs | `final-independent-edited-controls` | 1182.38 | 8.028 | 0/0 | passed |
 
 The two HDD failures remain failures: execution completed, but final input hashing exceeded
-the1800second deadline and publication did not complete. Native repository sharing restoration
+the 1,800-second deadline and publication did not complete. Native repository sharing restoration
 alone had not resolved this. The final storage change does not modify product code or validation.
 
 No matched speedup is claimed: earlier failed commands warmed local outputs, storage differs
@@ -93,8 +93,9 @@ backed by Windows files, so this does not characterize native SSD-backed ext4.
 Source builds/tests used Cache&Carry.
 
 The current unchanged warm reader retained 4,501 of 4,506 graph keys, rejected no dependency
-roots and downloaded no configured targets. Five forwarding keys without direct lookup evidence
-were conservatively invalidated. Its command took 154.002 seconds, including about 129 seconds of
+roots and downloaded no configured targets. Five additional keys without direct lookup evidence
+were conservatively invalidated. Source and counters indicate configuration forwarding; exact
+destination mappings were not heap-inspected. Its command took 154.002 seconds, including about 129 seconds of
 validation. Earlier restarted cache-enabled measurements were slower and used more process
 memory than cache-off controls. The input-storage intervention is not a product-code optimization.
 
@@ -120,7 +121,7 @@ its full graph; this work does not claim a reduction in aggregate graph RAM.
 - **External repositories are conservative reuse boundaries.** Whole binding evidence can reject
   otherwise reusable analysis. Native repository sharing should actually be in effect, not merely
   configured. Existing markers can preserve private repository materializations.
-- **Some harmless extra keys are invalidated.** Configuration forwarding can retain a deserialized
+- **Some extra keys are conservatively invalidated.** Configuration forwarding can retain a deserialized
   value under a key with no direct lookup evidence. Keeping such keys would require explicit
   original-evidence alias tracking; accepting unknown evidence is not an acceptable shortcut.
 - **Storage limits are soft.** Active leases and dependency closures may exceed configured limits;
@@ -132,7 +133,6 @@ its full graph; this work does not claim a reduction in aggregate graph RAM.
 - **gRPC is not implemented.** Existing value-store/service interfaces provide the extension point.
   Portable project/toolchain identities, remote discovery, lease semantics, batching, cancellation,
   authentication and failure/retry behavior still need a design and implementation.
-
 - **Validation remains incomplete beyond the selected scope.** The 16-attempt cap retained two
   timeout failures and omitted large post-collection rebuilds and repeated restart phases. Current
   focused collector tests and earlier real-server lifecycle results do not substitute for every
@@ -154,7 +154,7 @@ Raw BEP/JVM/environment data remains private. Archive SHA-256: `5fb50a263da28009
 The four owned final Datadog worktrees were unregistered. The temporary 64 GiB C image and 128 GiB D
 image were normally unmounted, detached and removed. The original native fixtures and user
 repositories were preserved. The earlier full C image had already been removed. Task helpers
-received their stop signals after cleanup.
+were verified stopped after cleanup.
 
 This closes the requested local prototype handoff within the tested scope. It does not establish
 production readiness, a general performance improvement or a passing 16/16 run. The validation
