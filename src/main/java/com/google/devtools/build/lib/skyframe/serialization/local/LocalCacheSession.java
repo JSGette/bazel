@@ -566,13 +566,7 @@ final class LocalCacheSession implements FingerprintValueStore {
           boolean matches = true;
           if (witnesses == null) {
             witnesses = manifest.witnesses();
-            for (var witness : witnesses) {
-              if (!inputs.matchesForAdmission(witness)) {
-                rejectWitness(filename, witness);
-                matches = false;
-                break;
-              }
-            }
+            matches = matchesForAdmission(filename, witnesses);
           }
           if (matches) {
             rejectedWitnesses.remove(filename);
@@ -628,6 +622,34 @@ final class LocalCacheSession implements FingerprintValueStore {
         throw failure;
       }
     }
+  }
+
+  private boolean matchesForAdmission(String filename, List<LocalInputSnapshot.Witness> witnesses)
+      throws IOException {
+    // Check repository-name bindings before hashing files in the old physical trees. Persisted
+    // witnesses are path-sorted, so absolute paths otherwise precede a changed external binding.
+    // Both passes use fresh checks; matching bindings never replace the remaining evidence.
+    for (var witness : witnesses) {
+      if (isRepositoryBinding(witness) && !inputs.matchesForAdmission(witness)) {
+        rejectWitness(filename, witness);
+        return false;
+      }
+    }
+    for (var witness : witnesses) {
+      if (!isRepositoryBinding(witness) && !inputs.matchesForAdmission(witness)) {
+        rejectWitness(filename, witness);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean isRepositoryBinding(LocalInputSnapshot.Witness witness) {
+    String path = witness.path();
+    return !witness.listing()
+        && path.startsWith("external/")
+        && path.length() > "external/".length()
+        && path.indexOf('/', "external/".length()) < 0;
   }
 
   private void rejectWitness(String filename, LocalInputSnapshot.Witness witness)

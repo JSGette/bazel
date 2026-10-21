@@ -1032,6 +1032,113 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void bindingFirstSkipsUnrelatedContentAndRetriesRestoredBinding() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path oldRepo = temporary.newFolder("old-repo").toPath();
+    Path newRepo = temporary.newFolder("new-repo").toPath();
+    Path oldFile = Files.writeString(oldRepo.resolve("input"), "expected");
+    Path unrelated = Files.writeString(temporary.newFile("unrelated").toPath(), "unchanged");
+    Path link = Files.createDirectories(output.resolve("external")).resolve("repo");
+    Files.createSymbolicLink(link, oldRepo);
+    var inputs = snapshot(workspace, output);
+    inputs.observe(unrelated, false);
+    inputs.observe(oldFile, false);
+    var unrelatedWitness =
+        inputs.witnesses().stream()
+            .filter(w -> w.path().equals("absolute/" + unrelated) && !w.listing())
+            .findFirst()
+            .orElseThrow();
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    Files.delete(link);
+    Files.createSymbolicLink(link, newRepo);
+    var readerInputs = snapshot(workspace, output);
+    var reader = new LocalCacheSession(cache, readerInputs, () -> 0);
+    try {
+      assertThrows(ExecutionException.class, () -> reader.get(key).get());
+      // A successful content check creates a hint; rejecting a binding must skip this work.
+      assertThat(readerInputs.includeAdmittedWitness(unrelatedWitness)).isFalse();
+      Files.delete(link);
+      Files.createSymbolicLink(link, oldRepo);
+      // Restoring the binding must retry immediately, even with the discovery clock frozen.
+      assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+      assertThat(readerInputs.includeAdmittedWitness(unrelatedWitness)).isTrue();
+    } finally {
+      reader.finish(false);
+    }
+  }
+
+  @Test
+  public void bindingFirstStillRejectsChangedContentWithMatchingBinding() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path repository = temporary.newFolder("repository").toPath();
+    Path file = Files.writeString(repository.resolve("input"), "one");
+    Path link = Files.createDirectories(output.resolve("external")).resolve("repo");
+    Files.createSymbolicLink(link, repository);
+    var inputs = snapshot(workspace, output);
+    inputs.observe(file, false);
+    inputs.recordRepositoryBindings();
+    var binding =
+        inputs.witnesses().stream()
+            .filter(w -> w.path().equals("external/repo") && !w.listing())
+            .findFirst()
+            .orElseThrow();
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    var modified = Files.getLastModifiedTime(file);
+    Files.writeString(file, "two");
+    Files.setLastModifiedTime(file, modified);
+    var readerInputs = snapshot(workspace, output);
+    var reader = new LocalCacheSession(cache, readerInputs);
+    try {
+      assertThat(readerInputs.matches(binding)).isTrue();
+      assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    } finally {
+      reader.finish(false);
+    }
+  }
+
+  @Test
+  public void bindingFirstStillRejectsChangedListingWithMatchingBinding() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path repository = temporary.newFolder("repository").toPath();
+    Files.writeString(repository.resolve("original"), "one");
+    Path link = Files.createDirectories(output.resolve("external")).resolve("repo");
+    Files.createSymbolicLink(link, repository);
+    var inputs = snapshot(workspace, output);
+    inputs.observe(repository, true);
+    inputs.recordRepositoryBindings();
+    var binding =
+        inputs.witnesses().stream()
+            .filter(w -> w.path().equals("external/repo") && !w.listing())
+            .findFirst()
+            .orElseThrow();
+    var writer = new LocalCacheSession(cache, inputs);
+    var key = new Key("entry");
+    writer.put(key, new byte[] {7}).get();
+    assertThat(writer.finish(true)).isTrue();
+    Files.writeString(repository.resolve("added"), "two");
+    var readerInputs = snapshot(workspace, output);
+    var reader = new LocalCacheSession(cache, readerInputs);
+    try {
+      assertThat(readerInputs.matches(binding)).isTrue();
+      assertThrows(ExecutionException.class, () -> reader.get(key).get());
+    } finally {
+      reader.finish(false);
+    }
+  }
+
+  @Test
   public void repositoryBindingMustMatchEvenWhenTheOldPhysicalContentsStillExist()
       throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
