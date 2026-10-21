@@ -284,6 +284,16 @@ expected bytes and controls with disk/remote action caching disabled. The test-e
 does not exercise test execution. No product change was needed; keep this regression probe for future
 lifecycle changes. Continue traffic statistics and reader-safe collection/quotas.
 
+## Logical cache traffic is reported (Step 37)
+
+Local adapters now populate native byte/request/entry statistics and bounded latency histograms,
+separating analysis responses from blob reads and accepted puts from new physical records. All 225
+focused cases pass, as do the 54-build lifecycle/native-counter matrix and six-build Datadog reuse
+recheck after current-binary seeding. Combined admission/validation medians are 5584.778
+and 5605.440 ms; no whole-build overhead claim. The mixed-publication Datadog retry has
+4 native invalidation timeout(s). Preserve the rejected old-tool-binding
+seed attempt and continue reader-safe GC/quotas, with any measured mixed-admission issue addressed.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

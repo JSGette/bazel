@@ -2194,3 +2194,97 @@ matrix. Retain the large Datadog results for workload coverage and continue with
 and reader-safe collection/quotas.
 
 Evidence: [complete lifecycle protocol](skycache-concurrent-2026-10-20/lifecycle-transitions.json).
+
+
+## Step 37 — logical cache traffic and latency statistics
+
+Implementation: [9e3260773cce](https://github.com/JSGette/bazel/commit/9e3260773cce325396dff159eeeb8fbd37464630).
+Bazel's native Skycache log previously reported zero bytes and requests because both local adapters
+returned empty statistics. The blob-store session and analysis client now expose per-invocation
+counters and bounded latency histograms through the existing statistics interfaces. No evaluator,
+cache format or cache-validity rule changes. Existing `writes`, `reads`, `shared_reads` and deduplication
+diagnostics remain; the new `cas_*` JSON fields explicitly describe blob-store API calls.
+
+Accounting decisions are explicit:
+
+- Put key/value byte totals count all submitted API payloads, including rejected attempts. Accepted
+  put entries include successful private and shared deduplication; newly created private records
+  remain the separate `writes` counter. No accepted entry is recorded for a failed or closed-session put.
+- Blob requests count one public get, including misses/errors/closed-session responses. Returned
+  bytes count its successful value. Internal candidate probes and deduplication reads are excluded.
+- Analysis requests count entry lookups and retained-value validity queries. Entry response bytes
+  are the returned value plus invalidation fingerprint; misses return zero bytes. A validity query
+  has one logical boolean response byte. Candidate envelope bytes are not counted again as blob reads.
+- Each synchronous local API call is one batch. Histograms include complete call latency, including
+  lock waiting, and use monotonic time independently of the discovery retry clock. The existing
+  FingerprintValueService wrapper supplies its individual-call histogram; the store's batch histogram
+  includes direct dependency-validator reads too. Snapshot totals are exact after calls complete;
+  snapshots during concurrent calls may observe in-flight operations.
+
+These are logical in-process payloads and requests, not SSD sectors, compressed pack sizes or network
+traffic. The upstream log retains its word “uploaded”; successful storage calls still require a
+separate successful publication to become discoverable. Physical-I/O and GC metrics are distinct work.
+
+Five new regression cases fail against the previous empty counters and pass with this change. They
+cover duplicate/shared writes, conflicts and rejected/closed requests, exact concurrent totals,
+independent sessions and immutable snapshots, latency bucket counts, malformed/missing analysis keys,
+retained-value queries, and separation of analysis responses from nested blob reads. All 225 cases
+across fourteen focused targets pass. The initial test invocation hit a BUILD visibility error before
+tests ran; the next invocation reproduced all five intended zero-counter failures. The final source
+build took 19.153 seconds with three Cache&Carry hits. The benchmark build took 7.600 seconds with one
+Cache&Carry hit. Source builds/tests retain --config=efcache --bes_backend= --remote_upload_local_results=false.
+
+The unchanged 512-root Datadog admission/validation benchmark runs in three alternating fresh-JVM
+pairs, two warmups and five measured rounds each, using Xms256m/Xmx2g and the exclusive measurement
+lock. The baseline is the preserved Step 35 binary; the input cache and all publication hashes remain
+unchanged. Every round validates 101,755 records; the new counters report exactly 101,755 blob requests
+and hits, zero misses and zero puts. Medians over fifteen measured rounds per variant are:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Admission/validation, ms | 5,584.778 | 5,605.440 |
+| Java current-thread allocated bytes | 1,574,016,080 | 1,574,686,528 |
+| Repeat within invocation, ms | 0.137 | 0.130 |
+
+The observed timed difference is 0.37% and allocation
+difference 0.04%. This passes the
+chosen 5% investigation threshold; the small difference is not a precise causal overhead estimate.
+This benchmark exercises blob accounting during validation, not the complete analysis-client wrapper
+or whole-build cost. Snapshot construction/final revalidation stay outside the timed region.
+
+The lifecycle matrix is repeated with the new binary: all 54 builds and two queries pass, outputs match
+cache-off controls, and native upload counters exactly equal local API counters at every cached build.
+The first writer reports 393 accepted requests, representing
+391 new private records. A restarted reader reports
+374 requests and 58.35 KB
+received, with 7 CT hits. The prior native logs reported zero traffic.
+
+To avoid another large set of Datadog output directories, the runtime recheck reuses the Step 35
+worktrees/output bases, with fresh JVMs and preserved prior results/logs. The first attempt expected
+reader hits too early: both builds produced the correct baseline but rejected the old publications
+and published current ones. The manifest comparison shows the same namespace and a changed
+`external/bazel_tools` binding to the rebuilt Bazel installation. This is conservative invalidation,
+not a statistics failure or a reason to weaken the guard. That failed reader expectation is retained
+separately. The retry starts from those two valid current-binary publications while keeping the older
+publications present, and passes six builds: baseline reads, independent semantic edits and warm reverts.
+All output hashes match Step 33's independent no-disk-cache controls; native upload accounting matches
+the session counters. Sources are restored and both owned servers shut down cleanly.
+
+| Paired phase | Wall seconds | Fresh CT hits A/B | Native read requests A/B |
+| --- | ---: | ---: | ---: |
+| baseline-readers | 63.888 | 4501/4501 | 317300/317300 |
+| independent-edits | 38.504 | 6206/6206 | 329257/329251 |
+| warm-revert | 54.380 | 15856/6426 | 362012/331635 |
+
+The mixed-publication recheck records 4 native invalidation timeout(s).
+Its timings use existing disk action outputs and a mixed cache, so they are not a fresh-cache or
+controlled before/after speed comparison. Keep any remaining mixed-publication admission cost visible;
+reader-safe garbage collection and quotas remain required before claiming maturity.
+
+Evidence: [five red cases](skycache-concurrent-2026-10-20/traffic-stats-regression-before.json),
+[225 passing cases](skycache-concurrent-2026-10-20/repository-mapping-traffic-validator-tests.json),
+[paired overhead measurement](skycache-concurrent-2026-10-20/traffic-stats-paired.json),
+[lifecycle/native counters](skycache-concurrent-2026-10-20/traffic-stats-lifecycle.json),
+[initial reader expectation failure](skycache-concurrent-2026-10-20/traffic-stats-datadog-seed-attempt.json),
+[guard diagnosis](skycache-concurrent-2026-10-20/traffic-stats-seed-guard-summary.json),
+[Datadog retry](skycache-concurrent-2026-10-20/traffic-stats-datadog-recheck.json).

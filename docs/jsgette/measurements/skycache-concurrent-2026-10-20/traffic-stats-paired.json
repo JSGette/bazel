@@ -1,0 +1,1456 @@
+{
+  "purpose": "Measure overhead of logical traffic statistics with the unchanged 512-root combined admission/validation benchmark.",
+  "scope": "Includes manifest/index admission; excludes snapshot creation/final revalidation. Java allocation is current-thread allocation, not retained or native memory.",
+  "environment_values": "Private exact fixture environment; no identity or manifest rewrite.",
+  "warmups_per_jvm": 2,
+  "measured_rounds_per_jvm": 5,
+  "binaries": {
+    "before": {
+      "mode": "before",
+      "path": "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-before.jar",
+      "sha256": "d3fba496a71d1d895ade7f361eaecc659ae605b52eb94ceac969d2999d5de4e3",
+      "commit": "2d145e28eb7568a4cfd9d165637d6e0ab8e7124b",
+      "benchmark_source_sha256": "c3c378841a7b14a8ff45e28735d0fda319d53f297c65853598a0e63af99ee0b4",
+      "source_build_flags": [
+        "--config=efcache",
+        "--bes_backend=",
+        "--remote_upload_local_results=false"
+      ],
+      "baseline_provenance": "Exact immutable Step35 after jar, Cache&Carry built before traffic implementation. Step36 changes Python probe only.",
+      "product_commit": "83e8c0f84e0266a3cfb6730dbf741e292799e2e3"
+    },
+    "after": {
+      "mode": "after",
+      "path": "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-after.jar",
+      "sha256": "373ae5162720ba542b2494343d1c81300e6b0b42ef9737c040ec16c96f65f3ba",
+      "commit": "c3f7d4bf03b1e1a25d6ab2b5ea02573f9e5bc9f7",
+      "benchmark_source_sha256": "c3c378841a7b14a8ff45e28735d0fda319d53f297c65853598a0e63af99ee0b4",
+      "source_build_flags": [
+        "--config=efcache",
+        "--bes_backend=",
+        "--remote_upload_local_results=false"
+      ]
+    }
+  },
+  "runs": [
+    {
+      "pair": 0,
+      "mode": "before",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-before.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/cache",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/out-a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-sampled-roots.txt",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-environment-local.bin"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5584.778,
+          "fresh_allocated_bytes": 1574016224,
+          "memo_ms": 0.137,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5566.106,
+          "fresh_allocated_bytes": 1574016080,
+          "memo_ms": 0.153,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5570.111,
+          "fresh_allocated_bytes": 1574016080,
+          "memo_ms": 0.16,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5593.831,
+          "fresh_allocated_bytes": 1574016096,
+          "memo_ms": 0.166,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5571.408,
+          "fresh_allocated_bytes": 1574016080,
+          "memo_ms": 0.126,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        }
+      ]
+    },
+    {
+      "pair": 0,
+      "mode": "after",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-after.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/cache",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/out-a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-sampled-roots.txt",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-environment-local.bin"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5570.739,
+          "fresh_allocated_bytes": 1576315080,
+          "memo_ms": 0.136,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5638.675,
+          "fresh_allocated_bytes": 1576312696,
+          "memo_ms": 0.123,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5528.419,
+          "fresh_allocated_bytes": 1576314520,
+          "memo_ms": 0.123,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5543.192,
+          "fresh_allocated_bytes": 1576314152,
+          "memo_ms": 0.13,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5623.488,
+          "fresh_allocated_bytes": 1576313704,
+          "memo_ms": 0.123,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        }
+      ]
+    },
+    {
+      "pair": 1,
+      "mode": "after",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-after.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/cache",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/out-a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-sampled-roots.txt",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-environment-local.bin"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5596.141,
+          "fresh_allocated_bytes": 1572532960,
+          "memo_ms": 0.139,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5619.722,
+          "fresh_allocated_bytes": 1572652200,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5620.54,
+          "fresh_allocated_bytes": 1572539080,
+          "memo_ms": 0.13,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5594.059,
+          "fresh_allocated_bytes": 1572538304,
+          "memo_ms": 0.131,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5605.44,
+          "fresh_allocated_bytes": 1572539152,
+          "memo_ms": 0.136,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        }
+      ]
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-before.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/cache",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/out-a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-sampled-roots.txt",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-environment-local.bin"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5585.398,
+          "fresh_allocated_bytes": 1562112496,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5572.225,
+          "fresh_allocated_bytes": 1562223952,
+          "memo_ms": 0.14,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5568.988,
+          "fresh_allocated_bytes": 1562112016,
+          "memo_ms": 0.159,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5545.454,
+          "fresh_allocated_bytes": 1562112032,
+          "memo_ms": 0.129,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5560.745,
+          "fresh_allocated_bytes": 1562112016,
+          "memo_ms": 0.141,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        }
+      ]
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-before.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/cache",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/out-a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-sampled-roots.txt",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-environment-local.bin"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5685.506,
+          "fresh_allocated_bytes": 1579323696,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5609.364,
+          "fresh_allocated_bytes": 1579323424,
+          "memo_ms": 0.124,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5609.295,
+          "fresh_allocated_bytes": 1579323424,
+          "memo_ms": 0.125,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5673.254,
+          "fresh_allocated_bytes": 1579323440,
+          "memo_ms": 0.121,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "fresh_ms": 5608.895,
+          "fresh_allocated_bytes": 1579323424,
+          "memo_ms": 0.209,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        }
+      ]
+    },
+    {
+      "pair": 2,
+      "mode": "after",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-after.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/cache",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-witness-jfr/out-a",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-sampled-roots.txt",
+        "/home/jgett/REPOS/.work/skycache-concurrent/admission-validation-environment-local.bin"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5623.139,
+          "fresh_allocated_bytes": 1574686608,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5579.294,
+          "fresh_allocated_bytes": 1574685168,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5624.13,
+          "fresh_allocated_bytes": 1574686576,
+          "memo_ms": 0.127,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5565.291,
+          "fresh_allocated_bytes": 1574685128,
+          "memo_ms": 0.125,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        },
+        {
+          "fresh_ms": 5619.944,
+          "fresh_allocated_bytes": 1574686528,
+          "memo_ms": 0.109,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 101755,
+            "memo_hits": 194083,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "memo_stats": {
+            "records_read": 101755,
+            "memo_hits": 194595,
+            "witnesses_checked": 2355,
+            "rejected_roots": 0,
+            "memo_entries": 101755,
+            "witness_memo_hits": 56260,
+            "witness_memo_entries": 98792,
+            "admission_witness_memo_hits": 96437
+          },
+          "store_stats": {
+            "writes": 0,
+            "reads": 101755,
+            "shared_reads": 101755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 101755,
+            "cas_get_hits": 101755,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 34369362
+          }
+        }
+      ]
+    }
+  ],
+  "medians": {
+    "before": {
+      "fresh_ms": 5584.778,
+      "fresh_allocated_bytes": 1574016080,
+      "memo_ms": 0.137,
+      "memo_allocated_bytes": 151584
+    },
+    "after": {
+      "fresh_ms": 5605.44,
+      "fresh_allocated_bytes": 1574686528,
+      "memo_ms": 0.13,
+      "memo_allocated_bytes": 151584
+    }
+  },
+  "passed": true
+}

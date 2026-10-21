@@ -1,0 +1,204 @@
+{
+  "binary": "/home/jgett/REPOS/.work/skycache-concurrent/bazel-depset-runfiles-aspect-mapping-traffic-v2-validator-symlink-packed-review",
+  "binary_sha256": "d7c58a34f28f662b34e04200a7f53be06fb57d2ee4621c61c7b449c6723dfaa4",
+  "reused_fixture": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke",
+  "purpose": "Large-workload traffic and invalidation correctness; not a fresh-cache or controlled timing comparison.",
+  "reuse": "Existing independent worktrees and output bases; fresh JVMs, existing complete cache publications. Prior logs/results preserved; source restored.",
+  "resources": "Two 4 GiB heaps, two action jobs each; disk action cache on, remote action cache off.",
+  "correctness_reference": "Step33 independent cache-off, no-disk-cache controls.",
+  "publications_before": {
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/0b94c6d3929dbbd2b4b09c28e2eb0b580e0ff3bb411004522d2c4df37c085a93.manifest": "fd3b537ade731297b921e5495d94377a844ce61e4ec778b308cebc7df11a0f04",
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/5f0087229f1162f0ba65c6c6f5a7d3de596fcb7d1602834f067c67181d8d1f0a.manifest": "de8c174ec4558d1fe65f657549d18fb2bd63781a1eef45b58704164a41e21e74",
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/918fefb7a18cf8ca2581670445abce816c6a325d25373d0672e0fd039d731246.manifest": "4172a9044cbbdbe523e6bde6715361d88d8d56c6635af6acfc6b53cdf0e961b2",
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/c62c8799bb56a2916e21b4e94d522725d1258c23f71f8ab54f9a463bafc83cef.manifest": "99030e333aa46456a77ad4efae184dd98b0d7205a3b83317fedd6412e62bf67b"
+  },
+  "phases": [
+    {
+      "phase": "baseline-readers",
+      "seconds": 77.34481635700001,
+      "builds": [
+        {
+          "worktree": "a",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke/out-a",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-datadog-recheck/baseline-readers-a.bep.json",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 77.29471076300013,
+          "analysis_hits": 0,
+          "disabled": false,
+          "publication_failure": false,
+          "skycache": {
+            "writes": 443699,
+            "reads": 57632,
+            "shared_reads": 0,
+            "rejected_publications": 80,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 454265,
+            "cas_accepted_puts": 454265,
+            "cas_put_key_bytes": 10041872,
+            "cas_put_value_bytes": 381851339,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0
+          },
+          "native_write": {
+            "key_bytes": 10041872,
+            "value_bytes": 381851339,
+            "entries": 454265,
+            "batches": 454265
+          },
+          "native_read": {
+            "formatted_bytes": "0 B",
+            "requests": 57632
+          },
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "server_pid": "709"
+        },
+        {
+          "worktree": "b",
+          "argv": [
+            "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke/out-b",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=120",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--config=no-remote-cache",
+            "--jobs=2",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=off",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=/home/jgett/REPOS/.work/skyframe-go/work/action-cache",
+            "--build_event_json_file=/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-datadog-recheck/baseline-readers-b.bep.json",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-admission-smoke/cache",
+            "--experimental_active_directories=cmd/cluster-agent"
+          ],
+          "exit_code": 0,
+          "seconds": 76.50578456900007,
+          "analysis_hits": 0,
+          "disabled": false,
+          "publication_failure": false,
+          "skycache": {
+            "writes": 443699,
+            "reads": 57632,
+            "shared_reads": 0,
+            "rejected_publications": 80,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 454265,
+            "cas_accepted_puts": 454265,
+            "cas_put_key_bytes": 10041872,
+            "cas_put_value_bytes": 381851830,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0
+          },
+          "native_write": {
+            "key_bytes": 10041872,
+            "value_bytes": 381851830,
+            "entries": 454265,
+            "batches": 454265
+          },
+          "native_read": {
+            "formatted_bytes": "0 B",
+            "requests": 57632
+          },
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "server_pid": "708"
+        }
+      ],
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/traffic-stats-datadog-recheck",
+            "free_bytes": 300757409792
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 37263097856,
+          "system_drive": "C:\\",
+          "system_free_bytes": 157113237504
+        }
+      }
+    }
+  ],
+  "passed": false,
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent",
+        "free_bytes": 300757417984
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 37263097856,
+      "system_drive": "C:\\",
+      "system_free_bytes": 157113237504
+    }
+  },
+  "shutdown_failures": [],
+  "server_diagnostics": [],
+  "invalidation_timeouts": 0,
+  "sources_restored": true
+}
