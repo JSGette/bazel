@@ -1,0 +1,58 @@
+{
+  "server_logs": [
+    {
+      "worktree": "a",
+      "log": "java.log.jgette.jgett.log.java.20261021-050242.3904",
+      "selected_lines": []
+    },
+    {
+      "worktree": "a",
+      "log": "java.log.jgette.jgett.log.java.20261021-050342.8251",
+      "selected_lines": []
+    },
+    {
+      "worktree": "a",
+      "log": "java.log.jgette.jgett.log.java.20261021-050411.10885",
+      "selected_lines": [
+        "261021 03:05:00.206:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=8}"
+      ]
+    },
+    {
+      "worktree": "b",
+      "log": "java.log.jgette.jgett.log.java.20261021-050242.3901",
+      "selected_lines": []
+    },
+    {
+      "worktree": "b",
+      "log": "java.log.jgette.jgett.log.java.20261021-050342.8250",
+      "selected_lines": []
+    },
+    {
+      "worktree": "b",
+      "log": "java.log.jgette.jgett.log.java.20261021-050411.10886",
+      "selected_lines": [
+        "261021 03:05:00.103:I 61 [com.google.devtools.build.lib.skyframe.SkyframeExecutor.invalidateWithExternalService] Skycache invalidation counts by SkyFunction: {CONFIGURED_TARGET=8}"
+      ]
+    },
+    {
+      "worktree": "control-a",
+      "log": "java.log.jgette.jgett.log.java.20261021-050201.745",
+      "selected_lines": []
+    },
+    {
+      "worktree": "control-b",
+      "log": "java.log.jgette.jgett.log.java.20261021-050201.728",
+      "selected_lines": []
+    }
+  ],
+  "invalidation_timeouts": 0,
+  "correctness_reference": "cross-revision-datadog-28-builds.json",
+  "comparison": "Disk action cache enabled; runtime timing is not an isolated before/after comparison. Output hashes checked against independent no-disk-cache controls.",
+  "initial_test_failure": {
+    "test": "admittedLeafDoesNotBypassResolutionParents",
+    "observed": "Root rejected correctly. Expected zero admission memo hits but observed one within the rejected parent; no dependency records completed.",
+    "correction": "Assert no completed dependency record, retaining root-rejection assertion. Encoded evidence sorts file witness before changed symlink.",
+    "raw_log": "Preserved locally in admission-validation-first-test-failure; no production change to force counter ordering."
+  },
+  "private_evidence": "Environment values, raw BEP, JFR and heap data remain local; no fixture identity override or manifest rewrite."
+}

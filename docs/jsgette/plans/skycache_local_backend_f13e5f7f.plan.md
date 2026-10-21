@@ -266,6 +266,15 @@ from 13004.608 to 5157.238 ms and Java current-thread allocation from
 contains 2 native invalidation timeout(s); its times are not a controlled whole-build comparison.
 Continue with measured remaining allocation/latency, lifecycle coverage, statistics and safe GC/quotas.
 
+## Admission-to-entry witness reuse (Step 35)
+
+Bounded exact positive admission evidence now removes duplicate per-entry content hashes while
+retaining fresh admission, parent traversal and final raw-content checks. All 220 cases and a fresh
+twelve-build two-server Datadog edit/revert smoke pass. Combined admission/validation for 512 roots
+falls from 10106.718 to 5588.584 ms in three alternating fresh-JVM pairs.
+Runtime diagnostics contain 0 native submission timeout(s); no whole-build improvement is
+claimed. Continue remaining deadline diagnosis, lifecycle coverage, statistics and reader-safe GC.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

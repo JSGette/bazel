@@ -2058,3 +2058,87 @@ No implementation of this follow-up optimization has been applied yet.
 Evidence: [stack summary](skycache-concurrent-2026-10-20/witness-invalidation-profile-summary.json),
 [manifest identities](skycache-concurrent-2026-10-20/witness-current-manifest-overlap.json),
 [diagnostic command](skycache-concurrent-2026-10-20/witness-invalidation-profile-command.json).
+
+
+## Step 35 — reuse current admission checks during dependency validation
+
+Implementation: [83e8c0f84e02](https://github.com/JSGette/bazel/commit/83e8c0f84e0266a3cfb6730dbf741e292799e2e3).
+The Step 34 profile showed duplicate content checks between manifest admission and per-entry
+dependency validation. Complete manifest lists were already memoized within discovery, so adding
+another list-level memo was rejected. This change retains up to 250,000 exact successful admission
+witnesses per invocation. The dependency validator can reuse these after traversing resolution
+parents, registering each used witness for final fresh revalidation. A witness includes logical path,
+operation and expected content digest. Admission always checks current content, including later
+discovery attempts, and removes failed checks from the hint set. Failures remain retryable.
+
+Merely inspecting an unused candidate does not add its witnesses to publication evidence. Overflow
+falls back to fresh checks. The short hint monitor performs no filesystem work or session callbacks.
+Session close clears the hint set, while preserving used evidence for final content checks. The
+source snapshot, final rehash, disk format and Skyframe evaluator are unchanged. This uses the same
+stable-input assumption within one Bazel command as Step 34; it is not an atomic filesystem snapshot.
+Persistent path/mtime memoization, weakened namespace checks and skipping parent guards were rejected.
+
+All 220 cases across fourteen focused targets pass, including seven new cases for fresh final and
+later-admission checks, exact identity, retry after failure, concurrent capacity/fallback, unused
+candidate isolation, parent rejection and release at session close. The initial parent test correctly
+rejected the root but assumed zero successful hints inside a rejected parent. Evidence is sorted,
+so its unchanged referent can be checked before the changed symlink. The corrected assertion verifies
+that no dependency record completes; no product change was made to satisfy the incidental count.
+The initial failure logs remain local. The passing source/test build took 20.332 seconds with three
+Cache&Carry hits. Before/after benchmark builds took 7.402/5.732 seconds and each had one Cache&Carry
+hit. All source builds/tests use --config=efcache --bes_backend= --remote_upload_local_results=false.
+
+The new benchmark includes complete admission of all four real Datadog publications and dependency
+validation of 512 sampled analysis roots. It uses the existing current-format fixture and its exact
+effective environment. Environment values were reconstructed privately from local evidence; neither
+cache identity nor manifests were rewritten. Each round creates a fresh snapshot/session, opens the
+candidate packs, validates the roots and verifies final unchanged content. Snapshot construction and
+final revalidation remain outside the timed region. Publication inventories remain byte-identical.
+Three alternating fresh-JVM pairs, two warmup rounds and five measured rounds per JVM use Xms256m,
+Xmx2g and the exclusive host measurement lock. Fifteen measured rounds per variant give:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Admission plus first validation, ms | 10,106.718 | 5,588.584 |
+| Java current-thread allocated bytes | 1,940,295,376 | 1,574,359,840 |
+| Same roots repeated within invocation, ms | 0.131 | 0.131 |
+| Repeat allocated bytes | 151,584 | 151,584 |
+
+Combined timed work falls 44.7% and current-thread Java
+allocation falls 18.9%.
+Every first pass reads 101,755 dependency records and rejects zero roots. Fresh per-entry witness
+checks fall from 98,792 to 2,355, with
+96,437 admission hint hits; fresh manifest checks remain in the
+timed region. These are isolated validation results, not whole-build speedups, retained-heap reductions
+or physical disk-I/O counts. The bounded set retains metadata during a command to avoid rehashing.
+
+A fresh twelve-build smoke passes with two 4 GiB Bazel servers, separate worktrees and source edits
+followed by reverts. All baseline/reverted executable hashes match Step 33; both feature hashes match
+its independent cache-off, no-disk-cache controls. The smoke has disk action caching on and remote
+action caching off. It records 0 native invalidation submission timeout(s). The following
+single-run times are context only and do not establish a whole-build before/after improvement.
+
+| Paired phase | Wall seconds | Peak combined PSS GiB | CT hits A/B |
+| --- | ---: | ---: | ---: |
+| control-base | 42.138 | 5.955 | 0/0 |
+| concurrent-base-writers | 57.507 | 7.090 | 0/0 |
+| warm-base | 1.555 | 7.126 | 0/0 |
+| restarted-base-readers | 27.892 | 7.399 | 4501/4501 |
+| first-cross-revision-readers | 42.871 | 8.509 | 6206/6206 |
+| reverted-warm-graphs | 9.218 | 9.027 | 3/3 |
+
+On this warm revert, the server diagnostics show eight configured targets invalidated per server.
+Each server retains the other valid imported graph nodes, so only three new CT hits are needed;
+the low fresh-hit count is not a loss of cache reuse. Step 34's fallback instead invalidated everything
+after the ten-second submission timeout. This successful run is evidence that the targeted case can
+finish without that fallback, not a guarantee for every workload or a controlled whole-build speedup.
+
+Accept the measured validation improvement. Keep the full graph in RAM. Remaining work includes
+the invalidation deadline where it persists, configuration/cache-mode lifecycle, accurate traffic
+statistics and reader-safe collection/quotas; production maturity is not claimed.
+
+Evidence: [paired benchmark](skycache-concurrent-2026-10-20/admission-validation-paired.json),
+[220 cases](skycache-concurrent-2026-10-20/repository-mapping-admission-validator-tests.json),
+[Datadog smoke](skycache-concurrent-2026-10-20/admission-validation-runtime.json),
+[runtime review](skycache-concurrent-2026-10-20/admission-validation-runtime-review.json),
+[fixture protocol](skycache-concurrent-2026-10-20/admission-validation-fixture-summary.json).
