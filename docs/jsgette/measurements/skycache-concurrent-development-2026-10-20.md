@@ -8,6 +8,8 @@ Implementation: [`jsgette/skycache-concurrent`](https://github.com/JSGette/bazel
 Base: `83e163f0a7`; this branch does not contain the experimental graph paging/Rust changes.
 The previous [paging experiment](skyframe-lazy-go-datadog-linux-2026-10-19.md) remains historical evidence.
 
+For setup, flags and interpreting hits, see the [local usage guide](../skycache-local-usage.md).
+
 ## Current status
 
 Updated 2026-10-21, through Step 46. Experimental concurrent analysis reuse is implemented,
