@@ -12,6 +12,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
@@ -400,8 +402,17 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
           }
         }
         update(digest, relative);
-        update(digest, fingerprint(path, false, contents));
-        if (Files.isDirectory(path)) {
+        PosixFileAttributes attributes;
+        try {
+          attributes = Files.readAttributes(path, PosixFileAttributes.class, NOFOLLOW_LINKS);
+        } catch (NoSuchFileException e) {
+          update(digest, "missing");
+          continue;
+        }
+        update(digest, fingerprint(path, contents, attributes));
+        // Reuse this pass's type observation for ordinary entries. Symlink traversal still
+        // requires a fresh followed lookup, including dangling links and directory aliases.
+        if (attributes.isDirectory() || (attributes.isSymbolicLink() && Files.isDirectory(path))) {
           captureDirectory(path, digest, ancestors, contents);
         }
       }
@@ -418,59 +429,71 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   private String fingerprint(Path path, boolean listing, LocalContentHasher contents)
       throws IOException {
-    MessageDigest digest = sha256();
+    if (listing) {
+      return fingerprintListing(path);
+    }
+    PosixFileAttributes attributes;
+    try {
+      attributes = Files.readAttributes(path, PosixFileAttributes.class, NOFOLLOW_LINKS);
+    } catch (NoSuchFileException e) {
+      return "missing";
+    }
+    return fingerprint(path, contents, attributes);
+  }
+
+  private String fingerprintListing(Path path) throws IOException {
     BasicFileAttributes attributes;
     try {
       attributes = Files.readAttributes(path, BasicFileAttributes.class, NOFOLLOW_LINKS);
     } catch (NoSuchFileException e) {
       return "missing";
     }
-    if (listing) {
-      if (!Files.isDirectory(path)) {
-        return "not-directory";
-      }
-      update(digest, "listing");
-      for (Path child : children(path)) {
-        update(digest, child.getFileName().toString());
-        BasicFileAttributes childAttributes =
-            Files.readAttributes(child, BasicFileAttributes.class, NOFOLLOW_LINKS);
-        update(digest, kind(childAttributes));
-      }
-    } else {
-      update(digest, kind(attributes));
+    if (!attributes.isDirectory() && (!attributes.isSymbolicLink() || !Files.isDirectory(path))) {
+      return "not-directory";
+    }
+    MessageDigest digest = sha256();
+    update(digest, "listing");
+    for (Path child : children(path)) {
+      update(digest, child.getFileName().toString());
+      BasicFileAttributes childAttributes =
+          Files.readAttributes(child, BasicFileAttributes.class, NOFOLLOW_LINKS);
+      update(digest, kind(childAttributes));
+    }
+    return HexFormat.of().formatHex(digest.digest());
+  }
+
+  private String fingerprint(Path path, LocalContentHasher contents, PosixFileAttributes attributes)
+      throws IOException {
+    // Type, size and permissions come from one fresh metadata read. This does not reuse metadata
+    // across validation passes or replace the content digest with a timestamp/size check.
+    MessageDigest digest = sha256();
+    update(digest, kind(attributes));
+    update(digest, PosixFilePermissions.toString(attributes.permissions()));
+    if (attributes.isRegularFile()) {
+      contents.hashContents(path, digest, attributes.size());
+    } else if (attributes.isSymbolicLink()) {
+      Path target = Files.readSymbolicLink(path);
       update(
           digest,
-          java.nio.file.attribute.PosixFilePermissions.toString(
-              Files.getPosixFilePermissions(path, NOFOLLOW_LINKS)));
-      if (attributes.isRegularFile()) {
-        contents.hashContents(path, digest, attributes.size());
-      } else if (attributes.isSymbolicLink()) {
-        Path target = Files.readSymbolicLink(path);
-        update(
-            digest,
-            target.isAbsolute() && target.startsWith(workspace)
-                ? "workspace/" + workspace.relativize(target)
-                : target.isAbsolute() && target.startsWith(outputBase)
-                    ? "output/" + outputBase.relativize(target)
-                    : target.toString());
-        // Includes the referent bytes for file symlinks. Directory membership is observed
-        // separately through the listing operation.
-        try {
-          BasicFileAttributes referent = Files.readAttributes(path, BasicFileAttributes.class);
-          update(digest, kind(referent));
-          update(
-              digest,
-              java.nio.file.attribute.PosixFilePermissions.toString(
-                  Files.getPosixFilePermissions(path)));
-          if (referent.isRegularFile()) {
-            contents.hashContents(path, digest, referent.size());
-          }
-        } catch (NoSuchFileException e) {
-          update(digest, "missing");
+          target.isAbsolute() && target.startsWith(workspace)
+              ? "workspace/" + workspace.relativize(target)
+              : target.isAbsolute() && target.startsWith(outputBase)
+                  ? "output/" + outputBase.relativize(target)
+                  : target.toString());
+      // Includes the referent bytes for file symlinks. Directory membership is observed
+      // separately through the listing operation.
+      try {
+        PosixFileAttributes referent = Files.readAttributes(path, PosixFileAttributes.class);
+        update(digest, kind(referent));
+        update(digest, PosixFilePermissions.toString(referent.permissions()));
+        if (referent.isRegularFile()) {
+          contents.hashContents(path, digest, referent.size());
         }
-      } else if (!attributes.isDirectory()) {
-        throw new IOException("unsupported input file type: " + path);
+      } catch (NoSuchFileException e) {
+        update(digest, "missing");
       }
+    } else if (!attributes.isDirectory()) {
+      throw new IOException("unsupported input file type: " + path);
     }
     return HexFormat.of().formatHex(digest.digest());
   }
@@ -485,7 +508,10 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   private static void update(MessageDigest digest, String value) {
     byte[] bytes = value.getBytes(UTF_8);
-    digest.update(java.nio.ByteBuffer.allocate(Integer.BYTES).putInt(bytes.length).array());
+    digest.update((byte) (bytes.length >>> 24));
+    digest.update((byte) (bytes.length >>> 16));
+    digest.update((byte) (bytes.length >>> 8));
+    digest.update((byte) bytes.length);
     digest.update(bytes);
   }
 

@@ -1029,6 +1029,73 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void snapshotMetadataBatchingPreservesExistingDigestFormat() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    gitWorktree(workspace, temporary.newFolder("common").toPath(), "main");
+    Files.createSymbolicLink(workspace.resolve("bazel-out"), output);
+    Path plain = Files.writeString(workspace.resolve("plain"), "hello");
+    Files.setPosixFilePermissions(
+        plain, java.nio.file.attribute.PosixFilePermissions.fromString("rw-r-----"));
+    Path nested = Files.createDirectory(workspace.resolve("nested"));
+    Files.setPosixFilePermissions(
+        nested, java.nio.file.attribute.PosixFilePermissions.fromString("rwxr-x---"));
+    Path child = Files.writeString(nested.resolve("child"), "world");
+    Files.setPosixFilePermissions(
+        child, java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+    Files.createSymbolicLink(workspace.resolve("link-file"), Path.of("plain"));
+    Files.createSymbolicLink(workspace.resolve("link-dir"), Path.of("nested"));
+    Files.createSymbolicLink(workspace.resolve("link-missing"), Path.of("missing"));
+
+    var inputs = snapshot(workspace, output);
+    // Fixed-format fixtures keep existing publications usable after metadata reads are combined.
+    // Include followed directory aliases, dangling links, permissions and both root exclusions.
+    assertThat(inputs.sourceDigest())
+        .isEqualTo("d0736b4829a4b3802a0aec60bb4c7fdd6fff16c034029f60b3a76a234f3fe9da");
+    assertThat(
+            inputs.matches(
+                new LocalInputSnapshot.Witness(
+                    "workspace/plain",
+                    false,
+                    "e5e98c7730de038a0a92e36e02c76129476e1ad1a336d2bc9302a4536256eb26")))
+        .isTrue();
+    assertThat(
+            inputs.matches(
+                new LocalInputSnapshot.Witness(
+                    "workspace/link-file",
+                    false,
+                    "4f23f0e3c1f2d5429133740fbde1ed7dd71905efb1d26354aedbf3290bd6ef36")))
+        .isTrue();
+    var listing =
+        new LocalInputSnapshot.Witness(
+            "workspace/nested",
+            true,
+            "897b70bffef195f70ee4979ff1cae83fb59fe7ae212f5d66c599c0a4f1a2fbdc");
+    assertThat(inputs.matches(listing)).isTrue();
+    assertThat(
+            inputs.matches(
+                new LocalInputSnapshot.Witness("workspace/link-dir", true, listing.digest())))
+        .isTrue();
+    assertThat(inputs.isUnchanged()).isTrue();
+  }
+
+  @Test
+  public void combinedMetadataStillDetectsExternalSymlinkReferentModeChanges() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path outside = Files.writeString(temporary.newFile("outside").toPath(), "same bytes");
+    Files.setPosixFilePermissions(
+        outside, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
+    Files.createSymbolicLink(workspace.resolve("link"), outside);
+    var inputs = snapshot(workspace, output);
+    FileTime time = Files.getLastModifiedTime(outside);
+    Files.setPosixFilePermissions(
+        outside, java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+    Files.setLastModifiedTime(outside, time);
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
   public void sourceSymlinkReferentsAndExecutableModesArePartOfIdentity() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

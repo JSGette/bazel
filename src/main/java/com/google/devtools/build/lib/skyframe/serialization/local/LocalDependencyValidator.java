@@ -18,11 +18,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 /**
  * Validates complete local dependency trees, retaining only bounded invocation-local success keys.
  */
 final class LocalDependencyValidator {
+  private static final Pattern LEAF_KEY_PATTERN = Pattern.compile("local-input-v1/[0-9a-f]{32}");
+
   record Limits(int records, long bytes, int depth, int references, int nodeBytes) {
     static final Limits DEFAULT =
         new Limits(250_000, 128L * 1024 * 1024, 4096, 100_000, 8 * 1024 * 1024);
@@ -198,7 +201,7 @@ final class LocalDependencyValidator {
   }
 
   private static StringKey leafKey(String key) throws IOException {
-    if (!key.matches("local-input-v1/[0-9a-f]{32}")) {
+    if (!LEAF_KEY_PATTERN.matcher(key).matches()) {
       throw new IOException("unsupported local dependency key");
     }
     return new StringKey(key);

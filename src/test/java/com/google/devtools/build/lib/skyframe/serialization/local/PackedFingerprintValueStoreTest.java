@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -70,6 +71,68 @@ public final class PackedFingerprintValueStoreTest {
     try (var files = Files.list(root.resolve(ID))) {
       assertThat(files.map(p -> p.getFileName().toString()).toList())
           .containsExactly("data.pack", "index");
+    }
+  }
+
+  @Test
+  public void recordsAcrossCoalescingBoundaryRoundTripWithoutAliasing() throws Exception {
+    Path root = temporary.newFolder().toPath();
+    // With the three-byte keys below, these straddle the complete 64 KiB record boundary.
+    int[] lengths = {0, 1, 65488, 65489, 65490, 1024 * 1024};
+    try (var writer = PackedFingerprintValueStore.create(root, ID)) {
+      for (int i = 0; i < lengths.length; i++) {
+        byte[] value = new byte[lengths[i]];
+        Arrays.fill(value, (byte) (i + 1));
+        var key = new Key("k:" + i);
+        assertThat(writer.put(key, value).get()).isTrue();
+        assertThat(writer.put(key, value).get()).isFalse();
+        Arrays.fill(value, (byte) 0);
+        byte[] expected = new byte[lengths[i]];
+        Arrays.fill(expected, (byte) (i + 1));
+        assertThat(writer.get(key).get()).isEqualTo(expected);
+      }
+      writer.seal();
+    }
+    try (var reader = PackedFingerprintValueStore.open(root, ID)) {
+      for (int i = 0; i < lengths.length; i++) {
+        byte[] expected = new byte[lengths[i]];
+        Arrays.fill(expected, (byte) (i + 1));
+        var key = new Key("k:" + i);
+        byte[] firstRead = reader.get(key).get();
+        assertThat(firstRead).isEqualTo(expected);
+        Arrays.fill(firstRead, (byte) 0);
+        assertThat(reader.get(key).get()).isEqualTo(expected);
+      }
+    }
+  }
+
+  @Test
+  public void damagedHeadersKeysAndTruncatedRecordsMissAcrossReadPaths() throws Exception {
+    var key = new Key("key");
+    for (int valueLength : List.of(1024, 128 * 1024)) {
+      Path root = temporary.newFolder().toPath();
+      try (var writer = PackedFingerprintValueStore.create(root, ID)) {
+        writer.put(key, new byte[valueLength]).get();
+        writer.seal();
+      }
+      Path pack = root.resolve(ID).resolve("data.pack");
+      byte[] original = Files.readAllBytes(pack);
+      try (var reader = PackedFingerprintValueStore.open(root, ID)) {
+        // Corrupt magic, key length, value length, checksum, key and value independently.
+        for (int offset : List.of(0, 4, 8, 12, 44, original.length - 1)) {
+          byte[] corrupt = original.clone();
+          corrupt[offset] ^= 1;
+          Files.write(pack, corrupt);
+          var failure = assertThrows(ExecutionException.class, () -> reader.get(key).get());
+          assertThat(failure).hasCauseThat().isInstanceOf(MissingFingerprintValueException.class);
+        }
+        Files.write(pack, original);
+        try (var file = new RandomAccessFile(pack.toFile(), "rw")) {
+          file.setLength(file.length() - 1);
+        }
+        var failure = assertThrows(ExecutionException.class, () -> reader.get(key).get());
+        assertThat(failure).hasCauseThat().isInstanceOf(MissingFingerprintValueException.class);
+      }
     }
   }
 

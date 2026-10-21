@@ -50,6 +50,8 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   private static final int RECORD_MAGIC = 0x534b5001;
   private static final int INDEX_MAGIC = 0x534b4901;
   private static final int RECORD_HEADER_BYTES = 44;
+  // Coalesce the common small records without copying a maximum-sized payload twice.
+  private static final int MAX_COALESCED_RECORD_BYTES = 64 * 1024;
   private static final int INDEX_HEADER_BYTES = 16;
   private static final int INDEX_ENTRY_BYTES = 48;
   private static final int MAX_KEY_BYTES = 4096;
@@ -191,15 +193,21 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
               }
               int length = RECORD_HEADER_BYTES + key.length + value.length;
               long offset = end.getAndAdd(length);
-              ByteBuffer header =
-                  ByteBuffer.allocate(RECORD_HEADER_BYTES)
+              boolean coalesced = length <= MAX_COALESCED_RECORD_BYTES;
+              ByteBuffer record =
+                  ByteBuffer.allocate(coalesced ? length : RECORD_HEADER_BYTES + key.length)
                       .putInt(RECORD_MAGIC)
                       .putInt(key.length)
                       .putInt(value.length)
-                      .put(digest(value, value.length));
-              write(data, header.flip(), offset);
-              write(data, ByteBuffer.wrap(key), offset + RECORD_HEADER_BYTES);
-              write(data, ByteBuffer.wrap(value), offset + RECORD_HEADER_BYTES + key.length);
+                      .put(digest(value, value.length))
+                      .put(key);
+              if (coalesced) {
+                record.put(value);
+              }
+              write(data, record.flip(), offset);
+              if (!coalesced) {
+                write(data, ByteBuffer.wrap(value), offset + RECORD_HEADER_BYTES + key.length);
+              }
               novel[0] = true;
               return new Location(offset, length);
             } catch (IOException e) {
@@ -310,14 +318,20 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   private byte[] readRecord(Location location, byte[] expectedKey) throws IOException {
-    ByteBuffer header = ByteBuffer.allocate(RECORD_HEADER_BYTES);
-    read(data, header, location.offset());
-    header.flip();
-    int magic = header.getInt();
-    int keyLength = header.getInt();
-    int valueLength = header.getInt();
+    int prefixLength = RECORD_HEADER_BYTES + expectedKey.length;
+    if (location.length() < prefixLength
+        || location.length() > (long) prefixLength + MAX_VALUE_BYTES) {
+      throw new IOException("invalid packed cache record length");
+    }
+    boolean coalesced = location.length() <= MAX_COALESCED_RECORD_BYTES;
+    ByteBuffer record = ByteBuffer.allocate(coalesced ? location.length() : prefixLength);
+    read(data, record, location.offset());
+    record.flip();
+    int magic = record.getInt();
+    int keyLength = record.getInt();
+    int valueLength = record.getInt();
     byte[] checksum = new byte[32];
-    header.get(checksum);
+    record.get(checksum);
     if (magic != RECORD_MAGIC
         || keyLength != expectedKey.length
         || valueLength < 0
@@ -325,13 +339,17 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
         || location.length() != (long) RECORD_HEADER_BYTES + keyLength + valueLength) {
       throw new IOException("invalid packed cache record header");
     }
-    byte[] key = new byte[keyLength];
-    read(data, ByteBuffer.wrap(key), location.offset() + RECORD_HEADER_BYTES);
-    if (!Arrays.equals(key, expectedKey)) {
+    if (!Arrays.equals(
+        record.array(), RECORD_HEADER_BYTES, prefixLength, expectedKey, 0, expectedKey.length)) {
       throw new IOException("packed cache key mismatch");
     }
-    byte[] value = new byte[valueLength];
-    read(data, ByteBuffer.wrap(value), location.offset() + RECORD_HEADER_BYTES + keyLength);
+    byte[] value;
+    if (coalesced) {
+      value = Arrays.copyOfRange(record.array(), prefixLength, location.length());
+    } else {
+      value = new byte[valueLength];
+      read(data, ByteBuffer.wrap(value), location.offset() + prefixLength);
+    }
     if (!MessageDigest.isEqual(checksum, digest(value, value.length))) {
       throw new IOException("packed cache value checksum mismatch");
     }
