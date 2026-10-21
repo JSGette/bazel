@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 50. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 51. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -42,25 +42,24 @@ its old pending-work statements do not describe current implementation status.
 
 ## Current evidence and open acceptance
 
-The current binary passes 277 Java cases across 18 targets and a fresh 34-build runtime matrix
-with two cached worktrees and independent cache-off controls. That matrix checks repeated semantic
-edits, file additions, unchanged-content renames, deletion, warm reverts and restarted readers.
-Every output matches expected/control bytes; fresh pairs have actual analysis hits. Source trees
-restore cleanly and servers stop. The unchanged measurement harness has 29 passing Python checks.
+The published content-hashing binary passes 277 Java cases and its 34-build worktree mutation matrix.
+Its latest completed substantial attempt nevertheless failed warm invalidation: eight correct outputs
+and 4,501 independent-reader analysis hits were followed by a request-submission timeout that discarded
+all 4,506 imported entries on an unchanged command. Later restarted readers were deliberately cancelled;
+all servers stopped and sources restored. The failed report and cache bytes are preserved. This attempt
+does not establish production maturity or a whole-build speedup.
 
-Earlier substantial Datadog matrices passed independent reuse and semantic edit/revert checks.
-The latest completed large attempt remains a failure: ten verified outputs and real independent
-analysis hits were followed by two concurrent edit commands exceeding their deadline during final
-input validation. One earlier warm invalidation deadline also expired. The exact failed report,
-logs and cache data remain preserved. Cache-enabled restarted builds were slower and used more
-process memory than matched cache-off controls on the temporary D SATA HDD.
+An uncommitted candidate now gives local retained-value validation an explicit interruptible command-thread
+path at the same invalidation stage, while preserving remote request deadlines and every input check.
+Three regression cases fail before the routing fix. Afterward, 280 Java cases across 18 targets and a
+fresh 34-build mutation matrix pass. The unchanged measurement harness has 29 passing Python checks.
+The candidate is undergoing a fresh full 32-build Datadog matrix with an empty cache and unchanged
+resources/deadlines. The unchanged warm reader must explicitly invalidate zero imported keys. Source
+publication and before/after interpretation wait for that substantial observation.
 
-Two subsequent fixes are measured, tested and pushed: inherited publication evidence is checked
-once in the final pass, and large aliased files share one content digest within each fresh pass.
-Their benchmarks reduce logical reads by about 67% and 80%, respectively. These are warm-filesystem
-microbenchmarks, not claims of Datadog or cold-disk speedup. The new 32-build Datadog matrix is running
-with a fresh cache, the current binary and unchanged output/hit/deadline checks. Final acceptance
-is still open. Do not call this production mature or infer whole-build gains from microbenchmarks.
+Inherited publication evidence and aliased-file digest optimizations remain separate measured results:
+their warm-filesystem microbenchmarks reduce logical reads about 67% and 80%. They did not by themselves
+solve the warm invalidation timeout. Timings on the temporary D SATA HDD do not establish SSD performance.
 
 ## Implemented design
 

@@ -3100,3 +3100,47 @@ deadline and actual-hit/output/collection checks remain the same. The new matrix
 claim that the previous large-workload deadline failures are fixed is made yet.
 
 Evidence: [all 34 builds and independent verification](skycache-concurrent-2026-10-20/membership-alias-runtime-34-builds.json).
+
+
+## Step 51 — repeated warm invalidation timeout and explicit local validation
+
+The next full attempt with both input hashing optimizations produced eight correct outputs, then
+failed the warm-reader acceptance condition. Its first independent reader had 4,501 configured-target
+hits and the exact cache-off executable hash. On the following unchanged command, B exceeded the
+upstream 10-second request-submission deadline and invalidated all 4,506 imported entries. It later
+rebuilt successfully with 4,501 hits again. Correct output does not make that warm reuse behavior a
+passing result. The warm pair took 140.452 seconds; A took 29.229 seconds and B took 137.126 seconds.
+
+The remaining restarted-reader clients were deliberately interrupted once the failure was established.
+Both returned exit 8; these are cancelled observations, not new command-deadline failures. All four
+servers stopped normally and sources restored. No thread dump was taken: the warm server had already
+stopped before diagnostic identity validation, so the attempted diagnostic made no changes. The failed
+report is immutable, and its publication/private data remain in `cache-invalidation-timeout`.
+
+The source diagnosis is a contract mismatch. `LocalAnalysisCacheClient` performs real synchronous
+filesystem/dependency validation before returning its future. The upstream invalidator submits those
+calls in batches and waits at most ten seconds for submission. Slow local work can therefore keep
+running while the caller discards and reconstructs the same in-memory graph.
+
+Chosen: an explicit synchronous retained-validation interface, called interruptibly on the command
+thread at the same invalidation stage. It checks the original imported value's evidence, uses the
+existing invocation-local bounds, and includes the entire validation cost in reported latency.
+The remote submission/response deadlines stay unchanged. This gives local validation command-lifetime
+semantics; it is not a claim that filesystem reads became faster. Command cancellation and the
+1,800-second benchmark command limit remain in force.
+
+Discarded: increasing the remote timeout, merely moving the same work into a future, skipping content
+witnesses, keeping timestamp-only validation across commands, and prevalidating in an earlier module
+phase where repository/input ordering differs. The evaluator and full in-memory graph design stay
+unchanged. Sequential local key fingerprinting may add CPU work and must be measured.
+
+The candidate has three new regression cases: all three fail against the old dispatcher; all 280 Java
+cases across 18 targets pass after the routing fix, including the existing remote timeout test. A fresh
+34-build worktree mutation matrix also passes with exact control outputs, positive fresh-reader hits,
+restored sources and stopped servers. Source builds/tests use Cache&Carry. The source fix remains
+uncommitted pending the substantial warm retention/latency observation; no before/after Datadog speedup
+is claimed. A new full matrix starts with an empty SkyCache and zero accepted prior phases. Its warm
+reader must explicitly invalidate zero unchanged imported keys, in addition to matching outputs and
+avoiding timeout warnings.
+
+Evidence: [failed run, regression provenance and candidate checks](skycache-concurrent-2026-10-20/invalidation-timeout-retry5.json).

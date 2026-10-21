@@ -1,0 +1,236 @@
+{
+  "observed_unix": 1792581352.8361132,
+  "passed": false,
+  "results_sha256": "0b51188a88a2b593f8d210b7bde723aaa6a52ae79632b42c8e546cb69b7bb714",
+  "binary_sha256": "3b290bf80319728139745a0420fb210684aea66ab3d3234fee36693bd012b868",
+  "datadog_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "target": "//cmd/cluster-agent:cluster-agent",
+  "verified_output_builds": 8,
+  "invalidation_timeouts": 1,
+  "retained_entries_invalidated_after_timeout": 4506,
+  "subsequent_cancelled_builds": 2,
+  "sources_restored": true,
+  "shutdown_failures": [],
+  "resource_policy": "Per server jobs=2, action memory3072MiB, Xmx4g; command deadline1800seconds; shared native repositories on; remote action caching off.",
+  "phases": [
+    {
+      "phase": "control-base",
+      "seconds": 684.0724673959994,
+      "peak_combined_pss_kib": 3706744,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "seconds": 683.9723262850002,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "control-b",
+          "seconds": 679.2686618810021,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "restarted-control-base",
+      "seconds": 24.71520327699909,
+      "peak_combined_pss_kib": 6131376,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "seconds": 24.63772671699917,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "control-b",
+          "seconds": 22.55242161299975,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "single-base-writer",
+      "seconds": 1007.8609999270011,
+      "peak_combined_pss_kib": 2917270,
+      "builds": [
+        {
+          "worktree": "a",
+          "seconds": 1007.7713677899992,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "first-independent-reader",
+      "seconds": 789.5517744110002,
+      "peak_combined_pss_kib": 3286036,
+      "builds": [
+        {
+          "worktree": "b",
+          "seconds": 789.453172133999,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "warm-base",
+      "seconds": 140.4520802650004,
+      "peak_combined_pss_kib": 6309910,
+      "builds": [
+        {
+          "worktree": "a",
+          "seconds": 29.228875501998118,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "b",
+          "seconds": 137.12588340199727,
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "restarted-base-readers",
+      "seconds": 110.13433199299834,
+      "peak_combined_pss_kib": 1434161,
+      "builds": [
+        {
+          "worktree": "a",
+          "seconds": 110.13212699799988,
+          "exit_code": 8,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": null
+        },
+        {
+          "worktree": "b",
+          "seconds": 110.1318789279976,
+          "exit_code": 8,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": null
+        }
+      ]
+    }
+  ],
+  "diagnosis": "Synchronous local dependency validation ran in the asynchronous remote-request submission loop. Its10-second submission deadline invalidated every retained key while local validation was still running. This is safe fallback but loses warm graph reuse.",
+  "selected_change": "Explicit synchronous retained-validation interface. Validate original imported evidence interruptibly on the command thread in the same invalidation stage; report full latency. Remote dispatch and response deadlines remain10seconds; benchmark command deadline remains1800seconds.",
+  "discarded_alternatives": [
+    "Increasing the remote request timeout: applies the wrong budget to local work and leaves concurrent invalidation/validation behavior unresolved.",
+    "Only moving local validation into a future: the remote response timeout still applies, and command lifetime must still own all work.",
+    "Skipping witnesses or trusting timestamps across commands: weakens freshness guarantees.",
+    "Prevalidating in an earlier module phase: changes ordering relative to repository materialization and current invalidation inputs.",
+    "Graph paging or a Rust evaluator: outside the accepted full-graph-in-RAM design."
+  ],
+  "candidate_verification": {
+    "status": "Uncommitted candidate; substantial warm retention/latency measurement pending.",
+    "binary_sha256": "0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0",
+    "collector_sha256": "41bfcd3d477f651a4fd5bbc1ff190c4f066ef4da95b0eaea26bba5bc3f18ebc6",
+    "java_cases": 280,
+    "java_targets": 18,
+    "build_seconds_with_shutdown": 28.22718394399999,
+    "build_log_sha256": "074f8fc0095a5225fe11a732235ef02b4c2bb7da7270738f1a6de9720ed0541d",
+    "compiled_source_sha256": {
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java": "5523c5b6aaee4999aec49fff9acb466958adecdbfa750669ba403660f67968c3",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java": "64e7774c055c98598fe68fcf479cee943ac0a02677cd1f9490862466947d809d",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSymlinkEntryCodec.java": "bf0904538144583a8428f4b68b949023332e01e711549dc1c9cbd72a7d509c58",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollector.java": "077541615b7a645d09b7a1ae5e9526355b3e41b5136caa7a28aa3d712713b20e",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileFingerprintValueStore.java": "77983afdad0bc379636b304650313db912e8b501f73d7d8c7df96efde9921c69",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheLeaseManager.java": "6b028605fde6fcd48983c2dfffeeba04baf756bb676943152b19e3350f6e4ac4",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalContentHasher.java": "5e5c2b0c621d5a7942e3341be2407e0df421618082f905db1ea6882870a9a009",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalRunfilesCodec.java": "4cdf5cfcbf38956dbcc81a57ce776bec7cb4dc80c923d1e8077c26f056e51439",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheOptions.java": "0efdac1c1b62b78eee9230222bf314fa8cbd217aac991cf3851964acb251e7ab",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java": "a77f0250c206bec30f709c5b0ec1223d3273754a8bee1829f0c26ba12adce079",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshot.java": "036b701cc2d09c4e89589c8cd8004efa0fd81c5fc0c870f9f51896ee9ffd5967",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPathCodec.java": "b1abd484fd1c4f3abac4b979999d3a2afbabeaf8067908947368d1f23c186a84",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java": "27027318a3eec141511120cb44eda24e4509361b523c314a5d3f4fda9f17c381",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalRepositoryMappingCodec.java": "62579d84e47c41ec20ea89d6356268d55b5079e4fba9a52d71d2a04749d4a73b",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSourceArtifactCodec.java": "f141997547017a1f91911b7149c16f9a9bd30a0c34a2e0c973a5a606cfbc0114",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyEvidence.java": "03e7eb9253d85740810a791959816f9f1e89b03b1c6d20ee96e201b6b272d37d",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java": "e58d761b6e5fc8ae91b2802c41d4a68d52cf1f22ecee62bae5801b0cd7326787",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorIdleTask.java": "72384809a9b82068d9076af93d2fcf3db1400a21ff09a134911437c90d66de80",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheCollectionBenchmark.java": "ae500c0a4e9bcc6c21ced36cf7c69b522967064a7c28c89717c78430b471715c",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInheritedValidationBenchmark.java": "e017caad1332b8f9a16d27ad63b10d10c28ebaeb1bcd630523f89142ea80efc1",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java": "49c6265d26bce4387aac2460b062de7015415d7e6fe571998de9c53e9f1c56b4",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileStoreBenchmark.java": "593db0b62d03e1fa806797945b7fa8cf0c690f3ddf22a753513454efddff9d65",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java": "7d63da3e7814d297dfb41a82ffff6afd700113c5da46f5de219f768286f16521",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPathCodecTest.java": "0fa6e5b2af17d517e349b2f1777d206e50287e741a28738bcabef9a0421f6612",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorTest.java": "67040a4d83ebfc8edea9a54f8180dafc536e69b352fd5b3f9d7d068a30fc07d0",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAdmissionBenchmark.java": "6d99e6c59ad818e98ecf653e2e6a5083f0b02d3e6a79835abb9a6bc760bd75cb",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalContentHasherTest.java": "2f6da2af67c3fe342ad74e99b9d88ba33a6a1266c53174f858ca878e76ab83a9",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessListBenchmark.java": "ef8622dc90f5b7896ec6c3bb4e59dffc8d1fe2896ca2352c8d11a52a5b0f3e18",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalRepositoryMappingBenchmark.java": "27a1ef72b00def7b98b6f7688a6e0ae813bd64db70f3578a82cb2d808afde530",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputHashingBenchmark.java": "29a2bae179afa77a6fc180b6f16c6325d69166daf2733e367fb49d742f70af6b",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ConcurrentFileFingerprintValueStoreTest.java": "08f22120e4cb40d4549dcd3be7485e194ef760500ad40d2936ee1c0562e2700f",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalRunfilesCodecTest.java": "82ec42416189b0530b9dc78e9a9889f1593bd5ad497486f78384acb34f3e9fc3",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidationBenchmark.java": "7bb2755e06a0751338906cf893815c02288a86724e22aa134645fbf6d4af631a",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStoreTest.java": "f908998cdbbce63fc592c927a9eafa2b34dd9444c0506ca7bd5802ad953cbdad",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalRepositoryMappingCodecTest.java": "3137739f98638eb01ed11cc1dd2c207ad0571e9bd6b390e3fde14ca7dd853324",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCandidateValidationBenchmark.java": "55a822e20907eb6198108e1e3d01813955770a7bcc86a196569cc15a255d03b5",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheLeaseManagerTest.java": "10e931a3527bc8456c4044041b636f8395e87c34a773587d913523ff139b6a91",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest.java": "7cab695d80ea6b7426450af34ac223e198c97f4cd9242a889a12b95582d2b144",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java": "82a32965bec9dba77416587f6b3ed706c3cfeaa3e0450fc6374e84b0ca37fd83",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputAliasBenchmark.java": "8c2ed2079cc25e03528b952601199d10755af49065b3fd8fbc0dd1d54b30eda5",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAdmissionValidationBenchmark.java": "40ea054398b915ff96b1deb2e6ace16bc97bfc78a4e0f4c018ffe49018ff6b61",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD": "9e1196094c50cb504c9ba50c4059fc5569e4dbbb8adc1c3bfeb78965db7570a6",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD": "def0fe9bcccfb7f2d5a0d4fa1eb33a29e2da420f869a9755611a03363aab6c85",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/AnalysisCacheInvalidator.java": "a8a8eb0145d516fdb4c57bbd5605705255a7a0dd3dcc2ccd2ae21fbe2e000a28",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RetainedAnalysisCacheClient.java": "0afed4587da3f87b4f3e0bb8d33329ef889654f66ee553b6a27ce52752f410d3",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/BUILD": "6b28b77231a3816957e4160c9d413f382477c810de2a742ff3cc51294308badb",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/AnalysisCacheInvalidatorTest.java": "6908a54efa00aa64e6c077509cd824232fd75fb9d079855d42b765c3b8332a14"
+    },
+    "regression_cases_failed_before_fix": [
+      "synchronousRetainedValidationPropagatesCommandInterruption",
+      "synchronousRetainedValidationUsesOriginalEvidenceOnCallingThread[valid=false]",
+      "synchronousRetainedValidationUsesOriginalEvidenceOnCallingThread[valid=true]"
+    ],
+    "regression_baseline_xml_sha256": "d9d456ffe7fd73e948d705f846d74968099c0b6d1329516f57c305de9b3acade",
+    "membership_builds": 34,
+    "membership_results_sha256": "eec2d3f7dbff76d7ed7b41837e47410388c522234a554d1ced54620a955cc4ed",
+    "membership_probe_sha256": "d56e4d3040bc497bad5a3c27c3bbda8762ebf79563a3ae6f687b6f60fa36e182",
+    "fresh_reader_hits": {
+      "restarted-baseline-readers": [
+        7,
+        7
+      ],
+      "restarted-membership-readers": [
+        7,
+        7
+      ],
+      "reverted-restarted-readers": [
+        7,
+        7
+      ]
+    },
+    "source_build_cache": "Cache&Carry; --config=efcache --bes_backend= --remote_upload_local_results=false"
+  },
+  "limitations": [
+    "No Datadog speedup is inferred from input hashing microbenchmarks.",
+    "The warm phase completed with fallback; later restarted readers were deliberately interrupted and do not provide valid latency observations.",
+    "Timings are single ordered observations on a SATA HDD, not SSD results or a general performance estimate."
+  ],
+  "next_acceptance": "Fresh current-binary32-build matrix, including explicitly0 invalidated retained values in unchanged warm B, output equivalence, edits/reverts and forced collection."
+}
