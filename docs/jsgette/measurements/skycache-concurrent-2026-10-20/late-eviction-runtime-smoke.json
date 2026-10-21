@@ -1,0 +1,399 @@
+{
+  "purpose": "Focused two-server liveness/correctness diagnostic with action disk cache ON, remote action cache OFF; full edited correctness gate remains separate.",
+  "binary_sha256": "484b001f0f067259cefdbba2f647b699e88682dd978e41d35ed32e38b5956f83",
+  "passed": true,
+  "server_max_heap": "4 GiB each",
+  "phases": [
+    {
+      "phase": "control-base",
+      "seconds": 118.378058528,
+      "peak_combined_pss_kib": 6758495,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "exit_code": 0,
+          "seconds": 118.18656939899999,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          }
+        },
+        {
+          "worktree": "control-b",
+          "exit_code": 0,
+          "seconds": 118.274623424,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          }
+        }
+      ]
+    },
+    {
+      "phase": "concurrent-base-writers",
+      "seconds": 77.25668915399999,
+      "peak_combined_pss_kib": 7774323,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 77.16046439700003,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0
+          },
+          "skycache": {
+            "writes": 443737,
+            "reads": 57632,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 76.950243024,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0
+          },
+          "skycache": {
+            "writes": 443737,
+            "reads": 57632,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0
+          }
+        }
+      ]
+    },
+    {
+      "phase": "warm-base",
+      "seconds": 1.5341595220000102,
+      "peak_combined_pss_kib": 7782921,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 1.37382975700001,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0
+          },
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 1.4282156209999926,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0
+          },
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0
+          }
+        }
+      ]
+    },
+    {
+      "phase": "restarted-base-readers",
+      "seconds": 43.548233046000036,
+      "peak_combined_pss_kib": 7716426,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 43.234581733,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 163415,
+            "memo_hits": 372790,
+            "witnesses_checked": 226537,
+            "rejected_roots": 0,
+            "memo_entries": 163415
+          },
+          "skycache": {
+            "writes": 0,
+            "reads": 317338,
+            "shared_reads": 317332,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 96832642
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 43.444442529999975,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 163415,
+            "memo_hits": 372790,
+            "witnesses_checked": 226537,
+            "rejected_roots": 0,
+            "memo_entries": 163415
+          },
+          "skycache": {
+            "writes": 0,
+            "reads": 317338,
+            "shared_reads": 317332,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 96832642
+          }
+        }
+      ]
+    },
+    {
+      "phase": "first-cross-revision-readers",
+      "seconds": 59.99462840900003,
+      "peak_combined_pss_kib": 8937702,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 59.874417128999994,
+          "timed_out": false,
+          "analysis_hits": 6206,
+          "output_sha256": "ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e",
+          "feature_markers": {
+            "a": true,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 163449,
+            "memo_hits": 374627,
+            "witnesses_checked": 226546,
+            "rejected_roots": 10,
+            "memo_entries": 163409
+          },
+          "skycache": {
+            "writes": 8524,
+            "reads": 324771,
+            "shared_reads": 324755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 99446,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 96832642
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 59.86649843499998,
+          "timed_out": false,
+          "analysis_hits": 6206,
+          "output_sha256": "bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674",
+          "feature_markers": {
+            "a": false,
+            "b": true
+          },
+          "dependency_validation": {
+            "records_read": 163449,
+            "memo_hits": 374627,
+            "witnesses_checked": 226546,
+            "rejected_roots": 10,
+            "memo_entries": 163409
+          },
+          "skycache": {
+            "writes": 8524,
+            "reads": 324771,
+            "shared_reads": 324755,
+            "rejected_publications": 0,
+            "deduplicated_writes": 99446,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 96832642
+          }
+        }
+      ]
+    },
+    {
+      "phase": "reverted-warm-graphs",
+      "seconds": 25.739853813999957,
+      "peak_combined_pss_kib": 9505766,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 25.490872916,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 163446,
+            "memo_hits": 379180,
+            "witnesses_checked": 226540,
+            "rejected_roots": 3,
+            "memo_entries": 163433
+          },
+          "skycache": {
+            "writes": 0,
+            "reads": 317372,
+            "shared_reads": 317367,
+            "rejected_publications": 0,
+            "deduplicated_writes": 6207,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 25.640741993999995,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "dependency_validation": {
+            "records_read": 163446,
+            "memo_hits": 379180,
+            "witnesses_checked": 226540,
+            "rejected_roots": 3,
+            "memo_entries": 163433
+          },
+          "skycache": {
+            "writes": 0,
+            "reads": 317372,
+            "shared_reads": 317367,
+            "rejected_publications": 0,
+            "deduplicated_writes": 6179,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 4,
+            "peak_candidate_metadata_bytes": 151884968
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "No whole-build speedup claim; control setup differed substantially.",
+    "The full 28-build gate is running separately with action disk cache disabled for edited correctness comparisons.",
+    "Graph remains in RAM; no evaluator changes or larger heap used."
+  ]
+}

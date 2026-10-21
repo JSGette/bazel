@@ -238,6 +238,13 @@ the runtime effect in a fresh two-server run before accepting cross-revision sha
 ten-second invalidation timeouts persist; optimize validation after correctness is established.
 Keep heap limits, full graph in RAM, and no evaluator rewrite. Traffic stats and safe GC remain.
 
+## Late-eviction runtime diagnostic passes
+
+The fresh six-phase/twelve-build Datadog smoke now passes warm revert in both 4 GiB servers,
+including exact baseline output equivalence. The full 28-build edited/reverted gate is running;
+cross-revision changes remain uncommitted until it passes. The smoke uses action disk cache and
+does not substitute for the full edited correctness comparison.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

@@ -1857,3 +1857,26 @@ until a fresh two-server run passes. Do not claim the large gate complete from u
 
 Evidence: [298 serialization cases](skycache-concurrent-2026-10-20/late-continuation-regression-after-full.json),
 [regression XML](skycache-concurrent-2026-10-20/late-continuation-regression-before-test.xml).
+
+### Step 32 runtime follow-up — warm revert passes
+
+A fresh two-server Datadog smoke run now passes all six phases / twelve builds without thread
+or heap captures. Both independent edited readers import 6,206 configured targets and produce
+their distinct expected executables. Keeping both graphs alive, the warm reverts finish in
+25.740 seconds for the pair, import 4,501 configured targets each, and reproduce the
+exact control baseline SHA-256. Both servers retain the original 4 GiB heap limit. The pair's
+observed peak PSS in this phase is 9,505,766 KiB. This resolves the prior
+stall in this diagnostic run; it does not yet accept the full cross-revision feature. The longer
+28-build gate is running separately with disk action cache disabled for edited correctness
+comparisons. Remote action cache is off in both diagnostics. Setup time varied substantially, so
+these runtime numbers are context rather than a controlled speedup claim.
+
+To retain disk headroom, the two completed failed probes' private SkyCache directories were
+removed after verifying no process still used their output bases. Their pack footprints total
+10,063,551,875 bytes. Source worktrees, output-base
+logs, results, heap diagnostics and the immutable validator benchmark fixture remain. Retirement
+is limited to these named temporary directories; no shared action cache was removed. Linux free
+space was reclaimed; this does not imply Windows immediately shrank the WSL virtual disk.
+
+Evidence: [passing runtime smoke](skycache-concurrent-2026-10-20/late-eviction-runtime-smoke.json),
+[retired cache inventory](skycache-concurrent-2026-10-20/failed-smoke-cache-retirement.json).
