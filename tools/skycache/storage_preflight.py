@@ -4,6 +4,7 @@
 """Check probe storage, including the host volume behind a growing WSL virtual disk."""
 
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -53,23 +54,43 @@ def _wsl_storage():
         return None
     if not name:
         raise RuntimeError("WSL detected but WSL_DISTRO_NAME is missing; cannot check its backing volume")
-    for attempt in range(3):
+    snapshot = os.environ.get("SKYCACHE_WINDOWS_STORAGE_SNAPSHOT")
+    if snapshot:
+        # A Windows-side watcher avoids repeated WSL interop launches under build load.
+        # Stopped, delayed or malformed watchers must still fail the same capacity guard.
         try:
-            data = json.loads(subprocess.check_output(
-                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _WINDOWS_STORAGE],
-                text=True, stderr=subprocess.PIPE, timeout=20))
-            break
-        except (OSError, subprocess.SubprocessError, ValueError) as error:
-            if attempt == 2:
-                detail = getattr(error, "stderr", None) or str(error)
-                if isinstance(detail, bytes):
-                    detail = detail.decode(errors="replace")
-                raise RuntimeError(
-                    "Cannot check WSL host storage after 3 attempts: " + detail.strip()[-2000:]
-                ) from error
-            # Interop can fail transiently while the VM is busy. Never reuse an old capacity
-            # observation or disable the guard; every retry asks Windows for current values.
-            time.sleep(0.5 * (attempt + 1))
+            path = Path(snapshot)
+            if path.stat().st_size > 64 * 1024:
+                raise ValueError("snapshot exceeds 64 KiB")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            observed = data["observed_unix"]
+            if isinstance(observed, bool) or not isinstance(observed, (int, float)):
+                raise ValueError("invalid observation timestamp")
+            age = time.time() - observed
+            if not math.isfinite(age) or not 0 <= age <= 30:
+                raise ValueError(f"observation age {age} is outside 0..30 seconds")
+            if data["schema_version"] != 1:
+                raise ValueError("unsupported observation schema")
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise RuntimeError("Cannot verify fresh Windows storage snapshot: " + str(error)) from error
+    else:
+        for attempt in range(3):
+            try:
+                data = json.loads(subprocess.check_output(
+                    ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _WINDOWS_STORAGE],
+                    text=True, stderr=subprocess.PIPE, timeout=20))
+                break
+            except (OSError, subprocess.SubprocessError, ValueError) as error:
+                if attempt == 2:
+                    detail = getattr(error, "stderr", None) or str(error)
+                    if isinstance(detail, bytes):
+                        detail = detail.decode(errors="replace")
+                    raise RuntimeError(
+                        "Cannot check WSL host storage after 3 attempts: " + detail.strip()[-2000:]
+                    ) from error
+                # Interop can fail transiently while the VM is busy. Never reuse an old capacity
+                # observation or disable the guard; every retry asks Windows for current values.
+                time.sleep(0.5 * (attempt + 1))
     matches = [d for d in data["distros"] if d["name"] == name]
     if len(matches) != 1 or "error" in matches[0]:
         raise RuntimeError(f"Cannot resolve the Windows backing volume for WSL distro {name!r}")
@@ -77,7 +98,9 @@ def _wsl_storage():
             "backing_free_bytes": int(matches[0]["free_bytes"]),
             "system_drive": data["system_drive"],
             "system_free_bytes": int(data["system_free_bytes"]),
-            "windows_drives": {d["root"].upper(): int(d["free_bytes"]) for d in data.get("drives", [])}}
+            "windows_drives": {d["root"].upper(): int(d["free_bytes"]) for d in data.get("drives", [])},
+            "observation_source": str(snapshot) if snapshot else "wsl_interop",
+            "observed_unix": data.get("observed_unix")}
 
 
 def _loop_windows_backing(path):

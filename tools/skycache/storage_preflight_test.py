@@ -114,6 +114,58 @@ class StoragePreflightTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Cannot verify loop"):
                 _loop_windows_backing(self.path.parent)
 
+    def snapshot_observation(self):
+        return {"schema_version": 1, "observed_unix": 990,
+                "system_drive": "C:\\", "system_free_bytes": 80 * GIB,
+                "distros": [{"name": "fixture", "path": "E:\\WSL\\fixture",
+                             "free_bytes": 70 * GIB}],
+                "drives": [{"root": "C:\\", "free_bytes": 80 * GIB}]}
+
+    def read_snapshot(self, data):
+        path = Path(self.temporary.name) / "windows-storage.json"
+        if data is not None:
+            path.write_text(json.dumps(data))
+        with patch.dict("os.environ", {"WSL_DISTRO_NAME": "fixture",
+                        "SKYCACHE_WINDOWS_STORAGE_SNAPSHOT": str(path)}), \
+             patch("storage_preflight.time.time", return_value=1000), \
+             patch("storage_preflight.subprocess.check_output") as interop:
+            try:
+                return _wsl_storage()
+            finally:
+                interop.assert_not_called()
+
+    def test_fresh_host_snapshot_avoids_interop_and_preserves_capacity(self):
+        result = self.read_snapshot(self.snapshot_observation())
+        self.assertEqual(result["backing_free_bytes"], 70 * GIB)
+        self.assertEqual(result["windows_drives"]["C:\\"], 80 * GIB)
+        self.assertEqual(result["observed_unix"], 990)
+
+    def test_stale_future_or_invalid_snapshot_timestamp_fails_closed(self):
+        for timestamp in (969, 1001, float("nan"), float("inf"), True, "990", None):
+            with self.subTest(timestamp=timestamp):
+                data = self.snapshot_observation()
+                data["observed_unix"] = timestamp
+                with self.assertRaisesRegex(RuntimeError, "fresh Windows storage snapshot"):
+                    self.read_snapshot(data)
+
+    def test_missing_snapshot_fails_closed_without_interop_fallback(self):
+        with self.assertRaisesRegex(RuntimeError, "fresh Windows storage snapshot"):
+            self.read_snapshot(None)
+
+    def test_unknown_snapshot_schema_fails_closed(self):
+        data = self.snapshot_observation()
+        data["schema_version"] = 2
+        with self.assertRaisesRegex(RuntimeError, "unsupported observation schema"):
+            self.read_snapshot(data)
+
+    def test_malformed_and_oversized_snapshot_fails_closed(self):
+        path = Path(self.temporary.name) / "windows-storage.json"
+        for content in ('{"schema_version":', 'x' * (64 * 1024 + 1)):
+            with self.subTest(size=len(content)):
+                path.write_text(content)
+                with self.assertRaisesRegex(RuntimeError, "fresh Windows storage snapshot"):
+                    self.read_snapshot(None)
+
     def test_transient_interop_failures_retry_current_host_observation(self):
         observation = json.dumps({
             "system_drive": "C:\\", "system_free_bytes": 80 * GIB,
