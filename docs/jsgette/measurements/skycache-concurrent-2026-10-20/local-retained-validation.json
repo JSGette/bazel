@@ -1,0 +1,167 @@
+{
+  "scope": "Unchanged warm B retention only; full Datadog matrix remains pending.",
+  "binary_sha256": "0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0",
+  "original_zero_invalidation_criterion_passed": false,
+  "criterion_correction": "Require preservation of all directly imported validated values, zero dependency-root rejections and zero reload hits, while keeping fail-closed invalidation for additional graph keys without recorded original evidence. Do not accept unknown evidence to obtain zero invalidations.",
+  "counts": {
+    "first_reader_hits": 4501,
+    "warm_checked_graph_keys": 4506,
+    "warm_invalidated_keys": 5,
+    "warm_retained_graph_keys": 4501,
+    "warm_reload_hits": 0,
+    "rejected_roots": 0
+  },
+  "warm_seconds": 85.0809097220008,
+  "invalidation_seconds": 49.06,
+  "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+  "dependency_validation": {
+    "records_read": 162322,
+    "memo_hits": 370148,
+    "witnesses_checked": 7798,
+    "rejected_roots": 0,
+    "memo_entries": 162322,
+    "witness_memo_hits": 15060,
+    "witness_memo_entries": 92033,
+    "admission_witness_memo_hits": 84235
+  },
+  "invalidated_keys": [
+    "CONFIGURED_TARGET:ConfiguredTargetKey{label=//:is_release, config=BuildConfigurationKey[41a9d34e6d8f18c663e247a1d87f7dc595e311ca8723da1b7f623d0a9d30a79c]}",
+    "CONFIGURED_TARGET:ConfiguredTargetKey{label=//:windows_x86_64, config=BuildConfigurationKey[41a9d34e6d8f18c663e247a1d87f7dc595e311ca8723da1b7f623d0a9d30a79c]}",
+    "CONFIGURED_TARGET:ConfiguredTargetKey{label=//cmd/cluster-agent:cluster-agent, config=BuildConfigurationKey[41a9d34e6d8f18c663e247a1d87f7dc595e311ca8723da1b7f623d0a9d30a79c]}",
+    "CONFIGURED_TARGET:ConfiguredTargetKey{label=//packages/agent:windows_x86_64_fips, config=BuildConfigurationKey[41a9d34e6d8f18c663e247a1d87f7dc595e311ca8723da1b7f623d0a9d30a79c]}",
+    "CONFIGURED_TARGET:ConfiguredTargetKey{label=@@platforms//os:windows, config=BuildConfigurationKey[41a9d34e6d8f18c663e247a1d87f7dc595e311ca8723da1b7f623d0a9d30a79c]}"
+  ],
+  "diagnosis": "The invalidation scan selects values by DeserializedSkyValue. ConfiguredTargetFunction can forward a value from a transitioned key without downloading it again; the forwarding key therefore carries the marker but has no original root recorded by lookup. Direct download count is4501; the marker scan sees4506. All dependency validation counters match the first reader exactly, with zero rejected roots, and the five reevaluated keys cause five misses and zero download hits. This is consistent with the source forwarding path and preserves every directly imported value.",
+  "limits": [
+    "The exact forwarding-key-to-destination mapping was not captured from the live heap. The forwarding explanation is a source-and-counter inference, not a heap inspection.",
+    "Retaining the five forwarding keys is a possible later optimization requiring explicit original-evidence alias tracking. No evaluator change or safety exception is made here.",
+    "The command timings are ordered HDD observations, not an isolated speedup estimate."
+  ],
+  "source_evidence": {
+    "src/main/java/com/google/devtools/build/lib/skyframe/ConfiguredTargetFunction.java": {
+      "sha256": "ae475e9d24cbec118aa3b0ebe8c8fe680e7283d3a8ebb5e3fff46bf57783ba98",
+      "locations": [
+        {
+          "snippet": "analysisProgress.doneDownloadedConfiguredTarget();",
+          "lines": [
+            281
+          ]
+        },
+        {
+          "snippet": "return v.value();",
+          "lines": [
+            282
+          ]
+        },
+        {
+          "snippet": "return (ConfiguredTargetValue) result;",
+          "lines": [
+            296
+          ]
+        }
+      ]
+    },
+    "src/main/java/com/google/devtools/build/lib/analysis/producers/TargetAndConfigurationProducer.java": {
+      "sha256": "0321b8858ed23282237947183040d6ec7a9dc83f776aaa1619cc4d3b71fe0722",
+      "locations": [
+        {
+          "snippet": "tasks.lookUp(keyBuilder.build(), (Consumer<SkyValue>) this);",
+          "lines": [
+            316
+          ]
+        },
+        {
+          "snippet": "sink.acceptTargetAndConfigurationDelegatedValue((ConfiguredTargetValue) value);",
+          "lines": [
+            250
+          ]
+        }
+      ]
+    },
+    "src/main/java/com/google/devtools/build/lib/skyframe/RemoteConfiguredTargetValue.java": {
+      "sha256": "a72ce308869ae1909e2c32b980c020cac0f361f82eaa3d04fc7d2d458fb3eabc",
+      "locations": [
+        {
+          "snippet": "implements ConfiguredTargetValue, DeserializedSkyValue",
+          "lines": [
+            52
+          ]
+        }
+      ]
+    },
+    "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java": {
+      "sha256": "27027318a3eec141511120cb44eda24e4509361b523c314a5d3f4fda9f17c381",
+      "locations": [
+        {
+          "snippet": "var root = previousRoots.get(identity);",
+          "lines": [
+            108
+          ]
+        },
+        {
+          "snippet": "root != null && session.isOpen() && validator.validate(root) && session.isOpen();",
+          "lines": [
+            110
+          ]
+        },
+        {
+          "snippet": "rememberRoot(ByteString.copyFrom(key), root);",
+          "lines": [
+            162
+          ]
+        }
+      ]
+    },
+    "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java": {
+      "sha256": "5523c5b6aaee4999aec49fff9acb466958adecdbfa750669ba403660f67968c3",
+      "locations": [
+        {
+          "snippet": "rejected++;",
+          "lines": [
+            123
+          ]
+        },
+        {
+          "snippet": "return false;",
+          "lines": [
+            124
+          ]
+        }
+      ]
+    }
+  },
+  "observed_unix": 1792582502.9790137,
+  "implementation_commit": "802d66bc21bd706a20dc5476791d305020363303",
+  "selected_change": "Explicit synchronous retained-validation interface. Validate original imported evidence interruptibly on the command thread in the same invalidation stage; report full latency. Remote dispatch and response deadlines remain10seconds; benchmark command deadline remains1800seconds.",
+  "discarded_alternatives": [
+    "Increasing the remote request timeout: applies the wrong budget to local work and leaves concurrent invalidation/validation behavior unresolved.",
+    "Only moving local validation into a future: the remote response timeout still applies, and command lifetime must still own all work.",
+    "Skipping witnesses or trusting timestamps across commands: weakens freshness guarantees.",
+    "Prevalidating in an earlier module phase: changes ordering relative to repository materialization and current invalidation inputs.",
+    "Graph paging or a Rust evaluator: outside the accepted full-graph-in-RAM design."
+  ],
+  "before": {
+    "results_sha256": "0b51188a88a2b593f8d210b7bde723aaa6a52ae79632b42c8e546cb69b7bb714",
+    "verified_output_builds": 8,
+    "invalidation_timeouts": 1,
+    "warm_reader_seconds": 137.12588340199727,
+    "retained_values_invalidated_on_timeout": 4506,
+    "subsequent_restart_clients_cancelled": true,
+    "all_servers_stopped": true,
+    "sources_restored": true
+  },
+  "raw_log_sha256": {
+    "warm-base-b.log": "3d4d6f7fff7dcdbae116352170aa562742d345ab80c9bdc256fd088e3e18b12b",
+    "java.log.jgette.jgett.log.java.20261021-131821.586000": "3504bd95b96c5ebdfe35e2b25b4375fb76dac4a8af3596321bdeca5b999bc8f6",
+    "first-independent-reader-b.log": "178944592cbb9c9a7176a07559528b1995a696a949af49810d7a659baf852daa"
+  },
+  "tests": {
+    "java_cases": 280,
+    "java_targets": 18,
+    "membership_builds": 34,
+    "membership_results_sha256": "eec2d3f7dbff76d7ed7b41837e47410388c522234a554d1ced54620a955cc4ed",
+    "build_log_sha256": "074f8fc0095a5225fe11a732235ef02b4c2bb7da7270738f1a6de9720ed0541d",
+    "source_build_cache": "Cache&Carry: --config=efcache --bes_backend= --remote_upload_local_results=false"
+  },
+  "full_datadog_matrix_complete": false
+}

@@ -86,6 +86,14 @@ fallback correctness only. Compare changed outputs with independent cache-off co
 the exact binary, source, lockfile and resource settings. Raw BEP and JVM logs can contain environment
 data; the public development report contains curated evidence rather than those raw logs.
 
+Local retained-value validation runs interruptibly in the command's invalidation stage. Its full
+filesystem and dependency-check time counts toward command latency; it does not use the remote
+request dispatcher's ten-second deadline. Warm builds can therefore spend noticeable time validating
+inputs even when they download no analysis. Missing original evidence still causes invalidation.
+Configuration forwarding can leave additional graph keys holding deserialized values without a
+direct lookup record, so a small nonzero invalidation count alone does not prove that imported
+analysis was discarded. Compare retained counts, dependency rejections and subsequent reload hits.
+
 ## Storage limits and disabling the backend
 
 | Option | Default | Meaning |

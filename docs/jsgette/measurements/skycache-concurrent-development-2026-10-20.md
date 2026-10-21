@@ -3144,3 +3144,49 @@ reader must explicitly invalidate zero unchanged imported keys, in addition to m
 avoiding timeout warnings.
 
 Evidence: [failed run, regression provenance and candidate checks](skycache-concurrent-2026-10-20/invalidation-timeout-retry5.json).
+
+
+## Step 52 — command-lifetime local validation preserves the warm imported graph
+
+Implementation `802d66bc21bd706a20dc5476791d305020363303` is pushed on `jsgette/skycache-concurrent`.
+The binary passes 280 Java cases across 18 targets and the fresh 34-build worktree mutation gate;
+source builds and tests use Cache&Carry. No evaluator implementation changes were added. The full
+32-build Datadog matrix is still running, so this records one verified issue fix, not final acceptance.
+
+The first independent reader downloaded 4,501 configured targets and produced the cache-off executable
+hash. Its next unchanged command kept 4,501 of 4,506 scanned graph keys, rejected zero dependency roots,
+and downloaded zero configured targets. Validation took 49.06 seconds, fully charged to the command;
+the complete warm B command took 85.081 seconds. The previous binary had hit the remote submission
+deadline, discarded all 4,506 keys and downloaded 4,501 targets again; that command took 137.126 seconds.
+These are separate ordered HDD observations, not an isolated or statistical speedup estimate.
+
+The strict zero-invalidation expectation introduced in Step 51 did **not** pass: five extra graph keys
+were invalidated. That expectation conflated directly imported keys with every graph key holding a
+deserialized value. `ConfiguredTargetFunction` can forward a value from a transitioned key without
+another download. `TargetAndConfigurationProducer` passes the destination value through unchanged,
+including its `DeserializedSkyValue` marker. The invalidation scan therefore sees the forwarding key,
+while `LocalAnalysisCacheClient` records original roots only for direct successful lookups.
+
+The five labels were `@@platforms//os:windows`, `//packages/agent:windows_x86_64_fips`, `//:is_release`,
+`//cmd/cluster-agent:cluster-agent`, and `//:windows_x86_64`, all under the same original configuration.
+The warm dependency counters exactly match the first reader: 162,322 records, 7,798 checked witnesses,
+and zero rejected roots. The five reevaluations caused five misses and zero downloaded targets.
+This supports the forwarding explanation, but the exact key-to-destination mappings were not captured
+from the live heap. The public JSON preserves source locations, counts and this limitation.
+
+Chosen correction: require retained directly imported values to validate against their original
+evidence, zero dependency-root rejection for this unchanged fixture, zero reload hits, and exact
+control output. Preserve conservative invalidation for additional keys without original evidence.
+The final audit checks this run's exact five keys/log hashes and 4,501 retained entries. The original
+zero expectation and its failure remain documented. Accepting unknown evidence just to reach zero
+was rejected. Explicit evidence tracking for forwarding aliases is a possible later optimization,
+not required for safe sharing and not introduced in the evaluator.
+
+Both subsequently restarted readers also completed successfully, each with 4,501 hits and exact
+baseline output. Their pair took 44.773 seconds and peaked at 7.644 GiB participating process PSS;
+the matched cache-off restarted pair took 24.718 seconds and 5.832 GiB. This observation does not show
+a whole-build performance win. Content admission and validation still cost I/O, and process PSS
+excludes page cache and host VM overhead. Concurrent edited execution, reverts, forced collection,
+final evidence archival and cleanup remain pending.
+
+Evidence: [retention measurement, criterion correction and source provenance](skycache-concurrent-2026-10-20/local-retained-validation.json).

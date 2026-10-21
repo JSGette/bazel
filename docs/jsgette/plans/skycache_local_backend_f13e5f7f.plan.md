@@ -27,14 +27,14 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 51. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 52. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
 timer, shared mutable graph, graph paging, Rust service or evaluator residency limit.
 
 Implementation: [`jsgette/skycache-concurrent`](https://github.com/JSGette/bazel/tree/jsgette/skycache-concurrent),
-currently `258febe36adf692149ee7346d2d03972a460c113`. Documentation and results remain on
+currently `802d66bc21bd706a20dc5476791d305020363303`. Documentation and results remain on
 `jsgette/master`. The [development protocol](../measurements/skycache-concurrent-development-2026-10-20.md)
 contains the chronological measurements and decisions. The
 [previous roadmap](skycache_local_backend_f13e5f7f.history-through-step49.md) is preserved for history;
@@ -42,24 +42,29 @@ its old pending-work statements do not describe current implementation status.
 
 ## Current evidence and open acceptance
 
-The published content-hashing binary passes 277 Java cases and its 34-build worktree mutation matrix.
-Its latest completed substantial attempt nevertheless failed warm invalidation: eight correct outputs
-and 4,501 independent-reader analysis hits were followed by a request-submission timeout that discarded
-all 4,506 imported entries on an unchanged command. Later restarted readers were deliberately cancelled;
-all servers stopped and sources restored. The failed report and cache bytes are preserved. This attempt
-does not establish production maturity or a whole-build speedup.
+The published binary passes 280 Java cases across 18 targets and a fresh 34-build concurrent worktree
+mutation matrix. Local retained-value validation now runs interruptibly on the command thread at the
+existing invalidation stage; all original-evidence checks remain and remote request deadlines are
+unchanged. Three regression cases fail before the routing fix. Source builds/tests use Cache&Carry.
 
-An uncommitted candidate now gives local retained-value validation an explicit interruptible command-thread
-path at the same invalidation stage, while preserving remote request deadlines and every input check.
-Three regression cases fail before the routing fix. Afterward, 280 Java cases across 18 targets and a
-fresh 34-build mutation matrix pass. The unchanged measurement harness has 29 passing Python checks.
-The candidate is undergoing a fresh full 32-build Datadog matrix with an empty cache and unchanged
-resources/deadlines. The unchanged warm reader must explicitly invalidate zero imported keys. Source
-publication and before/after interpretation wait for that substantial observation.
+The current substantial Datadog matrix has passed the baseline, first-reader, warm and restarted-reader
+phases. A fresh reader and both restarted readers each reused 4,501 configured targets with exact
+cache-off outputs. The unchanged warm reader retained 4,501 of 4,506 graph keys, rejected no dependency
+roots and downloaded no configured targets. Five extra keys were conservatively invalidated. Source
+and counters indicate configuration forwarding keys without direct lookup evidence; their exact
+destination mappings were not heap-inspected. Step 52 explicitly corrects the earlier zero-invalidation
+expectation rather than treating it as passed or relaxing evidence checks.
+
+The warm reader took 85.081 seconds versus 137.126 in the previous failed run, which discarded the
+whole imported graph on timeout. Those ordered HDD observations do not establish an isolated speedup.
+The restarted cache-enabled pair was slower and used more process memory than its cache-off control
+in this run. The full 32-build edit/revert/collection matrix remains open, followed by evidence archival,
+owned scratch cleanup and final acceptance. The prior failed attempts and cache data remain preserved.
 
 Inherited publication evidence and aliased-file digest optimizations remain separate measured results:
-their warm-filesystem microbenchmarks reduce logical reads about 67% and 80%. They did not by themselves
-solve the warm invalidation timeout. Timings on the temporary D SATA HDD do not establish SSD performance.
+their warm-filesystem microbenchmarks reduce logical reads about 67% and 80%. Whole-build performance
+improvement and production maturity remain unproven. The temporary D SATA HDD does not represent SSD
+performance. The unchanged measurement harness has 29 passing Python checks.
 
 ## Implemented design
 
