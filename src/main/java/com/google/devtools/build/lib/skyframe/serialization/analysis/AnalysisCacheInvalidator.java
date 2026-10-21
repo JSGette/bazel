@@ -141,37 +141,53 @@ public final class AnalysisCacheInvalidator {
     InvalidationLookupMetrics.Status status = null;
     ImmutableSet<SkyKey> keysToInvalidate;
     try {
-      List<ListenableFuture<Optional<SkyKey>>> futures =
-          submitInvalidationLookupsBatched(keysToLookup);
-      if (futures == null) {
-        numInvalidatedKeys = keysToLookup.size();
-        status = InvalidationLookupMetrics.Status.TIMED_OUT;
-        return keysToLookup;
-      }
-
-      try (SilentCloseable unused = Profiler.instance().profile("waitInvalidationLookups")) {
-        try {
-          keysToInvalidate =
-              Futures.allAsList(futures).get(INVALIDATION_TIMEOUT_SECONDS, SECONDS).stream()
-                  // Flatten Optionals, keeping only non-empty ones (keys to invalidate)
-                  .flatMap(Optional::stream)
-                  .collect(toImmutableSet());
-          status = InvalidationLookupMetrics.Status.OK;
-          numInvalidatedKeys = keysToInvalidate.size();
-        } catch (ExecutionException e) {
-          status = InvalidationLookupMetrics.Status.ERROR;
+      if (analysisCacheClient instanceof RetainedAnalysisCacheClient.Synchronous local) {
+        try (SilentCloseable unused = Profiler.instance().profile("localRetainedValidation")) {
+          try {
+            keysToInvalidate = lookupKeysToInvalidateLocally(keysToLookup, local);
+            status = InvalidationLookupMetrics.Status.OK;
+            numInvalidatedKeys = keysToInvalidate.size();
+          } catch (ExecutionException e) {
+            status = InvalidationLookupMetrics.Status.ERROR;
+            numInvalidatedKeys = keysToLookup.size();
+            logger.atWarning().withCause(e).log(
+                "Skycache: Error validating local retained analysis. Invalidating everything.");
+            return keysToLookup;
+          }
+        }
+      } else {
+        List<ListenableFuture<Optional<SkyKey>>> futures =
+            submitInvalidationLookupsBatched(keysToLookup);
+        if (futures == null) {
           numInvalidatedKeys = keysToLookup.size();
-          logger.atWarning().withCause(e).log(
-              "Skycache: Error waiting for analysis cache responses during invalidation check."
-                  + " Invalidating everything.");
-          return keysToLookup;
-        } catch (TimeoutException e) {
           status = InvalidationLookupMetrics.Status.TIMED_OUT;
-          numInvalidatedKeys = keysToLookup.size();
-          logger.atWarning().log(
-              "Skycache: Timeout waiting for analysis cache responses during invalidation check."
-                  + " Invalidating everything.");
           return keysToLookup;
+        }
+
+        try (SilentCloseable unused = Profiler.instance().profile("waitInvalidationLookups")) {
+          try {
+            keysToInvalidate =
+                Futures.allAsList(futures).get(INVALIDATION_TIMEOUT_SECONDS, SECONDS).stream()
+                    // Flatten Optionals, keeping only non-empty ones (keys to invalidate)
+                    .flatMap(Optional::stream)
+                    .collect(toImmutableSet());
+            status = InvalidationLookupMetrics.Status.OK;
+            numInvalidatedKeys = keysToInvalidate.size();
+          } catch (ExecutionException e) {
+            status = InvalidationLookupMetrics.Status.ERROR;
+            numInvalidatedKeys = keysToLookup.size();
+            logger.atWarning().withCause(e).log(
+                "Skycache: Error waiting for analysis cache responses during invalidation check."
+                    + " Invalidating everything.");
+            return keysToLookup;
+          } catch (TimeoutException e) {
+            status = InvalidationLookupMetrics.Status.TIMED_OUT;
+            numInvalidatedKeys = keysToLookup.size();
+            logger.atWarning().log(
+                "Skycache: Timeout waiting for analysis cache responses during invalidation check."
+                    + " Invalidating everything.");
+            return keysToLookup;
+          }
         }
       }
     } finally {
@@ -195,6 +211,42 @@ public final class AnalysisCacheInvalidator {
   }
 
   /**
+   * Runs local filesystem validation in the existing invalidation stage. Remote submission and
+   * response deadlines are inappropriate for this synchronous work: timing out leaves validation
+   * running while the caller invalidates and reconstructs the same graph. Keep it on the command
+   * thread, with cancellation and the same original-evidence checks. The measured latency includes
+   * the entire validation; no result is assumed valid because a deadline expired.
+   */
+  private ImmutableSet<SkyKey> lookupKeysToInvalidateLocally(
+      ImmutableSet<SkyKey> keysToLookup, RetainedAnalysisCacheClient.Synchronous local)
+      throws InterruptedException, ExecutionException {
+    var invalidated = ImmutableSet.<SkyKey>builder();
+    for (SkyKey key : keysToLookup) {
+      if (Thread.interrupted()) {
+        throw new InterruptedException("local retained-value validation interrupted");
+      }
+      var fingerprint = fingerprintKey(key).get();
+      if (!local.validatePreviouslyLoadedValue(fingerprint.toBytes())) {
+        invalidated.add(key);
+      }
+      if (Thread.interrupted()) {
+        throw new InterruptedException("local retained-value validation interrupted");
+      }
+    }
+    return invalidated.build();
+  }
+
+  private ListenableFuture<PackedFingerprint> fingerprintKey(SkyKey key) {
+    AsyncSerializationTask serializeKeyTask =
+        codecs.serializeMemoizedAsync(compressionService, fingerprintService, key, null);
+    serializeKeyTask.run();
+    return Futures.transform(
+        serializeKeyTask,
+        k -> fingerprintService.fingerprint(currentVersion.concat(k.getObject().toByteArray())),
+        directExecutor());
+  }
+
+  /**
    * Checks if the given node should be invalidated by submitting the node's fingerprint to the
    * analysis cache.
    *
@@ -205,17 +257,7 @@ public final class AnalysisCacheInvalidator {
    * will result in a cache miss for every build.
    */
   private ListenableFuture<Optional<SkyKey>> submitInvalidationLookup(SkyKey key) {
-    // 1. Serialize the key
-    AsyncSerializationTask serializeKeyTask =
-        codecs.serializeMemoizedAsync(compressionService, fingerprintService, key, null);
-    serializeKeyTask.run();
-
-    // 2. Compute the fingerprint from the serialized blob
-    ListenableFuture<PackedFingerprint> fingerprint =
-        Futures.transform(
-            serializeKeyTask,
-            k -> fingerprintService.fingerprint(currentVersion.concat(k.getObject().toByteArray())),
-            directExecutor());
+    var fingerprint = fingerprintKey(key);
 
     // Multi-revision stores must validate the value already in RAM, not a replacement value.
     if (analysisCacheClient instanceof RetainedAnalysisCacheClient retained) {

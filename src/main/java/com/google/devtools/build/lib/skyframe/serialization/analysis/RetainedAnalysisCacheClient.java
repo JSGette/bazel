@@ -13,4 +13,17 @@ public interface RetainedAnalysisCacheClient extends RemoteAnalysisCacheClient {
    * old graph node has been invalidated.
    */
   ListenableFuture<Boolean> isPreviouslyLoadedValueValid(byte[] key);
+
+  /**
+   * Local stores whose retained-value validation performs synchronous filesystem work.
+   *
+   * <p>This work must run interruptibly in the command's invalidation stage, rather than inside the
+   * remote request dispatcher and its submission/response deadlines. Implementations must validate
+   * the original value's evidence, retain invocation-local success bounds, and return false for
+   * missing or unsupported evidence. This interface does not authorize skipping input checks or
+   * caching validation across commands.
+   */
+  interface Synchronous extends RetainedAnalysisCacheClient {
+    boolean validatePreviouslyLoadedValue(byte[] key) throws InterruptedException;
+  }
 }

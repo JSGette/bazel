@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** Adapts upstream analysis-entry envelopes to the existing analysis-cache lookup interface. */
-final class LocalAnalysisCacheClient implements RetainedAnalysisCacheClient {
+final class LocalAnalysisCacheClient implements RetainedAnalysisCacheClient.Synchronous {
   private record Result(byte[] value, byte[] invalidationFingerprint, int missReason)
       implements LookupResult {}
 
@@ -87,27 +87,39 @@ final class LocalAnalysisCacheClient implements RetainedAnalysisCacheClient {
 
   @Override
   public ListenableFuture<Boolean> isPreviouslyLoadedValueValid(byte[] key) {
+    try {
+      return immediateFuture(validatePreviouslyLoadedValue(key));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return validityResponse(false);
+    }
+  }
+
+  @Override
+  public boolean validatePreviouslyLoadedValue(byte[] key) throws InterruptedException {
     long started = System.nanoTime();
     requestCount.incrementAndGet();
     sentBytes.addAndGet(key.length);
     try {
+      if (Thread.interrupted()) {
+        throw new InterruptedException("local retained-value validation interrupted");
+      }
       var identity = ByteString.copyFrom(key);
       var root = previousRoots.get(identity);
-      if (root == null) {
-        return validityResponse(false);
+      boolean valid =
+          root != null && session.isOpen() && validator.validate(root) && session.isOpen();
+      // File validation can conservatively reject an InterruptedIOException while retaining
+      // the interrupt flag. Propagate cancellation rather than continuing through other roots.
+      if (Thread.interrupted()) {
+        throw new InterruptedException("local retained-value validation interrupted");
       }
-      try {
-        boolean valid = session.isOpen() && validator.validate(root) && session.isOpen();
-        if (!valid) {
-          synchronized (this) {
-            acceptedRoots.remove(identity, root);
-          }
+      if (!valid && root != null) {
+        synchronized (this) {
+          acceptedRoots.remove(identity, root);
         }
-        return validityResponse(valid);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        return validityResponse(false);
       }
+      receivedBytes.incrementAndGet();
+      return valid;
     } finally {
       latencyMicros.add(Math.max(0, System.nanoTime() - started) / 1000);
     }

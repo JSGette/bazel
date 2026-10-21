@@ -18,6 +18,7 @@ import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor.safeDirectExecutor;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,6 +70,75 @@ public final class AnalysisCacheInvalidatorTest {
   private final ClientId baseClientId = new SnapshotClientId("for_testing", 1);
   private final FingerprintValueService fingerprintService =
       FingerprintValueService.createForTesting();
+
+  @Test
+  public void synchronousRetainedValidationUsesOriginalEvidenceOnCallingThread(
+      @TestParameter boolean valid) throws Exception {
+    var client = org.mockito.Mockito.mock(RetainedAnalysisCacheClient.Synchronous.class);
+    Thread commandThread = Thread.currentThread();
+    when(client.validatePreviouslyLoadedValue(any()))
+        .thenAnswer(
+            invocation -> {
+              assertThat(Thread.currentThread()).isSameInstanceAs(commandThread);
+              return valid;
+            });
+    // The asynchronous method deliberately disagrees: dispatching local I/O through that
+    // compatibility adapter must not determine the synchronous invalidation result.
+    when(client.isPreviouslyLoadedValueValid(any())).thenReturn(immediateFuture(!valid));
+    var key = new TrivialKey("synchronous-original-evidence");
+    var invalidator =
+        new AnalysisCacheInvalidator(
+            client,
+            objectCodecs,
+            COMPRESSION_SERVICE,
+            fingerprintService,
+            frontierNodeVersion,
+            baseClientId,
+            mockEventHandler,
+            mockEventListener,
+            safeDirectExecutor());
+    var state =
+        new RemoteAnalysisCachingServerState(
+            frontierNodeVersion, new SnapshotClientId("previous-command", 2));
+    var invalidated = invalidator.lookupKeysToInvalidate(() -> ImmutableSet.of(key), state);
+    if (valid) {
+      assertThat(invalidated).isEmpty();
+    } else {
+      assertThat(invalidated).containsExactly(key);
+    }
+    verify(client).validatePreviouslyLoadedValue(any());
+    verify(client, never()).isPreviouslyLoadedValueValid(any());
+    verify(client, never()).lookup(any());
+  }
+
+  @Test
+  public void synchronousRetainedValidationPropagatesCommandInterruption() throws Exception {
+    var client = org.mockito.Mockito.mock(RetainedAnalysisCacheClient.Synchronous.class);
+    when(client.validatePreviouslyLoadedValue(any()))
+        .thenThrow(new InterruptedException("cancelled"));
+    when(client.isPreviouslyLoadedValueValid(any())).thenReturn(immediateFuture(true));
+    var invalidator =
+        new AnalysisCacheInvalidator(
+            client,
+            objectCodecs,
+            COMPRESSION_SERVICE,
+            fingerprintService,
+            frontierNodeVersion,
+            baseClientId,
+            mockEventHandler,
+            mockEventListener,
+            safeDirectExecutor());
+    var state =
+        new RemoteAnalysisCachingServerState(
+            frontierNodeVersion, new SnapshotClientId("previous-command", 2));
+    assertThrows(
+        InterruptedException.class,
+        () ->
+            invalidator.lookupKeysToInvalidate(
+                () -> ImmutableSet.of(new TrivialKey("cancelled")), state));
+    verify(client, never()).isPreviouslyLoadedValueValid(any());
+    verify(client, never()).lookup(any());
+  }
 
   @Test
   public void retainedValueInvalidationUsesPreviousEvidenceInsteadOfReplacementLookup()
