@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 55. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 56. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -161,34 +161,24 @@ encoded metadata budgets do not bound decoded objects or the whole graph. See th
 
 ## Remaining local acceptance sequence
 
-Step55 records the user's explicit16-build cap, including completed commands. Keep controls,
-independent reuse, warm retention, simultaneous edits, warm reverts, independent edited controls
-and forced collection with a subsequent writer/independent reader. Omit repeated restart/re-edit
-checks and the extra concurrent pair after collection. The harness enforces the invocation budget;
-the final audit and handoff must describe this16-build scope rather than claiming32 builds.
-Historical32-build intentions and failed attempts above remain part of the recorded history.
+Step56 supersedes the prior all-passing16-build schedule after retry7 ended with eight successful
+and two timed-out commands. The cap counts all attempts. Only six remain: concurrent edited
+publication, warm reverts and independent edited controls. Keep the failed report immutable.
+The large post-GC writer/reader pair and repeated restarts are omitted, not considered passed.
 
-1. Finish the selected16-build matrix with unchanged binary/resources/deadline. Require real
-   analysis/shared reads, distinct edited executable hashes matching independent controls, exact
-   reverts, successful expected publication, no cache-disable fallback or deadline failures,
-   stopped servers and restored sources. Count the eight completed commands preserved at the
-   planned schedule boundary; do not rerun them.
-2. Inspect raw logs, samples and collector records against the report. Check zero active collection
-   slots, removal of inactive recognized data and recovery after collection. Recheck binary/source
-   hashes, pinned Datadog revision/lockfile, environment and resource-policy identity. Do not accept
-   a successful action summary when command finalization failed.
-3. If a gate fails, preserve the result and diagnose before editing. For each performance change,
-   capture a baseline, implement the narrow fix, run meaningful regressions, repeat measurements,
-   record decisions/rejected alternatives and commit/push implementation and docs separately before
-   moving to the next issue. A longer timeout or ignored witness is not evidence of a solved defect.
-4. Publish matched end-to-end latency, participating-process RSS/PSS, real hit counts and storage
-   behavior, including negative/inconclusive results. The D device is a SATA HDD; compare within-run
-   phases only and state page-cache/host-memory exclusions. Do not make an SSD or general speed claim.
-5. Complete the requirement audit against current code and actual evidence. Preserve private raw
-   logs/BEP, failed publication bytes, current evidence and source provenance in a verified archive.
-   Unregister only the four owned final Datadog worktrees, normally unmount the exact temporary D
-   image, stop task helpers and remove that image. Preserve the original E fixtures and user repos.
-   Final docs/results go to `jsgette/master`; implementation stays on its separately pushed branch.
+Copy and checksum-verify repository contents onto a temporary64GiB C NVMe-backed image while
+preserving logical paths. Both backing volumes retain the existing capacity guards. Use the same
+binary, checks, resources and deadline. Require actual shared reads and successful publication in
+both edited commands, distinct feature outputs matching independent controls, exact reverts,
+stopped servers and restored sources. Prior attempts warmed local outputs, so final timings are
+observations and do not establish a matched performance gain.
+
+After these at-most-six commands, audit the actual result, archive private raw evidence, remove
+only the four owned final worktrees, normally unmount both owned images and remove their files.
+Preserve original E fixtures and user repositories. Publish the implementation/limitations handoff
+on jsgette/master; implementation stays on its separately pushed branch. Do not claim16/16 passing
+or fresh post-collection rebuild proof. If the remaining checks fail, report the unresolved issue
+without exceeding the cap or declaring the implementation mature.
 
 All source builds/tests use Cache&Carry:
 `--config=efcache --bes_backend= --remote_upload_local_results=false`.

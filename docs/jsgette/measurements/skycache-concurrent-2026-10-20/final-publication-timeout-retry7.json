@@ -1,0 +1,74 @@
+{
+  "observed_unix": 1792590511.8700912,
+  "passed": false,
+  "attempted_builds": 10,
+  "accepted_builds": 8,
+  "timed_out_builds": 2,
+  "remaining_build_budget": 6,
+  "validation_build_limit": 16,
+  "results_sha256": "d46df2b8b0800966eec7aa3da68c94927502052b074c327d92c292a4a744dc53",
+  "binary_sha256": "0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0",
+  "sources_restored": true,
+  "shutdown_failures": [],
+  "invalidation_timeouts": 0,
+  "edited_builds": [
+    {
+      "worktree": "a",
+      "exit_code": 124,
+      "command_seconds": 1800.1170647370018,
+      "execution_summary_seconds": 1250.61,
+      "minimum_finalization_seconds": 549.5070647370019,
+      "analysis_hits": 6206,
+      "shared_reads": 325094,
+      "writes": 6420,
+      "published": false,
+      "publication_failures": [
+        "interrupted local input hashing"
+      ],
+      "post_timeout_artifact_sha256": "ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e",
+      "artifact_bytes": 119596056
+    },
+    {
+      "worktree": "b",
+      "exit_code": 124,
+      "command_seconds": 1800.1159572450015,
+      "execution_summary_seconds": 1201.947,
+      "minimum_finalization_seconds": 598.1689572450016,
+      "analysis_hits": 6206,
+      "shared_reads": 325095,
+      "writes": 6420,
+      "published": false,
+      "publication_failures": [
+        "interrupted local input hashing"
+      ],
+      "post_timeout_artifact_sha256": "bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674",
+      "artifact_bytes": 119596056
+    }
+  ],
+  "interpretation": "Restoring native repository bindings did not solve the HDD-backed final hashing deadline. Both commands executed successfully but timed out and did not publish. Post-timeout artifact hashes are diagnostics, not accepted full-command results.",
+  "remaining_budget_decision": {
+    "total_limit": 16,
+    "remaining": 6,
+    "count_failed_attempts": true,
+    "phases": [
+      "two concurrent edited readers/publishers",
+      "two warm reverts",
+      "two independent edited controls"
+    ],
+    "omitted": [
+      "large post-collection writer/reader",
+      "all previously omitted repeated restarts"
+    ],
+    "storage_intervention": "Copy only repository contents to a new64GiB C NVMe-backed ext4 image; checksum verify and bind over the same logical D path. Preserve original contents underneath; normally unmount and remove the temporary image during handoff.",
+    "resource_policy": "Same binary; jobs2/action3072MiB/Xmx4g per server;1800second full-command deadline; remote action cache off; edited phases and controls have disk action cache off.",
+    "measurement_limit": "Earlier failed builds warmed local outputs. The remaining six establish correctness and record timings, not a fair before/after speedup comparison.",
+    "rejected": [
+      "repeat the full matrix",
+      "raise deadline",
+      "skip content witnesses",
+      "claim successful execution equals successful command",
+      "allocate128GiB on C and violate the capacity reserve"
+    ],
+    "reason_for_reconsidering_C": "Earlier no-new-C-image restriction was an operator choice. Repository-only64GiB image fits the current147GiB free space and unchanged30GiB guest/host reserves; old full C image was already removed."
+  }
+}

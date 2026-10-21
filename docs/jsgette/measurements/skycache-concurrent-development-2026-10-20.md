@@ -3309,3 +3309,37 @@ older measurements remain historical evidence. The unchanged binary, resource se
 checks and1,800-second per-command deadline are retained.
 
 Evidence: [scope, phase counts and harness checks](skycache-concurrent-2026-10-20/compact-validation-scope.json).
+
+
+## Step 56 — retain two failed attempts; use only six remaining builds
+
+Retry7 stopped with **eight passing commands and two timed-out commands**. Each edited command
+imported 6,206 configured targets and executed 6,789 actions. Execution summaries were 1,250.610
+and 1,201.947 seconds; at least 549.507 and 598.169 further seconds elapsed before the unchanged
+1,800-second command deadline interrupted final input hashing. Neither edited publication completed.
+The executable files left after cancellation have distinct hashes, but they are diagnostic artifacts,
+not successful full-command results. All servers stopped, sources were restored and no invalidation
+timeout occurred. Native sharing restoration did not resolve this HDD-backed finalization failure.
+
+The user cap includes these failures: **10 attempted, six remaining, never more than16**. Preserve
+the original failed report and private readback-verified archive. The last six will test simultaneous
+edited reads/publications, warm reverts and independent edited controls. The large post-collection
+writer/reader pair is omitted to respect the cap. Existing focused lifecycle tests and earlier real
+server collection evidence remain separate; do not describe the reduced run as fresh post-GC proof.
+
+The next physical-storage intervention copies only repository contents (about11.25GiB) to a new
+temporary64GiB NVMe-backed ext4 image on C. A checksum comparison precedes a bind mount at the
+same logical contents-cache path; the original D directory remains underneath for restoration.
+This reconsiders our earlier operator choice to avoid another C image: current free capacity allows
+the smaller image while retaining the unchanged reserves. A full128GiB image would not. Both the
+C child filesystem and D output filesystem must be monitored. The temporary C image is removed
+at final cleanup. No binary, fingerprint, content-validation, timeout or resource change is made.
+
+These last commands are correctness checks with timing observations. Earlier failed edited commands
+already warmed their local action outputs, so comparing them against independent controls cannot
+establish a fair speedup. Keep the HDD and NVMe-input cohorts separate. The best possible capped
+outcome is14 passing commands plus two recorded failures, not16/16 passing. No more full-matrix
+restarts are authorized within this cap. Once the scoped checks finish, preserve evidence and
+publish the implementation handoff, remaining performance issues and missing validation.
+
+Evidence: [retry7 failure and budget decision](skycache-concurrent-2026-10-20/final-publication-timeout-retry7.json).
