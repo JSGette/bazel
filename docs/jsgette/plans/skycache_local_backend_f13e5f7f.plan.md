@@ -365,6 +365,17 @@ controls, copied stopped output bases and a copied action cache, then collection
 Do not call the goal complete or infer edited-output correctness from the cancelled phase. Preserve
 results before stopping the bounded mount keeper and cleaning up the temporary volume.
 
+## Host-capacity recovery and C cleanup (Step 42)
+
+The first isolated-volume control pair was cancelled because WSL interop could not query host
+capacity; no successful phase or cache publication existed. A native Windows watcher now provides
+fresh atomic observations, with fail-closed freshness/schema checks and the original reserves.
+Twenty-one guard tests and a live watcher check pass. The exact task image was copied to D with
+full-file SHA-256 verification, expanded to 128 GiB, and mounted at its original Linux path. The
+unmounted 64 GiB C image was removed after verification. The complete matrix is retried with new
+results and zero accepted prior phases. Stop both task-owned helpers and clean D scratch after
+preserving evidence. The final workload gate is still required; core implementation is unchanged.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

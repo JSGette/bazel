@@ -2665,3 +2665,67 @@ Evidence: [interrupted workload](skycache-concurrent-2026-10-20/collector-datado
 [owned-client cancellation](skycache-concurrent-2026-10-20/collector-datadog-storage-cancellation.json),
 [sixteen guard tests](skycache-concurrent-2026-10-20/collector-storage-guard-tests.json),
 [actual backing-volume verification](skycache-concurrent-2026-10-20/collector-c-volume-verification.json).
+
+
+## Step 42 — host observations independent of WSL interop; C scratch reclaimed
+
+Harness implementation: [1b96f8cd4c05](https://github.com/JSGette/bazel/commit/1b96f8cd4c05789c8f62722fc488eef26d3392b0).
+The core binary and its 265-case Java evidence are unchanged. This step changes only measurement
+storage tooling; source builds/tests continue to use Cache&Carry. Twenty-one direct Python tests pass.
+
+The first C-backed attempt was cancelled during its initial cache-off control pair after
+559.750 seconds. The live guard could not obtain a fresh Windows observation
+after three WSL interop attempts (`UtilAcceptVsock: accept4 failed 110`). Both owned clients exited 8;
+neither produced an accepted executable, no phase passed, and no SkyCache publication was created.
+The image still had approximately 40 GiB free. All four servers were shut down, sources restored,
+legacy hashes preserved and no invalidation deadline observed. This is a failed infrastructure
+attempt, not evidence of cache correctness or performance. Its results and local logs are retained.
+
+The optional `SKYCACHE_WINDOWS_STORAGE_SNAPSHOT` input now accepts an atomically published observation
+from a native Windows watcher. The supplied PowerShell helper queries actual drive/distro capacity
+every five seconds, has an explicit stop file and a twelve-hour maximum lifetime. WSL rejects files
+over 64 KiB, malformed or unknown schemas, missing observations, nonfinite/non-numeric timestamps,
+future timestamps, and readings older than thirty seconds. A configured but invalid snapshot does
+not silently fall back or disable the guard. Without this option the original fresh interop query
+and bounded retries remain. Existing volume mapping and the 30 GiB/10 GiB reserves are unchanged.
+New tests exercise freshness and malformed input alongside all existing capacity/cancellation cases.
+
+The first native watcher startup exposed Windows PowerShell's conversion of a null string argument
+to an empty path in `File.Replace`; using its explicit `NullString.Value` fixes atomic replacement.
+The corrected, committed helper was observed refreshing for 321.4 seconds
+with empty stderr and a 0.032-second-old reading at the recorded check. The
+watcher's PID/start time, script hash and stop file are recorded privately for cleanup.
+
+D is a healthy fixed NTFS volume with approximately 931 GiB initially free. It is backed by a
+TOSHIBA DT01ACA100 SATA disk; C and E are NVMe drives. This is a different storage class, so the
+retry is a correctness/concurrency gate with within-run timings, not an SSD performance result. The stopped task image
+was normally unmounted and its loop attachment verified absent. Native PowerShell copied only that
+64 GiB image to a newly created task directory on D, then checked SHA-256 of both complete files.
+Copy time was 362.747 seconds; copy plus verification took
+774.923 seconds. Only the verified D copy was enlarged to
+128 GiB, checked with e2fsck and resized. It retained its filesystem UUID and original Linux mount
+path so existing worktrees and output bases remain valid. The historical directory name still says
+`c-backed-measurements`; live kernel backing metadata now proves that it resides on D.
+
+After the D copy mounted and its capacity guard passed, the exact unmounted C image was removed with
+native PowerShell. This reclaimed its 64 GiB allocation; observed C free space increased by
+64.000 GiB and was 143.261 GiB at
+verification. No Ubuntu VHD compaction, WSL shutdown, unrelated file deletion or reduced reserve was
+used. The native watcher and bounded WSL keeper remain task-owned and must be stopped after results
+are preserved and the D scratch volume is cleaned up.
+
+The retry uses a separate result directory and repeats the entire control/writer/reader/edit/revert/
+collection matrix. It accepts zero phases from the interrupted attempt. Before starting, it verifies
+the pinned source revision, resolved lockfile, no unexpected tracked edits, stopped servers, empty
+SkyCache, immutable binary/jar hashes and unchanged compiled sources. Existing downloaded dependencies
+and stopped output bases are retained. The original failed report is linked by path and SHA-256 in
+the new protocol. Storage is now D-backed, so timings are compared within this new run only.
+The substantial final gate remains incomplete until the retry finishes successfully.
+
+Evidence: [failed C attempt](skycache-concurrent-2026-10-20/collector-c-interop-interrupted.json),
+[21 guard tests](skycache-concurrent-2026-10-20/collector-host-observation-tests.json),
+[live native watcher](skycache-concurrent-2026-10-20/collector-host-watcher-live.json),
+[verified relocation](skycache-concurrent-2026-10-20/collector-d-image-relocation.json),
+[D-backed capacity](skycache-concurrent-2026-10-20/collector-d-volume-verification.json),
+[C cleanup](skycache-concurrent-2026-10-20/collector-c-image-cleanup.json),
+[retry command and decisions](skycache-concurrent-2026-10-20/collector-d-retry-command.json).
