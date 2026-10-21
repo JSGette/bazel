@@ -1,0 +1,454 @@
+{
+  "observed_unix": 1792583869.4455,
+  "passed": false,
+  "terminal_exit": 1,
+  "session": 79935,
+  "results_sha256": "dd08af52952cc24138d7769eeae3732304ede9310604aded194b4674f260eaa6",
+  "source_binary_sha256": "0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0",
+  "accepted_output_builds": 10,
+  "timed_out_builds": 2,
+  "invalidation_timeouts": 0,
+  "sources_restored": true,
+  "shutdown_failures": [],
+  "build_execution_seconds": {
+    "a": 1242.64,
+    "b": 1277.797
+  },
+  "whole_command_seconds": 1800.2219293609996,
+  "post_execution_wait_lower_bound_seconds": {
+    "a": 557.3599999999999,
+    "b": 522.203
+  },
+  "analysis_hits_each": 6206,
+  "publication_skipped_due_to_interrupt": true,
+  "observed_cause": "Command deadline interrupted fresh input content hashing after successful action execution. Both publications were conservatively skipped. Zero warm invalidation timeouts: the committed fix worked, but full matrix still fails.",
+  "hypotheses": [
+    {
+      "rank": 1,
+      "mechanism": "Slow physical reads and metadata traversal on temporary HDD-backed ext4 image, amplified by two simultaneous fresh final input scans.",
+      "evidence": "Both JVM I/O counters continue rising with almost no CPU; ~89-90% I/O pressure; observed open199.5MB LLVM library during finalhash.",
+      "next": "Bounded sequential read/hash probe of owned immutable representative input, with file-scoped eviction only; compare local SSD fixture and same HDD backing path."
+    },
+    {
+      "rank": 2,
+      "mechanism": "Redundant content reads within one final pass exceed bounded alias memo.",
+      "evidence": "Existing256-entry cap and >=1MiB threshold; need actual pass statistics, not inferred from cumulative process bytes.",
+      "next": "Inspect existing alias/publication benchmark hooks; measure actual file access distribution before changingcode."
+    }
+  ],
+  "discarded_for_now": [
+    "Calling executable success a passing fullcommand",
+    "Changing30minute deadline only to turn thisattempt green",
+    "Skippingfresh input validation or trusting unchecked timestamps",
+    "Restarting fullmatrix unchanged before identifying a measurable correction"
+  ],
+  "next": "Diagnose storage/content hashing, make measured change if supported, then rerun appropriate acceptance. All prior reports remainimmutable.",
+  "digest_capacity_inventory": {
+    "observed_unix": 1792584080.3457637,
+    "seconds": 8.551341731999855,
+    "manifest_sha256": "a6a7824bbd7dfc1006162fab0a77d5a9f5071f85783a2ad175cdda88e68ed4b6",
+    "manifest_witness_count": 84846,
+    "parent_count": 0,
+    "missing_nonlisting_witnesses": 20130,
+    "large_witness_paths": 153,
+    "unique_large_file_versions": 88,
+    "logical_large_file_bytes": 6316401782,
+    "unique_large_file_bytes": 2194740290,
+    "source_large_paths": 27,
+    "source_unique_large_versions": 27,
+    "first_pass_capacity": 256,
+    "capacity_exceeded_by_unique_versions": false,
+    "top_alias_groups": [
+      {
+        "bytes_each": 223765784,
+        "paths": 5,
+        "avoidable_bytes_if_reused": 895063136,
+        "example_basenames": [
+          "clang",
+          "clang++",
+          "clang-19",
+          "clang-cl",
+          "clang-cpp"
+        ]
+      },
+      {
+        "bytes_each": 140517584,
+        "paths": 5,
+        "avoidable_bytes_if_reused": 562070336,
+        "example_basenames": [
+          "ld.lld",
+          "ld64.lld",
+          "lld",
+          "lld-link",
+          "wasm-ld"
+        ]
+      },
+      {
+        "bytes_each": 102289504,
+        "paths": 6,
+        "avoidable_bytes_if_reused": 511447520,
+        "example_basenames": [
+          "python",
+          "python3",
+          "python3.12"
+        ]
+      },
+      {
+        "bytes_each": 218430976,
+        "paths": 3,
+        "avoidable_bytes_if_reused": 436861952,
+        "example_basenames": [
+          "libpython3.12.so",
+          "libpython3.12.so.1.0"
+        ]
+      },
+      {
+        "bytes_each": 199522152,
+        "paths": 3,
+        "avoidable_bytes_if_reused": 399044304,
+        "example_basenames": [
+          "liblldb.so",
+          "liblldb.so.19.1",
+          "liblldb.so.19.1.7"
+        ]
+      },
+      {
+        "bytes_each": 156480608,
+        "paths": 3,
+        "avoidable_bytes_if_reused": 312961216,
+        "example_basenames": [
+          "libclang.so",
+          "libclang.so.19.1",
+          "libclang.so.19.1.7"
+        ]
+      },
+      {
+        "bytes_each": 237123872,
+        "paths": 2,
+        "avoidable_bytes_if_reused": 237123872,
+        "example_basenames": [
+          "libclang-cpp.so",
+          "libclang-cpp.so.19.1"
+        ]
+      },
+      {
+        "bytes_each": 112840008,
+        "paths": 3,
+        "avoidable_bytes_if_reused": 225680016,
+        "example_basenames": [
+          "llvm-bolt",
+          "llvm-boltdiff",
+          "perf2bolt"
+        ]
+      },
+      {
+        "bytes_each": 126259544,
+        "paths": 2,
+        "avoidable_bytes_if_reused": 126259544,
+        "example_basenames": [
+          "libLTO.so",
+          "libLTO.so.19.1"
+        ]
+      },
+      {
+        "bytes_each": 37864480,
+        "paths": 4,
+        "avoidable_bytes_if_reused": 113593440,
+        "example_basenames": [
+          "llvm-ar",
+          "llvm-dlltool",
+          "llvm-lib",
+          "llvm-ranlib"
+        ]
+      },
+      {
+        "bytes_each": 12058640,
+        "paths": 9,
+        "avoidable_bytes_if_reused": 96469120,
+        "example_basenames": [
+          "libstdc++.so",
+          "libstdc++.so.6",
+          "libstdc++.so.6.0.29"
+        ]
+      },
+      {
+        "bytes_each": 19579304,
+        "paths": 3,
+        "avoidable_bytes_if_reused": 39158608,
+        "example_basenames": [
+          "libstdc++.a"
+        ]
+      }
+    ],
+    "scope": "Metadata-only inventory of the baseline publication. This is not actual final-pass access order or a timed content-validation measurement. Additional edited witnesses and source traversal may differ."
+  },
+  "storage_probe": {
+    "passed": true,
+    "bytes_per_read": 67108864,
+    "rows": [
+      {
+        "seconds": 1.8283659420012555,
+        "cpu_seconds": 0.043006185999999995,
+        "bytes": 67108864,
+        "buffer_bytes": 65536,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 1026,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 0,
+        "location": "loop_hdd"
+      },
+      {
+        "seconds": 1.802224863000447,
+        "cpu_seconds": 0.034968463000000005,
+        "bytes": 67108864,
+        "buffer_bytes": 1048576,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 66,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 1,
+        "location": "loop_hdd"
+      },
+      {
+        "seconds": 0.06799920199773624,
+        "cpu_seconds": 0.047545926,
+        "bytes": 67108864,
+        "buffer_bytes": 65536,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 1026,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 2,
+        "location": "native_wsl"
+      },
+      {
+        "seconds": 0.03468668200002867,
+        "cpu_seconds": 0.034516299,
+        "bytes": 67108864,
+        "buffer_bytes": 1048576,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 66,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 3,
+        "location": "native_wsl"
+      },
+      {
+        "seconds": 0.3761182150010427,
+        "cpu_seconds": 0.04946307,
+        "bytes": 67108864,
+        "buffer_bytes": 65536,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 1026,
+          "syscw": 0,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 4,
+        "location": "direct_hdd"
+      },
+      {
+        "seconds": 0.2656893949970254,
+        "cpu_seconds": 0.03701937300000001,
+        "bytes": 67108864,
+        "buffer_bytes": 1048576,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 66,
+          "syscw": 0,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 5,
+        "location": "direct_hdd"
+      },
+      {
+        "seconds": 0.2624772839990328,
+        "cpu_seconds": 0.036343417,
+        "bytes": 67108864,
+        "buffer_bytes": 1048576,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 66,
+          "syscw": 0,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 6,
+        "location": "direct_hdd"
+      },
+      {
+        "seconds": 0.37950174100114964,
+        "cpu_seconds": 0.051079881,
+        "bytes": 67108864,
+        "buffer_bytes": 65536,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 1026,
+          "syscw": 0,
+          "read_bytes": 0,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 7,
+        "location": "direct_hdd"
+      },
+      {
+        "seconds": 0.03728454199881526,
+        "cpu_seconds": 0.035285927999999994,
+        "bytes": 67108864,
+        "buffer_bytes": 1048576,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 66,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 8,
+        "location": "native_wsl"
+      },
+      {
+        "seconds": 0.0674854620010592,
+        "cpu_seconds": 0.046703814,
+        "bytes": 67108864,
+        "buffer_bytes": 65536,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 1026,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 9,
+        "location": "native_wsl"
+      },
+      {
+        "seconds": 1.8354797960018914,
+        "cpu_seconds": 0.036289051,
+        "bytes": 67108864,
+        "buffer_bytes": 1048576,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 66,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 10,
+        "location": "loop_hdd"
+      },
+      {
+        "seconds": 1.8127164819998143,
+        "cpu_seconds": 0.043511099,
+        "bytes": 67108864,
+        "buffer_bytes": 65536,
+        "sha256": "53a0ce0ba94cea6c206b99820e66d06e2ee094faa3800262dd9a15303449ff7c",
+        "io_delta": {
+          "rchar": 67108961,
+          "wchar": 0,
+          "syscr": 1026,
+          "syscw": 0,
+          "read_bytes": 67108864,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "index": 11,
+        "location": "loop_hdd"
+      }
+    ],
+    "scope": "64MiB identical-prefix SHA256 reads; per-file guest eviction only. Host cache and HDD placement are uncontrolled. No global cache drop. This is a storage diagnostic, not a whole-build comparison."
+  },
+  "repository_sharing_inventory": {
+    "observed_unix": 1792584827.1847868,
+    "counts": {
+      "original_native": {
+        "a": {
+          "entries": 725,
+          "directory_symlinks": 497
+        },
+        "b": {
+          "entries": 725,
+          "directory_symlinks": 497
+        },
+        "control-a": {
+          "entries": 725,
+          "directory_symlinks": 497
+        },
+        "control-b": {
+          "entries": 725,
+          "directory_symlinks": 497
+        }
+      },
+      "current_hdd": {
+        "a": {
+          "entries": 1219,
+          "directory_symlinks": 3
+        },
+        "b": {
+          "entries": 1219,
+          "directory_symlinks": 3
+        },
+        "control-a": {
+          "entries": 1219,
+          "directory_symlinks": 3
+        },
+        "control-b": {
+          "entries": 1219,
+          "directory_symlinks": 3
+        }
+      }
+    },
+    "native_fixture_disk_gib_approx": 13,
+    "hdd_fixture_disk_gib_approx": 67,
+    "explanation": "Native cache flags are enabled but most previously materialized copied-fixture repositories remain private directories. Earlier disable-cache preparation and retained repository markers must be distinguished from current configured cache flags. The original native fixture uses shared cache symlinks."
+  },
+  "selected_next_step": "Restore normal native repository-contents sharing in all four stopped owned output bases, preserving marker bytes and using Bazel fetch to validate and install shared repository candidates. Preserve every failed SkyCache publication and report. Keep binary, validation checks and1800second deadline unchanged.",
+  "remaining": "Repository preparation, substantial complete32-build retry, final evidence archive and cleanup."
+}

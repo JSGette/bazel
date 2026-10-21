@@ -3190,3 +3190,53 @@ excludes page cache and host VM overhead. Concurrent edited execution, reverts, 
 final evidence archival and cleanup remain pending.
 
 Evidence: [retention measurement, criterion correction and source provenance](skycache-concurrent-2026-10-20/local-retained-validation.json).
+
+
+## Step 53 — concurrent edited execution succeeds, final publication exceeds the deadline
+
+The current 280-case binary completed ten baseline/control/reader output checks, including the warm
+retention result in Step 52, then failed the first edited pair's full-command limit. Both edited
+builds reported 6,206 configured-target hits and completed 6,789 actions (5,704 sandboxed, 1,085
+internal) with the disk action cache disabled. Bazel's execution summaries were 1,242.640 seconds
+for A and 1,277.797 for B. Neither command completed publication before the 1,800-second deadline.
+Both clients returned 124; both publications were skipped with `interrupted local input hashing`.
+The additional post-execution waits were at least 557.360 and 522.203 seconds. Successful executable
+construction does not make these passing full builds, and no independent edited-control comparison
+was completed in this attempt.
+
+All four servers stopped normally and sources restored. There were zero invalidation timeouts:
+the retained-value fix remains supported by its focused and warm-runtime evidence. The full matrix
+is nevertheless failed. Its immutable report, logs and cache data remain preserved. No deadline was
+increased, no input checks were skipped, and no thread dump altered this measurement. Lightweight
+`/proc` observations showed advancing reads, little CPU use and roughly 89–90% I/O pressure. One
+observed final-validation descriptor was reading the 199.5 MB LLVM debugger library.
+
+The bounded digest cache was investigated before editing code. The saved baseline manifest has
+84,846 witnesses, 153 large-file paths and only 88 distinct large-file versions, totaling about
+2.19 GB of unique large-file bytes. Source traversal adds 27 distinct large files. This inventory
+does not support exhaustion of the 256-entry per-pass cache; raising the limit was rejected. The
+inventory is metadata evidence, not the exact edited command's access order or an executed pass.
+
+A bounded diagnostic read and SHA-256 hashed the same 64 MiB prefix through three paths, with file-
+scoped guest-cache eviction and reversed device/buffer order. The HDD-backed ext4 image took
+1.80–1.84 seconds; direct HDD files took 0.26–0.38 seconds; native WSL files took 0.03–0.07 seconds.
+Changing from 64 KiB to 1 MiB reads barely affected the image path. Host cache and physical placement
+were uncontrolled, so these are storage diagnostics, not cold-device or whole-build speedup claims.
+No global cache drop, system tuning, C-drive image creation or WSL restart was performed.
+
+The repository inventory exposed a material setup difference. Each original native output base
+has 497 directory symlinks, while each HDD output base has only three. The original fixture occupies
+about 13 GiB; the HDD fixture about 67 GiB. The earlier cache-disabled preparation materialized
+repositories privately, and reenabling native cache flags did not replace still-valid directories.
+The prior Python-only repair restored its shared binding but left the other private toolchains.
+Thus “native repository sharing enabled” described configuration, not actual sharing of every repo.
+
+Chosen next step: restore normal contents-cache sharing for the repositories that were shared in
+the original fixture. Preserve generated marker bytes, seed exact native cache candidates where
+available, and let Bazel validate/fetch them normally for all four worktrees. Do not manually rewrite
+input fingerprints or Python cache paths. The original native fixture remains untouched, and the
+new matrix must start with an empty SkyCache. Keep the current binary, resources, cache policies and
+1,800-second deadline. The native WSL host drive has only about 28 GiB free, below the existing 30 GiB
+guard, so a new native fixture or a reduced storage guard was not selected.
+
+Evidence: [failed run and storage/sharing diagnostics](skycache-concurrent-2026-10-20/final-publication-timeout-retry6.json).

@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 52. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 53. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -58,8 +58,17 @@ expectation rather than treating it as passed or relaxing evidence checks.
 The warm reader took 85.081 seconds versus 137.126 in the previous failed run, which discarded the
 whole imported graph on timeout. Those ordered HDD observations do not establish an isolated speedup.
 The restarted cache-enabled pair was slower and used more process memory than its cache-off control
-in this run. The full 32-build edit/revert/collection matrix remains open, followed by evidence archival,
-owned scratch cleanup and final acceptance. The prior failed attempts and cache data remain preserved.
+in this run. The latest full attempt then failed both edited commands at 1,800 seconds during final input
+hashing, after successful execution and 6,206 hits each. All servers stopped and sources restored;
+there were zero invalidation timeouts. The full 32-build edit/revert/collection gate remains open.
+
+Step 53 identifies a preparation difference: the original fixture has 497 shared repository-directory
+symlinks per output base, while the HDD fixture has only three after its earlier cache-disabled
+materialization. Cache flags alone did not migrate those directories. Repository sharing will be
+restored through native cache candidate validation/fetch before a fresh matrix. A metadata inventory
+does not support increasing the 256-entry digest capacity, and a storage probe does not support a
+larger read buffer as a remedy for this image path. Validation checks and deadlines remain unchanged.
+The prior failed attempts and cache data remain preserved; final archival and cleanup are pending.
 
 Inherited publication evidence and aliased-file digest optimizations remain separate measured results:
 their warm-filesystem microbenchmarks reduce logical reads about 67% and 80%. Whole-build performance
