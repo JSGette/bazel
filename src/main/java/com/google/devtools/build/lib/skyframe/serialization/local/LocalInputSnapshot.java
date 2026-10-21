@@ -51,12 +51,26 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   private final Path external;
   private final Map<String, String> environment;
   private final ConcurrentHashMap<String, Witness> witnesses = new ConcurrentHashMap<>();
+  // Successful admission checks are hints for this invocation's entry validation only. They
+  // do not become publication evidence until an entry actually uses them.
+  private final HashSet<Witness> admittedWitnesses = new HashSet<>();
+  private final int admissionWitnessLimit;
   private final String sourceDigest;
   private final String cacheNamespace;
   private volatile boolean changed;
 
   LocalInputSnapshot(Path workspace, Path outputBase, Map<String, String> environment)
       throws IOException {
+    this(workspace, outputBase, environment, 250_000);
+  }
+
+  LocalInputSnapshot(
+      Path workspace, Path outputBase, Map<String, String> environment, int admissionWitnessLimit)
+      throws IOException {
+    if (admissionWitnessLimit < 1) {
+      throw new IllegalArgumentException("invalid admission witness capacity");
+    }
+    this.admissionWitnessLimit = admissionWitnessLimit;
     this.workspace = workspace.toAbsolutePath().normalize();
     this.outputBase = outputBase.toAbsolutePath().normalize();
     this.external = this.outputBase.resolve("external");
@@ -182,6 +196,41 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
       }
     }
     return true;
+  }
+
+  /** Always checks current content; only a success may later help entry validation. */
+  boolean matchesForAdmission(Witness witness) throws IOException {
+    boolean matches = false;
+    try {
+      matches = matches(witness);
+      return matches;
+    } finally {
+      // Never hold this monitor across filesystem work or callbacks into a cache session.
+      synchronized (admittedWitnesses) {
+        if (!matches) {
+          admittedWitnesses.remove(witness);
+        } else if (admittedWitnesses.size() < admissionWitnessLimit) {
+          admittedWitnesses.add(witness);
+        }
+      }
+    }
+  }
+
+  /** Uses exact positive evidence from this command, registering it for fresh final checking. */
+  boolean includeAdmittedWitness(Witness witness) {
+    synchronized (admittedWitnesses) {
+      if (!admittedWitnesses.contains(witness)) {
+        return false;
+      }
+    }
+    remember(witness);
+    return true;
+  }
+
+  void clearAdmissionWitnesses() {
+    synchronized (admittedWitnesses) {
+      admittedWitnesses.clear();
+    }
   }
 
   boolean matches(Witness witness) throws IOException {

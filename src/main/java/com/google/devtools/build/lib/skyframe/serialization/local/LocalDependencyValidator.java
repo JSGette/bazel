@@ -47,6 +47,7 @@ final class LocalDependencyValidator {
   private final HashSet<ByteString> validated = new HashSet<>();
   private final HashSet<LocalInputSnapshot.Witness> validatedWitnesses = new HashSet<>();
   private long witnessMemoHits;
+  private long admissionWitnessMemoHits;
   private long recordsRead;
   private long memoHits;
   private long witnessesChecked;
@@ -98,9 +99,13 @@ final class LocalDependencyValidator {
             witnessMemoHits++;
             continue;
           }
-          witnessesChecked++;
-          if (!inputs.validateAndInclude(witness)) {
-            throw new IOException("dependency content mismatch");
+          if (inputs.includeAdmittedWitness(witness)) {
+            admissionWitnessMemoHits++;
+          } else {
+            witnessesChecked++;
+            if (!inputs.validateAndInclude(witness)) {
+              throw new IOException("dependency content mismatch");
+            }
           }
           if (validatedWitnesses.size() < limits.records()) {
             validatedWitnesses.add(witness);
@@ -202,13 +207,14 @@ final class LocalDependencyValidator {
   synchronized String statisticsJson() {
     return String.format(
         java.util.Locale.ROOT,
-        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d}",
+        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d,\"admission_witness_memo_hits\":%d}",
         recordsRead,
         memoHits,
         witnessesChecked,
         rejected,
         validated.size(),
         witnessMemoHits,
-        validatedWitnesses.size());
+        validatedWitnesses.size(),
+        admissionWitnessMemoHits);
   }
 }

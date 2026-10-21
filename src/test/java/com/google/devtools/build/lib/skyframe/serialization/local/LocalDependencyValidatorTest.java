@@ -550,6 +550,46 @@ public final class LocalDependencyValidatorTest {
   }
 
   @Test
+  public void admissionSuccessIsReusedAndRegisteredForFinalValidation() throws Exception {
+    Path external = Files.writeString(output.resolve("input"), "one");
+    byte[] evidence = writer.captureDependency(external, false, List.of());
+    var leaf =
+        new StringKey("local-input-v1/" + NONPROD_FINGERPRINTER.fingerprint(evidence).toHex());
+    store.put(leaf, evidence).get();
+    var inputs = snapshot();
+    for (var witness : LocalDependencyEvidence.decode(evidence).witnesses()) {
+      assertThat(inputs.matchesForAdmission(witness)).isTrue();
+    }
+    var validator = new LocalDependencyValidator(store, inputs, NONPROD_FINGERPRINTER, compression);
+    assertThat(validator.validate(root(leaf))).isTrue();
+    assertThat(validator.statisticsJson()).contains("\"admission_witness_memo_hits\":1");
+    assertThat(validator.statisticsJson()).contains("\"witnesses_checked\":0");
+    Files.writeString(external, "two");
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
+  public void admittedLeafDoesNotBypassResolutionParents() throws Exception {
+    Path link = Files.createSymbolicLink(workspace.resolve("resolution-link"), Path.of("dir/file"));
+    Files.writeString(workspace.resolve("other"), "one");
+    var parent = leaf(link, false, List.of());
+    var root = root(leaf(file, false, List.of(parent.key())));
+    var inputs = snapshot();
+    for (var witness :
+        LocalDependencyEvidence.decode(writer.captureDependency(file, false, List.of()))
+            .witnesses()) {
+      assertThat(inputs.matchesForAdmission(witness)).isTrue();
+    }
+    Files.delete(link);
+    Files.createSymbolicLink(link, Path.of("other"));
+    var validator = new LocalDependencyValidator(store, inputs, NONPROD_FINGERPRINTER, compression);
+    assertThat(validator.validate(root)).isFalse();
+    // The parent may reuse the unchanged referent before rejecting the retargeted symlink.
+    // Neither the parent nor the dependent leaf may become a completed dependency record.
+    assertThat(validator.statisticsJson()).contains("\"memo_entries\":0");
+  }
+
+  @Test
   public void repeatedWitnessAcrossDistinctRecordsIsCheckedOnceAndFinallyRechecked()
       throws Exception {
     var parent = leaf(file.getParent(), false, List.of());

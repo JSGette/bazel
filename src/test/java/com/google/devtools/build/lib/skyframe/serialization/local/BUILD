@@ -260,3 +260,15 @@ java_binary(
         "//third_party/java/protobuf:protobuf_lite",
     ],
 )
+
+java_binary(
+    name = "LocalAdmissionValidationBenchmark",
+    testonly = True,
+    srcs = ["LocalAdmissionValidationBenchmark.java"],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalAdmissionValidationBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+    ],
+)

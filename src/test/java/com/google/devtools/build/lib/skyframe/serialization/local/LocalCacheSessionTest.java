@@ -55,6 +55,145 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void admissionHintsDoNotReplaceFreshDiscoveryOrFinalChecks() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path file = temporary.newFile("external-input").toPath();
+    Files.writeString(file, "one");
+    var writer = snapshot(workspace, output);
+    writer.observe(file, false);
+    var witness = writer.witnesses().getFirst();
+    var reader = snapshot(workspace, output);
+    assertThat(reader.matchesForAdmission(witness)).isTrue();
+    assertThat(reader.witnesses()).isEmpty();
+    assertThat(reader.includeAdmittedWitness(witness)).isTrue();
+    var modified = Files.getLastModifiedTime(file);
+    Files.writeString(file, "two");
+    Files.setLastModifiedTime(file, modified);
+    assertThat(reader.matches(witness)).isFalse();
+    assertThat(reader.isUnchanged()).isFalse();
+    assertThat(reader.matchesForAdmission(witness)).isFalse();
+    assertThat(reader.includeAdmittedWitness(witness)).isFalse();
+    assertThat(snapshot(workspace, output).includeAdmittedWitness(witness)).isFalse();
+  }
+
+  @Test
+  public void admissionHintsUseExactWitnessIdentityAndRetryFailures() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path file = temporary.newFile("external-input").toPath();
+    Files.writeString(file, "one");
+    var writer = snapshot(workspace, output);
+    writer.observe(file, false);
+    var witness = writer.witnesses().getFirst();
+    Files.delete(file);
+    var reader = snapshot(workspace, output);
+    assertThat(reader.matchesForAdmission(witness)).isFalse();
+    assertThat(reader.includeAdmittedWitness(witness)).isFalse();
+    Files.writeString(file, "one");
+    assertThat(reader.matchesForAdmission(witness)).isTrue();
+    assertThat(
+            reader.includeAdmittedWitness(
+                new LocalInputSnapshot.Witness(witness.path(), true, witness.digest())))
+        .isFalse();
+    assertThat(
+            reader.includeAdmittedWitness(
+                new LocalInputSnapshot.Witness(witness.path(), false, "other-digest")))
+        .isFalse();
+    assertThat(
+            reader.includeAdmittedWitness(
+                new LocalInputSnapshot.Witness("absolute/other", false, witness.digest())))
+        .isFalse();
+    assertThat(reader.includeAdmittedWitness(witness)).isTrue();
+    assertThat(reader.isUnchanged()).isTrue();
+  }
+
+  @Test
+  public void concurrentAdmissionHintsRespectCapacityAndFallBackToFreshChecks() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    var writer = snapshot(workspace, output);
+    for (int i = 0; i < 12; i++) {
+      Path file = temporary.newFile("external-" + i).toPath();
+      Files.writeString(file, "one");
+      writer.observe(file, false);
+    }
+    var witnesses = writer.witnesses();
+    var reader = new LocalInputSnapshot(workspace, output, Map.of(), 3);
+    try (var executor = Executors.newFixedThreadPool(4)) {
+      var futures = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+      for (var witness : witnesses) {
+        futures.add(executor.submit(() -> reader.matchesForAdmission(witness)));
+      }
+      for (var future : futures) {
+        assertThat(future.get()).isTrue();
+      }
+    }
+    assertThat(reader.witnesses()).isEmpty();
+    int reused = 0;
+    for (var witness : witnesses) {
+      if (reader.includeAdmittedWitness(witness)) {
+        reused++;
+      } else {
+        assertThat(reader.validateAndInclude(witness)).isTrue();
+      }
+    }
+    assertThat(reused).isEqualTo(3);
+    assertThat(reader.witnesses()).containsExactlyElementsIn(witnesses);
+    assertThat(reader.isUnchanged()).isTrue();
+  }
+
+  @Test
+  public void closingSessionReleasesAdmissionHintsButPreservesFinalEvidence() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file = temporary.newFile("external-input").toPath();
+    Files.writeString(file, "one");
+    var writer = snapshot(workspace, output);
+    writer.observe(file, false);
+    var witness = writer.witnesses().getFirst();
+    var inputs = snapshot(workspace, output);
+    var session = new LocalCacheSession(cache, inputs);
+    assertThat(inputs.matchesForAdmission(witness)).isTrue();
+    assertThat(inputs.includeAdmittedWitness(witness)).isTrue();
+    session.finish(false);
+    assertThat(inputs.includeAdmittedWitness(witness)).isFalse();
+    assertThat(inputs.witnesses()).containsExactly(witness);
+    assertThat(inputs.isUnchanged()).isTrue();
+    Files.writeString(file, "two");
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
+  public void unusedCandidateAdmissionDoesNotBecomePublicationEvidence() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    Path file = temporary.newFile("unused-input").toPath();
+    Files.writeString(file, "one");
+    var firstInputs = snapshot(workspace, output);
+    firstInputs.observe(file, false);
+    var first = new LocalCacheSession(cache, firstInputs);
+    first.put(new Key("old"), new byte[] {1}).get();
+    assertThat(first.finish(true)).isTrue();
+    var readerInputs = snapshot(workspace, output);
+    var reader = new LocalCacheSession(cache, readerInputs);
+    assertThrows(ExecutionException.class, () -> reader.get(new Key("missing")).get());
+    assertThat(readerInputs.witnesses()).isEmpty();
+    reader.put(new Key("new"), new byte[] {2}).get();
+    Files.writeString(file, "two");
+    assertThat(reader.finish(true)).isTrue();
+    var next = new LocalCacheSession(cache, snapshot(workspace, output));
+    try {
+      assertThat(next.get(new Key("new")).get()).isEqualTo(new byte[] {2});
+      assertThrows(ExecutionException.class, () -> next.get(new Key("old")).get());
+    } finally {
+      next.finish(false);
+    }
+  }
+
+  @Test
   public void repositoryNamespaceSpansGitWorktreesButSeparatesProjectsAndEnvironments()
       throws Exception {
     Path a = temporary.newFolder("a").toPath();

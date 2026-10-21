@@ -498,7 +498,7 @@ final class LocalCacheSession implements FingerprintValueStore {
           if (witnesses == null) {
             witnesses = manifest.witnesses();
             for (var witness : witnesses) {
-              if (!inputs.matches(witness)) {
+              if (!inputs.matchesForAdmission(witness)) {
                 rejectWitness(filename, witness);
                 matches = false;
                 break;
@@ -679,6 +679,7 @@ final class LocalCacheSession implements FingerprintValueStore {
     inspected.clear();
     rejectedInputs.clear();
     rejectedWitnesses.clear();
+    inputs.clearAdmissionWitnesses();
     IOException failure = null;
     for (PackedFingerprintValueStore store : stores) {
       try {
