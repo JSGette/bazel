@@ -1,0 +1,830 @@
+{
+  "purpose": "Measure preserved before/after jars on identical roots in alternating order.",
+  "scope": "Validation only; snapshot construction and final content revalidation are outside the timed region. Java current-thread allocation is not process memory or native allocation.",
+  "sampled_root_file_sha256": "c70ff9458ab6eae8f695afe04f18c1eb3e807520bbe86d257b3f9b73daf56c13",
+  "fixture_args": [
+    "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+    "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+    "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+    "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+    "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+  ],
+  "binaries": {
+    "before": {
+      "mode": "before",
+      "path": "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-before.jar",
+      "sha256": "8305b8702026d5b7ff0f16b5765e57f5c10bcf66b2be4c8ba2a4024270c4abc1",
+      "commit": "bbbb96e3bfcc513398f9a6cedf97675bfccd3d49",
+      "source_build_flags": [
+        "--config=efcache",
+        "--bes_backend=",
+        "--remote_upload_local_results=false"
+      ]
+    },
+    "after": {
+      "mode": "after",
+      "path": "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-after.jar",
+      "sha256": "005e02db0d8d267dd6c3e92311b1afbed10a2bc3e84e0545c8c893fc87f346a9",
+      "commit": "bbbb96e3bfcc513398f9a6cedf97675bfccd3d49",
+      "source_build_flags": [
+        "--config=efcache",
+        "--bes_backend=",
+        "--remote_upload_local_results=false"
+      ]
+    }
+  },
+  "fresh_jvm_pairs": 3,
+  "warmup_rounds_per_jvm": 2,
+  "measured_rounds_per_jvm": 5,
+  "runs": [
+    {
+      "pair": 0,
+      "mode": "before",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-before.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+        "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 13048.391,
+          "fresh_allocated_bytes": 1949406248,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13022.054,
+          "fresh_allocated_bytes": 1949406248,
+          "memo_ms": 0.214,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13018.288,
+          "fresh_allocated_bytes": 1949406248,
+          "memo_ms": 0.156,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13048.062,
+          "fresh_allocated_bytes": 1949406248,
+          "memo_ms": 0.153,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 12981.97,
+          "fresh_allocated_bytes": 1949406248,
+          "memo_ms": 0.161,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        }
+      ]
+    },
+    {
+      "pair": 0,
+      "mode": "after",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-after.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+        "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5137.119,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.137,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5157.238,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.138,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5168.644,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.138,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5161.18,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.129,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5178.248,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        }
+      ]
+    },
+    {
+      "pair": 1,
+      "mode": "after",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-after.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+        "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5212.091,
+          "fresh_allocated_bytes": 1145000528,
+          "memo_ms": 0.122,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5147.594,
+          "fresh_allocated_bytes": 1145000528,
+          "memo_ms": 0.135,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5139.849,
+          "fresh_allocated_bytes": 1145000528,
+          "memo_ms": 0.136,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5149.33,
+          "fresh_allocated_bytes": 1145000528,
+          "memo_ms": 0.14,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5161.806,
+          "fresh_allocated_bytes": 1145000528,
+          "memo_ms": 0.13,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        }
+      ]
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-before.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+        "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 12956.077,
+          "fresh_allocated_bytes": 1950069056,
+          "memo_ms": 0.107,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 12958.508,
+          "fresh_allocated_bytes": 1950069056,
+          "memo_ms": 0.157,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 12959.905,
+          "fresh_allocated_bytes": 1950069056,
+          "memo_ms": 0.158,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13040.311,
+          "fresh_allocated_bytes": 1950069056,
+          "memo_ms": 0.157,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 12968.476,
+          "fresh_allocated_bytes": 1950069056,
+          "memo_ms": 0.157,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        }
+      ]
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-before.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+        "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 13000.606,
+          "fresh_allocated_bytes": 1967554872,
+          "memo_ms": 0.138,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13010.304,
+          "fresh_allocated_bytes": 1967554872,
+          "memo_ms": 0.161,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13004.608,
+          "fresh_allocated_bytes": 1967554872,
+          "memo_ms": 0.153,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 13039.165,
+          "fresh_allocated_bytes": 1967554872,
+          "memo_ms": 0.154,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        },
+        {
+          "fresh_ms": 12991.051,
+          "fresh_allocated_bytes": 1967554872,
+          "memo_ms": 0.15,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 176546,
+            "rejected_roots": 0,
+            "memo_entries": 119969
+          }
+        }
+      ]
+    },
+    {
+      "pair": 2,
+      "mode": "after",
+      "argv": [
+        "/home/jgett/REPOS/.work/skyframe-go/work/build-output/external/rules_java++toolchains+remotejdk25_linux/bin/java",
+        "-Xms256m",
+        "-Xmx2g",
+        "-jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-witness-after.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-cache/objects/packed-v1",
+        "513d01102ae4eac87da10a5f6f753067e00197ad1e197122d5787ddb3997271f",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer-workspace",
+        "/home/jgett/REPOS/.work/skycache-concurrent/cross-jdk9-writer/output-base",
+        "/home/jgett/REPOS/.work/skycache-concurrent/dependency-validator-sampled-roots.txt"
+      ],
+      "sampled_roots": 512,
+      "rounds": [
+        {
+          "fresh_ms": 5145.862,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.143,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5150.32,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.133,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5144.295,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.133,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5176.151,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.135,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        },
+        {
+          "fresh_ms": 5170.433,
+          "fresh_allocated_bytes": 1150615760,
+          "memo_ms": 0.134,
+          "memo_allocated_bytes": 151584,
+          "fresh_stats": {
+            "records_read": 119969,
+            "memo_hits": 249136,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          },
+          "memo_stats": {
+            "records_read": 119969,
+            "memo_hits": 249648,
+            "witnesses_checked": 113999,
+            "rejected_roots": 0,
+            "memo_entries": 119969,
+            "witness_memo_hits": 62547,
+            "witness_memo_entries": 113999
+          }
+        }
+      ]
+    }
+  ],
+  "medians": {
+    "before": {
+      "fresh_ms": 13004.608,
+      "fresh_allocated_bytes": 1950069056,
+      "memo_ms": 0.156,
+      "memo_allocated_bytes": 151584
+    },
+    "after": {
+      "fresh_ms": 5157.238,
+      "fresh_allocated_bytes": 1150615760,
+      "memo_ms": 0.135,
+      "memo_allocated_bytes": 151584
+    }
+  },
+  "passed": true
+}

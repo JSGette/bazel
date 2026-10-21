@@ -256,6 +256,16 @@ evaluator remains unchanged. Correctness is established for this matrix, not pro
 or a whole-build speedup. Next reduce measured first-pass validation work, then address lifecycle
 transitions, traffic statistics and reader-safe GC/quotas with separate measurements and commits.
 
+## Successful input checks are reused per invocation (Step 34)
+
+Bounded exact-witness reuse removes redundant content hashes while preserving parent validation,
+late repository retries and complete final content revalidation. All 213 focused cases and the fresh
+twelve-build two-server Datadog smoke pass. The controlled 512-root benchmark reduces first validation
+from 13004.608 to 5157.238 ms and Java current-thread allocation from
+1950069056 to 1150615760 bytes. The runtime smoke
+contains 2 native invalidation timeout(s); its times are not a controlled whole-build comparison.
+Continue with measured remaining allocation/latency, lifecycle coverage, statistics and safe GC/quotas.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

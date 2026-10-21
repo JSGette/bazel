@@ -1955,3 +1955,76 @@ Evidence: [28 builds](skycache-concurrent-2026-10-20/cross-revision-datadog-28-b
 [Starlark probe](skycache-concurrent-2026-10-20/cross-revision-starlark-worktrees.json),
 [runtime and order correction](skycache-concurrent-2026-10-20/cross-revision-runtime-review.json),
 [207 cases](skycache-concurrent-2026-10-20/repository-mapping-eviction-validator-tests.json).
+
+
+## Step 34 — validate repeated input evidence once per invocation
+
+Implementation: [2d145e28eb75](https://github.com/JSGette/bazel/commit/2d145e28eb7568a4cfd9d165637d6e0ab8e7124b).
+The validator previously hashed each witness in its precheck and again while registering final
+publication evidence. Distinct dependency records also repeated identical witnesses. It now checks
+and registers a witness once, then reuses successful checks keyed by exact logical path, operation
+and expected digest. Resolution parents are still traversed first. Only successes are memoized;
+missing/mismatching inputs can be retried after repository materialization. A stale candidate does
+not mark otherwise stable invocation inputs as changed. The memo is limited to the dependency-record
+capacity (250,000 by default); additional witnesses are still validated and registered, just not
+memoized. It is discarded after each command. Final publication rehashes all retained evidence and
+the full source snapshot without using this memo. Source formats and the evaluator are unchanged.
+
+This uses Bazel's existing stable-input assumption within a command. Checking twice consecutively
+was rejected as an atomic-snapshot guarantee; it is not one. A persistent path/mtime memo, negative
+memoization and skipping parent evidence were rejected. The bounded success set adds retained Java
+metadata during a command in exchange for less repeated hashing and transient allocation; it is
+not a claim that process peak memory must decrease.
+
+All 213 cases across fourteen focused targets pass. Six new cases cover duplicate evidence with
+final same-size/same-mtime content rechecking, distinct expected digests and stale-candidate isolation,
+late external repository materialization, bounded memo size without lost final evidence, directory
+metadata versus listing operations, and changed resolution parents. The source/test build takes
+18.027 seconds and reports three Cache&Carry hits. The before and after benchmark-jar builds each
+report one Cache&Carry hit. Source builds/tests retain --config=efcache, --bes_backend= and
+--remote_upload_local_results=false.
+
+The unchanged Step 29 fixture supplies the same 512 dependency roots. Preserved deploy jars run in
+three alternating before/after fresh-JVM pairs, each with two warmup rounds and five measured rounds,
+Xms256m/Xmx2g and the host measurement lock. Medians below cover fifteen measured rounds per variant.
+Snapshot construction and final content revalidation are outside the timed region in both variants.
+All roots pass; each first pass reads 119,969 dependency records and reports zero rejected roots.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| First validation, ms | 13,004.608 | 5,157.238 |
+| First validation, Java thread allocated bytes | 1,950,069,056 | 1,150,615,760 |
+| Repeat same roots in same invocation, ms | 0.156 | 0.135 |
+| Repeat allocated bytes | 151,584 | 151,584 |
+
+First-validation wall time falls 60.3% and current-thread
+Java allocation falls 41.0% in
+this isolated benchmark. The old witness counter is 176,546 occurrences
+(each successful occurrence also did the second registration hash); the new counter is
+113,999 checks with 62,547 memo hits.
+These are not whole-build speedups or RSS/native-allocation measurements. The original Step 29
+measurement remains preserved; this comparison uses its own binaries, fixed heap and fresh rounds.
+
+A fresh twelve-build Datadog smoke passes with two 4 GiB servers. All baseline/reverted executables
+match the Step 33 baseline, and both feature hashes match Step 33's independent cache-off controls.
+This smoke enables action disk caching and does not repeat the full no-disk-cache control matrix.
+Remote action caching stays off. It has 2 native invalidation timeout(s), recorded with the
+selected server diagnostics. Runtime times below are single-run context, not an isolated comparison.
+
+| Paired phase | Wall seconds | Peak combined PSS GiB | CT hits A/B |
+| --- | ---: | ---: | ---: |
+| control-base | 41.946 | 6.116 | 0/0 |
+| concurrent-base-writers | 62.033 | 7.867 | 0/0 |
+| warm-base | 1.615 | 7.853 | 0/0 |
+| restarted-base-readers | 34.416 | 7.463 | 4501/4501 |
+| first-cross-revision-readers | 49.015 | 8.537 | 6206/6206 |
+| reverted-warm-graphs | 16.785 | 9.503 | 4501/4501 |
+
+The measured validation improvement is accepted. Keep the full graph in RAM. Remaining work includes
+further validation allocation/latency where measured, cache-mode/configuration lifecycle coverage,
+accurate traffic statistics and reader-safe collection/quotas; this is still experimental.
+
+Evidence: [paired benchmark](skycache-concurrent-2026-10-20/dependency-validator-witness-paired.json),
+[213 cases](skycache-concurrent-2026-10-20/repository-mapping-witness-validator-tests.json),
+[Datadog smoke](skycache-concurrent-2026-10-20/dependency-validator-witness-runtime.json),
+[runtime review](skycache-concurrent-2026-10-20/dependency-validator-witness-runtime-review.json).
