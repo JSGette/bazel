@@ -101,11 +101,38 @@ destination mappings were not heap-inspected. Its command took 154.002 seconds, 
 validation. Earlier restarted cache-enabled measurements were slower and used more process
 memory than cache-off controls. The input-storage intervention is not a product-code optimization.
 
-All large builds use pinned Datadog revision `0cde96beb70963d0838119c308b9d0422ee66be0`, target
+The 16-attempt run used pinned Datadog revision `0cde96beb70963d0838119c308b9d0422ee66be0`, target
 `//cmd/cluster-agent:cluster-agent`, and jobs=2/action memory 3072 MiB/Xmx4g per server. Remote action
 caching is disabled; edited builds and controls also disable disk action caching. Standalone
 source builds/tests use available CPUs with memory headroom and Cache&Carry. Every server keeps
 its full graph; this work does not claim a reduction in aggregate graph RAM.
+
+## Full-NVMe follow-up: two additional builds
+
+After the 16-attempt handoff, the user authorized two additional builds and higher resources.
+Both ran on **E: WD Blue SN570 2TB NVMe**, entirely inside Ubuntu's native ext4 VHDX, with
+**32 jobs, Xmx6g and 6144 MiB action memory**, sequentially. Both servers started graph-cold;
+existing local action outputs and the disk action cache were warm. The binary was unchanged.
+
+| Metric | Fresh SkyCache publication | Independent reader |
+|---|---:|---:|
+| Full command | 33.901 s | 27.762 s |
+| Analysis phase | 8.211 s | 7.451 s |
+| Peak process-tree PSS | 4.780 GiB | 5.139 GiB |
+| Analysis hits | 0 | 4,501 |
+| Newly configured targets | 57,369 | 14 |
+
+Both builds succeeded and exactly matched the baseline executable. The reader deduplicated all
+puts, so no new publication was needed. Both servers were stopped. The original harness's overly
+strict requirement for a new reader publication was rejected by a separate offline evidence
+audit; the original report remains preserved. No extra build or product change was made.
+
+The workload now completes in tens of seconds. Compared with the earlier HDD runs, storage,
+filesystem layering, resource limits and cache state changed together. This does not isolate an
+SSD speedup, and writer-versus-reader timings do not establish benefit over cache-off Bazel.
+No new concurrent, warm-in-memory invalidation or post-GC measurement was made. See
+[Step 58](measurements/skycache-concurrent-development-2026-10-20.md#step-58--two-full-nvme-performance-observations-2026-10-21)
+and the [curated measurements](measurements/skycache-concurrent-2026-10-20/nvme-two-builds-2026-10-21.json).
 
 ## Shortcomings and missing work
 
@@ -142,8 +169,8 @@ its full graph; this work does not claim a reduction in aggregate graph RAM.
 
 ## Suggested next work
 
-Use this branch as an opt-in local prototype and measure the intended workload on native SSD-backed
-ext4. Repeat matched cold/warm/restarted builds with two and more worktrees, reporting full command
+Use this branch as an opt-in local prototype. Build on the two native-SSD observations with matched
+cache-off controls and repeated cold/warm/restarted builds across worktrees, reporting full command
 time, analysis time, memory and physical I/O. If validation still dominates, profile that phase
 before changing its correctness rules. Broaden rule/platform and long-running lifecycle coverage
 before treating this as a general replacement for recomputation. Keep remote transport separate

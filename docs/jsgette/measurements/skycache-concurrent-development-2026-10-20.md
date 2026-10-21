@@ -3393,3 +3393,76 @@ production readiness, a general performance improvement or a passing 16/16 run. 
 omissions and product limitations above remain explicit follow-up work.
 
 See the [implementation summary](../skycache-implementation-summary.md), [runtime data](skycache-concurrent-2026-10-20/final-runtime-summary.json) and [scoped acceptance](skycache-concurrent-2026-10-20/final-local-acceptance.json).
+
+## Step 58 — two full-NVMe performance observations (2026-10-21)
+
+The user authorized one or two additional tests after the capped handoff and requested more CPU
+and RAM. Exactly two additional build commands ran; the original 16-attempt record is unchanged.
+No implementation code changed and no source build was needed. The current binary is the same
+`0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0` artifact built with Cache&Carry.
+
+Windows disk/partition and WSL registry inspection identifies E: as the **WD Blue SN570 2TB NVMe**
+and the backing location of Ubuntu's ext4 VHDX. Sources, both output bases, repository contents,
+toolchains, action cache, SkyCache, binary and raw reports were on native WSL ext4 on that SSD.
+There was no HDD or additional Windows-file-backed loop image in these build paths.
+
+The earlier HDD placement was a capacity workaround for the larger multi-worktree matrix,
+not a suitable performance baseline. E: had 28.01 GiB host space free at this follow-up. Reusing
+two stopped existing output bases avoided large copies; a 15 GiB host reserve was checked every
+five seconds. C: retained a 10 GiB reserve. No storage guard tripped and E: host free space did
+not fall during the runs. Existing fixtures were retained; both servers were stopped afterward.
+
+Both builds ran sequentially with **32 jobs, Xmx6g and 6144 MiB action-memory budget**. WSL exposes
+32 CPUs and about 15 GiB RAM, so this leaves headroom rather than scheduling two such builds at
+once. The target remains `//cmd/cluster-agent:cluster-agent` at Datadog revision
+`0cde96beb70963d0838119c308b9d0422ee66be0`. Remote action caching was disabled. Existing output
+artifacts and the native SSD disk action cache were warm. Each independent server started with
+an empty in-memory graph. The first build used an empty SkyCache; the second read its publication.
+
+| Metric | Fresh publication | Independent reader |
+|---|---:|---:|
+| Full command wall time | 33.901 s | 27.762 s |
+| Bazel analysis phase | 8.211 s | 7.451 s |
+| Bazel execution phase | 1.822 s | 4.201 s |
+| Bazel reported CPU time | 242.840 CPU-s | 155.380 CPU-s |
+| Peak process-tree PSS | 4.780 GiB | 5.139 GiB |
+| Configured-target analysis hits | 0 | 4,501 |
+| Newly configured targets, BEP | 57,369 | 14 |
+| Post-invocation graph nodes | 320,087 | 234,712 |
+| Local action-cache hits | 4,489 | 4,538 |
+| Disk action-cache hits | 1,287 | 1,197 |
+| Internal actions | 1,013 | 1,054 |
+| Exit code | 0 | 0 |
+
+The writer published 443,700 records. The reader made 317,295 shared reads, rejected zero
+dependency roots and deduplicated all 4,477 puts, so it correctly created no redundant publication.
+Both executables have the exact baseline SHA-256
+`7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664`.
+Source diffs remained unchanged. Memory is sampled every 200 ms and excludes page cache and VM
+overhead. The reader retained fewer graph nodes but had a higher sampled peak PSS; this is not a
+RAM reduction result.
+
+The original two-build harness mistakenly required the reader to publish new records even when
+all writes were deduplicated. Both build commands exited successfully, but that final assertion
+failed. The raw report is preserved unchanged. A separate offline audit verified BEP success,
+binary and artifact hashes, memory maxima, source restoration, stopped servers and the existing
+`LocalCacheSession.finish()` no-write behavior. No third build or product change was needed.
+
+These observations are much shorter than the earlier HDD writer/reader commands (921.695 and
+568.366 seconds), but storage, filesystem layering, CPU/memory limits, fixture state and local
+cache hits differ. They do not isolate the SSD's effect. Likewise 27.762 seconds versus 33.901
+seconds compares reading with creating a publication; it is **not** a cache-on versus cache-off
+speedup. One observation per mode and unflushed filesystem caches do not establish a distribution
+or sustained throughput. Most action work was cached; this is a substantial analysis workload,
+not a clean compilation throughput benchmark. Warm in-memory invalidation, concurrent performance
+and the omitted large post-GC cases were not retested.
+
+The remaining performance question is whether a reader beats an equivalent restarted cache-off
+server with matched action-output state and resources. That still requires a matched
+comparison beyond these two builds. The two-build budget is exhausted.
+
+Raw logs, BEP, profiles, memory samples, exact commands, hardware mapping and the original harness
+are preserved privately in a readback-verified archive. Archive SHA-256:
+`508707d950fbd5cfdaab1ca2c313e29360d488b1aef231dccd0d63dcf207939d`.
+The [curated data and audit](skycache-concurrent-2026-10-20/nvme-two-builds-2026-10-21.json)
+contain per-phase metrics and evidence hashes.

@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 57. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 58. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -48,6 +48,12 @@ matrix. The capped Datadog run contains 16 attempts: 14 passed and two timeouts.
 after repository inputs moved to NVMe while preserving logical paths: simultaneous edited
 reads/publications, exact warm reverts and independent edited controls. Both prior failed commands
 remain failures. No full 16/16 success, general speedup or production maturity is claimed.
+
+A separately authorized two-build follow-up on full E: NVMe storage passed with 32 jobs,
+Xmx6g and 6 GiB action memory: 33.901 seconds for fresh publication and 27.762 seconds for an
+independent reader with 4,501 analysis hits. Both outputs match the baseline. These are single
+observations with warm action outputs; cache-off speedup remains unmeasured. See development
+Step 58 for the preserved harness assertion correction, raw-evidence hashes and qualifications.
 
 The [implementation summary](../skycache-implementation-summary.md) describes behavior, measurements,
 shortcomings and missing work. Raw evidence was archived and readback verified; four owned final
