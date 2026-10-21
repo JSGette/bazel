@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 53. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 54. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -68,7 +68,15 @@ materialization. Cache flags alone did not migrate those directories. Repository
 restored through native cache candidate validation/fetch before a fresh matrix. A metadata inventory
 does not support increasing the 256-entry digest capacity, and a storage probe does not support a
 larger read buffer as a remedy for this image path. Validation checks and deadlines remain unchanged.
-The prior failed attempts and cache data remain preserved; final archival and cleanup are pending.
+Step 54 completed the restoration: all494 selected repositories now resolve to identical native
+contents-cache directories across all four output bases; all fetches passed and servers stopped.
+The already shared Python binding was also rechecked. Retry7 repeats the full matrix with an empty
+SkyCache, unchanged binary/resources/deadline and no accepted prior phases. The prior failed attempts
+and cache data remain preserved; final archival and cleanup are pending.
+
+Per the user's wrap-up direction, stop after a working large validation, evidence preservation,
+owned scratch cleanup and an implementation/limitations summary. Further speculative performance
+work and remote transport remain outside this handoff.
 
 Inherited publication evidence and aliased-file digest optimizations remain separate measured results:
 their warm-filesystem microbenchmarks reduce logical reads about 67% and 80%. Whole-build performance

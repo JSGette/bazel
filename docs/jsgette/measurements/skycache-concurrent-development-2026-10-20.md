@@ -3240,3 +3240,33 @@ new matrix must start with an empty SkyCache. Keep the current binary, resources
 guard, so a new native fixture or a reduced storage guard was not selected.
 
 Evidence: [failed run and storage/sharing diagnostics](skycache-concurrent-2026-10-20/final-publication-timeout-retry6.json).
+
+
+## Step 54 — native repository sharing restored; final validation restarted
+
+The restoration passed for all four stopped output bases. Each normal Bazel fetch requested 494
+repositories, accepted all 494 seeded native candidates and installed directory symlinks. Every
+selected repository resolves to the identical contents-cache directory across the four outputs.
+Fetches took 83.483, 74.754, 68.126 and 65.748 seconds for control A, control B, A and B. All exited
+successfully, storage guards stayed clear and all servers stopped. The already shared Python
+distribution and its bytecode-cache binding were independently rechecked before the next run.
+
+The preparation first preserved and readback-verified the failed run in a private archive, including
+logs, BEP, publication bytes and all 1,976 generated marker files. Exact native cache entries were
+seeded under a shared Java-compatible repository GC lock. Bazel performed validation and rebinding;
+no input fingerprints were rewritten. The original native fixture was unchanged. SkyCache was off
+during these fetches. Guest free space rose from about 41 GiB after seeding to about 87 GiB after
+private generated repositories were replaced. This is storage preparation, not a product speedup.
+
+Retry7 starts with an empty SkyCache and repeats the complete 32-build matrix. It accepts no prior
+phases or publications, retains the same committed binary and fixes the same resources, cache
+policies and 1,800-second deadline. Previous failed runs remain separate. The current 280-case suite
+and 34-build membership matrix still cover this unchanged binary; no redundant source build was
+performed. Cache&Carry remains required for source builds/tests.
+
+The user requested a wrap-up once there is a working implementation. The stopping point is the
+large concurrent edit/revert/collection validation plus evidence archival, owned scratch cleanup
+and a concise implementation/limitations handoff. Further optimization, SSD characterization and
+gRPC are future work. No full retry7 result or overall speedup is claimed at this preparation step.
+
+Evidence: [native repository preparation](skycache-concurrent-2026-10-20/native-repository-restoration.json).
