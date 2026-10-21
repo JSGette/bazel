@@ -12,19 +12,23 @@ For setup, flags and interpreting hits, see the [local usage guide](../skycache-
 
 ## Current status
 
-Updated 2026-10-21, through Step 46. Experimental concurrent analysis reuse is implemented,
+Updated 2026-10-21, through Step 48. Experimental concurrent analysis reuse is implemented,
 with full in-memory graphs and no evaluator implementation changes. Current core checks cover
-265 Java cases across 17 targets. The 34-build file-membership runtime gate passes across two
-cached worktrees and two independent controls. Earlier substantial Datadog gates also demonstrate
-actual shared analysis hits, independent semantic edits and correct reverts.
+267 Java cases across 17 targets. The previous 34-build file-membership runtime gate passed
+two cached worktrees and two independent controls on the preceding binary.
 
-The final collector-enabled 32-build Datadog acceptance matrix is still pending. Recent attempts
-built correct outputs but failed independent reuse because copied fixture links and independently
-materialized Python repository paths differed. Those failures and their publication bytes are
-preserved. The current retry repairs the fixture and enables ordinary native repository sharing
-on the guarded D volume. It must still pass actual reuse, concurrent edits/reverts and collection
-recovery before the final acceptance audit can close. No production-maturity or general speedup
-claim is made. Timings from this temporary SATA HDD are compared within the same run only.
+The final collector-enabled 32-build Datadog acceptance matrix remains incomplete. Its corrected
+repository fixture now gives 4,501 actual analysis hits to independent and restarted readers,
+with output hashes matching controls. However, concurrent edited builds time out in final cache
+input validation after successful action execution. An earlier warm phase also hits the upstream
+invalidation deadline. Restarted cached readers are slower and use more memory than controls on
+this temporary SATA HDD. These are failures to address, not a speedup or a mature release.
+
+Step 48 removes redundant inherited-input hashing at publication and passes the full focused
+suite with a measured reduction in logical reads and allocation. It has not yet passed a new
+substantial Datadog run. All failed evidence is preserved; test servers stopped and artificial
+source edits restored. Further latency investigation and the full reuse/edit/revert/collection
+gate remain required before the final acceptance audit can close.
 
 The numbered steps below are chronological checkpoints; each describes the implementation and
 evidence available at that point. Later steps supersede their pending-work statements.
@@ -2943,3 +2947,77 @@ Evidence: [failed reuse gate](skycache-concurrent-2026-10-20/collector-d-python-
 [CLI and unit checks](skycache-concurrent-2026-10-20/collector-native-repository-cli-checks.json),
 [29-case log](skycache-concurrent-2026-10-20/collector-native-repository-tests.log),
 [complete retry command](skycache-concurrent-2026-10-20/collector-d-retry4-command.json).
+
+
+## Step 47 — actual reuse succeeds, large concurrent edit finalization times out
+
+The explicit shared native repository cache fixes the independent-reuse rejection: the first B
+reader and both restarted readers each report 4,501 configured-target hits and produce the exact
+control executable hash. Ten builds complete with verified outputs. The complete 32-build gate
+does not pass. In the next pair, both independently edited builds report 6,206 analysis hits and
+finish 5,704 sandboxed actions each, but remain inside final publication validation. The 1,800-second
+deadline and 90-second interrupt grace expire; both clients exit -9 at about 1,890 seconds. Their
+outputs are not accepted. Subsequent graceful Bazel shutdown commands also exceed their deadline.
+
+One read-only thread dump identifies `LocalInputSnapshot.hashContents` inside `isUnchanged` and
+`LocalCacheSession.finish`. Process I/O counters advance by gigabytes while threads wait on file
+reads. This supports slow content revalidation, not a lock deadlock. This phase includes diagnostic
+observation and is excluded from undisturbed latency claims. A separate final log scan also finds
+one warm-base B invalidation submission timeout: the upstream ten-second deadline invalidates all
+4,506 loaded keys. That failure is retained even though the build eventually succeeds.
+
+| Matched restarted pair on D HDD | Wall time | Peak participating process PSS |
+|---|---:|---:|
+| Cache off | 25.159 s | 5.637 GiB |
+| SkyCache readers, 4,501 hits each | 56.625 s | 7.227 GiB |
+
+Resources remain jobs=2, action memory=3072 MiB and Xmx4g per server. PSS samples include the
+participating server/client process trees and exclude page cache and host VM overhead. Single-reader
+phase measurements exclude the other idle server; use the paired phases for matched RAM comparisons.
+No SSD or general speed claim is supported.
+
+Recovery verifies exact task output-base command arguments and process start identities, then sends
+SIGTERM through pidfds to the two remaining JVMs. Both stop without SIGKILL. Only the known artificial
+Go edits are restored, after preserving their bytes. The copied MODULE lockfile remains intentional.
+The original failed report is not rewritten as successful, and the cache/logs remain preserved.
+Chosen: investigate and reduce redundant I/O. Discarded: accepting action success as command success,
+ignoring content witnesses, or merely extending the deadline to hide the failure.
+
+Evidence: [failed large gate and recovery summary](skycache-concurrent-2026-10-20/collector-d-retry4-timeout.json).
+
+## Step 48 — check inherited publication inputs once
+
+Implementation: [44cb15ede3fd](https://github.com/JSGette/bazel/commit/44cb15ede3fd8c7f61636b3b33d75b270d5ae07d).
+`finish` previously read each distinct used-parent witness list in `include`, then read the union
+again in `isUnchanged`. Two overlapping unequal lists therefore hash common inputs three times at
+publication. Registering every used parent's exact evidence before the existing fresh final pass
+checks the union once. Registration does not authorize reads. Admission, dependency validation,
+source-tree/namespace checks, conflict detection and all parent IDs remain in place. Final content
+mismatches return false with a failure reason; no manifest is published. No evaluator code changes.
+
+The added regressions cover both parents' unique inputs, shared input mutation with unchanged size
+and mtime, directory membership, and conflicting inherited observations. All 267 Java cases across
+17 targets pass; the 62-case session suite passes. Source build/tests use Cache&Carry with remote
+uploads disabled, jobs=32 and a 10 GiB action-memory budget plus Xmx4g. The final build reports five
+remote cache hits and completes in 15.809 seconds.
+
+The dedicated benchmark uses two overlapping unequal parent lists, 4,098 unique 16 KiB files,
+two warmups and five measured rounds per revision on the same D-backed ext4 volume. It validates
+actual parent reads and successful child publication. Median publication measurements:
+
+| Metric | Before | After |
+|---|---:|---:|
+| Wall time | 405.392 ms | 345.917 ms |
+| Logical bytes read | 201,392,510 | 67,142,270 |
+| Read syscalls | 24,587 | 8,200 |
+| Measured-thread allocation | 29,197,368 B | 13,618,648 B |
+
+All measured rounds have zero physical reads: this is a warm-filesystem publication microbenchmark,
+not cold-HDD or whole-build performance. The reduction is about 67% in logical bytes, 53% in measured
+allocation and 15% in median latency. No statistical confidence interval is claimed. Cold input
+hashing, warm invalidation latency and substantial concurrent recovery still require investigation
+and runtime proof. Native repository sharing remains enabled; remote action caching stays off in
+Datadog measurements.
+
+Evidence: [all rounds, source hashes and test cases](skycache-concurrent-2026-10-20/publication-final-validation-once.json),
+[full focused-suite build log](skycache-concurrent-2026-10-20/publication-validation-full-build.log).

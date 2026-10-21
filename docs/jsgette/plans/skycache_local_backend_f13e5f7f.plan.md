@@ -465,3 +465,14 @@ immutable bytes, candidate publication/discovery and reader lifetime protection.
 reuse, define portable external-root/toolchain identity, batch requests, cancellation, deadlines,
 idempotent retry and remote lease semantics. The filesystem implementation and its conformance
 tests remain the reference; no network service is needed for the current milestone.
+
+
+### 2026-10-21: finalization failure and first repair (Steps 47–48)
+
+The corrected native repository fixture now gives actual independent/restarted reuse, but the
+large concurrent edit pair exceeds its deadline during final input hashing; one prior warm phase
+also times out invalidation. Preserve both failures. Register inherited evidence once and revalidate
+its union in the existing final pass: focused publication reads fall about 67%, all 267 Java cases
+pass, and no Skyframe evaluator changes are needed. Do not infer full-run acceptance from this
+microbenchmark. Next: address measured validation latency, then repeat substantial independent
+reuse/edits/reverts/forced collection and archive/clean only after all gates pass.

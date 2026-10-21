@@ -1,0 +1,285 @@
+{
+  "implementation_commit": "44cb15ede3fd8c7f61636b3b33d75b270d5ae07d",
+  "before": {
+    "command": [
+      "/home/jgett/REPOS/.tools/bazel",
+      "--host_jvm_args=-Xmx4g",
+      "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/build-output",
+      "test",
+      "--config=efcache",
+      "--bes_backend=",
+      "--remote_upload_local_results=false",
+      "--jobs=32",
+      "--local_resources=memory=10240",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalPublicationValidationBenchmark",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest"
+    ],
+    "argv": [
+      "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark",
+      "/home/jgett/REPOS/.work/skycache-concurrent/c-backed-measurements/publication-validation-before",
+      "4096",
+      "16384"
+    ],
+    "rounds": [
+      {
+        "round": 0,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 430.959,
+        "allocated_bytes": 29197064,
+        "read_characters": 201392766,
+        "read_syscalls": 24588,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 1,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 422.331,
+        "allocated_bytes": 29197368,
+        "read_characters": 201392766,
+        "read_syscalls": 24588,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 2,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 405.392,
+        "allocated_bytes": 29197552,
+        "read_characters": 201392510,
+        "read_syscalls": 24587,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 3,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 371.573,
+        "allocated_bytes": 29197280,
+        "read_characters": 201392510,
+        "read_syscalls": 24587,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 4,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 388.751,
+        "allocated_bytes": 29197552,
+        "read_characters": 201392510,
+        "read_syscalls": 24587,
+        "physical_read_bytes": 0
+      }
+    ],
+    "test_cases": 60,
+    "sources": {
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java": "7d63da3e7814d297dfb41a82ffff6afd700113c5da46f5de219f768286f16521",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java": "819522874a96d9f08f19221aeefacb0b7673b7fc7f932962b56e95f2627f2c7f",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java": "d654103068b4b21660ab0054acd5c7efd5491ebeca3d591a7308c4d0245e823d",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshot.java": "cbb0ddd2ce6d68a33778022f360649051922402219b27ace78ed6b9b661e4cc2"
+    },
+    "scope": "Two warmups and five same-JVM warm-filesystem rounds; two overlapping parent lists, 4098 unique 16KiB files on D-backed ext4. Publication only; no claim about cold HDD or whole builds."
+  },
+  "after": {
+    "command": [
+      "/home/jgett/REPOS/.tools/bazel",
+      "--host_jvm_args=-Xmx4g",
+      "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/build-output",
+      "test",
+      "--config=efcache",
+      "--bes_backend=",
+      "--remote_upload_local_results=false",
+      "--jobs=32",
+      "--local_resources=memory=10240",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalPublicationValidationBenchmark",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest"
+    ],
+    "argv": [
+      "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark",
+      "/home/jgett/REPOS/.work/skycache-concurrent/c-backed-measurements/publication-validation-after",
+      "4096",
+      "16384"
+    ],
+    "rounds": [
+      {
+        "round": 0,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 354.166,
+        "allocated_bytes": 13618808,
+        "read_characters": 67142269,
+        "read_syscalls": 8200,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 1,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 345.917,
+        "allocated_bytes": 13618944,
+        "read_characters": 67142270,
+        "read_syscalls": 8200,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 2,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 363.571,
+        "allocated_bytes": 13618648,
+        "read_characters": 67142270,
+        "read_syscalls": 8200,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 3,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 329.391,
+        "allocated_bytes": 13618648,
+        "read_characters": 67142270,
+        "read_syscalls": 8200,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 4,
+        "shared_files": 4096,
+        "unique_files": 4098,
+        "file_bytes": 16384,
+        "milliseconds": 295.667,
+        "allocated_bytes": 13618648,
+        "read_characters": 67142014,
+        "read_syscalls": 8199,
+        "physical_read_bytes": 0
+      }
+    ],
+    "test_cases": 62,
+    "sources": {
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java": "7d63da3e7814d297dfb41a82ffff6afd700113c5da46f5de219f768286f16521",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java": "82a32965bec9dba77416587f6b3ed706c3cfeaa3e0450fc6374e84b0ca37fd83",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java": "87c278693dc7ea5d7d27ec5bd90c0220575b2188a2807ce6dc9ac86ab043d4bf",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshot.java": "008faf73b4b8230d1829949f4803f95807aa28cf8e1fbdc4ff9dfde5b8720454"
+    },
+    "scope": "Two warmups and five same-JVM warm-filesystem rounds; two overlapping parent lists, 4098 unique 16KiB files on D-backed ext4. Publication only; no claim about cold HDD or whole builds."
+  },
+  "medians": {
+    "before": {
+      "milliseconds": 405.392,
+      "allocated_bytes": 29197368,
+      "read_characters": 201392510,
+      "read_syscalls": 24587,
+      "physical_read_bytes": 0
+    },
+    "after": {
+      "milliseconds": 345.917,
+      "allocated_bytes": 13618648,
+      "read_characters": 67142270,
+      "read_syscalls": 8200,
+      "physical_read_bytes": 0
+    }
+  },
+  "binary_sha256": "319629f610c920cab70338747924a2e94f4abec68f12116a63dd7e395474cd41",
+  "tests": {
+    "targets": 17,
+    "cases": 267,
+    "xml": [
+      {
+        "target": "analysis/RunfilesTest",
+        "cases": 19,
+        "sha256": "fbdcc91aa8df8c1c824e792394cb2f4e638a0580c32764c206060e998bc174ad"
+      },
+      {
+        "target": "analysis/AspectValueTest",
+        "cases": 7,
+        "sha256": "68f7a8c4fd13aaf13d606d3924aa6294f75fbda1e8fb7ffae22f6628ffe10cf2"
+      },
+      {
+        "target": "skyframe/serialization/StarlarkInfoCodecTest",
+        "cases": 4,
+        "sha256": "23f3ed85c683707f7c7359dd73df714a38bc4b6fe66ddeb94bfa24cc47e8b6f6"
+      },
+      {
+        "target": "skyframe/serialization/analysis/AnalysisCacheInvalidatorTest",
+        "cases": 18,
+        "sha256": "b2e05cc6e562c55bab7f27649b2a784948d8be06da2f480e1f34908574d72ac8"
+      },
+      {
+        "target": "skyframe/serialization/analysis/FileDependencySerializerTest",
+        "cases": 15,
+        "sha256": "c71af66cefff56ec39c89aeced8a8985d6e7b0ce1a272ca0bf3c2550355a7539"
+      },
+      {
+        "target": "skyframe/serialization/analysis/SelectedEntrySerializerTest",
+        "cases": 6,
+        "sha256": "e43c47bc3bcd4f059702e33e159e82a60147281739e80558626d68f6330eb91a"
+      },
+      {
+        "target": "skyframe/serialization/analysis/BazelSkycacheIntegrationTest",
+        "cases": 30,
+        "sha256": "707e08485325e856f23c4d4e7e383ab3d60f73c473f32443d20cc63025c0ed40"
+      },
+      {
+        "target": "skyframe/serialization/local/ConcurrentFileFingerprintValueStoreTest",
+        "cases": 5,
+        "sha256": "b6200b13d5d58b8ee32bb8e4111188757e40f1261ca39f0c0eb736a766f61a07"
+      },
+      {
+        "target": "skyframe/serialization/local/PackedFingerprintValueStoreTest",
+        "cases": 8,
+        "sha256": "513713473a8315270c73323c3f168ade015edd6d6f052b587f158fc923aed230"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheSessionTest",
+        "cases": 62,
+        "sha256": "c6753823c99b1acbf5bbd8474802c073d10571cc2053c4c338ccb91227136a44"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalPathCodecTest",
+        "cases": 2,
+        "sha256": "3e10121e63e04706bfe9f857aff3e7b735892e7e3797ab2b741122f74ca8278f"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalRunfilesCodecTest",
+        "cases": 27,
+        "sha256": "2fcbd0516fee70aaebcb03e9d81b2876172e4feffe393a1080cfdb992cb23efe"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalDependencyValidatorTest",
+        "cases": 27,
+        "sha256": "ac670266458fb427392cb9dc304c546058d8ca1f701b2c5b9920bdaef7d509da"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalRepositoryMappingCodecTest",
+        "cases": 5,
+        "sha256": "0929019ead747e35c0c0d202461c163c6caf0f7ee002c7d5fac6239abeff379b"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheLeaseManagerTest",
+        "cases": 8,
+        "sha256": "7faeb8985085a03a922f90d52213f46a9d2efebf6556b026471b9151e7d92d87"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheGarbageCollectorTest",
+        "cases": 20,
+        "sha256": "b0cca252a4e9d2c596d512a663e4234d57c6e3893e0c8c9884987c87a3463893"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest",
+        "cases": 4,
+        "sha256": "7ffd6d710f6c87a14934945045bdd9051852ce56e480cc492f67c2579e05e848"
+      }
+    ]
+  },
+  "scope": "Two warmups and five same-JVM warm-filesystem rounds; two overlapping parent lists, 4098 unique 16KiB files on D-backed ext4. Publication only; no claim about cold HDD or whole builds.",
+  "full_build_log_sha256": "722cc726fb7fd8c23e343a3722aad1c4cc0ac62395078758de8e245cdcb7a5b9"
+}
