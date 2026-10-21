@@ -1,0 +1,15 @@
+{
+  "user_direction": "Use available machine resources when no concurrent build is running.",
+  "observed_wsl_resources": {
+    "logical_cpus": 32,
+    "mem_total_kib": 16191608
+  },
+  "running_datadog_matrix": {
+    "jobs_per_server": 2,
+    "action_memory_mib_per_server": 3072,
+    "jvm_max_heap_gib_per_server": 4,
+    "decision": "Keep the already-running matrix at its recorded resource limits so control, writer and reader comparisons remain matched. Do not restart or change limits midway."
+  },
+  "future_standalone_work": "Use available CPU and memory for standalone source builds or standalone workload runs; check active Bazel processes first. Keep memory headroom for the OS, JVM and agents. Performance comparisons use the same resource policy on both sides.",
+  "rejected": "Changing only the current single writer or reader to unrestricted resources would confound this matrix and would not improve single-threaded repository extraction."
+}

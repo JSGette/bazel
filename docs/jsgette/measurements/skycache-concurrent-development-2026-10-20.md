@@ -2773,6 +2773,16 @@ reports starting a new server. Explicit shutdowns still define fresh-reader/cont
 cleanup. No live run was altered in place: the complete matrix restarts in another result directory,
 accepting zero phases from either interrupted attempt and retaining their reports/logs.
 
+Resource policy clarification (2026-10-21): the user authorized use of available machine resources
+for standalone invocations. WSL currently exposes 32 logical CPUs and 15.44 GiB RAM. Future standalone
+source builds or unpaired workload runs can use the available CPU/memory with headroom for the JVM,
+OS and other live processes. Source builds/tests continue using Cache&Carry. The running matrix
+retains its recorded per-server settings: `--jobs=2`, `--local_resources=memory=3072`, and a 4 GiB JVM
+maximum heap. Changing only a writer or reader midway would confound the comparison; paired phases
+must use matching policies. The action-memory value is a scheduling budget, not a hard process-RAM
+limit. Reported PSS includes native memory and descendants in addition to the Java heap.
+See the [recorded decision](skycache-concurrent-2026-10-20/measurement-resource-policy.json).
+
 The requirement audit verified the unchanged binary/source hashes, all 265 focused Java cases and
 absence of evaluator implementation changes. It identified a runtime coverage gap for glob membership
 additions/deletions/unchanged-content renames. A focused two-cache-server/two-independent-control probe
