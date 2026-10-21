@@ -1765,3 +1765,41 @@ Evidence: [192 cases](skycache-concurrent-2026-10-20/dependency-validator-tests.
 [isolated cost](skycache-concurrent-2026-10-20/dependency-validator-benchmark.json),
 [runtime validation](skycache-concurrent-2026-10-20/dependency-validator-runtime-checks.json),
 [Datadog diagnostic](skycache-concurrent-2026-10-20/dependency-validator-cross-worktree.json).
+
+## Step 30 — abandon evicted, not-yet-ready deserialization continuations
+
+Implementation: [9f3aff359f26](https://github.com/JSGette/bazel/commit/9f3aff359f26d36f04d7d8d750f2fff6d7252aa3).
+The native serialization state for a pending lookup continuation had no cleanup. If its compute
+state was evicted before the continuation became available, its owned lookups could remain pending
+and block other deserializers sharing those values. Cleanup now installs a completion listener
+that abandons those owned lookups when available. Failed/cancelled fetches remain tolerated;
+shared fetches are not cancelled. The Skyframe evaluator is unchanged.
+
+The targeted regression fails twice before the fix (ready and pending continuation) and passes
+after it. The full serialization suite passes all 294 cases, including four new cases. The broader
+local integration/source build passes 202 cases across thirteen targets. Cache&Carry is enabled
+for both source/test runs; the full suite reported two remote hits and the source build five.
+These are correctness results, not an isolated performance claim.
+
+The cross-revision feature remains uncommitted and has not passed its large acceptance gate.
+The small two-worktree probe passed 18 builds, including changing a shared Starlark rule in one
+worktree, importing the replacement into another server with an older cached value, and reverting.
+The full Datadog run passed six pairs through first edited readers (6,206 imports each) but stalled
+on warm revert after the native ten-second invalidation timeout. Local diagnostics found unresolved
+shared source-artifact lookups with no owning continuation; this led to the independent regression.
+
+With cleanup fixed, a fresh Datadog diagnostic progressed through the same edits but both warm
+reverts failed with Java heap space in their 4 GiB heaps (approximately 135 and 148 seconds).
+A subsequent intrusive rerun completed, but it reused prior publications and forced garbage
+collection for heap capture. It is not an acceptance or performance result. Increasing the heap
+was rejected as the next step because it could conceal the failure.
+
+The captured heap contains 16,263 RepositoryMapping objects with 15,746 distinct entry maps and
+6,021,175 entries. There are 3,272 maps of size 1,502; package metadata references 16,209 distinct
+mapping objects. This identifies a concrete source of duplicated data to investigate. It does not
+yet establish that sharing these maps alone resolves the OOM. Raw heap dumps remain local.
+Next add and measure a local shared mapping codec, then repeat the clean edited/reverted gate.
+
+Evidence: [cleanup tests](skycache-concurrent-2026-10-20/pending-continuation-regression-after-full.json),
+[failure and diagnostic protocol](skycache-concurrent-2026-10-20/continuation-cleanup-protocol.json),
+[mapping identities](skycache-concurrent-2026-10-20/repository-mapping-heap-before.json).

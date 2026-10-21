@@ -1,0 +1,307 @@
+{
+  "implementation": "9f3aff359f26d36f04d7d8d750f2fff6d7252aa3",
+  "cross_revision_changes": "uncommitted; not accepted",
+  "cache_and_carry_flags": [
+    "--config=efcache",
+    "--bes_backend=",
+    "--remote_upload_local_results=false"
+  ],
+  "before_regression": {
+    "cases": 4,
+    "failed": 2
+  },
+  "after_regression": {
+    "cases": 294,
+    "failed": 0,
+    "new_cases": [
+      "cleanupFutureContinuation_toleratesFailedOrCancelledFetch[cancelled=false]",
+      "cleanupFutureContinuation_toleratesFailedOrCancelledFetch[cancelled=true]",
+      "cleanupFutureContinuation_abandonsOwnedLookups[alreadyAvailable=false]",
+      "cleanupFutureContinuation_abandonsOwnedLookups[alreadyAvailable=true]"
+    ]
+  },
+  "full_gate_failure": "Both servers stalled after the 10-second retained-key invalidation timeout. Local heap inspection found unresolved shared source-artifact lookups without an owning continuation.",
+  "smoke_binary_sha256": "de8c1be481ff826a4ddebe73105a94f9ab1455840bb7a595bc461786e4ced8a6",
+  "smoke_phases": [
+    {
+      "phase": "control-base",
+      "seconds": 44.466957613999966,
+      "peak_combined_pss_kib": 6526287,
+      "peak_combined_rss_kib": 6579016,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-continuation-smoke",
+            "free_bytes": 383438860288
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 118118322176,
+          "system_drive": "C:\\",
+          "system_free_bytes": 156586995712
+        }
+      },
+      "builds": [
+        {
+          "worktree": "control-a",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "control-b",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "concurrent-base-writers",
+      "seconds": 94.4597461229996,
+      "peak_combined_pss_kib": 7467640,
+      "peak_combined_rss_kib": 7517256,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-continuation-smoke",
+            "free_bytes": 378827051008
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 113454256128,
+          "system_drive": "C:\\",
+          "system_free_bytes": 156586680320
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "warm-base",
+      "seconds": 1.588732266000079,
+      "peak_combined_pss_kib": 7404025,
+      "peak_combined_rss_kib": 7454096,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-continuation-smoke",
+            "free_bytes": 366302564352
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 101139779584,
+          "system_drive": "C:\\",
+          "system_free_bytes": 156586651648
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "restarted-base-readers",
+      "seconds": 49.32608592299994,
+      "peak_combined_pss_kib": 9245515,
+      "peak_combined_rss_kib": 9296944,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-continuation-smoke",
+            "free_bytes": 366302552064
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 101139779584,
+          "system_drive": "C:\\",
+          "system_free_bytes": 156586651648
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+        }
+      ]
+    },
+    {
+      "phase": "first-cross-revision-readers",
+      "seconds": 70.33768275800003,
+      "peak_combined_pss_kib": 9640637,
+      "peak_combined_rss_kib": 9671124,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-continuation-smoke",
+            "free_bytes": 366306983936
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 100871344128,
+          "system_drive": "C:\\",
+          "system_free_bytes": 156586885120
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 6206,
+          "output_sha256": "ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e"
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "analysis_hits": 6206,
+          "output_sha256": "bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674"
+        }
+      ]
+    },
+    {
+      "phase": "reverted-warm-graphs",
+      "seconds": 147.6473328689999,
+      "peak_combined_pss_kib": 10448930,
+      "peak_combined_rss_kib": 10488248,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-continuation-smoke",
+            "free_bytes": 365989335040
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 100535799808,
+          "system_drive": "C:\\",
+          "system_free_bytes": 156586618880
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 33,
+          "timed_out": false,
+          "analysis_hits": 0
+        },
+        {
+          "worktree": "b",
+          "exit_code": 33,
+          "timed_out": false,
+          "analysis_hits": 0
+        }
+      ]
+    }
+  ],
+  "smoke_result": "Warm revert failed with Java heap space in both 4 GiB JVMs; do not treat as accepted.",
+  "intrusive_diagnostic": {
+    "runs": [
+      {
+        "phase": "edited-load",
+        "worktree": "a",
+        "exit_code": 0,
+        "seconds_until_collected": 72.58032797700025
+      },
+      {
+        "phase": "edited-load",
+        "worktree": "b",
+        "exit_code": 0,
+        "seconds_until_collected": 72.79776856300032
+      },
+      {
+        "phase": "warm-revert",
+        "worktree": "a",
+        "exit_code": 0,
+        "seconds_until_collected": 77.51374962199998
+      },
+      {
+        "phase": "warm-revert",
+        "worktree": "b",
+        "exit_code": 0,
+        "seconds_until_collected": 89.29742858600002
+      }
+    ],
+    "captures": [
+      {
+        "at_seconds": 30.722692242999983,
+        "command": "GC.class_histogram",
+        "exit_code": 0
+      },
+      {
+        "at_seconds": 64.67838201399991,
+        "command": "GC.heap_dump",
+        "exit_code": 0
+      }
+    ],
+    "interpretation": "Reused prior publications and invoked full GC through histogram/heap capture. Four builds completed; not a clean acceptance or timing run."
+  },
+  "decisions": [
+    "Keep graph in RAM and leave evaluator unchanged.",
+    "Fix the independently reproduced serialization cleanup gap; do not claim it resolves all runtime issues.",
+    "Keep 4 GiB heaps for comparison; reject increasing the heap to conceal the OOM.",
+    "Investigate mapping duplication next; raw heaps stay local."
+  ]
+}

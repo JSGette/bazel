@@ -218,6 +218,16 @@ repository/environment identity, per-candidate analysis lookup and selective sou
 inheritance while preserving external bindings, pack closure and invocation final validation.
 Then run independent edits/reverts in two simultaneous servers. Statistics and safe GC/quotas remain.
 
+## Cross-revision acceptance remains open (Step 30)
+
+The working implementation separates project identity from source contents and validates both
+candidate entries and the exact dependency roots of values already imported into RAM. The small
+18-build edit/revert probe passes. Large Datadog warm reverts exposed a pending-continuation
+cleanup bug (now committed, 294 serialization cases pass), then heap exhaustion in two 4 GiB
+servers. Cross-revision changes remain uncommitted. Investigate repeated repository-mapping
+deserialization, measure a local codec improvement, then rerun the full clean two-server gate.
+Keep the graph in RAM and retain the heap limit. A GC-instrumented diagnostic pass is not acceptance.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
