@@ -2028,3 +2028,33 @@ Evidence: [paired benchmark](skycache-concurrent-2026-10-20/dependency-validator
 [213 cases](skycache-concurrent-2026-10-20/repository-mapping-witness-validator-tests.json),
 [Datadog smoke](skycache-concurrent-2026-10-20/dependency-validator-witness-runtime.json),
 [runtime review](skycache-concurrent-2026-10-20/dependency-validator-witness-runtime-review.json).
+
+
+### Step 34 diagnostic follow-up — separate manifest and entry validation
+
+A second fresh two-server smoke passes all twelve builds while JFR records only the warm-revert
+phase. Recording is started/stopped through jcmd after verifying each PID belongs to the named
+output base. This is an instrumented diagnostic, not acceptance timing or a performance comparison.
+The raw JFR files and event JSON remain local; only aggregated stack categories, sample weights,
+manifest identity counts and reproduction helpers are published.
+
+The two recordings contain 320/314 execution/native samples under manifest input checks and
+320/326 under per-entry input checks. These sample counts are not wall-time percentages, but they
+support investigating repeated file checking at both layers. Four manifests each contain the same
+142,388 exact witnesses; they have one complete-list identity and a 142,388-witness union. Therefore
+the existing complete-list memo already avoids duplicate checks between these publications. Adding
+another per-discovery overlap memo is not supported by this workload. Regex construction has visible
+estimated allocation weight but only 2/3 execution samples in this classification; it is a later
+allocation candidate rather than the first explanation for this deadline failure.
+
+Next measure a combined admission-plus-dependency validation workload, since the Step 34 isolated
+benchmark opens a sealed pack directly and deliberately excludes manifest admission. Investigate
+bounded reuse of successful admission checks during per-entry validation within one invocation.
+Do not weaken global discovery freshness, resolution-parent validation, negative retries, or final
+content revalidation, and do not inherit unrelated input evidence merely because a candidate was
+inspected. A broad memo inside matches() would also affect discovery/final checks and is rejected.
+No implementation of this follow-up optimization has been applied yet.
+
+Evidence: [stack summary](skycache-concurrent-2026-10-20/witness-invalidation-profile-summary.json),
+[manifest identities](skycache-concurrent-2026-10-20/witness-current-manifest-overlap.json),
+[diagnostic command](skycache-concurrent-2026-10-20/witness-invalidation-profile-command.json).
