@@ -141,7 +141,7 @@ class StoragePreflightTest(unittest.TestCase):
         self.assertEqual(result["observed_unix"], 990)
 
     def test_stale_future_or_invalid_snapshot_timestamp_fails_closed(self):
-        for timestamp in (969, 1001, float("nan"), float("inf"), True, "990", None):
+        for timestamp in (969, 1002, float("nan"), float("inf"), True, "990", None):
             with self.subTest(timestamp=timestamp):
                 data = self.snapshot_observation()
                 data["observed_unix"] = timestamp
@@ -151,6 +151,15 @@ class StoragePreflightTest(unittest.TestCase):
     def test_missing_snapshot_fails_closed_without_interop_fallback(self):
         with self.assertRaisesRegex(RuntimeError, "fresh Windows storage snapshot"):
             self.read_snapshot(None)
+
+    def test_subsecond_clock_skew_is_allowed_without_extending_staleness_limit(self):
+        observation = self.snapshot_observation()
+        observation["observed_unix"] = 1000.5
+        self.assertEqual(self.read_snapshot(observation)["observed_unix"], 1000.5)
+        for observed in (969.999, 1001.001):
+            observation["observed_unix"] = observed
+            with self.assertRaisesRegex(RuntimeError, "outside -1..30 seconds"):
+                self.read_snapshot(observation)
 
     def test_unknown_snapshot_schema_fails_closed(self):
         data = self.snapshot_observation()
@@ -165,6 +174,53 @@ class StoragePreflightTest(unittest.TestCase):
                 path.write_text(content)
                 with self.assertRaisesRegex(RuntimeError, "fresh Windows storage snapshot"):
                     self.read_snapshot(None)
+
+    def test_snapshot_replacement_gap_retries_a_fresh_file(self):
+        original_open = Path.open
+        reads = []
+        def replacing_open(path, mode="r", *args, **kwargs):
+            if mode == "rb":
+                reads.append(str(path))
+                if len(reads) == 1:
+                    raise FileNotFoundError("replacement gap")
+            return original_open(path, mode, *args, **kwargs)
+        with patch("storage_preflight.Path.open", new=replacing_open), \
+             patch("storage_preflight.time.sleep") as sleep:
+            result = self.read_snapshot(self.snapshot_observation())
+        self.assertEqual(len(reads), 2)
+        sleep.assert_called_once_with(0.1)
+        self.assertEqual(result["backing_free_bytes"], 70 * GIB)
+
+    def test_persistent_snapshot_open_failure_is_bounded_and_fails_closed(self):
+        original_open = Path.open
+        reads = []
+        def failing_open(path, mode="r", *args, **kwargs):
+            if mode == "rb":
+                reads.append(str(path))
+                raise FileNotFoundError("still absent")
+            return original_open(path, mode, *args, **kwargs)
+        with patch("storage_preflight.Path.open", new=failing_open), \
+             patch("storage_preflight.time.sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "snapshot read failed after 3 attempts"):
+                self.read_snapshot(self.snapshot_observation())
+        self.assertEqual(len(reads), 3)
+        self.assertEqual([c.args for c in sleep.call_args_list], [(0.1,), (0.2,)])
+
+    def test_retry_does_not_accept_stale_snapshot(self):
+        original_open = Path.open
+        reads = []
+        def replacing_open(path, mode="r", *args, **kwargs):
+            if mode == "rb":
+                reads.append(str(path))
+                if len(reads) == 1:
+                    raise FileNotFoundError("replacement gap")
+            return original_open(path, mode, *args, **kwargs)
+        observation = self.snapshot_observation()
+        observation["observed_unix"] = 960
+        with patch("storage_preflight.Path.open", new=replacing_open), \
+             patch("storage_preflight.time.sleep"):
+            with self.assertRaisesRegex(RuntimeError, "outside -1..30 seconds"):
+                self.read_snapshot(observation)
 
     def test_transient_interop_failures_retry_current_host_observation(self):
         observation = json.dumps({

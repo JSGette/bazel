@@ -60,16 +60,30 @@ def _wsl_storage():
         # Stopped, delayed or malformed watchers must still fail the same capacity guard.
         try:
             path = Path(snapshot)
-            if path.stat().st_size > 64 * 1024:
-                raise ValueError("snapshot exceeds 64 KiB")
-            data = json.loads(path.read_text(encoding="utf-8"))
+            for attempt in range(3):
+                try:
+                    # Open once: a separate stat/read can straddle a Windows replacement.
+                    # drvfs can briefly report ENOENT while the host replaces the file.
+                    with path.open("rb") as stream:
+                        encoded = stream.read(64 * 1024 + 1)
+                    if len(encoded) > 64 * 1024:
+                        raise ValueError("snapshot exceeds 64 KiB")
+                    data = json.loads(encoded.decode("utf-8"))
+                    break
+                except (OSError, UnicodeError, json.JSONDecodeError) as error:
+                    if attempt == 2:
+                        raise ValueError("snapshot read failed after 3 attempts: " + str(error)) from error
+                    # Every retry reads the current file. No cached capacity is reused;
+                    # persistent failures still cancel the probe after at most 0.3s of delay.
+                    time.sleep(0.1 * (attempt + 1))
             observed = data["observed_unix"]
             if isinstance(observed, bool) or not isinstance(observed, (int, float)):
                 raise ValueError("invalid observation timestamp")
             age = time.time() - observed
-            if not math.isfinite(age) or not 0 <= age <= 30:
-                raise ValueError(f"observation age {age} is outside 0..30 seconds")
-            if data["schema_version"] != 1:
+            # Windows and WSL clocks can differ by a fraction of a second.
+            if not math.isfinite(age) or not -1 <= age <= 30:
+                raise ValueError(f"observation age {age} is outside -1..30 seconds")
+            if type(data["schema_version"]) is not int or data["schema_version"] != 1:
                 raise ValueError("unsupported observation schema")
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise RuntimeError("Cannot verify fresh Windows storage snapshot: " + str(error)) from error

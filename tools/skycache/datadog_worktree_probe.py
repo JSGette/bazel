@@ -66,6 +66,8 @@ def main():
                         help="Diagnostic: stop after the first warm revert and keep the action disk cache enabled")
     parser.add_argument("--build-timeout-seconds", type=int, default=1800,
                         help="Cancel an owned build client after this deadline; a timeout fails the gate")
+    parser.add_argument("--server-idle-seconds", type=int, default=3600,
+                        help="Keep warm graphs alive while the independent worktree prepares dependencies")
     parser.add_argument("--resume", action="store_true",
                         help="Revalidate saved phases and continue this probe's existing worktrees")
     parser.add_argument("--reuse-worktrees", action="store_true",
@@ -85,6 +87,8 @@ def main():
         parser.error("--cross-revision-smoke requires --cross-revision-edits without --base-only")
     if args.build_timeout_seconds < 1:
         parser.error("--build-timeout-seconds must be positive")
+    if args.server_idle_seconds < args.build_timeout_seconds:
+        parser.error("--server-idle-seconds must cover the independent build timeout")
     binary = args.bazel.resolve(strict=True)
     root = args.root.resolve()
     initial_storage = check_storage([root, args.action_cache])
@@ -168,6 +172,7 @@ def main():
         "cross_revision_edits": args.cross_revision_edits,
         "cross_revision_smoke": args.cross_revision_smoke,
         "build_timeout_seconds": args.build_timeout_seconds,
+        "server_idle_seconds": args.server_idle_seconds,
         "base_only": args.base_only,
         "java_home": str(java_home) if java_home else None,
         "seed_cache": str(seed_cache) if seed_cache else None,
@@ -191,6 +196,7 @@ def main():
         assert saved.get("cross_revision_edits", False) == args.cross_revision_edits
         assert saved.get("cross_revision_smoke", False) == args.cross_revision_smoke
         assert saved.get("build_timeout_seconds", 1800) == args.build_timeout_seconds
+        assert saved.get("server_idle_seconds", 120) == args.server_idle_seconds
         for key in ("java_home", "seed_cache", "seed_publications", "reuse_worktrees", "single_seed_writer", "collector_jar", "collector_jar_sha256", "output_bases_copied_from", "disable_repository_cache"):
             assert saved.get(key, {} if key == "seed_publications" else False if key in ("reuse_worktrees", "single_seed_writer", "disable_repository_cache") else None) == protocol[key], key
         protocol = saved
@@ -219,7 +225,7 @@ def main():
 
     def startup(name):
         return [str(root / name / "tools/bazel"), "--output_base=" + str(root / ("out-" + name)),
-                "--host_jvm_args=-Xmx4g", "--max_idle_secs=120"]
+                "--host_jvm_args=-Xmx4g", "--max_idle_secs=" + str(args.server_idle_seconds)]
 
     def shutdown(name):
         subprocess.run(startup(name) + ["shutdown"], cwd=root / name,
@@ -305,6 +311,7 @@ def main():
         row = {
             "worktree": name, "argv": argv, "exit_code": code, "seconds": seconds,
             "timed_out": timed_out,
+            "server_started": "Starting local Bazel server" in text,
             "analysis_hits": sum(int(a) for a, _ in hits),
             "analysis_hit_summary_present": bool(hits),
             "cache_disabled": "Local SkyCache disabled:" in text,
