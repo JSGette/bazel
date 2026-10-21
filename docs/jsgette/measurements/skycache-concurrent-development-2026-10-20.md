@@ -2378,3 +2378,107 @@ Evidence: [initial test setup](skycache-concurrent-2026-10-20/binding-first-test
 [mixed paired measurements](skycache-concurrent-2026-10-20/binding-first-paired.json),
 [compatible control](skycache-concurrent-2026-10-20/binding-first-control-paired.json),
 [Datadog edit/revert](skycache-concurrent-2026-10-20/binding-first-datadog-recheck.json).
+
+
+## Step 39 — active-publication leases and isolated layout
+
+Implementation: [6b999c072eb4](https://github.com/JSGette/bazel/commit/6b999c072eb416cc2b9bba94298ea84c6b7b0da6).
+This step supplies lifetime protection required before collection. It does not delete cache data or
+enable byte/age eviction. Graph storage remains in RAM and no Skyframe evaluator code changes.
+
+New clients read and write under `<cache>/leased-v1/`. The existing manifest-v3 and packed-v1
+encodings remain inside that directory. Legacy clients continue using the original top-level
+directories; their data is neither moved nor deleted. Forward rollout starts a separate cache
+population. Rollback runs the old binary against its preserved population. Isolating the protocol is
+necessary because older clients never acquire leases, so a collector cannot safely infer their
+reader lifetimes. Automatic legacy deletion/migration and an implicit destructive contraction are
+explicitly excluded. Future managed-byte budgets must report that legacy data is outside their scope.
+
+`LocalCacheLeaseManager` keeps one channel per canonical managed root in each JVM and reference-counts
+shared locks across that JVM's sessions. One permanent `leases.lock` file has a catalog byte and 4096
+publication slots, selected by a hash prefix. Collisions conservatively protect extra publications.
+The lock inode must never be replaced or collected. Shared pin acquisition and exclusive collection
+probes use nonblocking POSIX file locks. A busy catalog produces a retryable cache read miss, rejects
+a new private upload, or skips publication. It does not wait through a build deadline. Closing one
+owner releases only its references; closing the last owner closes the channel. Process death releases
+that process's locks. The bundled JDK's `FileChannelImpl.tryLock` was inspected; interruption is checked
+before acquisition and no blocking channel-lock call is used.
+
+Discovery acquires a publication pin while briefly holding the shared catalog lock, releases that
+catalog lock, then reads and validates the immutable manifest. A future collector must preserve every
+pinned publication and its full parent closure. Rejected or incomplete candidates release pins and
+descriptors; retained candidates stay pinned through session completion. Private writers acquire their
+own pin before pack creation, keep parent pins, seal their pack, and hold the shared catalog lock across
+the final manifest publication. Ordinary reads and existing private writes need no catalog lock.
+Descriptors close before the session releases its pins. `catalog_busy_skips` makes contention visible.
+
+Decisions: use bounded lock slots rather than unbounded per-publication lock files, and a shared catalog
+transition rather than a lifetime global writer lock. Existing `FileSystemLock` is explicitly hostile
+to concurrent same-path threads and opens a channel per handle; it cannot directly provide this
+same-JVM reference-counted protocol. The existing disk action-cache collector deletes independent files
+and cannot preserve SkyCache's publication dependency closure. Both were inspected before introducing
+the local lease manager. No claim is made for arbitrary network filesystems or remote leases.
+
+Thirteen added cases bring the focused suite to 241 cases across fifteen targets. They cover shared
+same-JVM and cross-JVM pins, hash-slot collisions, catalog ownership/exclusion, process termination,
+interruption, closing one owner while another remains active, private writer and parent protection,
+retry after a busy catalog, failed publication, legacy isolation, symlink rejection and repeated
+descriptor cleanup. Actual subprocesses test lock release on termination and prove that closing an
+unrelated same-JVM owner does not expose a live pin to an external collector. Existing descriptor
+tests now count pack descriptors separately; a new twenty-cycle test verifies exactly one coordination
+descriptor for concurrent sessions and zero after the final session closes.
+
+The initial full integration run passed in 19.614 seconds with three Cache&Carry hits. After adding
+the external catalog-exclusion case, the final run passed in 11.044 seconds with three Cache&Carry hits;
+unchanged targets used their cached results. Benchmark before/after builds took 7.529/7.887 seconds
+with one Cache&Carry hit each. Every source build/test retains
+`--config=efcache --bes_backend= --remote_upload_local_results=false`.
+
+The overhead experiment uses 24 hard links to identical immutable data in an isolated dual-layout
+fixture; it adds no pack bytes and never runs collection on that fixture. The original four-publication
+fixture is preserved. Before and after jars use the same benchmark source and exact environment, with
+three alternating fresh-JVM pairs, two warmups and five measured rounds each, Xms256m/Xmx2g and the
+exclusive measurement lock. Every round opens four candidates and validates the same 101,755 records
+for 512 roots. All dependency-validation counters match, with zero rejected publications or roots.
+Manifest inventories and jar hashes are verified around every JVM.
+
+| Metric | Before leases | After leases |
+| --- | ---: | ---: |
+| Admission plus validation, ms | 5,633.757 | 5,657.517 |
+| Current-thread allocated bytes | 1,567,923,784 | 1,575,477,272 |
+| Same-invocation repeat, ms | 0.146 | 0.130 |
+
+Observed timed difference: 0.42%, within the chosen 5%
+investigation threshold. The measurement includes discovery/pinning and validation but excludes snapshot
+and session construction, final raw checks and session close. It is not a total lifecycle, whole-build,
+retained-memory or peak-RAM estimate.
+
+The runtime protocol performs 74 builds and two queries across nineteen phases, with disk and remote
+action caches disabled. It begins with a legacy server and a lease-aware server sharing the cache path,
+each checked against an independent cache-off control. It covers the prior configuration/environment/
+cache-mode matrix, then rolls the legacy participant forward, performs independent edits and reverts
+with two lease-aware servers, rolls one participant back, and rolls forward again. Exact expected output
+bytes and control hashes match throughout. Restarted participants show real configured-target hits;
+warm participants may retain their graph and need no fresh cache read. Every saved publication hash
+remains present and unchanged, and all owned servers shut down cleanly.
+As in the earlier matrix, the `test_env` phase builds non-test targets; it does not establish test-result reuse.
+
+| Runtime phase | Fresh CT hits A / B |
+| --- | ---: |
+| restarted-readers | 7 / 7 |
+| roll-forward-to-leases | 7 / 7 |
+| both-leased-independent-edits | 7 / 5 |
+| both-leased-revert | 7 / 7 |
+| roll-back-to-legacy | 7 / 6 |
+| roll-forward-again | 7 / 6 |
+
+This is a small correctness workload plus a Datadog-derived validation benchmark. It does not rerun
+the large Datadog executable with collection, which is not implemented yet. Keep that final gate for
+the collector stage and preserve host-disk headroom; the WSL VHD's host volume is near its reserved
+capacity. Reader-safe deletion, byte/age policy, abandoned-writer collection and interruption recovery
+remain required work before a maturity claim.
+
+Evidence: [241 passing cases](skycache-concurrent-2026-10-20/repository-mapping-lease-validator-tests.json),
+[paired overhead](skycache-concurrent-2026-10-20/lease-protocol-paired.json),
+[fixture protocol](skycache-concurrent-2026-10-20/lease-protocol-fixture.json),
+[mixed-version lifecycle and rollback](skycache-concurrent-2026-10-20/lease-layout-lifecycle.json).

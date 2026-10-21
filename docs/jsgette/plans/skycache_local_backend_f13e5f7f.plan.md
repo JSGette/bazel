@@ -311,6 +311,23 @@ protection on process death, and handle abandoned writes and interruption. Activ
 limits soft; expose retained/collected/busy/failure totals. Verify the protocol across actual processes
 before enabling byte/age eviction. This is planned work, not implemented by Step 38.
 
+## Active publication leases are implemented (Step 39)
+
+Lease-aware clients now use an isolated `leased-v1` directory. A permanent bounded-slot lock file,
+one channel per canonical root/JVM, shared reference-counted pins and brief catalog coordination
+protect active readers, private writers and used parents. Existing legacy data remains untouched.
+There is still no collection. All 241 cases pass, including actual process death/interruption and
+descriptor isolation. The 74-build/two-query mixed-version lifecycle check verifies rollout, two
+lease-aware edited worktrees, rollback and rollout again with unchanged publication hashes.
+Admission/validation medians are 5633.757/5657.517 ms; no whole-build claim.
+
+Next implement a bounded collector that holds exclusive catalog coordination, honors live slots and
+the transitive parent closure, and applies soft byte/age limits without touching legacy directories
+or the permanent lock file. Test active readers/publishers, collector interruption, dead writers,
+malformed metadata and foreign/symlink paths before enabling deletion. Record that active closures
+may exceed limits and legacy bytes are outside the managed budget. Reuse existing Datadog outputs for
+the final large-workload gate, subject to the host-volume preflight. Keep graph/evaluator behavior.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
