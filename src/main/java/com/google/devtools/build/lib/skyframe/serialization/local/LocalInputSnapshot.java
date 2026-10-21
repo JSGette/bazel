@@ -151,12 +151,23 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   void include(List<Witness> inherited) throws IOException {
     for (Witness witness : inherited) {
-      if (!matches(witness)) {
+      if (!validateAndInclude(witness)) {
         changed = true;
         throw new IOException("cached input changed: " + witness.path());
       }
-      remember(witness);
     }
+  }
+
+  /**
+   * Validates one candidate witness and registers the exact evidence for final revalidation. A
+   * stale candidate is a cache miss, not evidence that this invocation's inputs have changed.
+   */
+  boolean validateAndInclude(Witness witness) throws IOException {
+    if (!matches(witness)) {
+      return false;
+    }
+    remember(witness);
+    return true;
   }
 
   boolean isUnchanged() throws IOException {

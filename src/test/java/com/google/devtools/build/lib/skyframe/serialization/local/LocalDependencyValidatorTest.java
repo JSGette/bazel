@@ -550,6 +550,107 @@ public final class LocalDependencyValidatorTest {
   }
 
   @Test
+  public void repeatedWitnessAcrossDistinctRecordsIsCheckedOnceAndFinallyRechecked()
+      throws Exception {
+    var parent = leaf(file.getParent(), false, List.of());
+    var plain = leaf(file, false, List.of());
+    var withParent = leaf(file, false, List.of(parent.key()));
+    var root = put(bytes(List.of(), List.of(plain, withParent), List.of(), null));
+    var inputs = snapshot();
+    var validator = new LocalDependencyValidator(store, inputs, NONPROD_FINGERPRINTER, compression);
+    assertThat(validator.validate(root)).isTrue();
+    assertThat(validator.statisticsJson()).contains("\"witnesses_checked\":2");
+    assertThat(validator.statisticsJson()).contains("\"witness_memo_hits\":1");
+    assertThat(inputs.isUnchanged()).isTrue();
+    var mtime = Files.getLastModifiedTime(file);
+    Files.writeString(file, "two");
+    Files.setLastModifiedTime(file, mtime);
+    assertThat(inputs.isUnchanged()).isFalse();
+    assertThat(validator().validate(root)).isFalse();
+  }
+
+  @Test
+  public void witnessMemoIncludesExpectedDigestAndStaleCandidateDoesNotPoisonPublication()
+      throws Exception {
+    var oldRoot = root(leaf(file, false, List.of()));
+    Files.writeString(file, "two");
+    var newRoot = root(leaf(file, false, List.of()));
+    Files.writeString(file, "one");
+    var inputs = snapshot();
+    var validator = new LocalDependencyValidator(store, inputs, NONPROD_FINGERPRINTER, compression);
+    assertThat(validator.validate(oldRoot)).isTrue();
+    assertThat(validator.validate(newRoot)).isFalse();
+    assertThat(inputs.isUnchanged()).isTrue();
+  }
+
+  @Test
+  public void failedWitnessIsRetriedWhenExternalRepositoryMaterializes() throws Exception {
+    Path external = Files.createDirectories(output.resolve("external/repo")).resolve("file");
+    Files.writeString(external, "contents");
+    var root = root(leaf(external, false, List.of()));
+    Files.delete(external);
+    var inputs = snapshot();
+    var validator = new LocalDependencyValidator(store, inputs, NONPROD_FINGERPRINTER, compression);
+    assertThat(validator.validate(root)).isFalse();
+    Files.writeString(external, "contents");
+    assertThat(validator.validate(root)).isTrue();
+    assertThat(inputs.isUnchanged()).isTrue();
+  }
+
+  @Test
+  public void witnessMemoIsBoundedWithoutDroppingFinalEvidence() throws Exception {
+    var witnesses = new java.util.ArrayList<LocalInputSnapshot.Witness>();
+    Path last = null;
+    for (int i = 0; i < 8; i++) {
+      last = Files.writeString(workspace.resolve("witness-" + i), "original");
+      witnesses.addAll(
+          LocalDependencyEvidence.decode(writer.captureDependency(last, false, List.of()))
+              .witnesses());
+    }
+    byte[] evidence = new LocalDependencyEvidence(List.of(), witnesses).encode();
+    var key =
+        new StringKey("local-input-v1/" + NONPROD_FINGERPRINTER.fingerprint(evidence).toHex());
+    store.put(key, evidence).get();
+    var inputs = snapshot();
+    var validator =
+        new LocalDependencyValidator(
+            store,
+            inputs,
+            NONPROD_FINGERPRINTER,
+            compression,
+            new LocalDependencyValidator.Limits(3, 1024 * 1024, 100, 100, 1024));
+    assertThat(validator.validate(root(key))).isTrue();
+    assertThat(validator.statisticsJson()).contains("\"witness_memo_entries\":3");
+    assertThat(inputs.witnesses()).containsAtLeastElementsIn(witnesses);
+    Files.writeString(last, "modified");
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
+  public void memoizedDirectoryMetadataDoesNotValidateChangedListing() throws Exception {
+    var metadata = root(leaf(file.getParent(), false, List.of()));
+    var listing = root(leaf(file.getParent(), true, List.of()));
+    var validator = validator();
+    assertThat(validator.validate(metadata)).isTrue();
+    Files.writeString(file.getParent().resolve("new-child"), "new");
+    assertThat(validator.validate(listing)).isFalse();
+  }
+
+  @Test
+  public void memoizedLeafDoesNotBypassChangedResolutionParent() throws Exception {
+    Path link = Files.createSymbolicLink(workspace.resolve("parent-link"), Path.of("dir/file"));
+    Files.writeString(workspace.resolve("other"), "one");
+    var parent = leaf(link, false, List.of());
+    var plain = root(leaf(file, false, List.of()));
+    var withParent = root(leaf(file, false, List.of(parent.key())));
+    var validator = validator();
+    assertThat(validator.validate(plain)).isTrue();
+    Files.delete(link);
+    Files.createSymbolicLink(link, Path.of("other"));
+    assertThat(validator.validate(withParent)).isFalse();
+  }
+
+  @Test
   public void analysisClientRejectsStaleEvidenceBeforeReturningValue() throws Exception {
     var inputs = snapshot();
     var session = new LocalCacheSession(temporary.newFolder("cache").toPath(), inputs);

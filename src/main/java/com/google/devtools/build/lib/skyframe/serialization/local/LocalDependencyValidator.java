@@ -45,6 +45,8 @@ final class LocalDependencyValidator {
   private final CompressionService compression;
   private final Limits limits;
   private final HashSet<ByteString> validated = new HashSet<>();
+  private final HashSet<LocalInputSnapshot.Witness> validatedWitnesses = new HashSet<>();
+  private long witnessMemoHits;
   private long recordsRead;
   private long memoHits;
   private long witnessesChecked;
@@ -88,15 +90,22 @@ final class LocalDependencyValidator {
           push(frame.children().next(), stack, active, budget);
           continue;
         }
-        // Validate after all resolution parents. include checks again while registering final
-        // revalidation, so an intervening change cannot silently become publication evidence.
+        // Always visit resolution parents before reusing a witness success. Exact witnesses
+        // include logical path, operation and expected digest. Memoized successes are bounded and
+        // invocation-local, just like dependency records; final publication still rechecks content.
         for (var witness : frame.witnesses()) {
+          if (validatedWitnesses.contains(witness)) {
+            witnessMemoHits++;
+            continue;
+          }
           witnessesChecked++;
-          if (!inputs.matches(witness)) {
+          if (!inputs.validateAndInclude(witness)) {
             throw new IOException("dependency content mismatch");
           }
+          if (validatedWitnesses.size() < limits.records()) {
+            validatedWitnesses.add(witness);
+          }
         }
-        inputs.include(frame.witnesses());
         if (validated.size() >= limits.records()) {
           throw new IOException("dependency success memo capacity exceeded");
         }
@@ -193,11 +202,13 @@ final class LocalDependencyValidator {
   synchronized String statisticsJson() {
     return String.format(
         java.util.Locale.ROOT,
-        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d}",
+        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d}",
         recordsRead,
         memoHits,
         witnessesChecked,
         rejected,
-        validated.size());
+        validated.size(),
+        witnessMemoHits,
+        validatedWitnesses.size());
   }
 }
