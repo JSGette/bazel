@@ -230,7 +230,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   private String captureSource() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v9-dependency-evidence");
+    update(digest, "local-source-v10-shared-repository-mapping");
     update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());

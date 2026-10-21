@@ -44,6 +44,7 @@ java_library(
         "LocalDependencyValidator.java",
         "LocalInputSnapshot.java",
         "LocalPathCodec.java",
+        "LocalRepositoryMappingCodec.java",
         "LocalRunfilesCodec.java",
         "LocalSkycacheModule.java",
         "LocalSkycacheOptions.java",

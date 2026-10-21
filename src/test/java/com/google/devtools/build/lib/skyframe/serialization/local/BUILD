@@ -223,3 +223,40 @@ java_binary(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
     ],
 )
+
+java_test(
+    name = "LocalRepositoryMappingCodecTest",
+    size = "small",
+    srcs = ["LocalRepositoryMappingCodecTest.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/cmdline",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:collect",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/protobuf:protobuf_lite",
+        "//third_party/java/truth",
+    ],
+)
+
+java_binary(
+    name = "LocalRepositoryMappingBenchmark",
+    testonly = True,
+    srcs = ["LocalRepositoryMappingBenchmark.java"],
+    jvm_flags = ["-Xmx1g"],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalRepositoryMappingBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/cmdline",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/concurrent/safeexecutor:safe_executor",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:collect",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/protobuf:protobuf_lite",
+    ],
+)

@@ -76,6 +76,7 @@ public final class LocalSkycacheModule extends SerializationModule {
           .add(new ValueSharingAdapter<>(new LocalSourceArtifactCodec()))
           .addReferenceConstant(Runfiles.EMPTY)
           .add(new ValueSharingAdapter<>(new LocalRunfilesCodec()))
+          .add(new ValueSharingAdapter<>(new LocalRepositoryMappingCodec()))
           .add(new ValueSharingAdapter<>(new LocalSymlinkEntryCodec()))
           .add(RemoteConfiguredTargetValue.codecWithTransitivePackages())
           .add(AspectValue.codecWithTransitivePackages())
