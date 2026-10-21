@@ -21,9 +21,59 @@ import signal
 import subprocess
 import threading
 import time
+import uuid
 
 from datadog_probe import process_memory
 from storage_preflight import check_storage
+
+
+
+def relocate_copied_symlinks(destination, mappings):
+    """Repair absolute links to the copied fixture's known roots without following links.
+
+    Stopped output bases may contain repository aliases and overlay links to their old workspace
+    or output base. Preserve unrelated absolute links, relative links and ordinary file contents.
+    This prepares a benchmark fixture; it does not change SkyCache path or input validation.
+    """
+    destination = Path(destination).absolute()
+    if destination.is_symlink() or not destination.is_dir():
+        raise ValueError("Copied output base must be a real directory")
+    destination = destination.resolve(strict=True)
+    roots = [(Path(old).resolve(strict=True), Path(new).resolve(strict=True))
+             for old, new in mappings]
+    if any(old == new or destination.is_relative_to(old) for old, new in roots):
+        raise ValueError("Source and copied fixture roots must be separate")
+    if (destination / "server/server.pid.txt").exists():
+        raise ValueError("Copied output base must have no live server")
+    roots.sort(key=lambda pair: len(pair[0].parts), reverse=True)
+    changes = []
+    pending = [destination]
+    while pending:
+        directory = pending.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                if entry.is_symlink():
+                    path = Path(entry.path)
+                    original = path.readlink()
+                    if not original.is_absolute():
+                        continue
+                    target = Path(os.path.normpath(original))
+                    replacement = next((new / target.relative_to(old)
+                                        for old, new in roots if target.is_relative_to(old)), None)
+                    if replacement is None:
+                        continue
+                    temporary = path.with_name(".skycache-relocate-" + uuid.uuid4().hex)
+                    # Cleanup owns this temporary only after creation succeeds.
+                    temporary.symlink_to(replacement)
+                    try:
+                        os.replace(temporary, path)
+                    finally:
+                        temporary.unlink(missing_ok=True)
+                    changes.append({"path": str(path.relative_to(destination)),
+                                    "before": str(original), "after": str(replacement)})
+                elif entry.is_dir(follow_symlinks=False):
+                    pending.append(Path(entry.path))
+    return sorted(changes, key=lambda row: row["path"])
 
 
 def watch_storage(paths, finished, active_clients, client_lock, errors, interval=10):
@@ -130,6 +180,7 @@ def main():
     names = ("a", "b", "control-a", "control-b")
     source_path = Path("cmd/cluster-agent/subcommands/version/command.go")
     originals = {}
+    output_relocations = {}
     for name in names:
         workspace = root / name
         if not (args.resume or args.reuse_worktrees):
@@ -147,6 +198,8 @@ def main():
                     "--exclude=/java.log.*", "--exclude=/command.log", "--exclude=/jvm.out",
                     str(origin) + "/", str(destination) + "/"],
                     stdout=log, stderr=subprocess.STDOUT, check=True)
+            output_relocations[name] = relocate_copied_symlinks(destination, [
+                (output_origin / name, workspace), (origin, destination)])
         actual = subprocess.check_output(
             ["git", "-C", str(workspace), "rev-parse", "HEAD"], text=True).strip()
         assert actual == requested_revision, (workspace, actual)
@@ -179,6 +232,7 @@ def main():
         "seed_publications": seed_publications,
         "reuse_worktrees": args.reuse_worktrees,
         "output_bases_copied_from": str(output_origin) if output_origin else None,
+        "copied_output_symlink_relocations": output_relocations,
         "disable_repository_cache": args.disable_repository_cache,
         "reused_fixture": str(root) if args.reuse_worktrees else None,
         "single_seed_writer": args.single_seed_writer,
