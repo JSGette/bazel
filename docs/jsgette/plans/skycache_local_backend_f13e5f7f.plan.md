@@ -476,3 +476,13 @@ its union in the existing final pass: focused publication reads fall about 67%, 
 pass, and no Skyframe evaluator changes are needed. Do not infer full-run acceptance from this
 microbenchmark. Next: address measured validation latency, then repeat substantial independent
 reuse/edits/reverts/forced collection and archive/clean only after all gates pass.
+
+
+### 2026-10-21: large-input aliases (Step 49)
+
+The failed workload's manifest names 6.88 GB of file bytes backed by 2.68 GB of distinct inode
+contents. Add bounded per-pass digest sharing for large aliases with fresh Unix identity and
+change-time checks; preserve all path/type/mode/link/listing evidence. Advance namespace/source
+fingerprint domains and preserve old data for rollback. The alias microbenchmark reduces reads
+80% and median latency 78%; all 277 cases pass. This is not yet full Datadog acceptance. Repeat
+runtime membership and the full substantial matrix before drawing end-to-end conclusions.

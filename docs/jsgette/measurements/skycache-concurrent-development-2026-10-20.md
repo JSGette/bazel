@@ -12,9 +12,9 @@ For setup, flags and interpreting hits, see the [local usage guide](../skycache-
 
 ## Current status
 
-Updated 2026-10-21, through Step 48. Experimental concurrent analysis reuse is implemented,
+Updated 2026-10-21, through Step 49. Experimental concurrent analysis reuse is implemented,
 with full in-memory graphs and no evaluator implementation changes. Current core checks cover
-267 Java cases across 17 targets. The previous 34-build file-membership runtime gate passed
+277 Java cases across 18 targets. The previous 34-build file-membership runtime gate passed
 two cached worktrees and two independent controls on the preceding binary.
 
 The final collector-enabled 32-build Datadog acceptance matrix remains incomplete. Its corrected
@@ -24,8 +24,9 @@ input validation after successful action execution. An earlier warm phase also h
 invalidation deadline. Restarted cached readers are slower and use more memory than controls on
 this temporary SATA HDD. These are failures to address, not a speedup or a mature release.
 
-Step 48 removes redundant inherited-input hashing at publication and passes the full focused
-suite with a measured reduction in logical reads and allocation. It has not yet passed a new
+Steps 48–49 remove redundant inherited-input hashing and repeated hashing of large file aliases
+within a fresh validation pass. The full focused suite passes, with measured reductions in reads
+and latency. It has not yet passed a new
 substantial Datadog run. All failed evidence is preserved; test servers stopped and artificial
 source edits restored. Further latency investigation and the full reuse/edit/revert/collection
 gate remain required before the final acceptance audit can close.
@@ -3021,3 +3022,59 @@ Datadog measurements.
 
 Evidence: [all rounds, source hashes and test cases](skycache-concurrent-2026-10-20/publication-final-validation-once.json),
 [full focused-suite build log](skycache-concurrent-2026-10-20/publication-validation-full-build.log).
+
+
+## Step 49 — hash large aliased files once per fresh validation pass
+
+Implementation: [258febe36adf](https://github.com/JSGette/bazel/commit/258febe36adf692149ee7346d2d03972a460c113).
+A read-only profile of the failed Datadog publication finds 84,846 witnesses, including 45,010
+regular-file paths. One full pass encounters 6,877,395,176 file bytes but only 2,677,114,482 bytes
+across distinct device/inode identities. Large LLVM and Python binaries account for much of the
+duplication: five Clang names resolve to one 223,765,784-byte file, five linker names to one
+140,517,584-byte file, with similar library and Python interpreter aliases. These counts diagnose
+duplicate reads; missing-path witnesses are expected evidence too and are not discarded.
+
+File fingerprints now incorporate a SHA-256 content digest. One validation/capture pass may reuse
+that digest for a large file only after fresh Unix device/inode, ctime, mtime and size observations
+match the version already read in that same pass. It checks the version again before accepting the
+digest. Every path, file kind, permission, symlink target and directory listing is still evaluated.
+A new admission scan, final publication check or command starts with no retained content digests.
+Providers lacking Unix identity/change time always reread content. Small files are hashed directly
+without extra version metadata calls. The default memo retains at most 256 digests for files at
+least 1 MiB; overflow rereads bytes. Scratch buffers remain bounded to 1 MiB per process.
+
+This keeps the existing stable-inputs-during-command assumption. It does not claim an atomic
+filesystem snapshot or protection against a privileged actor forging filesystem metadata.
+Chosen: a bounded memo within a single fresh pass, guarded by change time and identity. Discarded:
+cross-command timestamp caches, mtime/size-only reuse, ignoring aliases or caching large file bytes
+in RAM. Hash loops now honor an already-set thread interrupt and preserve that flag; this alone is
+not a claim that Bazel's earlier SIGINT/shutdown behavior has been solved.
+
+The fingerprint representation changes deliberately. The project namespace advances to
+`local-project-v3-content-sha256`, and the source digest domain to `local-source-v11-content-sha256`.
+Old publications remain untouched in their old namespace; mixed versions cannot consume each
+other's input evidence. Rolling back selects the old namespace. A new version initially has a
+cold analysis cache. The packed data format and collection lease protocol are unchanged.
+
+Ten focused hasher regressions cover symbolic/hardlink reuse, distinct files, changed bytes with
+restored size/mtime, replacement inode, symlink retargeting, fresh passes, bounded capacity, small
+and empty files, missing files and interruption. All 277 Java cases across 18 targets pass. The
+source build used Cache&Carry, jobs=32, 10 GiB action memory and Xmx4g, reported three remote cache
+hits and took 15.762 seconds. No evaluator implementation changed.
+
+The alias benchmark validates two distinct 32 MiB inputs plus eight mixed symbolic/hardlink aliases
+through the complete final witness check. Two warmups precede five measured rounds per revision:
+
+| Metric | Before | After |
+|---|---:|---:|
+| Median wall time | 137.512 ms | 30.333 ms |
+| Median logical bytes read | 335,544,443 | 67,108,986 |
+| Median read syscalls | 5,132 | 1,028 |
+
+Logical reads fall about 80% and median latency about 78%. All measured rounds have zero physical
+reads; these are warm-filesystem microbenchmarks without statistical confidence intervals, not a
+Datadog or cold-disk speedup. The final substantial acceptance matrix and fresh runtime membership
+coverage remain pending on this new binary. The old failed run and its bytes remain preserved.
+
+Evidence: [profile, all rounds, source hashes and 277 cases](skycache-concurrent-2026-10-20/input-alias-validation.json),
+[full focused-suite log](skycache-concurrent-2026-10-20/input-alias-validation-full-build.log).

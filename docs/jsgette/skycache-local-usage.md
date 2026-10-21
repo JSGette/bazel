@@ -105,3 +105,16 @@ Pass `--experimental_local_skycache=` to disable the backend. This does not eras
 the normal in-memory graph; the local backend rejects the upstream minimize-memory mode. See the
 [architecture and remaining roadmap](plans/skycache_local_backend_f13e5f7f.plan.md) for the design
 contract and future transport work.
+
+
+## Fingerprint version changes
+
+The content-digest implementation uses project namespace `local-project-v3-content-sha256` and
+source domain `local-source-v11-content-sha256`. Earlier publications remain untouched in their
+previous namespace. A new binary initially rebuilds its analysis cache; mixed fingerprint versions
+do not share entries, and rollback selects the previous namespace. No manual cache rewrite is
+required. The lease-aware collector continues to manage recognized inactive publications.
+
+Large-file content digests are reused only within one fresh validation/capture pass, with Unix
+device/inode, ctime, mtime and size checks. No digest memo survives between passes or commands.
+All paths, modes, links, directory membership and expected content digests remain checked.

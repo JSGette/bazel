@@ -1,0 +1,562 @@
+{
+  "implementation_commit": "258febe36adf692149ee7346d2d03972a460c113",
+  "before": {
+    "command": [
+      "/home/jgett/REPOS/.tools/bazel",
+      "--host_jvm_args=-Xmx4g",
+      "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/build-output",
+      "test",
+      "--config=efcache",
+      "--bes_backend=",
+      "--remote_upload_local_results=false",
+      "--jobs=32",
+      "--local_resources=memory=10240",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalInputAliasBenchmark",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest"
+    ],
+    "argv": [
+      "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputAliasBenchmark",
+      "/home/jgett/REPOS/.work/skycache-concurrent/c-backed-measurements/input-alias-validation-before",
+      "8",
+      "33554432"
+    ],
+    "rounds": [
+      {
+        "round": 0,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 137.108,
+        "read_characters": 335544443,
+        "read_syscalls": 5132,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 1,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 139.969,
+        "read_characters": 335544443,
+        "read_syscalls": 5132,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 2,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 137.964,
+        "read_characters": 335544443,
+        "read_syscalls": 5132,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 3,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 137.318,
+        "read_characters": 335544443,
+        "read_syscalls": 5132,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 4,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 137.512,
+        "read_characters": 335544443,
+        "read_syscalls": 5132,
+        "physical_read_bytes": 0
+      }
+    ],
+    "test_cases": 62,
+    "sources": {
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputAliasBenchmark.java": "8c2ed2079cc25e03528b952601199d10755af49065b3fd8fbc0dd1d54b30eda5",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java": "82a32965bec9dba77416587f6b3ed706c3cfeaa3e0450fc6374e84b0ca37fd83",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java": "87c278693dc7ea5d7d27ec5bd90c0220575b2188a2807ce6dc9ac86ab043d4bf",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshot.java": "008faf73b4b8230d1829949f4803f95807aa28cf8e1fbdc4ff9dfde5b8720454"
+    },
+    "scope": "Two warmups and five same-JVM warm-filesystem rounds; two distinct 32MiB files and eight mixed symbolic/hardlink aliases on D-backed ext4. Full final witness validation; no claim about cold HDD or whole builds."
+  },
+  "after": {
+    "command": [
+      "/home/jgett/REPOS/.tools/bazel",
+      "--host_jvm_args=-Xmx4g",
+      "--output_base=/home/jgett/REPOS/.work/skycache-concurrent/build-output",
+      "test",
+      "--config=efcache",
+      "--bes_backend=",
+      "--remote_upload_local_results=false",
+      "--jobs=32",
+      "--local_resources=memory=10240",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalInputAliasBenchmark",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest",
+      "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalContentHasherTest"
+    ],
+    "argv": [
+      "/home/jgett/REPOS/bazel-skycache-concurrent/bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputAliasBenchmark",
+      "/home/jgett/REPOS/.work/skycache-concurrent/c-backed-measurements/input-alias-validation-after",
+      "8",
+      "33554432"
+    ],
+    "rounds": [
+      {
+        "round": 0,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 28.721,
+        "read_characters": 67108986,
+        "read_syscalls": 1028,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 1,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 30.333,
+        "read_characters": 67108986,
+        "read_syscalls": 1028,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 2,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 30.393,
+        "read_characters": 67108986,
+        "read_syscalls": 1028,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 3,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 29.439,
+        "read_characters": 67108986,
+        "read_syscalls": 1028,
+        "physical_read_bytes": 0
+      },
+      {
+        "round": 4,
+        "aliases": 8,
+        "distinct_files": 2,
+        "file_bytes": 33554432,
+        "milliseconds": 30.399,
+        "read_characters": 67110201,
+        "read_syscalls": 1029,
+        "physical_read_bytes": 0
+      }
+    ],
+    "test_cases": 62,
+    "sources": {
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputAliasBenchmark.java": "8c2ed2079cc25e03528b952601199d10755af49065b3fd8fbc0dd1d54b30eda5",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java": "82a32965bec9dba77416587f6b3ed706c3cfeaa3e0450fc6374e84b0ca37fd83",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java": "e58d761b6e5fc8ae91b2802c41d4a68d52cf1f22ecee62bae5801b0cd7326787",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshot.java": "036b701cc2d09c4e89589c8cd8004efa0fd81c5fc0c870f9f51896ee9ffd5967",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalContentHasher.java": "5e5c2b0c621d5a7942e3341be2407e0df421618082f905db1ea6882870a9a009",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalContentHasherTest.java": "2f6da2af67c3fe342ad74e99b9d88ba33a6a1266c53174f858ca878e76ab83a9"
+    },
+    "scope": "Two warmups and five same-JVM warm-filesystem rounds; two distinct 32MiB files and eight mixed symbolic/hardlink aliases on D-backed ext4. Full final witness validation; no claim about cold HDD or whole builds."
+  },
+  "medians": {
+    "before": {
+      "milliseconds": 137.512,
+      "read_characters": 335544443,
+      "read_syscalls": 5132,
+      "physical_read_bytes": 0
+    },
+    "after": {
+      "milliseconds": 30.333,
+      "read_characters": 67108986,
+      "read_syscalls": 1028,
+      "physical_read_bytes": 0
+    }
+  },
+  "binary_sha256": "3b290bf80319728139745a0420fb210684aea66ab3d3234fee36693bd012b868",
+  "tests": {
+    "targets": 18,
+    "cases": 277,
+    "xml": [
+      {
+        "target": "analysis/RunfilesTest",
+        "cases": 19,
+        "sha256": "fbdcc91aa8df8c1c824e792394cb2f4e638a0580c32764c206060e998bc174ad"
+      },
+      {
+        "target": "analysis/AspectValueTest",
+        "cases": 7,
+        "sha256": "68f7a8c4fd13aaf13d606d3924aa6294f75fbda1e8fb7ffae22f6628ffe10cf2"
+      },
+      {
+        "target": "skyframe/serialization/StarlarkInfoCodecTest",
+        "cases": 4,
+        "sha256": "23f3ed85c683707f7c7359dd73df714a38bc4b6fe66ddeb94bfa24cc47e8b6f6"
+      },
+      {
+        "target": "skyframe/serialization/analysis/AnalysisCacheInvalidatorTest",
+        "cases": 18,
+        "sha256": "b2e05cc6e562c55bab7f27649b2a784948d8be06da2f480e1f34908574d72ac8"
+      },
+      {
+        "target": "skyframe/serialization/analysis/FileDependencySerializerTest",
+        "cases": 15,
+        "sha256": "c71af66cefff56ec39c89aeced8a8985d6e7b0ce1a272ca0bf3c2550355a7539"
+      },
+      {
+        "target": "skyframe/serialization/analysis/SelectedEntrySerializerTest",
+        "cases": 6,
+        "sha256": "e43c47bc3bcd4f059702e33e159e82a60147281739e80558626d68f6330eb91a"
+      },
+      {
+        "target": "skyframe/serialization/analysis/BazelSkycacheIntegrationTest",
+        "cases": 30,
+        "sha256": "6a4ea3bfbdf1033883909908b269c469bff558411bd1793b21c42cd83c03bb81"
+      },
+      {
+        "target": "skyframe/serialization/local/ConcurrentFileFingerprintValueStoreTest",
+        "cases": 5,
+        "sha256": "b6200b13d5d58b8ee32bb8e4111188757e40f1261ca39f0c0eb736a766f61a07"
+      },
+      {
+        "target": "skyframe/serialization/local/PackedFingerprintValueStoreTest",
+        "cases": 8,
+        "sha256": "513713473a8315270c73323c3f168ade015edd6d6f052b587f158fc923aed230"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheSessionTest",
+        "cases": 62,
+        "sha256": "0f5d6ffbc5ae0175aefcc452074f9fd0888e8957d7ca5742e6f7a6ef5a25aebb"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalPathCodecTest",
+        "cases": 2,
+        "sha256": "6612a6495e70264d566433654a40cf15a3d9cc06d6c823799907e78b0ee622b4"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalRunfilesCodecTest",
+        "cases": 27,
+        "sha256": "4df969070b40c264bc4829d240a7856038007915054431a0e299e8305a4c22ba"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalDependencyValidatorTest",
+        "cases": 27,
+        "sha256": "e031e5613c36fa95d9a1a9c8a07fda4f28c0c814ed528d12f4b5984d5c2e92aa"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalRepositoryMappingCodecTest",
+        "cases": 5,
+        "sha256": "ebb7ddb310b35dbc00d5c90e2c1a166b0d6a8877485de847a82ed9bf2c3a3cce"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheLeaseManagerTest",
+        "cases": 8,
+        "sha256": "fec60d520fd8a97361ad231889fd10c66c7f4129961963631e5980d4aeddc3a4"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheGarbageCollectorTest",
+        "cases": 20,
+        "sha256": "2c9903a9c47e72728e7b61d3f6c12c323fcde25dab1d3ebb512a4df960099632"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest",
+        "cases": 4,
+        "sha256": "94ad6a3b6bcc788ec5720b40ce02217518e06a4cecc9b4266351582c1b41fec9"
+      },
+      {
+        "target": "skyframe/serialization/local/LocalContentHasherTest",
+        "cases": 10,
+        "sha256": "4a88a26f22c88ac93494bed6aa43917c22d1dcf2f6a8b06328dd5408ecbb5bf3"
+      }
+    ]
+  },
+  "workload_profile": {
+    "manifest_sha256": "78064bcbd1b9e7448bd8d2af0afd7fd3047c367c33a780f33c0d42d77bc66c02",
+    "witness_count": 84846,
+    "regular_file_witness_count": 45010,
+    "total_regular_file_bytes_per_pass": 6877395176,
+    "distinct_inodes": 42548,
+    "distinct_inode_bytes_per_pass": 2677114482,
+    "missing_count": 20130,
+    "seconds": 2.878417558000365,
+    "scope": "Read-only stat of manifest witnesses; no fingerprint changes, no content cache reuse, no deletion, no runtime timing claim.",
+    "largest_inodes": [
+      {
+        "size": 223765784,
+        "aliases": 5,
+        "filenames": [
+          "clang",
+          "clang++",
+          "clang-19",
+          "clang-cl",
+          "clang-cpp"
+        ]
+      },
+      {
+        "size": 140517584,
+        "aliases": 5,
+        "filenames": [
+          "ld.lld",
+          "ld64.lld",
+          "lld",
+          "lld-link",
+          "wasm-ld"
+        ]
+      },
+      {
+        "size": 218430976,
+        "aliases": 3,
+        "filenames": [
+          "libpython3.12.so",
+          "libpython3.12.so.1.0",
+          "libpython3.12.so"
+        ]
+      },
+      {
+        "size": 102289504,
+        "aliases": 6,
+        "filenames": [
+          "python",
+          "python3",
+          "python3.12",
+          "python",
+          "python3",
+          "python3.12"
+        ]
+      },
+      {
+        "size": 199522152,
+        "aliases": 3,
+        "filenames": [
+          "liblldb.so",
+          "liblldb.so.19.1",
+          "liblldb.so.19.1.7"
+        ]
+      },
+      {
+        "size": 237123872,
+        "aliases": 2,
+        "filenames": [
+          "libclang-cpp.so",
+          "libclang-cpp.so.19.1"
+        ]
+      },
+      {
+        "size": 156480608,
+        "aliases": 3,
+        "filenames": [
+          "libclang.so",
+          "libclang.so.19.1",
+          "libclang.so.19.1.7"
+        ]
+      },
+      {
+        "size": 112840008,
+        "aliases": 3,
+        "filenames": [
+          "llvm-bolt",
+          "llvm-boltdiff",
+          "perf2bolt"
+        ]
+      },
+      {
+        "size": 126259544,
+        "aliases": 2,
+        "filenames": [
+          "libLTO.so",
+          "libLTO.so.19.1"
+        ]
+      },
+      {
+        "size": 159758776,
+        "aliases": 1,
+        "filenames": [
+          "clang-scan-deps"
+        ]
+      },
+      {
+        "size": 37864480,
+        "aliases": 4,
+        "filenames": [
+          "llvm-ar",
+          "llvm-dlltool",
+          "llvm-lib",
+          "llvm-ranlib"
+        ]
+      },
+      {
+        "size": 12058640,
+        "aliases": 9,
+        "filenames": [
+          "libstdc++.so",
+          "libstdc++.so.6",
+          "libstdc++.so.6.0.29",
+          "libstdc++.so",
+          "libstdc++.so.6",
+          "libstdc++.so.6.0.29",
+          "libstdc++.so",
+          "libstdc++.so.6",
+          "libstdc++.so.6.0.29"
+        ]
+      },
+      {
+        "size": 35011576,
+        "aliases": 2,
+        "filenames": [
+          "llvm-objdump",
+          "llvm-otool"
+        ]
+      },
+      {
+        "size": 19579304,
+        "aliases": 3,
+        "filenames": [
+          "libstdc++.a",
+          "libstdc++.a",
+          "libstdc++.a"
+        ]
+      },
+      {
+        "size": 9390960,
+        "aliases": 4,
+        "filenames": [
+          "libc-2.17.so",
+          "libc.so.6",
+          "libc-2.17.so",
+          "libc.so.6"
+        ]
+      },
+      {
+        "size": 18065888,
+        "aliases": 2,
+        "filenames": [
+          "libc.a",
+          "libc.a"
+        ]
+      },
+      {
+        "size": 34544328,
+        "aliases": 1,
+        "filenames": [
+          "cc1plus"
+        ]
+      },
+      {
+        "size": 32467784,
+        "aliases": 1,
+        "filenames": [
+          "cc1"
+        ]
+      },
+      {
+        "size": 31303728,
+        "aliases": 1,
+        "filenames": [
+          "lto1"
+        ]
+      },
+      {
+        "size": 7003648,
+        "aliases": 4,
+        "filenames": [
+          "llvm-bitcode-strip",
+          "llvm-install-name-tool",
+          "llvm-objcopy",
+          "llvm-strip"
+        ]
+      },
+      {
+        "size": 25787733,
+        "aliases": 1,
+        "filenames": [
+          "compile"
+        ]
+      },
+      {
+        "size": 10220568,
+        "aliases": 2,
+        "filenames": [
+          "llvm-readelf",
+          "llvm-readobj"
+        ]
+      },
+      {
+        "size": 2939568,
+        "aliases": 6,
+        "filenames": [
+          "libm-2.17.so",
+          "libm.so.6",
+          "libm-2.17.so",
+          "libm.so.6",
+          "libm.so",
+          "libm.so"
+        ]
+      },
+      {
+        "size": 8124248,
+        "aliases": 2,
+        "filenames": [
+          "llvm-addr2line",
+          "llvm-symbolizer"
+        ]
+      },
+      {
+        "size": 15456232,
+        "aliases": 1,
+        "filenames": [
+          "go"
+        ]
+      },
+      {
+        "size": 11361372,
+        "aliases": 1,
+        "filenames": [
+          "compute.pb.go"
+        ]
+      },
+      {
+        "size": 11332964,
+        "aliases": 1,
+        "filenames": [
+          "string_conversion_new.go"
+        ]
+      },
+      {
+        "size": 10488040,
+        "aliases": 1,
+        "filenames": [
+          "protoc"
+        ]
+      },
+      {
+        "size": 3394204,
+        "aliases": 3,
+        "filenames": [
+          "libstdc++fs.a",
+          "libstdc++fs.a",
+          "libstdc++fs.a"
+        ]
+      },
+      {
+        "size": 9515492,
+        "aliases": 1,
+        "filenames": [
+          "sqlite3-binding.c"
+        ]
+      }
+    ]
+  },
+  "format_transition": {
+    "namespace": "local-project-v3-content-sha256",
+    "source_digest": "local-source-v11-content-sha256",
+    "old_cache": "Preserved in its previous namespace; new/old formats cannot cross-read. No migration rewrites."
+  },
+  "scope": "Two warmups and five same-JVM warm-filesystem rounds; two distinct 32MiB files and eight mixed symbolic/hardlink aliases on D-backed ext4. Full final witness validation; no claim about cold HDD or whole builds.",
+  "full_build_log_sha256": "40ee766c647fbfa28c315d87a2b6b2b11a22fb74d7fb7e795c461c1b728d2bb7"
+}
