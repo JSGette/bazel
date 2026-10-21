@@ -44,6 +44,7 @@ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.Re
 import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.RetrievalResult;
 import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.RetrievedValue;
 import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.WaitingForCacheServiceResponse;
+import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.WaitingForFutureLookupContinuation;
 import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.WaitingForLookupContinuation;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.ClientId.SnapshotClientId;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.LookupResult;
@@ -915,6 +916,46 @@ public final class SkyValueRetrieverTest {
                         state));
     assertThat(thrown).hasMessageThat().contains("waiting for deserialization result for " + key);
     assertThat(thrown).hasCauseThat().hasCauseThat().isInstanceOf(StateEvictedException.class);
+  }
+
+  @Test
+  public void cleanupFutureContinuation_abandonsOwnedLookups(
+      @TestParameter boolean alreadyAvailable) throws Exception {
+    var parent = new AtomicReference<Object>();
+    var lookup =
+        new SkyframeLookup<AtomicReference<Object>>(
+            new ExampleKey("pending"), parent, AtomicReference::set);
+    var lookups = new ArrayDeque<SkyframeLookup<?>>();
+    lookups.add(lookup);
+    var continuation = new SkyframeLookupContinuation(lookups, lookup);
+    var available = SettableFuture.<SkyframeLookupContinuation>create();
+    if (alreadyAvailable) {
+      available.set(continuation);
+    }
+    // Compute state can be evicted before the retrieval machine consumes the continuation.
+    new WaitingForFutureLookupContinuation(available).cleanupSerializationState();
+    if (!alreadyAvailable) {
+      assertThat(lookup.isDone()).isFalse();
+      available.set(continuation);
+    }
+    assertThat(lookup.isDone()).isTrue();
+    assertThat(assertThrows(ExecutionException.class, () -> getDone(lookup)))
+        .hasCauseThat()
+        .isInstanceOf(StateEvictedException.class);
+    assertThat(lookups).isEmpty();
+  }
+
+  @Test
+  public void cleanupFutureContinuation_toleratesFailedOrCancelledFetch(
+      @TestParameter boolean cancelled) {
+    var available = SettableFuture.<SkyframeLookupContinuation>create();
+    new WaitingForFutureLookupContinuation(available).cleanupSerializationState();
+    if (cancelled) {
+      available.cancel(false);
+    } else {
+      available.setException(new IOException("optional cache fetch failed"));
+    }
+    assertThat(available.isDone()).isTrue();
   }
 
   @Test

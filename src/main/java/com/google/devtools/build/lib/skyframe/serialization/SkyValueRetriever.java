@@ -14,6 +14,7 @@
 package com.google.devtools.build.lib.skyframe.serialization;
 
 import static com.google.common.util.concurrent.Futures.getDone;
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -455,7 +456,22 @@ public final class SkyValueRetriever {
   @VisibleForTesting
   record WaitingForFutureLookupContinuation(
       ListenableFuture<SkyframeLookupContinuation> futureContinuation)
-      implements SerializationState {}
+      implements SerializationState {
+    @Override
+    public void cleanupSerializationState() {
+      // Eviction can precede completion of the shared fetches. Their lookups must still be
+      // abandoned once known, or other retrievals sharing those pending values can wait forever.
+      futureContinuation.addListener(
+          () -> {
+            try {
+              getDone(futureContinuation).abandon(new StateEvictedException());
+            } catch (ExecutionException | CancellationException e) {
+              // Failed fetches already abandon their owned lookups in the collector.
+            }
+          },
+          directExecutor());
+    }
+  }
 
   @VisibleForTesting
   record WaitingForLookupContinuation(SkyframeLookupContinuation continuation)
