@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import time
@@ -37,6 +38,11 @@ $distros = @(Get-ChildItem -LiteralPath 'HKCU:\Software\Microsoft\Windows\Curren
     system_drive=$systemDrive.Name
     system_free_bytes=$systemDrive.AvailableFreeSpace
     distros=$distros
+    drives=@([IO.DriveInfo]::GetDrives() | Where-Object {
+        $_.DriveType -eq [IO.DriveType]::Fixed -and $_.IsReady
+    } | ForEach-Object {
+        [pscustomobject]@{root=$_.Name; free_bytes=$_.AvailableFreeSpace}
+    })
 } | ConvertTo-Json -Depth 4 -Compress
 """
 
@@ -70,7 +76,38 @@ def _wsl_storage():
     return {"distro": name, "distro_path": matches[0]["path"],
             "backing_free_bytes": int(matches[0]["free_bytes"]),
             "system_drive": data["system_drive"],
-            "system_free_bytes": int(data["system_free_bytes"])}
+            "system_free_bytes": int(data["system_free_bytes"]),
+            "windows_drives": {d["root"].upper(): int(d["free_bytes"]) for d in data.get("drives", [])}}
+
+
+def _loop_windows_backing(path):
+    """Resolve a Linux loop filesystem through kernel metadata to its actual Windows drive.
+
+    Ordinary WSL ext4 and Linux-backed loop files still use the distro's backing-volume guard.
+    Only a verified drvfs backing file can replace that guard for the corresponding write path.
+    """
+    device = Path(path).stat().st_dev
+    if os.major(device) != 7:
+        return None
+    sysfs = Path(f"/sys/dev/block/{os.major(device)}:{os.minor(device)}/loop/backing_file")
+    try:
+        backing = Path(sysfs.read_text().strip()).resolve(strict=True)
+        if not backing.is_file():
+            raise RuntimeError("Loop backing path is not a regular file")
+        mount = json.loads(subprocess.check_output([
+            "findmnt", "--json", "--target", str(backing), "--output", "SOURCE,FSTYPE,TARGET"],
+            text=True, stderr=subprocess.PIPE, timeout=10))["filesystems"][0]
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, IndexError) as error:
+        raise RuntimeError("Cannot verify loop filesystem backing storage: " + str(path)) from error
+    if mount["fstype"] not in ("9p", "drvfs"):
+        if mount["source"].startswith("/dev/loop"):
+            raise RuntimeError("Nested loop backing storage is unsupported")
+        return None
+    drive = mount["source"].upper()
+    if re.fullmatch(r"[A-Z]:\\", drive) is None:
+        raise RuntimeError("Cannot identify Windows drive for loop backing file: " + str(backing))
+    return {"drive": drive, "image": str(backing), "kernel_backing_file": str(sysfs),
+            "backing_mount": mount}
 
 
 def check_storage(paths, *, minimum_bytes=30 * GIB, system_reserve_bytes=10 * GIB):
@@ -93,11 +130,25 @@ def check_storage(paths, *, minimum_bytes=30 * GIB, system_reserve_bytes=10 * GI
         volumes.append({"path": str(existing), "free_bytes": free})
     host = _wsl_storage()
     if host is not None:
-        if host["backing_free_bytes"] < minimum_bytes:
-            raise RuntimeError(
-                f"WSL backing volume at {host['distro_path']} has "
-                f"{host['backing_free_bytes'] / GIB:.1f} GiB free; "
-                f"probe requires {minimum_bytes / GIB:.1f} GiB")
+        for volume in volumes:
+            backing = _loop_windows_backing(volume["path"])
+            if backing is None:
+                if host["backing_free_bytes"] < minimum_bytes:
+                    raise RuntimeError(
+                        f"WSL backing volume at {host['distro_path']} has "
+                        f"{host['backing_free_bytes'] / GIB:.1f} GiB free; "
+                        f"probe requires {minimum_bytes / GIB:.1f} GiB")
+                volume["host_backing"] = {"kind": "wsl_distro", "path": host["distro_path"],
+                                          "free_bytes": host["backing_free_bytes"]}
+            else:
+                free = host.get("windows_drives", {}).get(backing["drive"])
+                if free is None:
+                    raise RuntimeError("No current Windows capacity observation for " + backing["drive"])
+                if free < minimum_bytes:
+                    raise RuntimeError(
+                        f"Loop backing volume {backing['drive']} has {free / GIB:.1f} GiB free; "
+                        f"probe requires {minimum_bytes / GIB:.1f} GiB")
+                volume["host_backing"] = {"kind": "windows_loop_image", **backing, "free_bytes": free}
         if host["system_free_bytes"] < system_reserve_bytes:
             raise RuntimeError(
                 f"Windows system drive {host['system_drive']} has "

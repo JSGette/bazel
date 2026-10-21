@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from storage_preflight import GIB, _wsl_storage, check_storage
+from storage_preflight import GIB, _loop_windows_backing, _wsl_storage, check_storage
 
 
 class StoragePreflightTest(unittest.TestCase):
@@ -50,6 +50,69 @@ class StoragePreflightTest(unittest.TestCase):
         result = self.check()
         self.assertIsNone(result["wsl_host"])
         self.assertFalse(self.path.exists())
+
+    def test_verified_loop_image_checks_its_windows_drive_instead_of_distro_drive(self):
+        self.host["backing_free_bytes"] = 0
+        self.host["windows_drives"] = {"C:\\": 80 * GIB}
+        with patch("storage_preflight._loop_windows_backing", return_value={"drive": "C:\\"}):
+            result = self.check()
+        self.assertEqual(result["filesystems"][0]["host_backing"]["kind"], "windows_loop_image")
+        self.assertEqual(result["filesystems"][0]["host_backing"]["free_bytes"], 80 * GIB)
+
+    def test_full_loop_backing_drive_is_rejected_even_when_guest_and_distro_have_space(self):
+        self.host["windows_drives"] = {"C:\\": GIB}
+        with patch("storage_preflight._loop_windows_backing", return_value={"drive": "C:\\"}):
+            with self.assertRaisesRegex(RuntimeError, "Loop backing volume"):
+                self.check()
+
+    def test_unobserved_loop_drive_fails_closed(self):
+        with patch("storage_preflight._loop_windows_backing", return_value={"drive": "C:\\"}):
+            with self.assertRaisesRegex(RuntimeError, "No current Windows capacity"):
+                self.check()
+
+    def test_mixed_loop_and_distro_paths_still_require_distro_headroom(self):
+        self.host["backing_free_bytes"] = 0
+        self.host["windows_drives"] = {"C:\\": 80 * GIB}
+        # A Linux-backed path must not inherit another path's verified Windows mapping.
+        with patch("storage_preflight._loop_windows_backing", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "WSL backing volume"):
+                self.check()
+
+    def test_two_distinct_write_volumes_each_require_its_own_host_check(self):
+        other = Path(self.temporary.name) / "second-volume"
+        other.mkdir()
+        original_stat = Path.stat
+        def device_stat(path, *args, **kwargs):
+            actual = original_stat(path, *args, **kwargs)
+            return SimpleNamespace(st_dev=98765) if path == other else actual
+        self.host["backing_free_bytes"] = 0
+        self.host["windows_drives"] = {"C:\\": 80 * GIB}
+        with patch("storage_preflight.Path.stat", new=device_stat), \
+             patch("storage_preflight._wsl_storage", return_value=self.host), \
+             patch("storage_preflight.shutil.disk_usage", return_value=SimpleNamespace(free=100 * GIB)), \
+             patch("storage_preflight._loop_windows_backing", side_effect=[{"drive": "C:\\"}, None]) as resolve:
+            with self.assertRaisesRegex(RuntimeError, "WSL backing volume"):
+                check_storage([self.path, other])
+        self.assertEqual(resolve.call_count, 2)
+
+    def test_loop_mapping_comes_from_sysfs_and_findmnt(self):
+        backing = Path(self.temporary.name) / "image.ext4"
+        backing.write_bytes(b"new fixture")
+        mount = {"filesystems": [{"source": "C:\\", "fstype": "9p", "target": "/mnt/c"}]}
+        with patch("storage_preflight.os.major", return_value=7), \
+             patch("storage_preflight.os.minor", return_value=0), \
+             patch("storage_preflight.Path.read_text", return_value=str(backing)), \
+             patch("storage_preflight.subprocess.check_output", return_value=json.dumps(mount)):
+            result = _loop_windows_backing(backing)
+        self.assertEqual(result["drive"], "C:\\")
+        self.assertEqual(result["image"], str(backing))
+
+    def test_unverifiable_loop_mapping_fails_closed(self):
+        with patch("storage_preflight.os.major", return_value=7), \
+             patch("storage_preflight.os.minor", return_value=0), \
+             patch("storage_preflight.Path.read_text", side_effect=OSError("missing sysfs")):
+            with self.assertRaisesRegex(RuntimeError, "Cannot verify loop"):
+                _loop_windows_backing(self.path.parent)
 
     def test_transient_interop_failures_retry_current_host_observation(self):
         observation = json.dumps({
