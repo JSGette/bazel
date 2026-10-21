@@ -7,7 +7,6 @@ import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
 import com.google.devtools.build.lib.versioning.IndependentFileDependencyProvider;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
 
@@ -37,11 +35,6 @@ import javax.annotation.Nullable;
  */
 final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   record Witness(String path, boolean listing, String digest) {}
-
-  // Bound retained scratch space to 1 MiB per process, independently of analysis thread count.
-  // Concurrent overflow borrows allocate temporary buffers; returning to a full pool discards them.
-  private static final ArrayBlockingQueue<byte[]> HASH_BUFFERS = new ArrayBlockingQueue<>(16);
-  private static final int HASH_BUFFER_BYTES = 65536;
 
   // A cheap retry hint, never validity evidence. Any retry still verifies the content witness.
   record InputStamp(Path path, @Nullable Object fileKey, @Nullable FileTime modified, long size) {}
@@ -94,7 +87,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   private String captureNamespace() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-project-v2-shared-repository-mapping");
+    update(digest, "local-project-v3-content-sha256");
     update(digest, java.nio.ByteOrder.nativeOrder().toString());
     Path git = workspace.resolve(".git");
     if (!Files.exists(git, NOFOLLOW_LINKS)) {
@@ -186,13 +179,14 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   }
 
   boolean isUnchanged() throws IOException {
+    var contents = new LocalContentHasher();
     if (changed
         || !cacheNamespace.equals(captureNamespace())
-        || !sourceDigest.equals(captureSource())) {
+        || !sourceDigest.equals(captureSource(contents))) {
       return false;
     }
     for (Witness witness : witnesses.values()) {
-      if (!matches(witness)) {
+      if (!matches(witness, contents)) {
         return false;
       }
     }
@@ -201,9 +195,13 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   /** Always checks current content; only a success may later help entry validation. */
   boolean matchesForAdmission(Witness witness) throws IOException {
+    return matchesForAdmission(witness, new LocalContentHasher());
+  }
+
+  boolean matchesForAdmission(Witness witness, LocalContentHasher contents) throws IOException {
     boolean matches = false;
     try {
-      matches = matches(witness);
+      matches = matches(witness, contents);
       return matches;
     } finally {
       // Never hold this monitor across filesystem work or callbacks into a cache session.
@@ -235,7 +233,13 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   }
 
   boolean matches(Witness witness) throws IOException {
-    return witness.digest().equals(fingerprint(resolve(witness.path()), witness.listing()));
+    return matches(witness, new LocalContentHasher());
+  }
+
+  private boolean matches(Witness witness, LocalContentHasher contents) throws IOException {
+    return witness
+        .digest()
+        .equals(fingerprint(resolve(witness.path()), witness.listing(), contents));
   }
 
   InputStamp inputStamp(Witness witness) throws IOException {
@@ -272,8 +276,10 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   private List<Witness> captureWitnesses(Path path, boolean listing) throws IOException {
     var observed = new java.util.ArrayList<Witness>();
+    var contents = new LocalContentHasher();
     Path normalized = path.toAbsolutePath().normalize();
-    observed.add(new Witness(logicalPath(normalized), listing, fingerprint(normalized, listing)));
+    observed.add(
+        new Witness(logicalPath(normalized), listing, fingerprint(normalized, listing, contents)));
     // Follow each component, retaining every link in the chain. In particular, do not normalize
     // "link/.." lexically: the parent is determined after resolving "link".
     var remaining = new ArrayDeque<Path>();
@@ -297,7 +303,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
       if (++links > 256) {
         throw new IOException("input symlink cycle or excessive depth: " + normalized);
       }
-      observed.add(new Witness(logicalPath(next), false, fingerprint(next, false)));
+      observed.add(new Witness(logicalPath(next), false, fingerprint(next, false, contents)));
       Path target = Files.readSymbolicLink(next);
       if (target.isAbsolute()) {
         resolved = target.getRoot();
@@ -307,7 +313,8 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
       }
     }
     if (!resolved.equals(normalized)) {
-      observed.add(new Witness(logicalPath(resolved), listing, fingerprint(resolved, listing)));
+      observed.add(
+          new Witness(logicalPath(resolved), listing, fingerprint(resolved, listing, contents)));
     }
     return observed;
   }
@@ -355,19 +362,24 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   }
 
   private String captureSource() throws IOException {
+    return captureSource(new LocalContentHasher());
+  }
+
+  private String captureSource(LocalContentHasher contents) throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-source-v10-shared-repository-mapping");
+    update(digest, "local-source-v11-content-sha256");
     update(digest, Integer.toString(environment.size()));
     for (var entry : new TreeMap<>(environment).entrySet()) {
       update(digest, entry.getKey());
       update(digest, entry.getValue());
     }
     update(digest, "source-files");
-    captureDirectory(workspace, digest, new HashSet<>());
+    captureDirectory(workspace, digest, new HashSet<>(), contents);
     return HexFormat.of().formatHex(digest.digest());
   }
 
-  private void captureDirectory(Path directory, MessageDigest digest, Set<Path> ancestors)
+  private void captureDirectory(
+      Path directory, MessageDigest digest, Set<Path> ancestors, LocalContentHasher contents)
       throws IOException {
     Path realDirectory = directory.toRealPath();
     if (ancestors.size() >= 256 || !ancestors.add(realDirectory)) {
@@ -388,9 +400,9 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
           }
         }
         update(digest, relative);
-        update(digest, fingerprint(path, false));
+        update(digest, fingerprint(path, false, contents));
         if (Files.isDirectory(path)) {
-          captureDirectory(path, digest, ancestors);
+          captureDirectory(path, digest, ancestors, contents);
         }
       }
     } finally {
@@ -404,7 +416,8 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
     }
   }
 
-  private String fingerprint(Path path, boolean listing) throws IOException {
+  private String fingerprint(Path path, boolean listing, LocalContentHasher contents)
+      throws IOException {
     MessageDigest digest = sha256();
     BasicFileAttributes attributes;
     try {
@@ -430,7 +443,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
           java.nio.file.attribute.PosixFilePermissions.toString(
               Files.getPosixFilePermissions(path, NOFOLLOW_LINKS)));
       if (attributes.isRegularFile()) {
-        hashContents(path, digest);
+        contents.hashContents(path, digest, attributes.size());
       } else if (attributes.isSymbolicLink()) {
         Path target = Files.readSymbolicLink(path);
         update(
@@ -450,7 +463,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
               java.nio.file.attribute.PosixFilePermissions.toString(
                   Files.getPosixFilePermissions(path)));
           if (referent.isRegularFile()) {
-            hashContents(path, digest);
+            contents.hashContents(path, digest, referent.size());
           }
         } catch (NoSuchFileException e) {
           update(digest, "missing");
@@ -468,24 +481,6 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
         : attributes.isDirectory()
             ? "directory"
             : attributes.isSymbolicLink() ? "symlink" : "other";
-  }
-
-  private static void hashContents(Path path, MessageDigest digest) throws IOException {
-    try (InputStream input = Files.newInputStream(path)) {
-      byte[] buffer = HASH_BUFFERS.poll();
-      if (buffer == null) {
-        buffer = new byte[HASH_BUFFER_BYTES];
-      }
-      try {
-        int count;
-        while ((count = input.read(buffer)) != -1) {
-          digest.update(buffer, 0, count);
-        }
-      } finally {
-        // No waiter needs this buffer: a full pool simply declines to retain the overflow.
-        HASH_BUFFERS.offer(buffer);
-      }
-    }
   }
 
   private static void update(MessageDigest digest, String value) {

@@ -43,6 +43,7 @@ java_library(
         "LocalCacheGarbageCollectorIdleTask.java",
         "LocalCacheLeaseManager.java",
         "LocalCacheSession.java",
+        "LocalContentHasher.java",
         "LocalDependencyEvidence.java",
         "LocalDependencyValidator.java",
         "LocalInputSnapshot.java",

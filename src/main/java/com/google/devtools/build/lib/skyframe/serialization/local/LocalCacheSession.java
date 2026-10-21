@@ -529,6 +529,8 @@ final class LocalCacheSession implements FingerprintValueStore {
   // Called with refresh's monitor held.
   private void refreshCandidates() throws IOException {
     rejectedInputs.clear();
+    // Digests may be reused only within this fresh scan, with Unix identity/change-time checks.
+    var contents = new LocalContentHasher();
     // Equal immutable lists describe exactly the same input checks. Reuse only checks made in
     // this pass; a later discovery must observe content changes even if metadata is unchanged.
     // Keys are lists already retained by opened candidates, so the bounded map retains no
@@ -610,7 +612,7 @@ final class LocalCacheSession implements FingerprintValueStore {
           boolean matches = true;
           if (witnesses == null) {
             witnesses = manifest.witnesses();
-            matches = matchesForAdmission(filename, witnesses);
+            matches = matchesForAdmission(filename, witnesses, contents);
           }
           if (matches) {
             rejectedWitnesses.remove(filename);
@@ -674,19 +676,20 @@ final class LocalCacheSession implements FingerprintValueStore {
     }
   }
 
-  private boolean matchesForAdmission(String filename, List<LocalInputSnapshot.Witness> witnesses)
+  private boolean matchesForAdmission(
+      String filename, List<LocalInputSnapshot.Witness> witnesses, LocalContentHasher contents)
       throws IOException {
     // Check repository-name bindings before hashing files in the old physical trees. Persisted
     // witnesses are path-sorted, so absolute paths otherwise precede a changed external binding.
     // Both passes use fresh checks; matching bindings never replace the remaining evidence.
     for (var witness : witnesses) {
-      if (isRepositoryBinding(witness) && !inputs.matchesForAdmission(witness)) {
+      if (isRepositoryBinding(witness) && !inputs.matchesForAdmission(witness, contents)) {
         rejectWitness(filename, witness);
         return false;
       }
     }
     for (var witness : witnesses) {
-      if (!isRepositoryBinding(witness) && !inputs.matchesForAdmission(witness)) {
+      if (!isRepositoryBinding(witness) && !inputs.matchesForAdmission(witness, contents)) {
         rejectWitness(filename, witness);
         return false;
       }

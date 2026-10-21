@@ -342,3 +342,31 @@ java_binary(
         "//third_party/java/guava:concurrent",
     ],
 )
+
+java_binary(
+    name = "LocalInputAliasBenchmark",
+    testonly = True,
+    srcs = ["LocalInputAliasBenchmark.java"],
+    jvm_flags = [
+        "-Xms256m",
+        "-Xmx1g",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputAliasBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)
+
+java_test(
+    name = "LocalContentHasherTest",
+    size = "small",
+    srcs = ["LocalContentHasherTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
