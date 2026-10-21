@@ -946,6 +946,41 @@ public final class SkyValueRetrieverTest {
   }
 
   @Test
+  public void cleanupFutureContinuation_createdAfterEviction(
+      @TestParameter boolean transition, @TestParameter boolean alreadyAvailable) throws Exception {
+    var context = new SkyValueRetriever.RetrievalContext();
+    SkyValueRetriever.SerializableSkyKeyComputeState computeState = () -> context;
+    // A memory-pressure eviction can run while this node's compute call is still active.
+    computeState.close();
+    var parent = new AtomicReference<Object>();
+    var lookup =
+        new SkyframeLookup<AtomicReference<Object>>(
+            new ExampleKey("created-after-eviction"), parent, AtomicReference::set);
+    var lookups = new ArrayDeque<SkyframeLookup<?>>();
+    lookups.add(lookup);
+    var continuation = new SkyframeLookupContinuation(lookups, lookup);
+    var available = SettableFuture.<SkyframeLookupContinuation>create();
+    if (alreadyAvailable) {
+      available.set(continuation);
+    }
+    var state = new WaitingForFutureLookupContinuation(available);
+    if (transition) {
+      context.transitionTo(state);
+    } else {
+      context.setState(state);
+    }
+    if (!alreadyAvailable) {
+      assertThat(lookup.isDone()).isFalse();
+      available.set(continuation);
+    }
+    assertThat(lookup.isDone()).isTrue();
+    assertThat(assertThrows(ExecutionException.class, () -> getDone(lookup)))
+        .hasCauseThat()
+        .isInstanceOf(StateEvictedException.class);
+    assertThat(lookups).isEmpty();
+  }
+
+  @Test
   public void cleanupFutureContinuation_toleratesFailedOrCancelledFetch(
       @TestParameter boolean cancelled) {
     var available = SettableFuture.<SkyframeLookupContinuation>create();
