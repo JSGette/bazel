@@ -328,6 +328,28 @@ malformed metadata and foreign/symlink paths before enabling deletion. Record th
 may exceed limits and legacy bytes are outside the managed budget. Reuse existing Datadog outputs for
 the final large-workload gate, subject to the host-volume preflight. Keep graph/evaluator behavior.
 
+## Reader-safe idle collection is implemented (Step 40)
+
+The lease-aware collector protects live publication slots and transitive parents, checks immutable
+manifests outside catalog coordination, reconciles new publications under the catalog, and removes
+children before parents with durable ordering. Inactive dead-writer packs and recognized temporaries
+are reclaimable. Legacy layouts and unsafe/unknown entries are preserved. Streaming/bounded scans
+fail closed on corrupt/incomplete metadata. Size/age defaults are 5 GiB and seven days, with a
+30-second idle delay; active closures make quotas soft. Zero disables each dimension.
+
+All 265 cases pass. Nine fresh-JVM runs over 996 MB of logical Datadog data scan 108 MB of manifests;
+retain/pinned/evict medians are 144.916/144.120/154.931 ms with catalog holds of
+14.656/13.659/26.107 ms. These are warm-filesystem, hard-link fixture measurements, not physical space
+recovery or whole-build speedups. A 22-build two-server gate verifies live-reader protection during
+real idle collection, subsequent eviction, safe rebuild, independent edits/reverts and cache-off
+output equivalence. No evaluator or graph-storage change was introduced.
+
+Next complete the final large Datadog gate with the exact collector binary and existing output bases:
+freshly seed the managed population, record same-binary cache-off/writer/fresh-reader time and memory,
+run concurrent edits/reverts and collection, verify exact outputs and invalidation deadlines. Keep
+source builds/tests on Cache&Carry and host-volume guards enabled. Only then assess the local
+experimental milestone against its acceptance criteria; gRPC and legacy migration remain future work.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

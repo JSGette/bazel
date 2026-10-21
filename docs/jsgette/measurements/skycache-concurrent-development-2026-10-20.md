@@ -2482,3 +2482,118 @@ Evidence: [241 passing cases](skycache-concurrent-2026-10-20/repository-mapping-
 [paired overhead](skycache-concurrent-2026-10-20/lease-protocol-paired.json),
 [fixture protocol](skycache-concurrent-2026-10-20/lease-protocol-fixture.json),
 [mixed-version lifecycle and rollback](skycache-concurrent-2026-10-20/lease-layout-lifecycle.json).
+
+
+## Step 40 — reader-safe collection and idle byte/age policy
+
+Implementation: [65b3b345b8f5](https://github.com/JSGette/bazel/commit/65b3b345b8f5c9c2092f6f6f091d9f99cf7b1ea5).
+Collection is now implemented within `leased-v1`. Each server keeps its normal Skyframe graph in RAM;
+the evaluator is unchanged. The collector preserves active publication slots and every transitive
+parent, including parents not yet individually pinned by a reader that has only pinned a child.
+It can reclaim unpublished packs once their writer has exited or released its pin.
+
+The permanent lease file gains an independent collector-coordination byte (4097). Only collectors
+use it; ordinary clients keep the Step 39 catalog/pin protocol. One collector checks immutable
+manifest checksums outside exclusive catalog coordination, then briefly takes the exclusive catalog,
+reconciles newly published manifests, checks parent closure and probes publication slots. A changed
+previously scanned inventory aborts the pass. A new publication is included before selection; stale
+planning can never omit its parents. Existing readers and private writers continue record I/O.
+New catalog operations may return a retryable miss or skip during the exclusive interval.
+
+Selection protects live/unsafe packs and their closure, then considers newer publication roots with
+their complete additional closure. The size budget is soft when protected data exceeds it. An inactive
+closure larger than the entire budget is eligible for eviction. Age means publication time, not last
+read: reading does not rewrite metadata. Older parents remain when a retained child needs them.
+This intentionally rejects an LRU scheme requiring writes on every cache read and a TTL-only reader
+liveness heuristic. OS leases establish liveness; abandoned inactive packs need no time-based grace.
+Publication hash collisions retain extra data conservatively.
+
+Deletion removes child manifests before parents, syncing each namespace after each unlink, and only
+then removes known pack files. A killed or interrupted collector can leave orphan packs, which the
+next pass reclaims. Exact file identity/size/time is rechecked before deletion. No recursive deletion
+or symlink traversal is used. Unrecognized pack contents protect the pack and its known parent closure.
+Legacy layouts, permanent coordination files, format directories and unrecognized entries are preserved.
+Both manifest `.pending-*.tmp` and pack `.pending-*.index` crash remnants are recognized in their
+respective directories. Unsupported/corrupt/incomplete/cyclic metadata stops the pass before deletion;
+automatic repair or quarantine is not part of this change.
+
+Scanning is bounded to 16,384 publications, 131,072 enumerated entries across both inventories and pack
+inspection, 2 GiB of manifest input, 1,000,000 parent edges and 2,000,000 closure visits. An individual
+manifest has the existing 64 MiB payload limit; late arrivals add at most 128 MiB of reconciliation
+input under catalog coordination. Limit exhaustion stops collection conservatively. These caps and
+the managed-byte policy do not claim to bound total JVM memory, graph memory, filesystem metadata or
+legacy populations. Streaming parsing retains dependency IDs and skips witness objects.
+
+The existing Bazel idle-task mechanism runs collection after a command. Defaults, chosen autonomously
+for this experimental backend, are 5 GiB, seven days and a 30-second idle delay. They are exposed as:
+
+* `--experimental_local_skycache_gc_max_size=5G`
+* `--experimental_local_skycache_gc_max_age=7d`
+* `--experimental_local_skycache_gc_idle_delay=30s`
+
+Zero disables an individual limit; setting both size and age to zero disables collection. Policy is
+validated before a cache session opens. Starting another command interrupts the idle task and all
+leases are released. A completed or busy attempt atomically replaces the output base's
+`local-skycache-gc.json`; failures/interruption use the server's idle-task diagnostics and do not
+replace the previous successful report. Statistics distinguish scanned manifest bytes, approximate
+known/protected/retained logical bytes, busy skips, publication/pack/temp removals and catalog time.
+Active files may grow while measured. Logical unlinked bytes are not physical SSD space recovered.
+
+Twenty core tests and four idle/options tests bring the focused suite to 265 cases across seventeen
+targets. Coverage includes exact quota and age boundaries, newest-root selection, pinned transitive
+parents, slot collisions, dead sealed/unsealed writers, temporary files, symlink/foreign preservation,
+checksum and graph failures, collector/catalog contention, publication during the outside scan,
+inventory mutation, interruption, real session reads/writes and process death. One subprocess is
+killed after a child's durable unlink; its parent remains discoverable and the next collector
+reclaims the orphan. A real writer JVM is killed with private bytes; its pin protects those bytes
+while alive and collection reclaims them after termination.
+
+The first twenty core cases passed in 9.201 seconds with one Cache&Carry hit. Integration initially
+failed during analysis because the exception class is included in the `idle_task` target rather than
+a separate target; correcting that BUILD dependency required no runtime changes. The final integration
+build passed all seventeen targets in 20.723 seconds with three Cache&Carry hits. Every source build
+and test retains `--config=efcache --bes_backend= --remote_upload_local_results=false`. Immutable
+binary and benchmark jar copies are stored on C to preserve the E-hosted WSL VHD's reserve; source,
+runtime caches and fixtures remain on WSL ext4. This placement is not used to claim a timing speedup.
+
+The measurement creates separate hard-linked fixtures from the immutable four-publication Datadog
+population. The original population and the Step 39 benchmark fixture are never collected or changed.
+There are 996,488,246 logical bytes, including 108,467,720 manifest bytes. Each mode runs in three
+fresh JVMs with Xms64m/Xmx256m under the exclusive measurement lock. JVM startup is outside reported
+collector timings; filesystem caches are not flushed. Pinned mode pins all four publications.
+
+| Mode | Median collection ms | Median catalog ms | Logical bytes unlinked |
+| --- | ---: | ---: | ---: |
+| retain | 144.916 | 14.656 | 0 |
+| pinned | 144.120 | 13.659 | 0 |
+| evict | 154.931 | 26.107 | 996,488,246 |
+
+All original file hashes match after the nine runs. The evicted fixtures only unlink their extra
+hard links, so this is neither a cold-SSD experiment nor evidence of physical space reclaimed.
+The measurements demonstrate moving the expensive checksum scan outside catalog coordination; they
+do not establish a whole-build speedup or stress the maximum supported publication count.
+
+The runtime gate runs 22 builds across six phases using two simultaneous cache-enabled Bazel servers
+and two independent cache-off controls. Disk and remote action caches are disabled throughout. Both
+fresh servers import seven configured targets. Then B is held inside a controlled action after fresh
+analysis has pinned shared data. A finishes its own build and its real idle task collects while B's
+command is still running: 2 live slots protect 117,765 bytes,
+while 1 inactive publication and its pack are removed. Once B finishes,
+its idle task removes 2 publications and leaves zero retained known bytes.
+Both servers restart and correctly rebuild after eviction, then perform independent edits and reverts.
+All outputs match exact expected bytes and cache-off control hashes. Reverts import three targets per
+server. Owned servers shut down cleanly. The first runtime attempt failed only because the sandbox
+blocked the test synchronization marker; the corrected harness grants write access to that explicit
+gate directory and fails promptly if the gated action exits before signalling.
+
+This completes collector implementation and focused concurrent correctness, not the final maturity
+gate. Next reuse the existing substantial Datadog worktrees/output bases with this exact binary,
+explicitly seed its lease-aware population, compare cache-off/writer/fresh-reader behavior, perform
+independent edits/reverts and exercise collection, recording memory, output hashes and invalidation
+deadlines. Preserve the host-volume preflight. Remote leases/gRPC and automatic legacy migration stay
+future work; no arbitrary network-filesystem safety claim is made.
+
+Evidence: [265 passing cases](skycache-concurrent-2026-10-20/repository-mapping-gc-validator-tests.json),
+[collector measurement protocol/results](skycache-concurrent-2026-10-20/collector-measurements.json),
+[binary/source hashes](skycache-concurrent-2026-10-20/collector-binary.json),
+[two-server idle collection and controls](skycache-concurrent-2026-10-20/collector-lifecycle.json).

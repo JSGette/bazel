@@ -1,0 +1,386 @@
+{
+  "purpose": "Bounded collector scan, coordination and unlink costs on real Datadog publication metadata.",
+  "scope": "Fresh JVM per run; timings reported inside collector exclude JVM startup. No cold-SSD, build speedup or physical disk-space recovery claim.",
+  "fixture": "Separate disposable hardlinks to the preserved four-publication Datadog fixture. No source files modified; no GC on original or lease-protocol fixture.",
+  "binary": "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+  "binary_sha256": "4223002703048516b31da77e512d3d4653b290a12426cf202d4ce843b4ca62b7",
+  "source_inventory": {
+    "objects/packed-v1/16ddf4e67ac76295a4659e823b68c01367f7d56303c030f5d285455f6fd2fbc3/data.pack": {
+      "size": 409288375,
+      "sha256": "b2faea09c40977b04ab26fe04b8e2ce791416f15636cc1c8a95bd952cd3f1016"
+    },
+    "objects/packed-v1/16ddf4e67ac76295a4659e823b68c01367f7d56303c030f5d285455f6fd2fbc3/index": {
+      "size": 21299424,
+      "sha256": "339216713ff8d7880ac8f6e043bdbd64f2555cd083aee228835cef8f6b907e0b"
+    },
+    "objects/packed-v1/87239423de237339b241eefd49aef0477747cad048b10e055046cd206249a16b/data.pack": {
+      "size": 13013308,
+      "sha256": "8724994cb44b124d50b9b1e12c660b65e508a4bd76182fb27a57f952544711d4"
+    },
+    "objects/packed-v1/87239423de237339b241eefd49aef0477747cad048b10e055046cd206249a16b/index": {
+      "size": 409200,
+      "sha256": "96e5f285e105042d995b84114226a917c1a77ff6c16c1582a0c6c68a94d04e43"
+    },
+    "objects/packed-v1/89760abdd61ac81ec64dda5762d5008dd828b93afa3ed5881dd37a1170832c8e/data.pack": {
+      "size": 409287900,
+      "sha256": "96df4230e1d2254ece45fe0126050555d2cea29efb985bb681ad18507b080316"
+    },
+    "objects/packed-v1/89760abdd61ac81ec64dda5762d5008dd828b93afa3ed5881dd37a1170832c8e/index": {
+      "size": 21299424,
+      "sha256": "663e37f1759e37edde8cb5b9acc1f6bb0e70e711e79afff1534551d18996a780"
+    },
+    "objects/packed-v1/91e965ebb543937b0dac030831438f235073de002a7c9fd4db8f53116faad04d/data.pack": {
+      "size": 13013695,
+      "sha256": "dcfe1ea3bffbf677277aaa6b97b418de4da77a8f6899b9fd4f0d011c481bd729"
+    },
+    "objects/packed-v1/91e965ebb543937b0dac030831438f235073de002a7c9fd4db8f53116faad04d/index": {
+      "size": 409200,
+      "sha256": "131e53d1fd8c39a81d229a3d7cf5be572b2c0e0051c462f6c053fb054257a281"
+    },
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/16ddf4e67ac76295a4659e823b68c01367f7d56303c030f5d285455f6fd2fbc3.manifest": {
+      "size": 27116897,
+      "sha256": "3a40dc32293c76b396a853e1bac02f48c672661d73a0b892bf14d9d9e6cf67f0"
+    },
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/87239423de237339b241eefd49aef0477747cad048b10e055046cd206249a16b.manifest": {
+      "size": 27116963,
+      "sha256": "caeb9611e2d32d0c6914c7708320b04b55f55e3096e7b6557223e3fe83a6bac7"
+    },
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/89760abdd61ac81ec64dda5762d5008dd828b93afa3ed5881dd37a1170832c8e.manifest": {
+      "size": 27116897,
+      "sha256": "7dc1b6770a46ed22d4ce845e0305daf19572f5ab35717b53d8d7753b0d71a477"
+    },
+    "publications-v3/14884f242f23e846018a4fe71db1c7c6a472b94ad9d65bcc708c404b93fb55e4/91e965ebb543937b0dac030831438f235073de002a7c9fd4db8f53116faad04d.manifest": {
+      "size": 27116963,
+      "sha256": "64a4743ef6027abd145fb0c297d8a821465bbcb6d2f40de1343fe273f252f946"
+    }
+  },
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent",
+        "free_bytes": 297076772864
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 33585799168,
+      "system_drive": "C:\\",
+      "system_free_bytes": 156316692480
+    }
+  },
+  "new_pack_data_bytes": 0,
+  "runs": [
+    {
+      "repeat": 0,
+      "mode": "retain",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/0-retain",
+        "9223372036854775807",
+        "0"
+      ],
+      "process_seconds": 0.3717224119999969,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 996488246,
+      "protected_bytes": 0,
+      "active_slots": 0,
+      "foreign_entries": 0,
+      "deleted_publications": 0,
+      "deleted_packs": 0,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 0,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 165.34,
+      "catalog_ms": 20.717
+    },
+    {
+      "repeat": 0,
+      "mode": "pinned",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/0-pinned",
+        "1",
+        "0",
+        "16ddf4e67ac76295a4659e823b68c01367f7d56303c030f5d285455f6fd2fbc3",
+        "87239423de237339b241eefd49aef0477747cad048b10e055046cd206249a16b",
+        "89760abdd61ac81ec64dda5762d5008dd828b93afa3ed5881dd37a1170832c8e",
+        "91e965ebb543937b0dac030831438f235073de002a7c9fd4db8f53116faad04d"
+      ],
+      "process_seconds": 0.28344279800001004,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 996488246,
+      "protected_bytes": 996488246,
+      "active_slots": 4,
+      "foreign_entries": 0,
+      "deleted_publications": 0,
+      "deleted_packs": 0,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 0,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 145.41,
+      "catalog_ms": 14.662
+    },
+    {
+      "repeat": 0,
+      "mode": "evict",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/0-evict",
+        "1",
+        "0"
+      ],
+      "process_seconds": 0.24405069400000912,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 0,
+      "protected_bytes": 0,
+      "active_slots": 0,
+      "foreign_entries": 0,
+      "deleted_publications": 4,
+      "deleted_packs": 4,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 996488246,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 153.56,
+      "catalog_ms": 25.189
+    },
+    {
+      "repeat": 1,
+      "mode": "retain",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/1-retain",
+        "9223372036854775807",
+        "0"
+      ],
+      "process_seconds": 0.2767019109999751,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 996488246,
+      "protected_bytes": 0,
+      "active_slots": 0,
+      "foreign_entries": 0,
+      "deleted_publications": 0,
+      "deleted_packs": 0,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 0,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 144.916,
+      "catalog_ms": 14.656
+    },
+    {
+      "repeat": 1,
+      "mode": "pinned",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/1-pinned",
+        "1",
+        "0",
+        "16ddf4e67ac76295a4659e823b68c01367f7d56303c030f5d285455f6fd2fbc3",
+        "87239423de237339b241eefd49aef0477747cad048b10e055046cd206249a16b",
+        "89760abdd61ac81ec64dda5762d5008dd828b93afa3ed5881dd37a1170832c8e",
+        "91e965ebb543937b0dac030831438f235073de002a7c9fd4db8f53116faad04d"
+      ],
+      "process_seconds": 0.2781991510000239,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 996488246,
+      "protected_bytes": 996488246,
+      "active_slots": 4,
+      "foreign_entries": 0,
+      "deleted_publications": 0,
+      "deleted_packs": 0,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 0,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 144.12,
+      "catalog_ms": 13.659
+    },
+    {
+      "repeat": 1,
+      "mode": "evict",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/1-evict",
+        "1",
+        "0"
+      ],
+      "process_seconds": 0.24457384800001591,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 0,
+      "protected_bytes": 0,
+      "active_slots": 0,
+      "foreign_entries": 0,
+      "deleted_publications": 4,
+      "deleted_packs": 4,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 996488246,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 154.931,
+      "catalog_ms": 26.107
+    },
+    {
+      "repeat": 2,
+      "mode": "retain",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/2-retain",
+        "9223372036854775807",
+        "0"
+      ],
+      "process_seconds": 0.27836976199995433,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 996488246,
+      "protected_bytes": 0,
+      "active_slots": 0,
+      "foreign_entries": 0,
+      "deleted_publications": 0,
+      "deleted_packs": 0,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 0,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 144.426,
+      "catalog_ms": 14.469
+    },
+    {
+      "repeat": 2,
+      "mode": "pinned",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/2-pinned",
+        "1",
+        "0",
+        "16ddf4e67ac76295a4659e823b68c01367f7d56303c030f5d285455f6fd2fbc3",
+        "87239423de237339b241eefd49aef0477747cad048b10e055046cd206249a16b",
+        "89760abdd61ac81ec64dda5762d5008dd828b93afa3ed5881dd37a1170832c8e",
+        "91e965ebb543937b0dac030831438f235073de002a7c9fd4db8f53116faad04d"
+      ],
+      "process_seconds": 0.2772675219999883,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 996488246,
+      "protected_bytes": 996488246,
+      "active_slots": 4,
+      "foreign_entries": 0,
+      "deleted_publications": 0,
+      "deleted_packs": 0,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 0,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 143.55,
+      "catalog_ms": 13.345
+    },
+    {
+      "repeat": 2,
+      "mode": "evict",
+      "argv": [
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25/bin/java",
+        "-Xms64m",
+        "-Xmx256m",
+        "-jar",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-19/chec/outputs/binaries/local-cache-collection.jar",
+        "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review/2-evict",
+        "1",
+        "0"
+      ],
+      "process_seconds": 0.24827815000003284,
+      "status": "complete",
+      "publications": 4,
+      "known_bytes_before": 996488246,
+      "known_bytes_retained": 0,
+      "protected_bytes": 0,
+      "active_slots": 0,
+      "foreign_entries": 0,
+      "deleted_publications": 4,
+      "deleted_packs": 4,
+      "deleted_pending_files": 0,
+      "deleted_logical_bytes": 996488246,
+      "manifest_scan_bytes": 108467720,
+      "elapsed_ms": 156.858,
+      "catalog_ms": 26.301
+    }
+  ],
+  "source_hashes_preserved": true,
+  "medians": {
+    "retain": {
+      "elapsed_ms": 144.916,
+      "catalog_ms": 14.656,
+      "deleted_logical_bytes": 0
+    },
+    "pinned": {
+      "elapsed_ms": 144.12,
+      "catalog_ms": 13.659,
+      "deleted_logical_bytes": 0
+    },
+    "evict": {
+      "elapsed_ms": 154.931,
+      "catalog_ms": 26.107,
+      "deleted_logical_bytes": 996488246
+    }
+  },
+  "passed": true,
+  "final_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-concurrent/collector-measurement-review",
+        "free_bytes": 297076387840
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 33585799168,
+      "system_drive": "C:\\",
+      "system_free_bytes": 156290453504
+    }
+  }
+}
