@@ -9,14 +9,14 @@ todos:
     content: Independent server and worktree reuse with verified outputs
     status: completed
   - id: storage-efficiency
-    content: Measured storage and validation optimizations; final large-workload latency gate
-    status: in_progress
+    content: Measured validation costs; net whole-build benefit remains unproven
+    status: completed
   - id: datadog-validation
-    content: Complete user-requested16-build Datadog reuse/edit/revert/collection matrix
-    status: in_progress
+    content: Recorded16 attempts:14pass2timeout; final six correctness checks pass
+    status: completed
   - id: bounded-storage
-    content: Lease-aware collection implemented; current substantial recovery gate pending
-    status: in_progress
+    content: Lease-aware collection tested; large post-GC rebuild deferred by cap
+    status: completed
   - id: nearby-revisions
     content: Per-entry dependency validation and reuse across differing snapshots
     status: completed
@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 56. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 57. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -41,48 +41,23 @@ contains the chronological measurements and decisions. The
 [previous roadmap](skycache_local_backend_f13e5f7f.history-through-step49.md) is preserved for history;
 its old pending-work statements do not describe current implementation status.
 
-## Current evidence and open acceptance
+## Local prototype handoff; qualification remains open
 
-The published binary passes 280 Java cases across 18 targets and a fresh 34-build concurrent worktree
-mutation matrix. Local retained-value validation now runs interruptibly on the command thread at the
-existing invalidation stage; all original-evidence checks remain and remote request deadlines are
-unchanged. Three regression cases fail before the routing fix. Source builds/tests use Cache&Carry.
+The current binary passes 280 Java cases across 18 targets and a 34-build concurrent membership
+matrix. The capped Datadog run contains 16 attempts: 14 passed and two timeouts. The last six passed
+after repository inputs moved to NVMe while preserving logical paths: simultaneous edited
+reads/publications, exact warm reverts and independent edited controls. Both prior failed commands
+remain failures. No full 16/16 success, general speedup or production maturity is claimed.
 
-The current substantial Datadog matrix has passed the baseline, first-reader, warm and restarted-reader
-phases. A fresh reader and both restarted readers each reused 4,501 configured targets with exact
-cache-off outputs. The unchanged warm reader retained 4,501 of 4,506 graph keys, rejected no dependency
-roots and downloaded no configured targets. Five extra keys were conservatively invalidated. Source
-and counters indicate configuration forwarding keys without direct lookup evidence; their exact
-destination mappings were not heap-inspected. Step 52 explicitly corrects the earlier zero-invalidation
-expectation rather than treating it as passed or relaxing evidence checks.
+The [implementation summary](../skycache-implementation-summary.md) describes behavior, measurements,
+shortcomings and missing work. Raw evidence was archived and readback verified; four owned final
+worktrees and both temporary images were removed. Source builds/tests used Cache&Carry. Every
+server retains its graph, and the Skyframe evaluator implementation remains unchanged.
 
-The warm reader took 85.081 seconds versus 137.126 in the previous failed run, which discarded the
-whole imported graph on timeout. Those ordered HDD observations do not establish an isolated speedup.
-The restarted cache-enabled pair was slower and used more process memory than its cache-off control
-in this run. The latest full attempt then failed both edited commands at 1,800 seconds during final input
-hashing, after successful execution and 6,206 hits each. All servers stopped and sources restored;
-there were zero invalidation timeouts. The full 32-build edit/revert/collection gate remains open.
-
-Step 53 identifies a preparation difference: the original fixture has 497 shared repository-directory
-symlinks per output base, while the HDD fixture has only three after its earlier cache-disabled
-materialization. Cache flags alone did not migrate those directories. Repository sharing will be
-restored through native cache candidate validation/fetch before a fresh matrix. A metadata inventory
-does not support increasing the 256-entry digest capacity, and a storage probe does not support a
-larger read buffer as a remedy for this image path. Validation checks and deadlines remain unchanged.
-Step 54 completed the restoration: all494 selected repositories now resolve to identical native
-contents-cache directories across all four output bases; all fetches passed and servers stopped.
-The already shared Python binding was also rechecked. Retry7 repeats the full matrix with an empty
-SkyCache, unchanged binary/resources/deadline and no accepted prior phases. The prior failed attempts
-and cache data remain preserved; final archival and cleanup are pending.
-
-Per the user's wrap-up direction, stop after a working large validation, evidence preservation,
-owned scratch cleanup and an implementation/limitations summary. Further speculative performance
-work and remote transport remain outside this handoff.
-
-Inherited publication evidence and aliased-file digest optimizations remain separate measured results:
-their warm-filesystem microbenchmarks reduce logical reads about 67% and 80%. Whole-build performance
-improvement and production maturity remain unproven. The temporary D SATA HDD does not represent SSD
-performance. The unchanged measurement harness has 29 passing Python checks.
+The last six timings are correctness observations: earlier failed attempts warmed local outputs.
+Large post-GC writer/reader and repeated restart checks were omitted under the cap. Current focused
+collector tests and earlier real-server lifecycle evidence remain separate. Net performance benefit,
+broader compatibility, longer histories and remote transport remain open.
 
 ## Implemented design
 
@@ -132,8 +107,8 @@ layouts fail conservatively before unsafe deletion. Unrecognized files and symli
 The default soft collection policy is 5 GiB or seven days, attempted after 30 idle seconds. Active
 data may exceed those limits. A zero dimension disables that dimension; both zero disables automatic
 collection. Focused tests and prior real-server lifecycle probes cover live-reader protection,
-concurrent publication, crash/process death, interruption, corruption and recovery. The current
-substantial forced-collection/rebuild gate must still complete.
+concurrent publication, crash/process death, interruption, corruption and recovery. The large
+post-collection rebuild pair was omitted under the16-attempt cap; focused and prior lifecycle evidence remain separate.
 
 Per-command JSON reports reads, shared reads, writes, deduplication, rejected candidates,
 publication failures, bounded-discovery counters and logical cache traffic. Dependency-validation
@@ -159,33 +134,21 @@ encoded metadata budgets do not bound decoded objects or the whole graph. See th
    memoization are not an atomic filesystem snapshot or protection against privileged metadata
    forgery or arbitrary input ABA races.
 
-## Remaining local acceptance sequence
+## Follow-up priorities
 
-Step56 supersedes the prior all-passing16-build schedule after retry7 ended with eight successful
-and two timed-out commands. The cap counts all attempts. Only six remain: concurrent edited
-publication, warm reverts and independent edited controls. Keep the failed report immutable.
-The large post-GC writer/reader pair and repeated restarts are omitted, not considered passed.
+1. Run fair repeated comparisons on native SSD-backed ext4 with identical starting outputs and
+   randomized order. Report full command time, process memory and physical I/O; hits are not speedup.
+2. Profile hashing, dependency validation and metadata before changing code. Preserve content
+   checks, original retained-value evidence and conservative handling of unknown forwarding keys.
+3. Complete the omitted large post-GC/restart checks; broaden rules, platforms, server counts and
+   long-running history coverage. Existing focused tests do not establish every production scenario.
+4. Keep graphs in RAM and retain the evaluator. Future gRPC and portable identities are separate.
 
-Copy and checksum-verify repository contents onto a temporary64GiB C NVMe-backed image while
-preserving logical paths. Both backing volumes retain the existing capacity guards. Use the same
-binary, checks, resources and deadline. Require actual shared reads and successful publication in
-both edited commands, distinct feature outputs matching independent controls, exact reverts,
-stopped servers and restored sources. Prior attempts warmed local outputs, so final timings are
-observations and do not establish a matched performance gain.
-
-After these at-most-six commands, audit the actual result, archive private raw evidence, remove
-only the four owned final worktrees, normally unmount both owned images and remove their files.
-Preserve original E fixtures and user repositories. Publish the implementation/limitations handoff
-on jsgette/master; implementation stays on its separately pushed branch. Do not claim16/16 passing
-or fresh post-collection rebuild proof. If the remaining checks fail, report the unresolved issue
-without exceeding the cap or declaring the implementation mature.
-
-All source builds/tests use Cache&Carry:
+All source builds/tests used Cache&Carry:
 `--config=efcache --bes_backend= --remote_upload_local_results=false`.
-Standalone source work uses available CPUs with memory headroom. The matched Datadog matrix keeps
-jobs=2, action memory=3072 MiB and Xmx4g per server. Remote action caching is off to isolate analysis
-reuse; ordinary native repository sharing is on for all worktrees. Edited correctness phases and
-their controls disable shared disk action caching. Do not change one side of a comparison mid-run.
+Concurrent Datadog commands each used jobs=2/action memory 3072 MiB/Xmx4g. Remote action caching was
+off; edited builds and independent controls also disabled disk action caching. The unchanged
+1,800-second full-command deadline counted both prior failures.
 
 ## Future gRPC boundary
 

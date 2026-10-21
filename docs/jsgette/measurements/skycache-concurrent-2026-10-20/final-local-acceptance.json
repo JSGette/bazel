@@ -1,0 +1,121 @@
+{
+  "observed_unix": 1792596513.1098595,
+  "handoff_complete": true,
+  "production_ready": false,
+  "scope": "Experimental concurrent local filesystem SkyCache; current selected correctness proof passed while two capped-run attempts failed. Performance and broader qualification remain open.",
+  "implementation_commit": "34688d19d6244ef3ccf633ebcca6e1376f12c87b",
+  "docs_base_commit": "d77ec43aa87726550f0b32dd4e3048cd5a1018df",
+  "binary_sha256": "0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0",
+  "current_java_cases": 280,
+  "current_java_targets": 18,
+  "membership_builds": 34,
+  "large_attempts": 16,
+  "large_passed": 14,
+  "large_timed_out": 2,
+  "all_large_attempts_passed": false,
+  "final_six_correctness_passed": true,
+  "requirements": [
+    {
+      "id": "concurrent-local-sharing",
+      "status": "verified-in-tested-local-scope",
+      "evidence": [
+        "LocalCacheLeaseManagerTest: independent processes, process death, simultaneous local owners, catalog exclusion",
+        "LocalCacheSessionTest: private-write visibility, conflicts, parents, actual pins",
+        "collector-lifecycle.json: real two-server idle collection with live-reader protection",
+        "Final six: both edited servers overlap, read shared analysis and publish successfully; independent outputs match."
+      ]
+    },
+    {
+      "id": "graph-in-ram-and-minimal-evaluator-change",
+      "status": "source-verified",
+      "evidence": [
+        "LocalSkycacheModule rejects minimize-memory and installs async_bidi at the serialization/service seam",
+        "No changes under src/main/java/com/google/devtools/build/skyframe/ compared with docs branch merge base",
+        "Changes in lib/skyframe are analysis-value serialization/invalidation plumbing, not the evaluator implementation",
+        "Current source/binary hashes checked; graph retained and evaluator implementation unchanged."
+      ]
+    },
+    {
+      "id": "same-project-nearby-snapshot-sharing",
+      "status": "verified-for-linked-worktree-edits",
+      "evidence": [
+        "LocalInputSnapshot cacheNamespace uses local Git common-dir and effective environments",
+        "LocalDependencyValidatorTest validates dependency-scoped evidence and distinct logical-key candidates",
+        "cross-revision-datadog-28-builds.json includes independent semantic Go edits and cache-off controls",
+        "Distinct semantic Go edits and warm reverts match independent cache-off controls; current membership mutations also passed."
+      ]
+    },
+    {
+      "id": "filesystem-and-rule-portability",
+      "status": "verified-for-tested-rules-and-WSL-ext4-only",
+      "evidence": [
+        "LocalPathCodec relocates only typed workspace/output paths; user strings are untouched",
+        "LocalCacheSessionTest validates source bytes, modes, symlink chains, absent paths, directory membership and external bindings",
+        "LocalDependencyValidatorTest covers nested parents, stale retained values and file/listing changes",
+        "Runfiles, provider/depset metadata, aspect packages and repository mapping codecs have focused regressions",
+        "Current local-invalidation binary: 34-build membership matrix covers additions, unchanged-content rename, deletion, repeated edits and fresh reverts against independent controls.",
+        "Current280 Java cases,34 membership builds and final six Datadog builds; broader platforms/rules remain unqualified."
+      ]
+    },
+    {
+      "id": "bounded-storage-and-safe-collection",
+      "status": "focused-and-prior-lifecycle-tested; final-large-rebuild-omitted",
+      "evidence": [
+        "20 collector and 4 idle/options cases in the current 280-case suite; actual XML hashes and cases rechecked.",
+        "Byte/age soft limits; active transitive closure protection; durable child-before-parent unlink",
+        "Crash, killed processes, interruption, corruption, symlinks/unknown files and late publishers tested",
+        "collector-measurements.json and collector-lifecycle.json",
+        "Current20 collector and4 idle/options cases plus earlier real-server lifecycle evidence; large post-GC pair omitted under16-attempt cap."
+      ]
+    },
+    {
+      "id": "performance-protocol-and-honest-claims",
+      "status": "measurements-published; net-benefit-unproven",
+      "evidence": [
+        "Development protocol Steps 1\u201356 preserves baselines, rejected designs, focused tests, binary hashes and positive/negative measurements, including failed retry5 and the measured retained-validation fix.",
+        "Current interrupted E run shows reuse with latency/PSS overhead; not reported as a speedup",
+        "D is SATA HDD; current gate cannot support an SSD speed claim",
+        "Both timeout failures retained; storage cohorts separate; final six warmed-output timings are not a matched speedup comparison."
+      ]
+    },
+    {
+      "id": "future-grpc-extension-boundary",
+      "status": "source-verified; service-not-implemented",
+      "evidence": [
+        "Existing FingerprintValueStore and RemoteAnalysisCachingServicesSupplier interfaces retained",
+        "LocalAnalysisCacheClient implements RetainedAnalysisCacheClient",
+        "Current plan explicitly defers cross-machine identity, remote leases and gRPC transport",
+        "Existing value-store/service boundary retained; cross-machine identities, remote leases and gRPC remain future work."
+      ]
+    },
+    {
+      "id": "branches-documents-and-cleanup",
+      "status": "verified",
+      "evidence": [
+        "Implementation pushed to jsgette/skycache-concurrent; docs/results pushed to jsgette/master",
+        "Cache&Carry flags preserved in immutable binary build metadata",
+        "Exact64GiB temporaryCimage removed after verified Dcopy; Cfree143GiB",
+        "Implementation branch pushed; docs/results pushed separately; private archive readback verified; four owned worktrees and two temporary images removed."
+      ]
+    }
+  ],
+  "omitted_large_checks": [
+    "large post-GC writer and independent reader",
+    "repeated restart/re-edit phases",
+    "post-GC concurrent pair"
+  ],
+  "runtime_audit_sha256": "2706f1cb490b1ecdd6910a49e92a77e88181f0a99a1c3874adb395afc7abed10",
+  "private_archive_sha256": "5fb50a263da2800933bc04b880842d665ea578455d8034580f3e8e2b383d1df7",
+  "cleanup": {
+    "owned_worktrees_removed": 4,
+    "C64GiB_image_removed": true,
+    "D128GiB_image_removed": true,
+    "normal_unmounts": true
+  },
+  "remaining_product_work": [
+    "Establish net whole-build benefit with fair repeated native-SSD comparisons.",
+    "Reduce validation/metadata overhead without weakening evidence checks.",
+    "Run omitted large post-GC/restart checks and broader rule/platform/long-history/more-server qualification.",
+    "Design portable project/toolchain identities and remote gRPC/lease/security semantics."
+  ]
+}

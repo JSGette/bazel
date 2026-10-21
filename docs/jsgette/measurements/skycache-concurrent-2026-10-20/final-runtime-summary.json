@@ -1,0 +1,807 @@
+{
+  "observed_unix": 1792595813.309913,
+  "binary_sha256": "0533d78f6958327217e27338ffb4d3f2b7442eb6c91c8329fd6cfddde2e77ee0",
+  "repository_preparation": {
+    "checksum_verified": true,
+    "preparation_sha256": "67d1cb88755aac7ece4b0def87626a07505fc4729444fe7b4acb63fe29aa21bf",
+    "hardware": {
+      "observed_utc": "2026-10-21T14:21:24.1621081Z",
+      "drive": "C:",
+      "disk_number": 1,
+      "model": "WDC WD BLACK SDBPNTY-512G-1106",
+      "bus_type": "NVMe",
+      "size_bytes": 512110190592,
+      "free_bytes": 89032241152
+    },
+    "logical_paths_preserved": true,
+    "temporary_image_gib": 64,
+    "copied_regular_files": 166468,
+    "copied_total_bytes": 12080427861
+  },
+  "implementation_binary_commit": "802d66bc21bd706a20dc5476791d305020363303",
+  "implementation_branch_commit": "34688d19d6244ef3ccf633ebcca6e1376f12c87b",
+  "attempted_builds": 16,
+  "passed_builds": 14,
+  "timed_out_builds": 2,
+  "all_attempts_passed": false,
+  "final_six_passed": true,
+  "membership_builds": 34,
+  "current_java_cases": 280,
+  "source_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "target": "//cmd/cluster-agent:cluster-agent",
+  "resources": "Each server: Xmx4g/jobs2/action memory3072MiB; full-command timeout1800s.",
+  "cache_policy": "Remote action cache off. Edited cached builds and independent edited controls also disable disk action cache. Reverts use shared disk action cache.",
+  "memory_scope": "200ms samples of participating process trees; RSS/PSS excludes filesystem page cache and host VM overhead.",
+  "storage_scope": "Only repository inputs moved to C NVMe. Output bases and SkyCache data stayed on D SATA HDD. Both filesystems are ext4 loop images backed by Windows files through WSL, not native SSD-backed ext4.",
+  "performance_conclusion": "No overall speedup established. Final six are correctness checks with timing observations; earlier failed commands warmed cached-side local outputs. Do not calculate a matched performance ratio from these phases or pool storage cohorts.",
+  "omitted": [
+    "large post-GC writer and independent reader",
+    "repeated restart/re-edit phases",
+    "post-GC concurrent pair"
+  ],
+  "baseline_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+  "edited_sha256": {
+    "a": "ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e",
+    "b": "bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674"
+  },
+  "concurrent_build_intervals": [
+    {
+      "cohort": "HDD",
+      "phase": "control-base",
+      "overlap_seconds": 312.217,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "invocation_id": "48aec399-5d76-45e7-a3ce-15f4b422ba98",
+          "start_unix_ms": 1792586140109,
+          "finish_unix_ms": 1792586452326
+        },
+        {
+          "worktree": "control-b",
+          "invocation_id": "68d42a98-da60-42d9-9b19-0b4e89a17d4b",
+          "start_unix_ms": 1792586140109,
+          "finish_unix_ms": 1792586455628
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "restarted-control-base",
+      "overlap_seconds": 23.389,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "invocation_id": "e39e3159-3e6b-4d7c-82c4-edaaa066ed30",
+          "start_unix_ms": 1792586456554,
+          "finish_unix_ms": 1792586479943
+        },
+        {
+          "worktree": "control-b",
+          "invocation_id": "39103fe7-68e6-4b42-8879-4bdaf7bb4677",
+          "start_unix_ms": 1792586456554,
+          "finish_unix_ms": 1792586480270
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "warm-base",
+      "overlap_seconds": 25.627,
+      "builds": [
+        {
+          "worktree": "a",
+          "invocation_id": "ede50392-9053-4f96-a164-21c163d10f53",
+          "start_unix_ms": 1792587969870,
+          "finish_unix_ms": 1792587995497
+        },
+        {
+          "worktree": "b",
+          "invocation_id": "da8e5b26-3bbc-416a-b768-724c998900f4",
+          "start_unix_ms": 1792587969866,
+          "finish_unix_ms": 1792588123738
+        }
+      ]
+    },
+    {
+      "cohort": "NVMe-inputs",
+      "phase": "final-concurrent-edited-publication",
+      "overlap_seconds": 1125.69,
+      "builds": [
+        {
+          "worktree": "a",
+          "invocation_id": "3d8b1bb3-6b25-4cf5-9b34-07a82d7d1860",
+          "start_unix_ms": 1792592854663,
+          "finish_unix_ms": 1792593980353
+        },
+        {
+          "worktree": "b",
+          "invocation_id": "ab436400-28a8-4e17-987a-3be7796808cc",
+          "start_unix_ms": 1792592854663,
+          "finish_unix_ms": 1792593983212
+        }
+      ]
+    },
+    {
+      "cohort": "NVMe-inputs",
+      "phase": "final-warm-reverts",
+      "overlap_seconds": 183.09,
+      "builds": [
+        {
+          "worktree": "a",
+          "invocation_id": "c4c9dd77-8c77-4390-97c2-2e4a8c7f012e",
+          "start_unix_ms": 1792594252861,
+          "finish_unix_ms": 1792594451393
+        },
+        {
+          "worktree": "b",
+          "invocation_id": "3fe1ca3b-7ff1-4350-a5a4-f3af4d011c1b",
+          "start_unix_ms": 1792594252861,
+          "finish_unix_ms": 1792594435951
+        }
+      ]
+    },
+    {
+      "cohort": "NVMe-inputs",
+      "phase": "final-independent-edited-controls",
+      "overlap_seconds": 1149.472,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "invocation_id": "72441a2a-a35d-4182-bd22-6006d93ca893",
+          "start_unix_ms": 1792594452384,
+          "finish_unix_ms": 1792595601856
+        },
+        {
+          "worktree": "control-b",
+          "invocation_id": "a9b32ffb-ac71-4e25-b536-494873749081",
+          "start_unix_ms": 1792594452383,
+          "finish_unix_ms": 1792595634237
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "cohort": "HDD",
+      "phase": "control-base",
+      "seconds": 316.739170593999,
+      "peak_combined_pss_kib": 4033960,
+      "peak_combined_rss_kib": 4061384,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 313.33464496500164,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": null,
+          "dependency_validation": null,
+          "publication_failures": []
+        },
+        {
+          "worktree": "control-b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 316.61734824700034,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": null,
+          "dependency_validation": null,
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "restarted-control-base",
+      "seconds": 23.983629531998304,
+      "peak_combined_pss_kib": 6046225,
+      "peak_combined_rss_kib": 6095924,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 23.55368148799971,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": null,
+          "dependency_validation": null,
+          "publication_failures": []
+        },
+        {
+          "worktree": "control-b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 23.904271842002345,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": null,
+          "dependency_validation": null,
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "single-base-writer",
+      "seconds": 921.6948625629993,
+      "peak_combined_pss_kib": 3674066,
+      "peak_combined_rss_kib": 3680776,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 921.5806896310023,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": {
+            "writes": 444097,
+            "reads": 57632,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 454663,
+            "cas_accepted_puts": 454663,
+            "cas_put_key_bytes": 10057478,
+            "cas_put_value_bytes": 384025977,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0
+          },
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "first-independent-reader",
+      "seconds": 568.3663256610016,
+      "peak_combined_pss_kib": 3293976,
+      "peak_combined_rss_kib": 3310620,
+      "builds": [
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 568.2452847310014,
+          "analysis_hits": 4501,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": {
+            "writes": 0,
+            "reads": 317698,
+            "shared_reads": 317692,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4477,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 50366308,
+            "cas_put_requests": 4477,
+            "cas_accepted_puts": 4477,
+            "cas_put_key_bytes": 71632,
+            "cas_put_value_bytes": 319696,
+            "cas_get_requests": 313191,
+            "cas_get_hits": 313191,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 339033667,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163775,
+            "memo_hits": 373149,
+            "witnesses_checked": 7798,
+            "rejected_roots": 0,
+            "memo_entries": 163775,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150660,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "warm-base",
+      "seconds": 157.32705322199763,
+      "peak_combined_pss_kib": 6093175,
+      "peak_combined_rss_kib": 6131736,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 25.750263449001068,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": false,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0
+          },
+          "publication_failures": []
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 154.0019661890001,
+          "analysis_hits": 0,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": false,
+          "skycache": {
+            "writes": 0,
+            "reads": 163780,
+            "shared_reads": 163775,
+            "rejected_publications": 0,
+            "deduplicated_writes": 4476,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 50366308,
+            "cas_put_requests": 4476,
+            "cas_accepted_puts": 4476,
+            "cas_put_key_bytes": 71616,
+            "cas_put_value_bytes": 319667,
+            "cas_get_requests": 163775,
+            "cas_get_hits": 163775,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 54914013,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163775,
+            "memo_hits": 373149,
+            "witnesses_checked": 7798,
+            "rejected_roots": 0,
+            "memo_entries": 163775,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150660,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "HDD",
+      "phase": "first-cross-revision-readers",
+      "seconds": 1800.1354711879976,
+      "peak_combined_pss_kib": 11636863,
+      "peak_combined_rss_kib": 11680376,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 124,
+          "timed_out": true,
+          "seconds": 1800.1170647370018,
+          "analysis_hits": 6206,
+          "output_sha256": null,
+          "feature_markers": null,
+          "server_started": true,
+          "skycache": {
+            "writes": 6420,
+            "reads": 325110,
+            "shared_reads": 325094,
+            "rejected_publications": 0,
+            "deduplicated_writes": 101556,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 50366308,
+            "cas_put_requests": 107976,
+            "cas_accepted_puts": 107976,
+            "cas_put_key_bytes": 2019419,
+            "cas_put_value_bytes": 47427057,
+            "cas_get_requests": 318888,
+            "cas_get_hits": 318888,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 337887959,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163789,
+            "memo_hits": 374945,
+            "witnesses_checked": 7802,
+            "rejected_roots": 5,
+            "memo_entries": 163769,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150659,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": [
+            "interrupted local input hashing"
+          ]
+        },
+        {
+          "worktree": "b",
+          "exit_code": 124,
+          "timed_out": true,
+          "seconds": 1800.1159572450015,
+          "analysis_hits": 6206,
+          "output_sha256": null,
+          "feature_markers": null,
+          "server_started": true,
+          "skycache": {
+            "writes": 6420,
+            "reads": 325111,
+            "shared_reads": 325095,
+            "rejected_publications": 0,
+            "deduplicated_writes": 101556,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 50366308,
+            "cas_put_requests": 107976,
+            "cas_accepted_puts": 107976,
+            "cas_put_key_bytes": 2019419,
+            "cas_put_value_bytes": 47427200,
+            "cas_get_requests": 318889,
+            "cas_get_hits": 318889,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 337888349,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163789,
+            "memo_hits": 374945,
+            "witnesses_checked": 7802,
+            "rejected_roots": 5,
+            "memo_entries": 163769,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150659,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": [
+            "interrupted local input hashing"
+          ]
+        }
+      ]
+    },
+    {
+      "cohort": "NVMe-inputs",
+      "phase": "final-concurrent-edited-publication",
+      "seconds": 1398.1614720619982,
+      "peak_combined_pss_kib": 7546287,
+      "peak_combined_rss_kib": 7596460,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1397.9136476990025,
+          "analysis_hits": 6206,
+          "output_sha256": "ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e",
+          "feature_markers": {
+            "a": true,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": {
+            "writes": 6420,
+            "reads": 325111,
+            "shared_reads": 325095,
+            "rejected_publications": 0,
+            "deduplicated_writes": 101556,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 50366308,
+            "cas_put_requests": 107976,
+            "cas_accepted_puts": 107976,
+            "cas_put_key_bytes": 2019419,
+            "cas_put_value_bytes": 47427452,
+            "cas_get_requests": 318889,
+            "cas_get_hits": 318889,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 337888646,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163789,
+            "memo_hits": 374945,
+            "witnesses_checked": 7802,
+            "rejected_roots": 5,
+            "memo_entries": 163769,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150659,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": []
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1397.9278358939991,
+          "analysis_hits": 6206,
+          "output_sha256": "bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674",
+          "feature_markers": {
+            "a": false,
+            "b": true
+          },
+          "server_started": true,
+          "skycache": {
+            "writes": 6420,
+            "reads": 325112,
+            "shared_reads": 325096,
+            "rejected_publications": 0,
+            "deduplicated_writes": 101556,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 50366308,
+            "cas_put_requests": 107976,
+            "cas_accepted_puts": 107976,
+            "cas_put_key_bytes": 2019419,
+            "cas_put_value_bytes": 47426084,
+            "cas_get_requests": 318890,
+            "cas_get_hits": 318890,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 337889036,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163789,
+            "memo_hits": 374945,
+            "witnesses_checked": 7802,
+            "rejected_roots": 5,
+            "memo_entries": 163769,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150659,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "NVMe-inputs",
+      "phase": "final-warm-reverts",
+      "seconds": 198.77161717800482,
+      "peak_combined_pss_kib": 8050481,
+      "peak_combined_rss_kib": 8080272,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 198.68317601700255,
+          "analysis_hits": 3,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": false,
+          "skycache": {
+            "writes": 0,
+            "reads": 255917,
+            "shared_reads": 255912,
+            "rejected_publications": 0,
+            "deduplicated_writes": 6179,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 109082064,
+            "cas_put_requests": 6179,
+            "cas_accepted_puts": 6179,
+            "cas_put_key_bytes": 98864,
+            "cas_put_value_bytes": 476164,
+            "cas_get_requests": 255909,
+            "cas_get_hits": 255909,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 91240373,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163802,
+            "memo_hits": 375119,
+            "witnesses_checked": 7804,
+            "rejected_roots": 6,
+            "memo_entries": 163776,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150660,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": []
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 183.28209423999942,
+          "analysis_hits": 3,
+          "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "feature_markers": {
+            "a": false,
+            "b": false
+          },
+          "server_started": false,
+          "skycache": {
+            "writes": 0,
+            "reads": 255917,
+            "shared_reads": 255912,
+            "rejected_publications": 0,
+            "deduplicated_writes": 6179,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 109082064,
+            "cas_put_requests": 6179,
+            "cas_accepted_puts": 6179,
+            "cas_put_key_bytes": 98864,
+            "cas_put_value_bytes": 476164,
+            "cas_get_requests": 255909,
+            "cas_get_hits": 255909,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 91240373,
+            "catalog_busy_skips": 0
+          },
+          "dependency_validation": {
+            "records_read": 163802,
+            "memo_hits": 375119,
+            "witnesses_checked": 7804,
+            "rejected_roots": 6,
+            "memo_entries": 163776,
+            "witness_memo_hits": 77064,
+            "witness_memo_entries": 150660,
+            "admission_witness_memo_hits": 142862
+          },
+          "publication_failures": []
+        }
+      ]
+    },
+    {
+      "cohort": "NVMe-inputs",
+      "phase": "final-independent-edited-controls",
+      "seconds": 1182.3761664839985,
+      "peak_combined_pss_kib": 8418438,
+      "peak_combined_rss_kib": 8488032,
+      "builds": [
+        {
+          "worktree": "control-a",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1149.826506438003,
+          "analysis_hits": 0,
+          "output_sha256": "ca4b2473d6dd8ed84177048b9a7ee1bcf84a3e3362770f393f8249d32962587e",
+          "feature_markers": {
+            "a": true,
+            "b": false
+          },
+          "server_started": true,
+          "skycache": null,
+          "dependency_validation": null,
+          "publication_failures": []
+        },
+        {
+          "worktree": "control-b",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1182.1446734150013,
+          "analysis_hits": 0,
+          "output_sha256": "bf973002d45ecbbbe74ba9a1dd5f9df5c83b23419cbef264af468347a6f0e674",
+          "feature_markers": {
+            "a": false,
+            "b": true
+          },
+          "server_started": true,
+          "skycache": null,
+          "dependency_validation": null,
+          "publication_failures": []
+        }
+      ]
+    }
+  ],
+  "matched_observations": [],
+  "audit_sha256": "2706f1cb490b1ecdd6910a49e92a77e88181f0a99a1c3874adb395afc7abed10",
+  "raw_results_sha256": {
+    "datadog_results_sha256": "d46df2b8b0800966eec7aa3da68c94927502052b074c327d92c292a4a744dc53",
+    "final_six_results_sha256": "d8c2b8c73bf57fba7f12c3e70e87034fc16d662f155a6313a8a84dcac20ec717",
+    "membership_results_sha256": "eec2d3f7dbff76d7ed7b41837e47410388c522234a554d1ced54620a955cc4ed"
+  }
+}

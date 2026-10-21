@@ -126,3 +126,5 @@ required. The lease-aware collector continues to manage recognized inactive publ
 Large-file content digests are reused only within one fresh validation/capture pass, with Unix
 device/inode, ctime, mtime and size checks. No digest memo survives between passes or commands.
 All paths, modes, links, directory membership and expected content digests remain checked.
+
+See the [implementation handoff](skycache-implementation-summary.md) for the capped validation results, limitations and missing work.
