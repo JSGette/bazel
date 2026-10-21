@@ -376,6 +376,20 @@ unmounted 64 GiB C image was removed after verification. The complete matrix is 
 results and zero accepted prior phases. Stop both task-owned helpers and clean D scratch after
 preserving evidence. The final workload gate is still required; core implementation is unchanged.
 
+## Robust observations and remaining runtime audit (Step 43)
+
+The first D attempt also stopped before completing controls: drvfs briefly hid the replaced Windows
+snapshot. Three bounded fresh-file reads now handle replacement races; a one-second Windows/WSL
+clock-skew tolerance preserves the thirty-second stale-reading limit. Twenty-five guard tests and
+11,255 live reads across ten observations pass, including recovery from two actual replacement gaps.
+The failed control/stress attempts remain evidence, not accepted results. The full matrix restarts
+with a one-hour server idle timeout so independent dependency preparation cannot expire a warm graph.
+
+The final requirement audit also needs the prepared small file-membership runtime probe: repeated
+edits, glob additions, unchanged-content renames, deletions, fresh readers and reverts against
+independent cache-off controls. Run it after the Datadog matrix under the same measurement lock.
+Core binary/source hashes and265focusedcases still match; no evaluator implementation changed.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

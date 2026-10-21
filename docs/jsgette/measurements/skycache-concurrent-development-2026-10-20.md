@@ -2729,3 +2729,59 @@ Evidence: [failed C attempt](skycache-concurrent-2026-10-20/collector-c-interop-
 [D-backed capacity](skycache-concurrent-2026-10-20/collector-d-volume-verification.json),
 [C cleanup](skycache-concurrent-2026-10-20/collector-c-image-cleanup.json),
 [retry command and decisions](skycache-concurrent-2026-10-20/collector-d-retry-command.json).
+
+
+## Step 43 — tolerate snapshot replacement races and preserve warm-server measurements
+
+Harness implementation: [0706bac566a2](https://github.com/JSGette/bazel/commit/0706bac566a28b44d973f6929a11e5ea14460b7d).
+The SkyCache binary and Java implementation remain unchanged. Twenty-five direct Python guard tests
+pass. No Bazel source rebuild was needed; source build/test commands remain configured for Cache&Carry.
+
+The first D-backed control pair was cancelled after 706.467 seconds because
+drvfs briefly reported the native Windows snapshot path as missing during replacement. The native
+watcher remained alive and the same path immediately became readable again with fresh capacity.
+Both clients exited 8, no output was accepted, no phase passed and no SkyCache publication existed.
+Peak combined process-tree PSS reached 4.791 GiB.
+All servers stopped, sources were restored and zero invalidation timeouts were observed. The failed
+attempt remains separate evidence; it is not used to claim correctness or performance.
+
+The reader now opens the file once and reads at most 64 KiB plus one byte, avoiding a stat/read race.
+Transient open/read/encoding/JSON errors get three fresh reads with 0.1/0.2-second retry delays.
+Persistent failure still rejects the observation after at most 0.3 seconds of requested backoff.
+No old capacity value is reused, no interop fallback is silently substituted, and byte/schema/
+freshness checks remain mandatory. Tests inject a replacement gap, persistent absence and a stale
+observation after a successful retry. All existing host-full, guest-full, wrong-volume and owned-
+client cancellation checks still pass.
+
+A live stress check then exposed a separate clock issue: a newly published Windows timestamp was
+approximately 53 ms ahead of WSL's clock. Strict rejection of every negative age made a fresh reading
+fail. The accepted timestamp window is now one second ahead through thirty seconds old; the stale
+limit remains thirty seconds. Nonfinite/non-numeric timestamps, larger future offsets and unknown
+schemas fail. Regression checks cover the small skew and both rejection boundaries. This is a bounded
+cross-OS clock tolerance, not a waiver of freshness or disk-capacity reserves.
+
+The corrected live stress check completed 11,255 reads across 10
+native observations in 45.004 seconds. It recovered 2
+actual replacement races using 0.1-second retries, with no rejected observation. The initial failed
+clock-skew stress result is retained alongside the successful run.
+
+The audit also found that a 120-second server idle timeout could expire writer A while B prepares
+dependencies on the slower scratch disk, mislabelling the following phase as warm. The harness now
+exposes `--server-idle-seconds` (default 3600), requires it to cover the independent build timeout,
+records the policy in the protocol and checks it on resume. Each build also records whether its log
+reports starting a new server. Explicit shutdowns still define fresh-reader/control phases and final
+cleanup. No live run was altered in place: the complete matrix restarts in another result directory,
+accepting zero phases from either interrupted attempt and retaining their reports/logs.
+
+The requirement audit verified the unchanged binary/source hashes, all 265 focused Java cases and
+absence of evaluator implementation changes. It identified a runtime coverage gap for glob membership
+additions/deletions/unchanged-content renames. A focused two-cache-server/two-independent-control probe
+has been prepared, including repeated edits, restarts and reverts; it remains uncommitted until its
+actual runtime checks pass. It will run under the measurement lock after the current Datadog gate,
+without modifying the core implementation. Both validation tasks and temporary-D cleanup remain open.
+
+Evidence: [interrupted D controls](skycache-concurrent-2026-10-20/collector-d-snapshot-interrupted.json),
+[initial clock-skew failure](skycache-concurrent-2026-10-20/collector-snapshot-clock-skew-failure.json),
+[live replacement stress](skycache-concurrent-2026-10-20/collector-snapshot-read-stress.json),
+[25 guard tests](skycache-concurrent-2026-10-20/collector-snapshot-race-tests.json),
+[full retry command](skycache-concurrent-2026-10-20/collector-d-retry2-command.json).
