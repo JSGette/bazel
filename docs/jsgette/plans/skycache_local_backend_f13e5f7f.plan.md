@@ -294,6 +294,23 @@ and 5605.440 ms; no whole-build overhead claim. The mixed-publication Datadog re
 4 native invalidation timeout(s). Preserve the rejected old-tool-binding
 seed attempt and continue reader-safe GC/quotas, with any measured mixed-admission issue addressed.
 
+## Mixed-publication admission avoids obsolete trees (Step 38)
+
+Fresh repository-binding checks now precede file/listing checks. Mixed-cache admission/validation
+medians fall from 17357.145 to 6011.367 ms; the compatible-cache control
+changes from 5721.409 to 5713.205 ms. All 228 cases and the explicitly seeded
+eight-build, two-server Datadog edit/revert check pass. That runtime check records
+0 native invalidation submission timeout(s); do not generalize its
+single-run timings into a whole-build performance claim. No validity/evaluator/format change.
+
+Next introduce lease-aware storage lifetime protection before collection. Isolate that protocol from
+old clients that do not lease their packs; retain legacy data rather than deleting or migrating it
+implicitly. Prefer bounded permanent lock slots and a brief catalog coordination lock, with concurrent
+ordinary readers/writers. Collection must preserve active publications and transitive parents, release
+protection on process death, and handle abandoned writes and interruption. Active closures make byte/age
+limits soft; expose retained/collected/busy/failure totals. Verify the protocol across actual processes
+before enabling byte/age eviction. This is planned work, not implemented by Step 38.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

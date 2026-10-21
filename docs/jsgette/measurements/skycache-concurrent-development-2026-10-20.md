@@ -2288,3 +2288,93 @@ Evidence: [five red cases](skycache-concurrent-2026-10-20/traffic-stats-regressi
 [initial reader expectation failure](skycache-concurrent-2026-10-20/traffic-stats-datadog-seed-attempt.json),
 [guard diagnosis](skycache-concurrent-2026-10-20/traffic-stats-seed-guard-summary.json),
 [Datadog retry](skycache-concurrent-2026-10-20/traffic-stats-datadog-recheck.json).
+
+
+## Step 38 — reject obsolete repository bindings before file hashing
+
+Implementation: [e59ea2b0320b](https://github.com/JSGette/bazel/commit/e59ea2b0320b24d55457e2962507c6e9257c70ef).
+Step 37 exposed four invalidation submission timeouts with obsolete and current Bazel publications
+sharing a cache. Its diagnosis found a changed `external/bazel_tools` binding. Admission checked
+path-sorted witnesses, hashing large `absolute/...` inputs before reaching that changed binding.
+The first encounter with each rejected publication repeated this work on every new invocation.
+
+Admission now checks exact, non-listing top-level `external/<repository>` witnesses first, then
+checks every remaining witness. Both passes perform fresh content checks. A matching binding does
+not establish file/listing validity; an earlier mismatch simply rejects the same publication sooner.
+The existing retry hint still rechecks rejected bindings, including restoration before the discovery
+timer expires. Persisted ordering, checksums, identity, parent closure, final revalidation and the
+in-memory Skyframe graph remain unchanged. There is no disk-format or evaluator change.
+
+Decision: two linear passes without sorting or extra retained metadata. Rejected alternatives were
+weakening the tool binding, skipping content checks, caching negative validity across commands, or
+adding a second complete-witness-list memo for failures. Those alternatives are unnecessary for the
+measured stale-binding case and would add correctness or retention concerns. Repository bindings
+are normally cheap directory/symlink checks; a binding unexpectedly naming a file still receives the
+ordinary content check, with no special validity exemption.
+
+Three added tests cover skipping unrelated file hashing on an invalid binding, immediate retry of a
+restored binding, and rejecting changed file bytes or directory membership despite a matching binding.
+The first test setup mistakenly inspected binding evidence before the writer's publication step had
+recorded it; two setup failures are preserved. After explicit binding capture, the pre-change run has
+exactly the intended skipped-hashing assertion failure and two passing safety controls. All 228 cases
+across fourteen focused targets pass after the change. Source/test build: 18.866 seconds, three
+Cache&Carry hits. Benchmark build: 4.620 seconds, one Cache&Carry hit. Every source build/test uses
+`--config=efcache --bes_backend= --remote_upload_local_results=false`.
+
+The mixed-cache benchmark freezes ten publications: four obsolete and six compatible, with 512 roots
+sampled from a compatible baseline publication. Every round validates 112,195 records, rejects exactly
+four publications, opens six candidates, has zero rejected roots/read-limit skips, and returns exactly
+112,195 blob hits. Every dependency-validation counter is identical before and after, isolating the
+saved work to admission. A compatible-cache control uses the original immutable four-publication fixture,
+512 roots and 101,755 records, with no rejected publications. Each experiment has three alternating
+fresh-JVM pairs, two warmups and five measured rounds per JVM, Xms256m/Xmx2g and the exclusive host
+measurement lock. Manifest inventories and binary hashes are checked before and after every JVM;
+the benchmark source is identical. Medians over fifteen measured rounds per variant:
+
+| Fixture and metric | Before | After |
+| --- | ---: | ---: |
+| Mixed admission/validation, ms | 17,357.145 | 6,011.367 |
+| Mixed current-thread allocated bytes | 3,421,789,504 | 2,231,888,616 |
+| Compatible admission/validation, ms | 5,721.409 | 5,713.205 |
+| Compatible current-thread allocated bytes | 1,575,959,008 | 1,569,552,480 |
+
+Mixed-cache timed work is 65.37% lower and Java allocation
+is 34.77% lower. Compatible-cache
+time changes by -0.14%, within the chosen 5% investigation threshold.
+These measure admission plus dependency validation, excluding snapshot construction and final raw
+rechecks. Allocation is current-thread Java allocation, not retained heap or peak process memory.
+No whole-build speedup or universal deadline guarantee is claimed.
+
+The runtime check reuses the owned Datadog worktrees and output bases to limit host-disk growth.
+It keeps every prior publication, runs two explicit writers with the new binary, shuts both servers
+down, then runs fresh readers, independent semantic edits and warm reverts. All eight builds match
+the independent Step 33 cache-off/no-disk-cache output hashes. Reader/edit/revert phases report real
+configured-target hits; native traffic counters match the local adapter totals. Each server retains
+its PID after the planned restart. Workload disk action cache is on and remote action cache is off;
+two 4 GiB heaps and two action jobs per server. These single-run timings are runtime diagnostics,
+not a controlled before/after build comparison.
+
+| Paired phase | Wall seconds | Fresh CT hits A/B | Rejected publications A/B |
+| --- | ---: | ---: | ---: |
+| seed-writers | 53.029 | 0/0 | 210/190 |
+| baseline-readers | 31.082 | 4501/4501 | 10/10 |
+| independent-edits | 30.268 | 1708/1708 | 60/50 |
+| warm-revert | 10.649 | 3/3 | 20/20 |
+
+The run records 0 native invalidation submission timeout(s).
+Both servers log exactly eight configured targets invalidated on each edit/revert. Warm revert has
+three fresh configured-target hits per server while retaining valid imported nodes in RAM; fewer new
+hits here reflect retained graph reuse, not a failed cache lookup. Step 37's mixed-cache run instead
+hit the deadline and invalidated everything. The fixtures have different publication inventories,
+so the controlled microbenchmark above, not this comparison, supports the quantified speedup.
+Sources are restored and owned servers shut down cleanly. Reader-safe collection and byte/age quotas
+are still missing; faster rejection does not bound disk growth. The next storage step must introduce
+reader/writer lifetime protection before enabling any deletion, with a separate layout for clients
+that participate in leases so an older client cannot lose a live pack to the collector.
+
+Evidence: [initial test setup](skycache-concurrent-2026-10-20/binding-first-test-setup-failure.json),
+[pre-change regression](skycache-concurrent-2026-10-20/binding-first-regression-before.json),
+[228 passing cases](skycache-concurrent-2026-10-20/repository-mapping-binding-validator-tests.json),
+[mixed paired measurements](skycache-concurrent-2026-10-20/binding-first-paired.json),
+[compatible control](skycache-concurrent-2026-10-20/binding-first-control-paired.json),
+[Datadog edit/revert](skycache-concurrent-2026-10-20/binding-first-datadog-recheck.json).
