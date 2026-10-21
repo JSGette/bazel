@@ -3270,3 +3270,34 @@ and a concise implementation/limitations handoff. Further optimization, SSD char
 gRPC are future work. No full retry7 result or overall speedup is claimed at this preparation step.
 
 Evidence: [native repository preparation](skycache-concurrent-2026-10-20/native-repository-restoration.json).
+
+
+## Step 55 — user caps the final large validation at 16 builds
+
+The user explicitly requested “Shrink validation to 16 builds.” This supersedes the32-build
+acceptance schedule, and already completed builds count toward the cap. The unchanged measured
+Bazel binary remains the280-case implementation. Only the Python measurement harness changes:
+`--validation-build-limit=16` selects the shorter schedule and checks the cumulative invocation count
+before every new phase. Resumed rows are validated rather than rerun. The original32-build mode
+remains available. The harness/storage checks pass31 cases, including refusing a17th invocation and
+refusing a pair that would cross the limit. No Bazel rebuild is needed for this harness-only change.
+
+The selected16 builds retain two baseline controls, two restarted baseline controls already run,
+one writer, one independent reader, two warm builds, two simultaneous feature edits, two warm
+reverts, two independent edited controls with the disk action cache disabled, and a writer plus
+independent reader after forced collection. The additional repeated restart/re-edit checks and
+post-collection concurrent reader pair are omitted. The separate34-build membership matrix was
+already complete; it is neither repeated nor counted as new work under this cap.
+
+The live coordinator will switch schedules only after the completed warm phase's result and memory
+samples are saved. This preserves the first eight measured commands and their timings, then resumes
+with the explicit limit. No running Bazel build is cancelled to shorten the schedule. The terminal
+runtime audit must require exactly the selected16 builds and record the operator-requested boundary.
+At this step, that audit remains pending. No full pass is claimed.
+
+The final matched performance table will compare the concurrent edited pair with its independent
+cache-off controls. A fresh restarted-baseline cache/control ratio is absent from this reduced run;
+older measurements remain historical evidence. The unchanged binary, resource settings, source
+checks and1,800-second per-command deadline are retained.
+
+Evidence: [scope, phase counts and harness checks](skycache-concurrent-2026-10-20/compact-validation-scope.json).

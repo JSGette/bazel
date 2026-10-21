@@ -12,7 +12,7 @@ todos:
     content: Measured storage and validation optimizations; final large-workload latency gate
     status: in_progress
   - id: datadog-validation
-    content: Complete current 32-build Datadog reuse/edit/revert/collection matrix
+    content: Complete user-requested16-build Datadog reuse/edit/revert/collection matrix
     status: in_progress
   - id: bounded-storage
     content: Lease-aware collection implemented; current substantial recovery gate pending
@@ -27,14 +27,15 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 54. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 55. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
 timer, shared mutable graph, graph paging, Rust service or evaluator residency limit.
 
 Implementation: [`jsgette/skycache-concurrent`](https://github.com/JSGette/bazel/tree/jsgette/skycache-concurrent),
-currently `802d66bc21bd706a20dc5476791d305020363303`. Documentation and results remain on
+currently `34688d19d6244ef3ccf633ebcca6e1376f12c87b`. The measured Java binary remains the
+`802d66bc21bd706a20dc5476791d305020363303` implementation; the later commit changes only the harness. Documentation and results remain on
 `jsgette/master`. The [development protocol](../measurements/skycache-concurrent-development-2026-10-20.md)
 contains the chronological measurements and decisions. The
 [previous roadmap](skycache_local_backend_f13e5f7f.history-through-step49.md) is preserved for history;
@@ -160,12 +161,18 @@ encoded metadata budgets do not bound decoded objects or the whole graph. See th
 
 ## Remaining local acceptance sequence
 
-1. Finish the current full Datadog matrix: matched cache-off controls, one writer and independent
-   reader, concurrent warm/restarted readers, distinct semantic edits in both worktrees, warm
-   reverts/re-edits, independent edited controls, repeated restarted edits/reverts, forced collection,
-   then rebuild and independent/concurrent reuse. Require actual configured-target/shared reads,
-   exact executable hashes and feature markers, successful publication where expected, no disabled
-   cache fallback, no deadline failures, stopped servers and restored sources.
+Step55 records the user's explicit16-build cap, including completed commands. Keep controls,
+independent reuse, warm retention, simultaneous edits, warm reverts, independent edited controls
+and forced collection with a subsequent writer/independent reader. Omit repeated restart/re-edit
+checks and the extra concurrent pair after collection. The harness enforces the invocation budget;
+the final audit and handoff must describe this16-build scope rather than claiming32 builds.
+Historical32-build intentions and failed attempts above remain part of the recorded history.
+
+1. Finish the selected16-build matrix with unchanged binary/resources/deadline. Require real
+   analysis/shared reads, distinct edited executable hashes matching independent controls, exact
+   reverts, successful expected publication, no cache-disable fallback or deadline failures,
+   stopped servers and restored sources. Count the eight completed commands preserved at the
+   planned schedule boundary; do not rerun them.
 2. Inspect raw logs, samples and collector records against the report. Check zero active collection
    slots, removal of inactive recognized data and recovery after collection. Recheck binary/source
    hashes, pinned Datadog revision/lockfile, environment and resource-policy identity. Do not accept

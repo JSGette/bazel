@@ -1,0 +1,64 @@
+{
+  "observed_unix": 1792587450.809675,
+  "source_commit": "34688d19d6244ef3ccf633ebcca6e1376f12c87b",
+  "pushed": true,
+  "tests": 31,
+  "test_command": "python3 -m unittest datadog_worktree_probe_test storage_preflight_test",
+  "test_result": "31passed in0.632s; no Bazel rebuild needed for harness-only change",
+  "binary_unchanged": true,
+  "binary_source_commit": "802d66bc21bd706a20dc5476791d305020363303",
+  "source_sha256": {
+    "tools/skycache/datadog_worktree_probe.py": "acece25763c326a56e237d19ec6d317c5cd5869a6364096c0f17a8d310670f21",
+    "tools/skycache/datadog_worktree_probe_test.py": "e6d24e845d092f22202ab29eb561aa58ca8f27c2c4c08ffbbde45c1e1d27ab78"
+  },
+  "user_request": "Shrink validation to16builds, counting completed builds; preserve concurrent edits/control/reverts and collector recovery.",
+  "validation_build_limit": 16,
+  "phase_plan": [
+    {
+      "phase": "control-base",
+      "builds": 2
+    },
+    {
+      "phase": "restarted-control-base",
+      "builds": 2
+    },
+    {
+      "phase": "single-base-writer",
+      "builds": 1
+    },
+    {
+      "phase": "first-independent-reader",
+      "builds": 1
+    },
+    {
+      "phase": "warm-base",
+      "builds": 2
+    },
+    {
+      "phase": "first-cross-revision-readers",
+      "builds": 2
+    },
+    {
+      "phase": "reverted-warm-graphs",
+      "builds": 2
+    },
+    {
+      "phase": "control-edits-no-disk-cache",
+      "builds": 2
+    },
+    {
+      "phase": "post-collection-writer",
+      "builds": 1
+    },
+    {
+      "phase": "post-collection-independent-reader",
+      "builds": 1
+    }
+  ],
+  "preserve_completed_builds": true,
+  "runtime_acceptance_pending": true,
+  "switch_policy": "Pause the coordinator only after warm-base outputs and samples are fully recorded. Preserve all eight completed builds, terminate only the idle coordinator, then revalidate saved rows and resume with the explicit16-build cap. Do not cancel or rerun completed builds.",
+  "retained": "Independent baseline/control outputs; warm reuse; two simultaneous semantic edits; warm reverts; independent edited cache-off controls without disk action cache; forced collection followed by writer and independent reader.",
+  "omitted": "Repeated restarted cached baseline/edit/revert pairs, warm re-edit pair, edited/reverted restarted controls and the additional concurrent reader pair after collection.",
+  "limitations": "No fresh paired restarted-baseline performance ratio in this reduced run. Only the matched edited pair/control comparison remains. Existing34-build membership and prior runtime evidence are separate, not counted as new builds."
+}
