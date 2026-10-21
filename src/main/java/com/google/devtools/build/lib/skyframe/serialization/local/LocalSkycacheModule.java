@@ -128,6 +128,8 @@ public final class LocalSkycacheModule extends SerializationModule {
       if (root.toRealPath().startsWith(workspace)) {
         throw new IOException("the shared cache resolves inside the source workspace");
       }
+      // Validate the idle policy before opening a session or taking any cache leases.
+      var collection = LocalCacheGarbageCollectorIdleTask.create(options, root, outputBase);
       var inputs = new LocalInputSnapshot(workspace, outputBase, inputEnvironment(env));
       services.session =
           new LocalCacheSession(
@@ -158,6 +160,9 @@ public final class LocalSkycacheModule extends SerializationModule {
       setMode(env, "async_bidi");
       environment = env;
       env.getEventBus().register(this);
+      if (collection != null) {
+        env.addIdleTask(collection);
+      }
     } catch (IOException | IllegalArgumentException e) {
       RunfilesOrigin.setSharingEnabled(false);
       setMode(env, "off");

@@ -289,3 +289,40 @@ java_test(
         "//third_party/java/truth",
     ],
 )
+
+java_test(
+    name = "LocalCacheGarbageCollectorTest",
+    size = "medium",
+    srcs = ["LocalCacheGarbageCollectorTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
+
+java_test(
+    name = "LocalCacheGarbageCollectorIdleTaskTest",
+    size = "small",
+    srcs = ["LocalCacheGarbageCollectorIdleTaskTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/common/options",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
+
+java_binary(
+    name = "LocalCacheCollectionBenchmark",
+    testonly = True,
+    srcs = ["LocalCacheCollectionBenchmark.java"],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheCollectionBenchmark",
+    deps = ["//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module"],
+)

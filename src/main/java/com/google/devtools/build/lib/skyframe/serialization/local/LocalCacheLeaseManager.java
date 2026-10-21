@@ -165,6 +165,14 @@ final class LocalCacheLeaseManager implements AutoCloseable {
     }
   }
 
+  /** Serializes collectors while allowing ordinary cache use during manifest checksum scans. */
+  @Nullable
+  Lease tryCollector() throws IOException {
+    synchronized (REGISTRY) {
+      return tryAcquire(4097, false);
+    }
+  }
+
   private void requireCatalog(boolean shared) throws IOException {
     checkOpen();
     if (leases.stream()
@@ -214,7 +222,7 @@ final class LocalCacheLeaseManager implements AutoCloseable {
     }
   }
 
-  private static int publicationSlot(String id) {
+  static int publicationSlot(String id) {
     if (id.length() != 64) {
       throw new IllegalArgumentException("invalid publication identity");
     }
