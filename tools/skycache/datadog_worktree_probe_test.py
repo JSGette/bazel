@@ -9,7 +9,23 @@ import threading
 import unittest
 from unittest.mock import Mock, call, patch
 
-from datadog_worktree_probe import relocate_copied_symlinks, watch_storage
+from datadog_worktree_probe import check_build_budget, relocate_copied_symlinks, watch_storage
+
+
+class BuildBudgetTest(unittest.TestCase):
+    def test_counts_completed_work_when_resuming_and_rejects_the_seventeenth_build(self):
+        phases = [{"builds": [{}, {}]} for _ in range(7)]
+        check_build_budget(phases, 2, 16)
+        phases.append({"builds": [{}, {}]})
+        check_build_budget(phases, 0, 16)
+        with self.assertRaisesRegex(ValueError, r"16.*16\+1"):
+            check_build_budget(phases, 1, 16)
+
+    def test_rejects_a_pair_that_would_cross_the_limit(self):
+        phases = [{"builds": [{} for _ in range(15)]}]
+        with self.assertRaisesRegex(ValueError, r"16.*15\+2"):
+            check_build_budget(phases, 2, 16)
+        check_build_budget(phases, 2, 32)
 
 
 class StorageGuardTest(unittest.TestCase):

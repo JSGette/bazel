@@ -93,6 +93,13 @@ def watch_storage(paths, finished, active_clients, client_lock, errors, interval
             return
 
 
+def check_build_budget(phases, next_builds, limit):
+    """Count saved invocations before launching a phase, including already completed work."""
+    used = sum(len(phase["builds"]) for phase in phases)
+    if used + next_builds > limit:
+        raise ValueError(f"Validation build limit {limit} would be exceeded: {used}+{next_builds}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bazel", required=True, type=Path)
@@ -134,7 +141,14 @@ def main():
                         help="Place native repository downloads and shared contents on this guarded filesystem")
     parser.add_argument("--disable-repository-cache", action="store_true",
                         help="Keep repository downloads in the selected output bases, not the default cache")
+    parser.add_argument("--validation-build-limit", type=int, choices=(16, 32), default=32,
+                        help="16 keeps controls, warm reuse, edits/reverts and collection recovery; 32 retains repeated restarts")
     args = parser.parse_args()
+    compact = args.validation_build_limit == 16
+    if compact and (not args.single_seed_writer or not args.restart_controls
+                    or not args.cross_revision_edits or not args.collector_jar
+                    or args.seed_cache or args.base_only or args.cross_revision_smoke):
+        parser.error("16-build validation requires single-seed-writer, restart-controls, cross-revision-edits and collector-jar, without seed-cache/base-only/cross-revision-smoke")
     if args.cross_revision_smoke and (not args.cross_revision_edits or args.base_only):
         parser.error("--cross-revision-smoke requires --cross-revision-edits without --base-only")
     if args.build_timeout_seconds < 1:
@@ -260,6 +274,7 @@ def main():
         assert saved.get("server_idle_seconds", 120) == args.server_idle_seconds
         for key in ("java_home", "seed_cache", "seed_publications", "reuse_worktrees", "single_seed_writer", "collector_jar", "collector_jar_sha256", "output_bases_copied_from", "disable_repository_cache", "repository_cache"):
             assert saved.get(key, {} if key == "seed_publications" else False if key in ("reuse_worktrees", "single_seed_writer", "disable_repository_cache") else None) == protocol[key], key
+        assert saved.get("validation_build_limit", 32) == args.validation_build_limit
         protocol = saved
         protocol.setdefault("resumptions", []).append({
             "completed_phases": [p["phase"] for p in saved["phases"]],
@@ -274,6 +289,8 @@ def main():
                 protocol["harness_correction"] = (
                     "Require publication during edited-warm-graphs and shared analysis hits "
                     "during its subsequent restarted builds; do not require redundant writes.")
+    protocol["validation_build_limit"] = args.validation_build_limit
+    check_build_budget(protocol["phases"], 0, args.validation_build_limit)
     saved_phases = {p["phase"]: p for p in protocol["phases"]}
     active_clients = {}
     client_lock = threading.Lock()
@@ -403,6 +420,7 @@ def main():
             print(json.dumps({"resumed_validated_phase": phase}), flush=True)
             return {r["worktree"].rsplit("-", 1)[-1]: r["output_sha256"]
                     for r in record["builds"]}
+        check_build_budget(protocol["phases"], len(pair_names), args.validation_build_limit)
         storage = check_storage(write_paths)
         samples = []
         finished = threading.Event()
@@ -495,8 +513,9 @@ def main():
         print(json.dumps({"forced_collection": stats}), flush=True)
         pair("post-collection-writer", ("a",), cache=True, expected=baseline, require_writes=True)
         pair("post-collection-independent-reader", ("b",), cache=True, expected=baseline, require_hits=True)
-        shutdown_pair(("a", "b"))
-        pair("post-collection-concurrent-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
+        if not compact:
+            shutdown_pair(("a", "b"))
+            pair("post-collection-concurrent-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
 
     with args.lock_file.open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
@@ -526,7 +545,8 @@ def main():
                 pair("concurrent-base-writers", ("a", "b"), cache=True, expected=baseline, require_writes=True)
             pair("warm-base", ("a", "b"), cache=True, expected=baseline)
             shutdown_pair(("a", "b"))
-            pair("restarted-base-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
+            if not compact:
+                pair("restarted-base-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
             if args.base_only:
                 protocol["passed"] = True
                 (results_root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
@@ -553,11 +573,14 @@ def main():
                     protocol["passed"] = True
                     (results_root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
                     return
-            edit(("a", "b"))
-            feature_outputs = pair("edited-warm-graphs", ("a", "b"), cache=True,
-                                   disk_cache=False, edited=True, require_writes=not args.cross_revision_edits)
-            if args.cross_revision_edits:
-                assert feature_outputs == cold_features
+            if compact:
+                feature_outputs = cold_features
+            else:
+                edit(("a", "b"))
+                feature_outputs = pair("edited-warm-graphs", ("a", "b"), cache=True,
+                                       disk_cache=False, edited=True, require_writes=not args.cross_revision_edits)
+                if args.cross_revision_edits:
+                    assert feature_outputs == cold_features
             assert feature_outputs["a"] != feature_outputs["b"]
             assert all(feature_outputs[n] != baseline[n] for n in ("a", "b"))
             shutdown_pair(("a", "b"))
@@ -565,25 +588,29 @@ def main():
             pair("control-edits-no-disk-cache", ("control-a", "control-b"), cache=False,
                  expected=feature_outputs, disk_cache=False, edited=True)
             shutdown_pair(("control-a", "control-b"))
-            if args.restart_controls:
-                pair("restarted-control-edited", ("control-a", "control-b"), cache=False,
-                     expected=feature_outputs, edited=True)
-                shutdown_pair(("control-a", "control-b"))
-            pair("first-restarted-edited-readers", ("a", "b"), cache=True, expected=feature_outputs,
-                 require_hits=True, edited=True)
-            shutdown_pair(("a", "b"))
-            pair("restarted-edited-readers", ("a", "b"), cache=True, expected=feature_outputs,
-                 require_hits=True, edited=True)
-            shutdown_pair(("a", "b"))
+            if not compact:
+                if args.restart_controls:
+                    pair("restarted-control-edited", ("control-a", "control-b"), cache=False,
+                         expected=feature_outputs, edited=True)
+                    shutdown_pair(("control-a", "control-b"))
+                pair("first-restarted-edited-readers", ("a", "b"), cache=True, expected=feature_outputs,
+                     require_hits=True, edited=True)
+                shutdown_pair(("a", "b"))
+                pair("restarted-edited-readers", ("a", "b"), cache=True, expected=feature_outputs,
+                     require_hits=True, edited=True)
+                shutdown_pair(("a", "b"))
             for name in names:
                 (root / name / source_path).write_text(originals[name])
-            pair("reverted-restarted-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
-            if args.restart_controls:
-                shutdown_pair(("a", "b"))
-                pair("reverted-restarted-control", ("control-a", "control-b"), cache=False, expected=baseline)
-                shutdown_pair(("control-a", "control-b"))
+            if not compact:
+                pair("reverted-restarted-readers", ("a", "b"), cache=True, expected=baseline, require_hits=True)
+                if args.restart_controls:
+                    shutdown_pair(("a", "b"))
+                    pair("reverted-restarted-control", ("control-a", "control-b"), cache=False, expected=baseline)
+                    shutdown_pair(("control-a", "control-b"))
             if collector_jar:
                 collect_and_rebuild(baseline)
+            if compact:
+                assert sum(len(p["builds"]) for p in protocol["phases"]) == 16
             protocol["passed"] = True
             (results_root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
         except BaseException:
