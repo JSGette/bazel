@@ -2795,3 +2795,42 @@ Evidence: [interrupted D controls](skycache-concurrent-2026-10-20/collector-d-sn
 [live replacement stress](skycache-concurrent-2026-10-20/collector-snapshot-read-stress.json),
 [25 guard tests](skycache-concurrent-2026-10-20/collector-snapshot-race-tests.json),
 [full retry command](skycache-concurrent-2026-10-20/collector-d-retry2-command.json).
+
+
+## Step 44 — file-membership correctness passes; copied output bases invalidate the large fixture
+
+Probe implementation: [46fd1681846e](https://github.com/JSGette/bazel/commit/46fd1681846e7ba6a99109708b773569c89c6b36).
+The SkyCache binary and compiled Java sources are unchanged. The new focused runtime probe passes
+34 actual builds across two cached worktrees and two independent cache-off controls. Remote and
+shared disk action caches are disabled. Every output includes both input names and bytes, making
+an unchanged-content rename observable. Repeated same-file edits, additions, renames, deletions,
+restarts and reverts all match independently calculated bytes and the controls' output hashes.
+The two sides produce distinct outputs for every independent mutation. Each fresh baseline,
+membership-edited and reverted reader reports seven configured-target hits and positive shared
+reads. Warm phases retain their server PIDs. All servers stop, all source trees are clean after
+restoration, final outputs equal the baseline and no invalidation timeout occurs. This small
+fixture establishes correctness, not a performance improvement.
+
+The D-backed Datadog retry completes six successful Bazel builds with one common executable hash,
+but the sixth fails the stronger reuse gate: the independent reader has zero configured-target
+hits and zero admitted candidates, with 182 rejected-publication observations. It publishes its
+own result after ordinary evaluation. The run is therefore failed acceptance evidence, despite
+correct output. All servers stop, sources restore and no invalidation deadline expires.
+
+Comparing the writer and reader manifests finds identical project namespaces and source digests,
+87,811 global witnesses apiece, and 1,111 differing witness keys/digests (241 keys present in both).
+The output-base copy optimization preserved absolute symlinks into the earlier E-backed fixture.
+The saved `external/_main` digests exactly equal fingerprints calculated for those old workspace
+targets; copied Go SDK links still point into the old output bases. After command shutdown the
+current `_main` links point to the new worktrees, but those old published bindings are correctly
+rejected. This is a fixture-relocation defect; input validation must continue rejecting it.
+
+Next correct the copied fixture preparation, prove the repair and repeat the full substantial
+matrix. Preserve this failed run, its publications and the old E fixtures. No Java implementation
+change or weaker validation is justified by this evidence. The first-run timings include large
+toolchain extraction on a SATA HDD and setup diagnostics; they are not general speed evidence.
+The large collection/rebuild gate and temporary-volume cleanup remain incomplete.
+
+Evidence: [34-build membership gate](skycache-concurrent-2026-10-20/membership-runtime-34-builds.json),
+[failed Datadog reuse gate](skycache-concurrent-2026-10-20/collector-d-copied-output-rejection.json),
+[copied-link diagnosis](skycache-concurrent-2026-10-20/collector-copied-output-diagnosis.json).
