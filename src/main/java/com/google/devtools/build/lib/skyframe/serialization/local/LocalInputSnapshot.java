@@ -163,13 +163,14 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
     }
   }
 
-  void include(List<Witness> inherited) throws IOException {
-    for (Witness witness : inherited) {
-      if (!validateAndInclude(witness)) {
-        changed = true;
-        throw new IOException("cached input changed: " + witness.path());
-      }
-    }
+  /**
+   * Registers used parents for the fresh final check. This does not validate or authorize reads:
+   * callers must run {@link #isUnchanged} before publishing. Conflicting evidence is still
+   * rejected, and identical witnesses shared by several parents are checked once in that final
+   * pass.
+   */
+  void registerInheritedForFinalValidation(List<Witness> inherited) {
+    inherited.forEach(this::remember);
   }
 
   /**

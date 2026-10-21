@@ -1412,13 +1412,71 @@ public final class LocalCacheSessionTest {
     FileTime modified = Files.getLastModifiedTime(input);
     Files.writeString(input, "two");
     Files.setLastModifiedTime(input, modified);
-    assertThrows(IOException.class, () -> child.finish(true));
+    assertThat(child.finish(true)).isFalse();
+    assertThat(child.failureReason()).isEqualTo("inputs changed during the invocation");
     assertThat(openPackDescriptors(cache)).isEqualTo(0);
     // Restore the parent evidence. The unpublished child must still remain unavailable.
     Files.writeString(input, "one");
     var reader = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThrows(ExecutionException.class, () -> reader.get(new Key("child")).get());
     reader.finish(false);
+  }
+
+  @Test
+  public void overlappingInheritedListsStillValidateEveryUniqueInputAndListing() throws Exception {
+    for (String mutation : java.util.List.of("shared", "unique-0", "unique-1", "listing")) {
+      Path workspace = temporary.newFolder().toPath();
+      Path output = temporary.newFolder().toPath();
+      Path cache = temporary.newFolder().toPath();
+      Path external = temporary.newFolder().toPath();
+      Path shared = Files.writeString(external.resolve("shared"), "one");
+      Path directory = Files.createDirectory(external.resolve("directory"));
+      for (int i = 0; i < 2; i++) {
+        Path unique = Files.writeString(external.resolve("unique-" + i), "one");
+        var inputs = snapshot(workspace, output);
+        inputs.observe(shared, false);
+        inputs.observe(unique, false);
+        inputs.observe(directory, true);
+        var parent = new LocalCacheSession(cache, inputs);
+        parent.put(new Key("parent-" + i), new byte[] {(byte) i}).get();
+        assertThat(parent.finish(true)).isTrue();
+      }
+      var child = new LocalCacheSession(cache, snapshot(workspace, output));
+      for (int i = 0; i < 2; i++) {
+        assertThat(child.get(new Key("parent-" + i)).get()).isEqualTo(new byte[] {(byte) i});
+      }
+      child.put(new Key("child"), new byte[] {3}).get();
+      if (mutation.equals("listing")) {
+        Files.writeString(directory.resolve("added"), "new member");
+      } else {
+        Path changed = external.resolve(mutation);
+        FileTime modified = Files.getLastModifiedTime(changed);
+        Files.writeString(changed, "two");
+        Files.setLastModifiedTime(changed, modified);
+      }
+      assertThat(child.finish(true)).isFalse();
+      assertThat(child.failureReason()).isEqualTo("inputs changed during the invocation");
+      assertThat(publicationIds(cache)).hasSize(2);
+      assertThat(openPackDescriptors(cache)).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void conflictingInheritedEvidenceCannotBeHiddenByDuplicateRegistration() throws Exception {
+    Path workspace = temporary.newFolder().toPath();
+    Path output = temporary.newFolder().toPath();
+    Path input = Files.writeString(temporary.newFile().toPath(), "one");
+    var first = snapshot(workspace, output);
+    first.observe(input, false);
+    Files.writeString(input, "two");
+    var second = snapshot(workspace, output);
+    second.observe(input, false);
+    var child = snapshot(workspace, output);
+    child.registerInheritedForFinalValidation(first.witnesses());
+    child.registerInheritedForFinalValidation(second.witnesses());
+    child.registerInheritedForFinalValidation(first.witnesses());
+    Files.writeString(input, "one");
+    assertThat(child.isUnchanged()).isFalse();
   }
 
   @Test

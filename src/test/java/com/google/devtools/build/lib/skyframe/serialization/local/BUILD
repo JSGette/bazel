@@ -326,3 +326,19 @@ java_binary(
     main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheCollectionBenchmark",
     deps = ["//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module"],
 )
+
+java_binary(
+    name = "LocalPublicationValidationBenchmark",
+    testonly = True,
+    srcs = ["LocalPublicationValidationBenchmark.java"],
+    jvm_flags = [
+        "-Xms256m",
+        "-Xmx1g",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalPublicationValidationBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)

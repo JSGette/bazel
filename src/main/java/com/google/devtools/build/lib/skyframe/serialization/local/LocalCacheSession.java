@@ -732,13 +732,14 @@ final class LocalCacheSession implements FingerprintValueStore {
         return false;
       }
       inputs.recordRepositoryBindings();
-      // Revalidate inherited evidence now, even when discovery already validated it. Equal
-      // lists need only one include in this finish call; retain every used parent ID below.
+      // Register every used parent's evidence before the fresh final validation pass. Hashing
+      // here would repeat the same I/O in isUnchanged, once more for each overlapping parent list.
+      // Equal lists need only one registration; retain every used parent ID below.
       var inheritedWitnessLists = new HashSet<List<LocalInputSnapshot.Witness>>();
       for (Candidate candidate : candidates) {
         if (usedParents.contains(candidate.id())
             && !inheritedWitnessLists.contains(candidate.witnesses())) {
-          inputs.include(candidate.witnesses());
+          inputs.registerInheritedForFinalValidation(candidate.witnesses());
           if (inheritedWitnessLists.size() < MAX_VALIDATED_WITNESS_LISTS) {
             inheritedWitnessLists.add(candidate.witnesses());
           }
