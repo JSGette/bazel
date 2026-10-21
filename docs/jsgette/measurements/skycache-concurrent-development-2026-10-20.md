@@ -1697,3 +1697,71 @@ Evidence: [182 cases](skycache-concurrent-2026-10-20/dependency-evidence-tests.j
 [storage audit](skycache-concurrent-2026-10-20/dependency-evidence-storage.json),
 [Datadog diagnostic](skycache-concurrent-2026-10-20/dependency-evidence-cross-worktree.json),
 [fixture corrections](skycache-concurrent-2026-10-20/dependency-evidence-fixture-corrections.json).
+
+
+## Step 29 — require bounded transitive dependency validation at lookup
+
+Implementation: [ef5e03b7d60f](https://github.com/JSGette/bazel/commit/ef5e03b7d60f372004ef2b0aae8c65b57e60f4c1).
+LocalAnalysisCacheClient now validates an analysis envelope's entire invalidation root before
+returning its value. LocalDependencyValidator follows composite nodes, file/listing/source leaves
+and every parent reference. It verifies content fingerprints before parsing, decodes the existing
+optional Zstd format, and checks portable input witnesses. Missing, corrupt, malformed or mismatching
+evidence produces an optional cache miss. No evaluator change or graph eviction is introduced.
+
+Traversal uses an explicit stack, with a 4,096-depth bound, 250,000 new records and 128 MiB combined
+encoded/decompressed bytes per lookup. Composite nodes allow at most 100,000 references and 8 MiB
+decompressed bytes. Leaf limits remain from Step 28. Cycles, negative/excessive counts, unsupported
+keys and trailing bytes fail closed. The successful-key memo is capped at 250,000 entries. These
+are work/admission limits, not a total heap cap; the store can allocate its separately bounded
+record before validation accounts for it. Only successful keys are memoized. Missing records can
+be retried after repository materialization or another publication.
+
+The validator and memo live for one invocation. As with the surrounding build, inputs must remain
+stable while analysis uses them. Successful leaf evidence is registered for the final publication
+revalidation; mutation after an accepted lookup can therefore discard publication. This does not
+make arbitrary mid-build source edits an atomic filesystem snapshot. A new invocation validates
+again. One synchronized traversal owns the memo to prevent concurrent partial validation from
+being mistaken for success; first-look contention remains a tuning concern.
+
+Ten new tests cover nested/file/listing/source dependencies; changed file bytes with restored
+mtime; unrelated source edits; mandatory symlink-parent validation; missing-record retry; wrong
+fingerprints; malformed/truncated/trailing data; compression and decompression limits; a 1,500-node
+chain, depth/work/byte bounds and a forced cycle; concurrent memo use/final revalidation; and stale
+evidence rejection at the actual analysis-client boundary. All thirteen focused targets / 192
+cases pass. The new test visibility and @ForOverride call were corrected before that successful
+run. Cache&Carry supplied three remote hits for the full run and one for the benchmark build.
+
+The Datadog off/writer/reader diagnostic passes with matching baseline executables. The reader
+starts with one other worktree's publication and imports 1,978 configured targets,
+with 50,466 shared store reads. Its validator reads
+81,332 dependency records, performs 117,830 witness checks
+and reports zero rejected roots. It publishes successfully, with no admission-limit skips.
+The reader's JFR-instrumented build takes 93.951 seconds; this is
+diagnostic context, not an equal-work before/after claim. Fresh hit counts differ from Step 28
+(585) and Step 27 (4,324), so their wall times cannot establish acceleration or regression size.
+
+For isolated cost, the benchmark opens the writer's sealed pack after all build servers stop and
+uses the already materialized writer workspace. It selects 512 distinct analysis dependency roots
+evenly from 48,473 sorted candidates whose referenced 128-bit root exists.
+Two warmups precede five measured rounds. Each round uses a new validator, then repeats the same
+roots in that invocation. Input snapshot creation and final revalidation are outside the timed
+region. Median first validation is 13415.963 ms and
+1,949,391,544 current-thread allocated bytes. The repeated pass is
+0.155 ms / 151,584 bytes and performs no additional record reads.
+The first pass checks 119,969 records and 176,546 witnesses;
+all sampled roots validate. This measures added validation cost and same-invocation memo behavior,
+not whole-build speed or total process memory. Native decompression allocations are not represented
+by the Java thread-allocation counter.
+
+The full-source namespace and publication-wide admission/inheritance guards remain. Thus this step
+still does not enable cross-revision sharing. Next separate repository/environment identity from
+source contents, validate candidate analysis values individually (trying another candidate after
+a mismatch), and inherit only relevant source evidence while retaining external repository bindings
+and all pack parents. Keep initial/final source checking to prevent publishing across a changed
+invocation. Verify edited/reverted worktrees before claiming this core requirement is complete.
+Traffic statistics and reader-safe GC/quotas remain open.
+
+Evidence: [192 cases](skycache-concurrent-2026-10-20/dependency-validator-tests.json),
+[isolated cost](skycache-concurrent-2026-10-20/dependency-validator-benchmark.json),
+[runtime validation](skycache-concurrent-2026-10-20/dependency-validator-runtime-checks.json),
+[Datadog diagnostic](skycache-concurrent-2026-10-20/dependency-validator-cross-worktree.json).

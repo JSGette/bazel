@@ -207,6 +207,17 @@ external bindings, final revalidation and the evaluated-input relationship befor
 Do not reinterpret content hashes as monotonic versions. Keep the graph in RAM and evaluator
 unchanged. Statistics and reader-safe GC/quotas follow; rerun the full two-server edit/revert matrix.
 
+## Transitive lookup validation is implemented (Step 29)
+
+Every accepted local analysis entry now passes bounded iterative dependency validation, including
+content fingerprints, compressed composite nodes, all leaf parents and input witnesses. Successes
+are memoized only for the invocation and retained for final revalidation. 192 focused cases, a
+512-root cost benchmark and a fresh Datadog independent reader pass. Full-source partitioning and
+publication-wide guards remain: cross-revision reuse is still incomplete. Next implement stable
+repository/environment identity, per-candidate analysis lookup and selective source witness
+inheritance while preserving external bindings, pack closure and invocation final validation.
+Then run independent edits/reverts in two simultaneous servers. Statistics and safe GC/quotas remain.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
