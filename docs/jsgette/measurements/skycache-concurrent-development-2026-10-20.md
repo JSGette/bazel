@@ -12,10 +12,10 @@ For setup, flags and interpreting hits, see the [local usage guide](../skycache-
 
 ## Current status
 
-Updated 2026-10-21, through Step 49. Experimental concurrent analysis reuse is implemented,
+Updated 2026-10-21, through Step 50. Experimental concurrent analysis reuse is implemented,
 with full in-memory graphs and no evaluator implementation changes. Current core checks cover
-277 Java cases across 18 targets. The previous 34-build file-membership runtime gate passed
-two cached worktrees and two independent controls on the preceding binary.
+277 Java cases across 18 targets. The 34-build file-membership runtime gate passes again
+on the current binary across two cached worktrees and two independent controls.
 
 The final collector-enabled 32-build Datadog acceptance matrix remains incomplete. Its corrected
 repository fixture now gives 4,501 actual analysis hits to independent and restarted readers,
@@ -3078,3 +3078,25 @@ coverage remain pending on this new binary. The old failed run and its bytes rem
 
 Evidence: [profile, all rounds, source hashes and 277 cases](skycache-concurrent-2026-10-20/input-alias-validation.json),
 [full focused-suite log](skycache-concurrent-2026-10-20/input-alias-validation-full-build.log).
+
+
+## Step 50 — current content-hashing binary passes 34 runtime correctness builds
+
+The binary from Step 49 passes a fresh complete two-worktree membership gate: initial concurrent
+writers, restarted readers, two rounds of distinct semantic edits, additions, unchanged-content
+renames, deletions, fresh membership readers, warm reverts and restarted reverts. All 34 outputs
+match their expected bytes and independent cache-off controls. Each fresh reader pair reports
+seven actual configured-target hits and positive shared reads. Warm phases preserve the recorded
+server PIDs. Remote and shared disk action caches are off throughout this small correctness fixture.
+There are no invalidation timeouts, publication failures or disabled-cache fallbacks. All servers
+stop and source trees restore cleanly. This fixture provides correctness coverage, not a latency
+claim.
+
+The next substantial Datadog matrix uses the current immutable binary with an empty SkyCache and
+zero accepted previous phases. The prior timed-out publication and private packs remain preserved
+in `cache-final-validation-timeout`; the original failed report is unchanged. Ordinary repository
+sharing, resolved dependencies, paired jobs=2/action-memory=3072 MiB/Xmx4g limits, 1,800-second build
+deadline and actual-hit/output/collection checks remain the same. The new matrix is running; no
+claim that the previous large-workload deadline failures are fixed is made yet.
+
+Evidence: [all 34 builds and independent verification](skycache-concurrent-2026-10-20/membership-alias-runtime-34-builds.json).
