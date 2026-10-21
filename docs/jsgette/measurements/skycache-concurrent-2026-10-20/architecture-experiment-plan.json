@@ -1,0 +1,59 @@
+{
+  "registered_at": "2026-10-21T19:30:01.645904+00:00",
+  "base_commit": "6f451b2dc6f783dda879ff3c7ed3fc8146d0f410",
+  "experiment_branch": "jsgette/skycache-experiments-2026-10-21",
+  "order": [
+    "E1",
+    "E2",
+    "E3",
+    "E4"
+  ],
+  "preparation_policy": "Independent coding/review may run in parallel; all source builds, tests and measurement processes run sequentially.",
+  "max_datadog_builds": 15,
+  "resources": {
+    "jobs": 32,
+    "heap_gib": 6,
+    "action_memory_mib": 6144,
+    "storage": "native WSL ext4 on E: NVMe"
+  },
+  "experiments": [
+    {
+      "id": "E1",
+      "name": "Reader-only source-scan avoidance",
+      "preparation_minutes": 20,
+      "execution_minutes": 10,
+      "hypothesis": "Initial whole-tree capture is avoidable on a command explicitly forbidden from publishing; retain admission and dependency validation.",
+      "comparison": "Two fresh readers against two unmodified-reader observations from the same experimental binary/cache.",
+      "guard": "All puts/publication forbidden in this mode. Full input pre/post state recorded externally. Not a writable fast path."
+    },
+    {
+      "id": "E2",
+      "name": "Bounded bulk loading of sealed packs",
+      "preparation_minutes": 20,
+      "execution_minutes": 10,
+      "hypothesis": "Bulk transfer removes enough per-record IO overhead to outweigh additional heap.",
+      "comparison": "Two readers using E1 policy plus at most512MiB total sealed-pack snapshots, against E1.",
+      "guard": "Keep index/header/key/checksum checks; no mmap; bound total reservation. Captured immutable bytes may outlive subsequent physical pack corruption, documented explicitly."
+    },
+    {
+      "id": "E3",
+      "name": "Compact batch input certificate",
+      "preparation_minutes": 25,
+      "execution_minutes": 15,
+      "hypothesis": "A flat deduplicated certificate for the same real dependency roots is cheaper than replaying serialized proof nodes.",
+      "comparison": "Two warmups and three measured rounds per validation path; include certificate parse/check time and preparation cost; no full-build speed claim.",
+      "guard": "Certificate binds exact root set,namespace,pinned pack/index; fresh content checks remain. Negative probes for content, directory membership and symlink changes. Test-only and never published."
+    },
+    {
+      "id": "E4",
+      "name": "Selective synchronous analysis frontier",
+      "preparation_minutes": 25,
+      "execution_minutes": 15,
+      "hypothesis": "Upstream frontier selection avoids serializing every eligible analysis node, reducing writer cost and pack size.",
+      "comparison": "Fresh publisher plus two readers; same active directories, analysis-only selection and retained graph; compare writer to original publisher and reader to matching policy.",
+      "guard": "Filter execution nodes before serialization; preserve checks. One repair maximum if integration fails, then report timebox/inconclusive."
+    }
+  ],
+  "acceptance": "Output hashes and action-cache reuse must match; no correctness shortcuts promoted. Rank complete-command improvement, writer amortization, peak memory, and implementation feasibility. E3 is mechanism evidence only.",
+  "stopping": "No automatic retries or extra measurements to chase favorable results. Per-process build timeout180s plus shutdown; stop earlier on corruption/resourceguard. Timebox expiry records incomplete rather than expanding scope."
+}
