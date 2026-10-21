@@ -1,0 +1,159 @@
+{
+  "purpose": "Isolated repeated repository mappings in 1024 independently serialized roots; not whole-build performance.",
+  "warmup_roots_per_process": 64,
+  "measurement_roots_per_process": 1024,
+  "entries_per_mapping": 1502,
+  "rounds": [
+    {
+      "shared": false,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 382.684,
+      "decode_ms": 266.78,
+      "root_bytes": 60938240,
+      "shared_store_bytes": 0,
+      "distinct_mappings": 1024,
+      "distinct_mapping_entries": 1538048,
+      "gc_live_heap_delta_bytes": 137877312,
+      "round": 0
+    },
+    {
+      "shared": true,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 17.234,
+      "decode_ms": 10.331,
+      "root_bytes": 19456,
+      "shared_store_bytes": 7841,
+      "distinct_mappings": 1,
+      "distinct_mapping_entries": 1502,
+      "gc_live_heap_delta_bytes": 142248,
+      "round": 0
+    },
+    {
+      "shared": true,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 16.878,
+      "decode_ms": 10.378,
+      "root_bytes": 19456,
+      "shared_store_bytes": 7841,
+      "distinct_mappings": 1,
+      "distinct_mapping_entries": 1502,
+      "gc_live_heap_delta_bytes": 142224,
+      "round": 1
+    },
+    {
+      "shared": false,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 368.242,
+      "decode_ms": 289.601,
+      "root_bytes": 60938240,
+      "shared_store_bytes": 0,
+      "distinct_mappings": 1024,
+      "distinct_mapping_entries": 1538048,
+      "gc_live_heap_delta_bytes": 137901896,
+      "round": 1
+    },
+    {
+      "shared": false,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 377.642,
+      "decode_ms": 280.343,
+      "root_bytes": 60938240,
+      "shared_store_bytes": 0,
+      "distinct_mappings": 1024,
+      "distinct_mapping_entries": 1538048,
+      "gc_live_heap_delta_bytes": 137864240,
+      "round": 2
+    },
+    {
+      "shared": true,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 16.297,
+      "decode_ms": 10.803,
+      "root_bytes": 19456,
+      "shared_store_bytes": 7841,
+      "distinct_mappings": 1,
+      "distinct_mapping_entries": 1502,
+      "gc_live_heap_delta_bytes": 142248,
+      "round": 2
+    },
+    {
+      "shared": true,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 19.694,
+      "decode_ms": 9.832,
+      "root_bytes": 19456,
+      "shared_store_bytes": 7841,
+      "distinct_mappings": 1,
+      "distinct_mapping_entries": 1502,
+      "gc_live_heap_delta_bytes": 150336,
+      "round": 3
+    },
+    {
+      "shared": false,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 376.872,
+      "decode_ms": 278.85,
+      "root_bytes": 60938240,
+      "shared_store_bytes": 0,
+      "distinct_mappings": 1024,
+      "distinct_mapping_entries": 1538048,
+      "gc_live_heap_delta_bytes": 137774712,
+      "round": 3
+    },
+    {
+      "shared": false,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 376.044,
+      "decode_ms": 269.627,
+      "root_bytes": 60938240,
+      "shared_store_bytes": 0,
+      "distinct_mappings": 1024,
+      "distinct_mapping_entries": 1538048,
+      "gc_live_heap_delta_bytes": 137855448,
+      "round": 4
+    },
+    {
+      "shared": true,
+      "roots": 1024,
+      "entries_per_mapping": 1502,
+      "encode_ms": 18.47,
+      "decode_ms": 11.106,
+      "root_bytes": 19456,
+      "shared_store_bytes": 7841,
+      "distinct_mappings": 1,
+      "distinct_mapping_entries": 1502,
+      "gc_live_heap_delta_bytes": 142224,
+      "round": 4
+    }
+  ],
+  "memory_measure": "Runtime used heap difference after explicit full GC, encoded roots/store/decoded roots retained; an estimate, not RSS or peak memory.",
+  "medians": {
+    "false": {
+      "encode_ms": 376.872,
+      "decode_ms": 278.85,
+      "root_bytes": 60938240,
+      "shared_store_bytes": 0,
+      "distinct_mappings": 1024,
+      "distinct_mapping_entries": 1538048,
+      "gc_live_heap_delta_bytes": 137864240
+    },
+    "true": {
+      "encode_ms": 17.234,
+      "decode_ms": 10.378,
+      "root_bytes": 19456,
+      "shared_store_bytes": 7841,
+      "distinct_mappings": 1,
+      "distinct_mapping_entries": 1502,
+      "gc_live_heap_delta_bytes": 142248
+    }
+  }
+}

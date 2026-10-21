@@ -228,6 +228,16 @@ servers. Cross-revision changes remain uncommitted. Investigate repeated reposit
 deserialization, measure a local codec improvement, then rerun the full clean two-server gate.
 Keep the graph in RAM and retain the heap limit. A GC-instrumented diagnostic pass is not acceptance.
 
+## Mapping sharing measured; late eviction race fixed (Steps 31–32)
+
+The local mapping codec removes repeated mapping materialization in the isolated benchmark and
+passes five codec cases / 207 focused cases. Large warm revert still timed out after analysis.
+A second independent cleanup regression proves that states created after compute-state eviction
+were not cleaned up. The context now remembers closure; 298 serialization cases pass. Next verify
+the runtime effect in a fresh two-server run before accepting cross-revision sharing. Native
+ten-second invalidation timeouts persist; optimize validation after correctness is established.
+Keep heap limits, full graph in RAM, and no evaluator rewrite. Traffic stats and safe GC remain.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

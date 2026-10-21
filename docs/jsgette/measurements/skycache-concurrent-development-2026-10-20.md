@@ -1803,3 +1803,57 @@ Next add and measure a local shared mapping codec, then repeat the clean edited/
 Evidence: [cleanup tests](skycache-concurrent-2026-10-20/pending-continuation-regression-after-full.json),
 [failure and diagnostic protocol](skycache-concurrent-2026-10-20/continuation-cleanup-protocol.json),
 [mapping identities](skycache-concurrent-2026-10-20/repository-mapping-heap-before.json).
+
+## Step 31 — share immutable repository mappings
+
+Implementation: [8e9dbb02758a](https://github.com/JSGette/bazel/commit/8e9dbb02758a28bbbc0b05fba0e368153400f3f5).
+A local-only codec now stores each RepositoryMapping through the existing shared-value adapter.
+Previously, independently serialized package metadata repeatedly materialized its full map. The
+codec preserves context repository, entry iteration order (which determines inverse-name
+precedence), and the cached-inverse subclass. Unknown subclasses are rejected. It does not add a
+global interner or alter the evaluator. The same-source format namespace advances to v10; the
+unfinished cross-revision namespace separately advances to v2, isolating older codec payloads.
+
+Five focused cases cover large-map identity across roots, independent writers with concurrent
+readers, changed mappings/context separation, cached inverse/order behavior, and empty mappings.
+All fourteen focused targets / 207 cases pass. Source builds/tests use Cache&Carry.
+
+The isolated benchmark uses 1,024 separately serialized roots containing the same 1,502-entry
+mapping. Each fresh JVM warms up on 64 roots; five paired rounds alternate baseline/shared order.
+Both paths retain encoded roots, the store, and decoded roots. Baseline uses the original dynamic
+codec; shared uses the local codec. Median encode time is 376.872 →
+17.234 ms; decode time is 278.850 → 10.378 ms.
+Distinct decoded mappings are 1,024 → 1, and mapping entries 1,538,048 → 1,502. Serialized root plus
+shared-store payload is 60,938,240 → 27,297 bytes. Estimated live-heap increase after explicit GC is
+137,864,240 → 142,248 bytes. This is an
+isolated duplication benchmark, not process peak memory or a whole-build speedup. The first harness
+run leaked its test executor and was discarded; the corrected harness owns and drains its executor.
+
+The fresh two-server Datadog smoke test passes baseline publication, warm build, restarted imports
+(4,501 each), and independently edited imports (6,206 each) with correct executables. Both warm
+reverts then time out at 300 seconds. Neither reports OOM, but the native ten-second invalidation
+timeout still invalidates all 6,214 imported keys. Thread and heap inspection after the stall finds
+ten outstanding evaluation futures and 80 unfinished Skyframe lookups without live retrieval
+states. The whole-build issue is not resolved and cross-revision changes remain uncommitted.
+
+Evidence: [paired isolated benchmark](skycache-concurrent-2026-10-20/repository-mapping-benchmark-v2.json),
+[207 focused cases](skycache-concurrent-2026-10-20/repository-mapping-eviction-validator-tests.json),
+[failed runtime gate and decisions](skycache-concurrent-2026-10-20/mapping-and-late-cleanup-protocol.json).
+
+## Step 32 — remember eviction across later retrieval transitions
+
+Implementation: [4bfb5a1c8cb8](https://github.com/JSGette/bazel/commit/4bfb5a1c8cb8a0a432da406553458518fd83b492).
+Eviction could close a retrieval context while its evaluator was still constructing the next
+serialization state. Cleaning only the state present at close left the later continuation without
+cleanup. Four deterministic cases reproduce this before the fix, covering ready/pending futures
+and both state update paths. The context now remembers that it is closed, serializes close/state
+updates, and cleans up any subsequently attached state. Cleanup runs outside the context lock so
+future callbacks do not execute while it is held. The evaluator remains unchanged.
+
+The targeted before run has eight cases/four failures. The full serialization suite after the fix
+passes 298 cases. Cache&Carry supplied one remote hit before and two after; the final source/local
+integration rebuild passes 207 cases. The causal link to the Datadog stall remains a hypothesis
+until a fresh two-server run passes. Do not claim the large gate complete from unit tests.
+
+Evidence: [298 serialization cases](skycache-concurrent-2026-10-20/late-continuation-regression-after-full.json),
+[regression XML](skycache-concurrent-2026-10-20/late-continuation-regression-before-test.xml).
