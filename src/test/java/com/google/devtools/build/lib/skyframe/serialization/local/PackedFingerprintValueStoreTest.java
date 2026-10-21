@@ -137,6 +137,118 @@ public final class PackedFingerprintValueStoreTest {
   }
 
   @Test
+  public void bulkSnapshotReadsAcrossSegmentsAndRetainsCapturedBytes() throws Exception {
+    Path root = temporary.newFolder().toPath();
+    var key = new Key("large");
+    byte[] value = new byte[128 * 1024 + 3];
+    for (int i = 0; i < value.length; i++) {
+      value[i] = (byte) i;
+    }
+    try (var writer = PackedFingerprintValueStore.create(root, ID)) {
+      writer.put(new Key("empty"), new byte[0]).get();
+      writer.put(key, value).get();
+      writer.seal();
+    }
+    Path pack = root.resolve(ID).resolve("data.pack");
+    long size = Files.size(pack);
+    long reserved = PackedFingerprintValueStore.bulkReadBytesReserved();
+    try (var reader =
+        PackedFingerprintValueStore.open(root, ID, Long.MAX_VALUE, true, 64, 512L << 20)) {
+      assertThat(reader.usesBulkRead()).isTrue();
+      assertThat(PackedFingerprintValueStore.bulkReadBytesReserved()).isEqualTo(reserved + size);
+      assertThat(reader.get(new Key("empty")).get()).isEmpty();
+      byte[] first = reader.get(key).get();
+      assertThat(first).isEqualTo(value);
+      Arrays.fill(first, (byte) 0);
+      // The experiment deliberately keeps immutable captured bytes after backing-file damage.
+      // Every lookup still checks the captured record's header, key and checksum.
+      Files.write(pack, new byte[0]);
+      assertThat(reader.get(key).get()).isEqualTo(value);
+    }
+    assertThat(PackedFingerprintValueStore.bulkReadBytesReserved()).isEqualTo(reserved);
+  }
+
+  @Test
+  public void bulkSnapshotRejectsRecordsCorruptedBeforeLoading() throws Exception {
+    var key = new Key("key");
+    long reserved = PackedFingerprintValueStore.bulkReadBytesReserved();
+    for (int valueLength : List.of(1024, 128 * 1024)) {
+      Path root = temporary.newFolder().toPath();
+      try (var writer = PackedFingerprintValueStore.create(root, ID)) {
+        writer.put(key, new byte[valueLength]).get();
+        writer.seal();
+      }
+      Path pack = root.resolve(ID).resolve("data.pack");
+      byte[] original = Files.readAllBytes(pack);
+      for (int offset : List.of(0, 4, 8, 12, 44, original.length - 1)) {
+        byte[] corrupt = original.clone();
+        corrupt[offset] ^= 1;
+        Files.write(pack, corrupt);
+        try (var reader =
+            PackedFingerprintValueStore.open(root, ID, Long.MAX_VALUE, true, 1024, 512L << 20)) {
+          assertThat(reader.usesBulkRead()).isTrue();
+          var failure = assertThrows(ExecutionException.class, () -> reader.get(key).get());
+          assertThat(failure).hasCauseThat().isInstanceOf(MissingFingerprintValueException.class);
+        }
+        assertThat(PackedFingerprintValueStore.bulkReadBytesReserved()).isEqualTo(reserved);
+      }
+    }
+  }
+
+  @Test
+  public void bulkSnapshotBudgetIsSharedAndReleasedExactlyOnce() throws Exception {
+    Path root = temporary.newFolder().toPath();
+    var key = new Key("key");
+    byte[] value = "payload".getBytes(UTF_8);
+    try (var writer = PackedFingerprintValueStore.create(root, ID)) {
+      writer.put(key, value).get();
+      writer.seal();
+    }
+    long size = Files.size(root.resolve(ID).resolve("data.pack"));
+    long reserved = PackedFingerprintValueStore.bulkReadBytesReserved();
+    long budget = reserved + size;
+    var first = PackedFingerprintValueStore.open(root, ID, Long.MAX_VALUE, true, 64, budget);
+    try {
+      assertThat(first.usesBulkRead()).isTrue();
+      try (var second =
+          PackedFingerprintValueStore.open(root, ID, Long.MAX_VALUE, true, 64, budget)) {
+        assertThat(second.usesBulkRead()).isFalse();
+        assertThat(second.get(key).get()).isEqualTo(value);
+        first.close();
+        first.close();
+        assertThat(PackedFingerprintValueStore.bulkReadBytesReserved()).isEqualTo(reserved);
+        try (var third =
+            PackedFingerprintValueStore.open(root, ID, Long.MAX_VALUE, true, 64, budget)) {
+          assertThat(third.usesBulkRead()).isTrue();
+          assertThat(third.get(key).get()).isEqualTo(value);
+        }
+      }
+    } finally {
+      first.close();
+    }
+    try (var tooLarge =
+        PackedFingerprintValueStore.open(root, ID, Long.MAX_VALUE, true, 64, size - 1)) {
+      assertThat(tooLarge.usesBulkRead()).isFalse();
+      assertThat(tooLarge.get(key).get()).isEqualTo(value);
+    }
+    assertThat(PackedFingerprintValueStore.bulkReadBytesReserved()).isEqualTo(reserved);
+  }
+
+  @Test
+  public void failedBulkReadReleasesReservation() throws Exception {
+    Path pack = temporary.newFile("pack").toPath();
+    Files.write(pack, new byte[128]);
+    long reserved = PackedFingerprintValueStore.bulkReadBytesReserved();
+    try (var channel =
+        java.nio.channels.FileChannel.open(pack, java.nio.file.StandardOpenOption.WRITE)) {
+      assertThrows(
+          java.nio.channels.NonReadableChannelException.class,
+          () -> PackedFingerprintValueStore.loadBulkSnapshot(channel, 128, 64, 512L << 20));
+    }
+    assertThat(PackedFingerprintValueStore.bulkReadBytesReserved()).isEqualTo(reserved);
+  }
+
+  @Test
   public void abandonedWriterAndOutOfBoundsInputsAreNeverPublished() throws Exception {
     Path root = temporary.newFolder().toPath();
     try (var writer = PackedFingerprintValueStore.create(root, ID)) {

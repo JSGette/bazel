@@ -114,6 +114,14 @@ public final class FrontierSerializer {
             serializationDependenciesProvider.getActiveDirectoriesMatcher(),
             /* traversalMode= */ TraversalMode.FOR_SERIALIZATION,
             serializationDependenciesProvider.getSkycacheAnalysisOnly());
+    // This opt-in local experiment reuses upstream frontier selection while excluding execution
+    // values before dependency traversal or serialization. The ordinary async path is unchanged.
+    selectionResult =
+        new SelectionResult(
+            selectExperimentalAnalysisFrontier(
+                selectionResult.selection(),
+                serializationDependenciesProvider.mode(),
+                Boolean.getBoolean("skycache.experiment.frontier")));
     ImmutableSet<SkyKey> selectedKeys = selectionResult.selectedKeys();
     if (!keepStateAfterBuild && serializationDependenciesProvider.shouldMinimizeMemory()) {
       clearActionLookupValues(graph, selectedKeys);
@@ -317,6 +325,24 @@ public final class FrontierSerializer {
 
           ((IncrementalInMemoryNodeEntry) node).clearSkyValue();
         });
+  }
+
+  @VisibleForTesting
+  static ImmutableMap<SkyKey, SelectionMarking> selectExperimentalAnalysisFrontier(
+      ImmutableMap<SkyKey, SelectionMarking> selection,
+      RemoteAnalysisCacheMode mode,
+      boolean enabled) {
+    if (!enabled || !mode.isSyncUpload()) {
+      return selection;
+    }
+    var analysis = ImmutableMap.<SkyKey, SelectionMarking>builder();
+    selection.forEach(
+        (key, marking) -> {
+          if (key instanceof ActionLookupKey) {
+            analysis.put(key, marking);
+          }
+        });
+    return analysis.buildOrThrow();
   }
 
   /** If there are no active directories then it falls back to full selection. */

@@ -370,3 +370,18 @@ java_test(
         "//third_party/java/truth",
     ],
 )
+
+java_binary(
+    name = "LocalFlatCertificateBenchmark",
+    testonly = True,
+    srcs = ["LocalFlatCertificateBenchmark.java"],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.LocalFlatCertificateBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/guava:concurrent",
+    ],
+)

@@ -30,6 +30,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_statuses",
+        "//third_party/java/guava:annotations",
         "//third_party/java/guava:concurrent",
         "//third_party/java/protobuf:protobuf_lite",
     ],

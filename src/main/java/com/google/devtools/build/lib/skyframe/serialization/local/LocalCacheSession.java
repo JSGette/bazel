@@ -257,6 +257,10 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   @Override
   public WriteStatus put(KeyBytesProvider key, byte[] bytes) {
+    // Experiment E1: no input snapshot exists, so this invocation must never write or publish.
+    if (inputs.readOnlyExperiment()) {
+      return immediateWriteStatus(false);
+    }
     long started = System.nanoTime();
     byte[] rawKey = key.toBytes();
     putRequests.incrementAndGet();
@@ -731,7 +735,7 @@ final class LocalCacheSession implements FingerprintValueStore {
         return false;
       }
       closed = true;
-      if (!success || failure != null || writes.get() == 0) {
+      if (inputs.readOnlyExperiment() || !success || failure != null || writes.get() == 0) {
         return false;
       }
       inputs.recordRepositoryBindings();

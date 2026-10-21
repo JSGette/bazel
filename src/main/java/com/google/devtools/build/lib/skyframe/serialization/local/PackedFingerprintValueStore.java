@@ -11,6 +11,7 @@ import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
 import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
@@ -43,8 +44,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Each invocation owns a separate namespace, so independent Bazel servers need no global writer
  * lock. The publication layer owns input validation, dependency closure and retention.
  *
- * <p>Readers retain only a compact index and a file descriptor, never cached record values. This
- * format requires a trusted local POSIX filesystem with hard links and directory fsync.
+ * <p>Readers normally retain only a compact index and a file descriptor. The opt-in {@code
+ * skycache.experiment.bulk_pack} experiment captures sealed packs in bounded heap segments. Such
+ * readers use their captured bytes even if the backing file is subsequently damaged, while still
+ * checking every returned record. This format requires a trusted local POSIX filesystem with hard
+ * links and directory fsync.
  */
 final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCloseable {
   private static final int RECORD_MAGIC = 0x534b5001;
@@ -60,13 +64,21 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   private static final int MAX_INDEX_BYTES =
       INDEX_HEADER_BYTES + MAX_ENTRIES * INDEX_ENTRY_BYTES + 32;
 
+  private static final long MAX_BULK_READ_BYTES = 512L * 1024 * 1024;
+  private static final int BULK_SEGMENT_BYTES = 64 * 1024 * 1024;
+  private static final AtomicLong BULK_READ_BYTES_RESERVED = new AtomicLong();
+
   private record Location(long offset, int length) {}
+
+  private record BulkSnapshot(byte[][] segments, int segmentBytes, long size) {}
 
   private final Path namespace;
   private final FileChannel data;
   // Only writers need a mutable map. Published readers use fixed-width binary search.
   private final Map<ByteString, Location> pending;
   private final byte[] index;
+  // Guarded by lifecycle. Closing releases the reservation and all segment references.
+  private BulkSnapshot bulkSnapshot;
   private final AtomicLong end = new AtomicLong();
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
   private boolean sealed;
@@ -85,7 +97,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
             namespace.resolve("data.pack"),
             Set.of(CREATE_NEW, READ, WRITE, NOFOLLOW_LINKS),
             PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
-    return new PackedFingerprintValueStore(namespace, data, new ConcurrentHashMap<>(), null);
+    return new PackedFingerprintValueStore(namespace, data, new ConcurrentHashMap<>(), null, null);
   }
 
   /** Opens only a sealed namespace, verifying index bounds, checksum and data-file length. */
@@ -96,6 +108,30 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   /** Enforces the caller's remaining metadata budget against the opened file before allocation. */
   static PackedFingerprintValueStore open(Path format, String id, long maxIndexBytes)
       throws IOException {
+    return open(
+        format,
+        id,
+        maxIndexBytes,
+        Boolean.getBoolean("skycache.experiment.bulk_pack"),
+        BULK_SEGMENT_BYTES,
+        MAX_BULK_READ_BYTES);
+  }
+
+  @VisibleForTesting
+  static PackedFingerprintValueStore open(
+      Path format,
+      String id,
+      long maxIndexBytes,
+      boolean bulkRead,
+      int segmentBytes,
+      long bulkBudgetBytes)
+      throws IOException {
+    if (segmentBytes < 1
+        || segmentBytes > BULK_SEGMENT_BYTES
+        || bulkBudgetBytes < 0
+        || bulkBudgetBytes > MAX_BULK_READ_BYTES) {
+      throw new IllegalArgumentException("invalid bulk pack read limits");
+    }
     checkId(id);
     Path namespace = format.resolve(id);
     byte[] index;
@@ -144,15 +180,72 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       }
     }
     FileChannel data = FileChannel.open(namespace.resolve("data.pack"), READ, NOFOLLOW_LINKS);
+    BulkSnapshot snapshot = null;
     try {
       if (data.size() != dataSize) {
         throw new IOException("packed cache data length mismatch");
       }
-      return new PackedFingerprintValueStore(namespace, data, null, index);
-    } catch (IOException | RuntimeException e) {
-      data.close();
+      if (bulkRead) {
+        snapshot = loadBulkSnapshot(data, dataSize, segmentBytes, bulkBudgetBytes);
+      }
+      return new PackedFingerprintValueStore(namespace, data, null, index, snapshot);
+    } catch (IOException | RuntimeException | Error e) {
+      if (snapshot != null) {
+        BULK_READ_BYTES_RESERVED.addAndGet(-snapshot.size());
+      }
+      try {
+        data.close();
+      } catch (IOException closeFailure) {
+        e.addSuppressed(closeFailure);
+      }
       throw e;
     }
+  }
+
+  @VisibleForTesting
+  static BulkSnapshot loadBulkSnapshot(
+      FileChannel data, long size, int segmentBytes, long budgetBytes) throws IOException {
+    if (size == 0 || size > budgetBytes || (size + segmentBytes - 1) / segmentBytes > 8192) {
+      return null;
+    }
+    long previous;
+    do {
+      previous = BULK_READ_BYTES_RESERVED.get();
+      if (previous > budgetBytes - size) {
+        return null;
+      }
+    } while (!BULK_READ_BYTES_RESERVED.compareAndSet(previous, previous + size));
+    boolean retained = false;
+    try {
+      int count = (int) ((size + segmentBytes - 1) / segmentBytes);
+      byte[][] segments = new byte[count][];
+      long offset = 0;
+      for (int i = 0; i < count; i++) {
+        segments[i] = new byte[(int) Math.min(segmentBytes, size - offset)];
+        read(data, ByteBuffer.wrap(segments[i]), offset);
+        offset += segments[i].length;
+      }
+      if (data.size() != size) {
+        throw new IOException("packed cache data length changed during bulk read");
+      }
+      BulkSnapshot snapshot = new BulkSnapshot(segments, segmentBytes, size);
+      retained = true;
+      return snapshot;
+    } finally {
+      if (!retained) {
+        BULK_READ_BYTES_RESERVED.addAndGet(-size);
+      }
+    }
+  }
+
+  @VisibleForTesting
+  boolean usesBulkRead() {
+    return bulkSnapshot != null;
+  }
+
+  @VisibleForTesting
+  static long bulkReadBytesReserved() {
+    return BULK_READ_BYTES_RESERVED.get();
   }
 
   int indexBytes() {
@@ -160,11 +253,16 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   private PackedFingerprintValueStore(
-      Path namespace, FileChannel data, Map<ByteString, Location> pending, byte[] index) {
+      Path namespace,
+      FileChannel data,
+      Map<ByteString, Location> pending,
+      byte[] index,
+      BulkSnapshot bulkSnapshot) {
     this.namespace = namespace;
     this.data = data;
     this.pending = pending;
     this.index = index;
+    this.bulkSnapshot = bulkSnapshot;
     this.sealed = pending == null;
   }
 
@@ -325,7 +423,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     }
     boolean coalesced = location.length() <= MAX_COALESCED_RECORD_BYTES;
     ByteBuffer record = ByteBuffer.allocate(coalesced ? location.length() : prefixLength);
-    read(data, record, location.offset());
+    readRecordBytes(record, location.offset());
     record.flip();
     int magic = record.getInt();
     int keyLength = record.getInt();
@@ -348,7 +446,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       value = Arrays.copyOfRange(record.array(), prefixLength, location.length());
     } else {
       value = new byte[valueLength];
-      read(data, ByteBuffer.wrap(value), location.offset() + prefixLength);
+      readRecordBytes(ByteBuffer.wrap(value), location.offset() + prefixLength);
     }
     if (!MessageDigest.isEqual(checksum, digest(value, value.length))) {
       throw new IOException("packed cache value checksum mismatch");
@@ -356,14 +454,44 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     return value;
   }
 
+  private void readRecordBytes(ByteBuffer buffer, long offset) throws IOException {
+    BulkSnapshot snapshot = bulkSnapshot;
+    if (snapshot == null) {
+      read(data, buffer, offset);
+      return;
+    }
+    if (offset < 0 || offset > snapshot.size() - buffer.remaining()) {
+      throw new EOFException("packed cache record outside bulk snapshot");
+    }
+    while (buffer.hasRemaining()) {
+      int segment = (int) (offset / snapshot.segmentBytes());
+      int start = (int) (offset % snapshot.segmentBytes());
+      byte[] bytes = snapshot.segments()[segment];
+      int count = Math.min(buffer.remaining(), bytes.length - start);
+      buffer.put(bytes, start, count);
+      offset += count;
+    }
+  }
+
   @Override
   public void close() throws IOException {
     lifecycle.writeLock().lock();
     try {
+      if (closed) {
+        return;
+      }
       closed = true;
-      data.close();
-      if (pending != null) {
-        pending.clear();
+      try {
+        data.close();
+      } finally {
+        if (pending != null) {
+          pending.clear();
+        }
+        BulkSnapshot snapshot = bulkSnapshot;
+        bulkSnapshot = null;
+        if (snapshot != null) {
+          BULK_READ_BYTES_RESERVED.addAndGet(-snapshot.size());
+        }
       }
     } finally {
       lifecycle.writeLock().unlock();

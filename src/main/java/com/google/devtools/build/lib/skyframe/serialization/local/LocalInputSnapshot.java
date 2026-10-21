@@ -51,6 +51,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   private final HashSet<Witness> admittedWitnesses = new HashSet<>();
   private final int admissionWitnessLimit;
   private final String sourceDigest;
+  private final boolean readOnlyExperiment = Boolean.getBoolean("skycache.experiment.read_only");
   private final String cacheNamespace;
   private volatile boolean changed;
 
@@ -71,7 +72,11 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
     this.external = this.outputBase.resolve("external");
     this.environment = Map.copyOf(environment);
     this.cacheNamespace = captureNamespace();
-    this.sourceDigest = captureSource();
+    this.sourceDigest = readOnlyExperiment ? "reader-only-experiment" : captureSource();
+  }
+
+  boolean readOnlyExperiment() {
+    return readOnlyExperiment;
   }
 
   String sourceDigest() {
@@ -182,7 +187,8 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   boolean isUnchanged() throws IOException {
     var contents = new LocalContentHasher();
-    if (changed
+    if (readOnlyExperiment
+        || changed
         || !cacheNamespace.equals(captureNamespace())
         || !sourceDigest.equals(captureSource(contents))) {
       return false;

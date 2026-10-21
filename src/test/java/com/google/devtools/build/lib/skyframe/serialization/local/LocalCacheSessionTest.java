@@ -64,6 +64,35 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void readOnlyExperimentSkipsSourceGuardAndCannotWriteOrPublish() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = new Key("existing");
+    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+    writer.put(key, new byte[] {1}).get();
+    assertThat(writer.finish(true)).isTrue();
+    String previous = System.getProperty("skycache.experiment.read_only");
+    System.setProperty("skycache.experiment.read_only", "true");
+    try {
+      var inputs = snapshot(workspace, output);
+      assertThat(inputs.sourceDigest()).isEqualTo("reader-only-experiment");
+      assertThat(inputs.isUnchanged()).isFalse();
+      var reader = new LocalCacheSession(cache, inputs);
+      assertThat(reader.get(key).get()).isEqualTo(new byte[] {1});
+      assertThat(reader.put(new Key("new"), new byte[] {2}).get()).isFalse();
+      assertThat(reader.finish(true)).isFalse();
+      assertThat(publicationIds(cache)).hasSize(1);
+    } finally {
+      if (previous == null) {
+        System.clearProperty("skycache.experiment.read_only");
+      } else {
+        System.setProperty("skycache.experiment.read_only", previous);
+      }
+    }
+  }
+
+  @Test
   public void leasesProtectPrivateWriterAndReaderParentClosureUntilFinish() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

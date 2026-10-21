@@ -130,7 +130,16 @@ public final class LocalSkycacheModule extends SerializationModule {
       }
       // Validate the idle policy before opening a session or taking any cache leases.
       var collection = LocalCacheGarbageCollectorIdleTask.create(options, root, outputBase);
-      var inputs = new LocalInputSnapshot(workspace, outputBase, inputEnvironment(env));
+      var effectiveInputs = inputEnvironment(env);
+      exportExperimentEnvironment(effectiveInputs);
+      var inputs = new LocalInputSnapshot(workspace, outputBase, effectiveInputs);
+      if (inputs.readOnlyExperiment()) {
+        env.getReporter()
+            .handle(
+                Event.info(
+                    "SkyCache experiment: reader-only; source scan omitted; publication"
+                        + " prohibited"));
+      }
       services.session =
           new LocalCacheSession(
               root,
@@ -157,7 +166,7 @@ public final class LocalSkycacheModule extends SerializationModule {
       services.clientId =
           new ClientId.SnapshotClientId(inputs.cacheNamespace() + "/" + env.getCommandId(), 0);
       env.setVersionGetter(inputs);
-      setMode(env, "async_bidi");
+      setMode(env, Boolean.getBoolean("skycache.experiment.frontier") ? "bidi" : "async_bidi");
       environment = env;
       env.getEventBus().register(this);
       if (collection != null) {
@@ -167,6 +176,25 @@ public final class LocalSkycacheModule extends SerializationModule {
       RunfilesOrigin.setSharingEnabled(false);
       setMode(env, "off");
       env.getReporter().handle(Event.warn("Local SkyCache disabled: " + e.getMessage()));
+    }
+  }
+
+  private static void exportExperimentEnvironment(Map<String, String> inputs) throws IOException {
+    String export = System.getProperty("skycache.experiment.export_env");
+    if (export == null) {
+      return;
+    }
+    Path path =
+        Files.createFile(
+            Path.of(export),
+            java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")));
+    try (var output = new java.io.DataOutputStream(Files.newOutputStream(path))) {
+      output.writeInt(inputs.size());
+      for (var entry : new TreeMap<>(inputs).entrySet()) {
+        output.writeUTF(entry.getKey());
+        output.writeUTF(entry.getValue());
+      }
     }
   }
 
@@ -224,6 +252,21 @@ public final class LocalSkycacheModule extends SerializationModule {
             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
       }
       services.retainedRoots = services.client.retainedRoots();
+      String rootExport = System.getProperty("skycache.experiment.export_roots");
+      if (rootExport != null) {
+        try {
+          Files.write(
+              Path.of(rootExport),
+              services.retainedRoots.values().stream()
+                  .map(value -> value.toHex())
+                  .distinct()
+                  .sorted()
+                  .toList(),
+              java.nio.file.StandardOpenOption.CREATE_NEW);
+        } catch (IOException e) {
+          env.getReporter().handle(Event.warn("Experiment root export failed: " + e.getMessage()));
+        }
+      }
       String validation = services.client.validationStatisticsJson();
       env.getReporter().handle(Event.info("Local SkyCache dependency validation: " + validation));
       String statistics = session.statisticsJson(published);
