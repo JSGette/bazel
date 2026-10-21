@@ -19,7 +19,7 @@ todos:
     status: pending
   - id: nearby-revisions
     content: Per-entry dependency validation and reuse across differing snapshots
-    status: pending
+    status: completed
   - id: grpc-transport
     content: A remote transport with the same immutable publication and validation contract
     status: pending
@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-20. This replaces the demand-paging roadmap. Keep each Bazel server's graph
+Updated 2026-10-21. This replaces the demand-paging roadmap. Keep each Bazel server's graph
 in RAM. Cache reuse is optional: a miss, unsupported value or damaged record must lead to local
 evaluation. Do not make disk storage authoritative for live Skyframe state, cap graph nodes by
 jobs/CPU, or add Rust/IPC to the evaluator.
@@ -65,7 +65,7 @@ for commits, exact commands, raw results, failed experiments and limitations.
 - A full Datadog cluster-agent writer/restarted-reader sequence now succeeds with identical
   output hashes and 4,501 configured-target hits. Schemaful provider codecs preserve depset types
   across fresh/differently primed processes. Ten focused targets / 111 cases pass. The reader
-  still uses more peak memory than its control and the writer remains expensive; nearby-revision reuse and resource bounds remain unfinished. The eighteen-build
+  still uses more peak memory than its control and the writer remains expensive; at that stage, nearby-revision reuse and resource bounds were unfinished (see Step 33 below). The eighteen-build
   concurrent Datadog edit/restart/revert gate now passes on file and packed backends.
 - Identical puts reuse validated publications while preserving immutable-key conflicts,
   read-your-writes and parent closure. The Datadog reader writes zero records instead of 4,477,
@@ -245,6 +245,17 @@ including exact baseline output equivalence. The full 28-build edited/reverted g
 cross-revision changes remain uncommitted until it passes. The smoke uses action disk cache and
 does not substitute for the full edited correctness comparison.
 
+## Cross-revision sharing accepted (Step 33)
+
+The latest binary passes all 28 Datadog builds with two independent servers, source edits, warm and
+restarted reverts, and exact output agreement with cache-disabled controls. The report records the
+three control restart pairs added after the original 22 builds and preserves their actual order.
+Project identity is now separate from source contents; complete per-entry validation and exact
+previous-root validation protect shared and in-memory values. The graph stays in RAM and the
+evaluator remains unchanged. Correctness is established for this matrix, not production maturity
+or a whole-build speedup. Next reduce measured first-pass validation work, then address lifecycle
+transitions, traffic statistics and reader-safe GC/quotas with separate measurements and commits.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility
@@ -285,11 +296,11 @@ Add meaningful hit/miss/rejection, validation-time, I/O, failure and GC statisti
 
 ### 4. Nearby commits and dirty worktrees
 
-Current exact source identities segregate differing trees, which is safe but loses partial reuse.
-Move toward per-entry transitive dependency witnesses and multiple candidates per logical key.
-Validate those witnesses before exposing a value. Git diff may narrow searches but cannot
-replace content checks. Cover repeated same-file edits, globs, additions/deletions/renames,
-configuration changes and independently dirty worktrees. Retain safe exact-snapshot fallback.
+Step 33 implements shared project identity, dependency-scoped validation and multiple candidates
+per logical key, plus exact retained-value invalidation. The full two-server Datadog edit/revert/control
+gate passes. Expand repeated same-file edits, globs, additions/deletions/renames and configuration/cache
+mode transitions. Preserve external binding guards and final content validation. Git diff cannot
+replace content checks. Cross-machine project identity remains future work.
 
 ### 5. Future gRPC
 

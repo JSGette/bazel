@@ -1880,3 +1880,78 @@ space was reclaimed; this does not imply Windows immediately shrank the WSL virt
 
 Evidence: [passing runtime smoke](skycache-concurrent-2026-10-20/late-eviction-runtime-smoke.json),
 [retired cache inventory](skycache-concurrent-2026-10-20/failed-smoke-cache-retirement.json).
+
+
+## Step 33 — share validated analysis across independently edited worktrees
+
+Implementation: [bbbb96e3bfcc](https://github.com/JSGette/bazel/commit/bbbb96e3bfcc513398f9a6cedf97675bfccd3d49).
+Linked Git worktrees now share a namespace based on canonical common Git directory, exact effective
+environment, byte order and local format identity. Source contents are validated per analysis entry.
+The complete bounded dependency validator runs before returning each candidate, and a stale candidate
+does not hide a later valid version of the same key. Candidate bytes are copied under the session
+lock, validated outside it, and accepted only while the session is open. All used parent packs remain
+in the publication closure. External/absolute witnesses remain conservative publication-wide guards.
+The initial full-source digest is retained as provenance and rechecked before publication with all
+observed/imported witnesses and the project namespace. Mid-build edits are outside Bazel's stable
+input assumption; final validation prevents publishing a changed invocation. Non-Git workspaces and
+nested workspaces without their own .git remain isolated by path. Cross-machine identity is future work.
+
+Warm invalidation checks the exact dependency root of the value previously imported into RAM.
+Accepting any currently valid replacement as justification for keeping the older value was rejected.
+An optional RetainedAnalysisCacheClient interface lets the invalidator use this check without
+changing existing remote clients. Previous roots and newly accepted roots are distinct; a bounded
+250,000-entry map survives commands and clears on namespace changes. Unknown/evicted roots invalidate
+conservatively. The evaluator and full in-memory graph policy are unchanged. Manifest SKS3 and
+publications-v3 separate this contract from older caches.
+
+The final source build passes 207 cases across fourteen targets, with five Cache&Carry hits. The
+serialization cleanup suite from Step 32 passes 298 cases. The earlier small 18-build probe also
+checks changing a shared Starlark action definition while another server holds an older imported
+graph, then replacing/reverting it, independent edits and damaged chunk fallback. Its recorded binary
+predates Steps 31–32; the large gate below uses the latest mapping and eviction fixes.
+
+The Datadog cluster-agent gate passes 28 builds in fourteen paired phases at revision
+0cde96beb70963d0838119c308b9d0422ee66be0, with two independent servers, each Xmx4g and jobs=2.
+First edited readers start with only recorded baseline publications and empty server RAM. Each
+imports 6,206 configured targets, writes new entries and produces a distinct feature executable.
+Action disk caching is disabled for first edited readers, warm edited graphs and independent edited
+controls. Both feature hashes exactly match their cache-off controls. Warm/restarted reverts recover
+the baseline hash. Remote action caching is disabled throughout to isolate SkyCache; Cache&Carry is
+used for source builds/tests, not these measurements. No heap/thread capture perturbs this run.
+
+Protocol correction: the original runner omitted --restart-controls, so its eleven core pairs
+completed first. Their exact results are archived separately with a SHA-256. The harness then resumed
+and added the three missing cache-off restart pairs; existing records are unchanged. The final three
+rows below therefore occurred after all core pairs. These times are observations, not an interleaved
+before/after comparison or a repeated performance claim.
+
+| Paired phase (actual order) | Wall seconds | Peak combined PSS GiB | CT hits A/B |
+| --- | ---: | ---: | ---: |
+| control-base | 40.070 | 6.466 | 0/0 |
+| concurrent-base-writers | 53.215 | 7.563 | 0/0 |
+| warm-base | 1.582 | 7.573 | 0/0 |
+| restarted-base-readers | 42.838 | 7.915 | 4501/4501 |
+| first-cross-revision-readers | 397.549 | 11.858 | 6206/6206 |
+| reverted-warm-graphs | 49.818 | 9.001 | 6336/4501 |
+| edited-warm-graphs | 352.401 | 13.043 | 4497/4501 |
+| control-edits-no-disk-cache | 366.533 | 9.867 | 0/0 |
+| first-restarted-edited-readers | 81.463 | 7.506 | 4501/4501 |
+| restarted-edited-readers | 45.759 | 8.063 | 4501/4501 |
+| reverted-restarted-readers | 42.439 | 7.652 | 4501/4501 |
+| restarted-control-base | 42.170 | 6.155 | 0/0 |
+| restarted-control-edited | 23.298 | 5.724 | 0/0 |
+| reverted-restarted-control | 24.348 | 5.692 | 0/0 |
+
+Selected server logs contain 4 native invalidation timeout(s). Correct output and successful
+sharing do not establish a performance advantage or production maturity. First-pass validation still
+costs 13.416 seconds / 1.949 GB thread allocation in the Step 29 benchmark. Next remove repeated
+content checking with bounded invocation-local success reuse, measure it against the preserved
+baseline, and retain final content revalidation. Traffic accounting, cache-mode/configuration lifecycle
+coverage, reader-safe collection and storage quotas remain open. Do not increase invalidation deadlines
+or discard the in-memory graph to conceal the cost.
+
+Evidence: [28 builds](skycache-concurrent-2026-10-20/cross-revision-datadog-28-builds.json),
+[original 22 builds](skycache-concurrent-2026-10-20/cross-revision-datadog-core-22-builds.json),
+[Starlark probe](skycache-concurrent-2026-10-20/cross-revision-starlark-worktrees.json),
+[runtime and order correction](skycache-concurrent-2026-10-20/cross-revision-runtime-review.json),
+[207 cases](skycache-concurrent-2026-10-20/repository-mapping-eviction-validator-tests.json).
