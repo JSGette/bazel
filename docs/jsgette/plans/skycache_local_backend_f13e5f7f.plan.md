@@ -350,6 +350,21 @@ run concurrent edits/reverts and collection, verify exact outputs and invalidati
 source builds/tests on Cache&Carry and host-volume guards enabled. Only then assess the local
 experimental milestone against its acceptance criteria; gRPC and legacy migration remain future work.
 
+## Final Datadog gate moved to isolated storage (Step 41)
+
+The exact collector binary passed ten baseline/control/reader builds, including two simultaneous
+4,501-hit readers with identical outputs. It did not improve paired restart latency or PSS in that
+single observation. No-disk-cache edits triggered large native dependency rebuilds and crossed the
+E-hosted VHD's reserve; both clients were cancelled and the run remains failed/incomplete. Sources
+were restored, servers stopped, legacy data preserved and zero invalidation deadlines observed.
+
+The harness now enforces the same capacity reserves during phases. Sixteen Python checks and a live
+filesystem check pass. A dedicated C-backed ext4 volume supplies verified headroom while ordinary
+E-backed writes still fail the guard. Resume the full acceptance run on that volume with matched
+controls, copied stopped output bases and a copied action cache, then collection/rebuild/reuse.
+Do not call the goal complete or infer edited-output correctness from the cancelled phase. Preserve
+results before stopping the bounded mount keeper and cleaning up the temporary volume.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

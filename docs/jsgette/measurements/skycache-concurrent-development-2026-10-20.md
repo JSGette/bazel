@@ -2597,3 +2597,71 @@ Evidence: [265 passing cases](skycache-concurrent-2026-10-20/repository-mapping-
 [collector measurement protocol/results](skycache-concurrent-2026-10-20/collector-measurements.json),
 [binary/source hashes](skycache-concurrent-2026-10-20/collector-binary.json),
 [two-server idle collection and controls](skycache-concurrent-2026-10-20/collector-lifecycle.json).
+
+
+## Step 41 — interrupted final workload and verified alternative storage
+
+Harness/guard implementation: [a431a2e9c222](https://github.com/JSGette/bazel/commit/a431a2e9c222b4daf406cf735fdfaf955e14b94e).
+The collector binary remains exactly Step 40 SHA `98082ec35a77f6a5eb6356d6bc7aba16d344667225c1dbda1b9b2cb0296753e6`. No Java, Skyframe or cache
+semantics changed. No Bazel rebuild was necessary; source compilation/test commands remain configured
+for Cache&Carry. Sixteen direct Python checks pass: thirteen capacity/backing checks and three
+mid-phase cancellation checks. Their source hashes are saved with the result.
+
+The final large-workload run reused the four completed Datadog worktrees/output bases and placed its
+new results in a separate directory. A single baseline writer followed by an independent B reader
+avoids two duplicate 430 MB cold packs; later reader/edit/revert phases still run two servers at once.
+This was a storage decision, not a replacement for concurrent writing tests: Step 40 already covers
+simultaneous writers and collector interactions, and the full earlier Datadog gate covers concurrent
+feature publication. The reused fixture has the pinned source and resolved lockfile. No prior logs or
+results were overwritten. Cache-off commands now explicitly disable the local SkyCache flag.
+
+Ten builds succeeded before cancellation, all producing the original baseline executable hash. B's
+independent reader and both restarted readers imported 4,501 configured targets. The paired restarted
+control took 23.731 seconds with 5.643 GiB
+peak combined PSS; the restarted reader pair took 27.835 seconds with
+7.382 GiB PSS. These single paired observations show working
+reuse with overhead; they do not establish an overall speed or memory improvement. Samples include
+the two server/client process trees and descendants, exclude filesystem page cache and the probe,
+and are taken every 200 ms.
+
+The first no-disk-cache edited phase rebuilt OpenSSL and Python/native dependencies. Host E free
+space fell below the unchanged 30 GiB reserve during that phase, although the preflight had passed.
+The two precisely identified owned Bazel clients were sent SIGINT; both exited with code 8. Their
+partial 6,206-target hit counts are diagnostic only: neither edited executable completed, so this
+phase is **not acceptance evidence**. The harness shut down all four owned servers, restored its
+source edits, preserved legacy publication hashes and observed zero invalidation deadlines. The
+complete attempted run is retained with `passed:false` and cancellation evidence.
+
+The harness now also checks capacity every ten seconds while a phase runs. An unverified or
+insufficient capacity observation cancels only that probe's registered live build clients and fails
+the phase. Process exit during cancellation is harmless. Finished phases do not trigger cancellation.
+The memory sampler remains independent. Before-phase checks and the original reserves remain in force.
+
+To continue without growing the low-space E-hosted WSL VHD, a new task-owned 64 GiB ext4 image was
+created exclusively under the C workspace and mounted at
+`/home/jgett/REPOS/.work/skycache-concurrent/c-backed-measurements`. Only that new file was formatted;
+the Ubuntu VHD was neither compacted nor deliberately shut down. An automatically idling WSL distro
+initially lost the temporary mount, so it was remounted and a bounded task-owned helper keeps the
+distro alive between tool calls. The helper's PID/start time and stop-file path are recorded locally;
+it must be stopped and the temporary mount dealt with after benchmark data is preserved.
+
+The storage checker resolves a loop filesystem through kernel `backing_file` metadata and `findmnt`,
+then checks a fresh Windows capacity observation for that actual drive. Unknown/unverifiable mappings
+fail closed. Ordinary Linux-backed paths still check the Ubuntu host volume. Mixed write volumes
+each require their own backing check. Live evidence proves that the new C-backed ext4 volume passes
+while an ordinary write path on the low-space E-backed filesystem is still rejected. Neither the
+30 GiB volume floor nor the 10 GiB system-drive reserve was lowered.
+
+The ordinary action cache was copied into the new filesystem in 72.023 seconds; its
+original remains untouched. The next run will place its new worktrees, output bases, shared SkyCache,
+action cache, logs and samples on this dedicated volume. The harness can copy stopped output bases
+into a fresh fixture while excluding server PIDs/sockets and previous diagnostic logs. Repository
+downloads can be kept out of the default repository cache. New storage placement requires a complete
+matched control/writer/reader/edit/revert run on that placement; do not combine timings across mounts.
+The final substantial acceptance gate is still incomplete.
+
+Evidence: [interrupted workload](skycache-concurrent-2026-10-20/collector-datadog-interrupted.json),
+[exact command and seed decision](skycache-concurrent-2026-10-20/collector-datadog-interrupted-command.json),
+[owned-client cancellation](skycache-concurrent-2026-10-20/collector-datadog-storage-cancellation.json),
+[sixteen guard tests](skycache-concurrent-2026-10-20/collector-storage-guard-tests.json),
+[actual backing-volume verification](skycache-concurrent-2026-10-20/collector-c-volume-verification.json).
