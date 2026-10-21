@@ -217,6 +217,18 @@ public final class AnalysisCacheInvalidator {
             k -> fingerprintService.fingerprint(currentVersion.concat(k.getObject().toByteArray())),
             directExecutor());
 
+    // Multi-revision stores must validate the value already in RAM, not a replacement value.
+    if (analysisCacheClient instanceof RetainedAnalysisCacheClient retained) {
+      return Futures.transformAsync(
+          fingerprint,
+          f ->
+              Futures.transform(
+                  retained.isPreviouslyLoadedValueValid(f.toBytes()),
+                  valid -> valid ? Optional.<SkyKey>empty() : Optional.of(key),
+                  directExecutor()),
+          directExecutor());
+    }
+
     // 3. Submit the fingerprint to the analysis cache service
     ListenableFuture<LookupResult> responseFuture =
         Futures.transformAsync(

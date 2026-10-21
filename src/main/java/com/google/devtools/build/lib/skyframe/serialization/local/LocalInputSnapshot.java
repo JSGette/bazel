@@ -52,6 +52,7 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   private final Map<String, String> environment;
   private final ConcurrentHashMap<String, Witness> witnesses = new ConcurrentHashMap<>();
   private final String sourceDigest;
+  private final String cacheNamespace;
   private volatile boolean changed;
 
   LocalInputSnapshot(Path workspace, Path outputBase, Map<String, String> environment)
@@ -60,11 +61,73 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
     this.outputBase = outputBase.toAbsolutePath().normalize();
     this.external = this.outputBase.resolve("external");
     this.environment = Map.copyOf(environment);
+    this.cacheNamespace = captureNamespace();
     this.sourceDigest = captureSource();
   }
 
   String sourceDigest() {
     return sourceDigest;
+  }
+
+  String cacheNamespace() {
+    return cacheNamespace;
+  }
+
+  /** Source dependencies are validated per entry; external bindings remain conservative guards. */
+  List<Witness> globalWitnesses() {
+    return witnesses().stream().filter(w -> !w.path().startsWith("workspace/")).toList();
+  }
+
+  private String captureNamespace() throws IOException {
+    MessageDigest digest = sha256();
+    update(digest, "local-project-v2-shared-repository-mapping");
+    update(digest, java.nio.ByteOrder.nativeOrder().toString());
+    Path git = workspace.resolve(".git");
+    if (!Files.exists(git, NOFOLLOW_LINKS)) {
+      // Without Git metadata there is no safe way to infer that two directories are one project.
+      update(digest, "workspace/" + workspace.toRealPath());
+    } else {
+      Path gitDirectory;
+      if (Files.isDirectory(git)) {
+        gitDirectory = git.toRealPath();
+      } else {
+        String pointer = readGitPointer(git);
+        if (!pointer.startsWith("gitdir: ") || pointer.length() == 8) {
+          throw new IOException("invalid worktree Git directory pointer");
+        }
+        gitDirectory = workspace.resolve(pointer.substring(8)).toRealPath();
+      }
+      Path commonPointer = gitDirectory.resolve("commondir");
+      Path common =
+          Files.exists(commonPointer, NOFOLLOW_LINKS)
+              ? gitDirectory.resolve(readGitPointer(commonPointer)).toRealPath()
+              : gitDirectory;
+      if (!Files.isDirectory(common.resolve("objects"))
+          || !Files.isRegularFile(common.resolve("HEAD"))) {
+        throw new IOException("incomplete shared Git directory");
+      }
+      update(digest, "git-common/" + common);
+    }
+    update(digest, Integer.toString(environment.size()));
+    for (var entry : new TreeMap<>(environment).entrySet()) {
+      update(digest, entry.getKey());
+      update(digest, entry.getValue());
+    }
+    return HexFormat.of().formatHex(digest.digest());
+  }
+
+  private static String readGitPointer(Path path) throws IOException {
+    try (var stream = Files.newInputStream(path)) {
+      byte[] bytes = stream.readNBytes(16385);
+      String text = new String(bytes, UTF_8).stripTrailing();
+      if (bytes.length > 16384
+          || text.isEmpty()
+          || text.indexOf('\n') >= 0
+          || text.indexOf('\r') >= 0) {
+        throw new IOException("invalid or oversized Git directory pointer");
+      }
+      return text;
+    }
   }
 
   List<Witness> witnesses() {
@@ -97,7 +160,9 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   }
 
   boolean isUnchanged() throws IOException {
-    if (changed || !sourceDigest.equals(captureSource())) {
+    if (changed
+        || !cacheNamespace.equals(captureNamespace())
+        || !sourceDigest.equals(captureSource())) {
       return false;
     }
     for (Witness witness : witnesses.values()) {

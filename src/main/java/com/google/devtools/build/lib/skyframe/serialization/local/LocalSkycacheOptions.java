@@ -17,9 +17,9 @@ public abstract class LocalSkycacheOptions extends OptionsBase {
       documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
       effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
       help =
-          "Shared local POSIX analysis-cache directory, outside the source workspace. "
-              + "Enables bidirectional analysis caching while retaining the in-memory graph. "
-              + "Experimental: validates complete project snapshots and observed external inputs.")
+          "Shared local POSIX analysis-cache directory, outside the source workspace. Enables"
+              + " bidirectional analysis caching while retaining the in-memory graph. Experimental:"
+              + " shares validated analysis entries across worktrees of one local Git repository.")
   public abstract String getDirectory();
 
   @Option(

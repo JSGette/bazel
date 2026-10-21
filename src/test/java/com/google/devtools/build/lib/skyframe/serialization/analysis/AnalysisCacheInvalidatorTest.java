@@ -71,6 +71,33 @@ public final class AnalysisCacheInvalidatorTest {
       FingerprintValueService.createForTesting();
 
   @Test
+  public void retainedValueInvalidationUsesPreviousEvidenceInsteadOfReplacementLookup()
+      throws Exception {
+    var client = org.mockito.Mockito.mock(RetainedAnalysisCacheClient.class);
+    var key = new TrivialKey("changed-retained-value");
+    when(client.isPreviouslyLoadedValueValid(any())).thenReturn(immediateFuture(false));
+    var invalidator =
+        new AnalysisCacheInvalidator(
+            client,
+            objectCodecs,
+            COMPRESSION_SERVICE,
+            fingerprintService,
+            frontierNodeVersion,
+            baseClientId,
+            mockEventHandler,
+            mockEventListener,
+            safeDirectExecutor());
+    var state =
+        new RemoteAnalysisCachingServerState(
+            frontierNodeVersion, new SnapshotClientId("previous-command", 2));
+    assertThat(invalidator.lookupKeysToInvalidate(() -> ImmutableSet.of(key), state))
+        .containsExactly(key);
+    verify(client, never()).lookup(any());
+    when(client.isPreviouslyLoadedValueValid(any())).thenReturn(immediateFuture(true));
+    assertThat(invalidator.lookupKeysToInvalidate(() -> ImmutableSet.of(key), state)).isEmpty();
+  }
+
+  @Test
   public void lookupKeysToInvalidate_emptyInput_returnsEmptySet() throws Exception {
     AnalysisCacheInvalidator invalidator =
         new AnalysisCacheInvalidator(

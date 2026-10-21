@@ -524,7 +524,10 @@ java_library(
 
 java_library(
     name = "remote_analysis_cache_client",
-    srcs = ["RemoteAnalysisCacheClient.java"],
+    srcs = [
+        "RemoteAnalysisCacheClient.java",
+        "RetainedAnalysisCacheClient.java",
+    ],
     visibility = [
         "//src/main/java/com/google/devtools/build/lib/buildtool:__pkg__",
         "//src/main/java/com/google/devtools/build/lib/metrics:__pkg__",

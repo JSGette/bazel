@@ -137,6 +137,10 @@ public final class LocalSkycacheModule extends SerializationModule {
               new LocalCacheSession.ReadLimits(
                   options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
       RunfilesOrigin.setSharingEnabled(true);
+      if (!inputs.cacheNamespace().equals(services.retainedNamespace)) {
+        services.retainedRoots = Map.of();
+        services.retainedNamespace = inputs.cacheNamespace();
+      }
       services.client =
           new LocalAnalysisCacheClient(
               services.session,
@@ -146,9 +150,10 @@ public final class LocalSkycacheModule extends SerializationModule {
                   LOCAL_FINGERPRINTER,
                   env.getRuntime()
                       .getBlazeService(
-                          com.google.devtools.build.lib.compress.CompressionService.class)));
+                          com.google.devtools.build.lib.compress.CompressionService.class)),
+              services.retainedRoots);
       services.clientId =
-          new ClientId.SnapshotClientId(inputs.sourceDigest() + "/" + env.getCommandId(), 0);
+          new ClientId.SnapshotClientId(inputs.cacheNamespace() + "/" + env.getCommandId(), 0);
       env.setVersionGetter(inputs);
       setMode(env, "async_bidi");
       environment = env;
@@ -213,6 +218,7 @@ public final class LocalSkycacheModule extends SerializationModule {
         env.getReporter()
             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
       }
+      services.retainedRoots = services.client.retainedRoots();
       String validation = services.client.validationStatisticsJson();
       env.getReporter().handle(Event.info("Local SkyCache dependency validation: " + validation));
       String statistics = session.statisticsJson(published);
@@ -238,6 +244,11 @@ public final class LocalSkycacheModule extends SerializationModule {
     @Nullable private LocalCacheSession session;
     @Nullable private LocalAnalysisCacheClient client;
     @Nullable private ClientId clientId;
+    private String retainedNamespace = "";
+    private Map<
+            com.google.protobuf.ByteString,
+            com.google.devtools.build.lib.skyframe.serialization.PackedFingerprint>
+        retainedRoots = Map.of();
 
     @Override
     public boolean discardFailedUpload(String reason) {
@@ -272,7 +283,7 @@ public final class LocalSkycacheModule extends SerializationModule {
 
     @Override
     public String getCacheKeyDistinguisher() {
-      return session == null ? "" : session.sourceDigest();
+      return session == null ? "" : session.cacheNamespace();
     }
 
     @Override

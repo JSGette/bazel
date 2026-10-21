@@ -51,7 +51,7 @@ import java.util.function.LongSupplier;
  * explicit for later garbage collection. There is no deletion in this initial session format.
  */
 final class LocalCacheSession implements FingerprintValueStore {
-  private static final int MAGIC = 0x534b5332;
+  private static final int MAGIC = 0x534b5333;
   private static final int MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
   private static final int MAX_WITNESSES = 1_000_000;
   private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
@@ -134,13 +134,13 @@ final class LocalCacheSession implements FingerprintValueStore {
     durableDirectory(root.toAbsolutePath().normalize());
     this.objects = durableDirectory(root.resolve("objects").resolve("packed-v1"));
     this.publications =
-        durableDirectory(root.resolve("publications-v2").resolve(inputs.sourceDigest()));
+        durableDirectory(root.resolve("publications-v3").resolve(inputs.cacheNamespace()));
     this.id =
         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
   }
 
-  String sourceDigest() {
-    return inputs.sourceDigest();
+  String cacheNamespace() {
+    return inputs.cacheNamespace();
   }
 
   long sharedReads() {
@@ -149,6 +149,10 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   long deduplicatedWrites() {
     return deduplicatedWrites.get();
+  }
+
+  boolean isOpen() {
+    return !closed;
   }
 
   String failureReason() {
@@ -306,6 +310,80 @@ final class LocalCacheSession implements FingerprintValueStore {
       return immediateFailedFuture(e);
     } catch (IOException e) {
       return immediateFailedFuture(new MissingFingerprintValueException(key, e));
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
+  /** A single candidate copied while its pack is pinned; validate outside lifecycle locks. */
+  record AnalysisCandidate(String publication, byte[] value) {}
+
+  AnalysisCandidate nextAnalysisCandidate(KeyBytesProvider key, Set<String> attempted)
+      throws IOException, InterruptedException {
+    lifecycle.readLock().lock();
+    try {
+      if (closed) {
+        return null;
+      }
+      if (attempted.isEmpty()) {
+        reads.incrementAndGet();
+      }
+      if (attempted.add(id)) {
+        byte[] own = read(privateStore, key);
+        if (own != null) {
+          return new AnalysisCandidate(id, own);
+        }
+      }
+      SharedPut pinned = sharedPuts.get(ByteString.copyFrom(key.toBytes()));
+      if (pinned != null && attempted.add(pinned.candidate().id())) {
+        byte[] value = read(pinned.candidate().store(), key);
+        if (value == null || !pinned.valueDigest().equals(sha256(value))) {
+          return null;
+        }
+        return new AnalysisCandidate(pinned.candidate().id(), value);
+      }
+      var candidate = nextSharedAnalysisCandidate(key, attempted);
+      if (candidate == null) {
+        refresh();
+        candidate = nextSharedAnalysisCandidate(key, attempted);
+      }
+      return candidate;
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
+  private AnalysisCandidate nextSharedAnalysisCandidate(KeyBytesProvider key, Set<String> attempted)
+      throws InterruptedException {
+    for (Candidate candidate : candidates) {
+      if (attempted.add(candidate.id())) {
+        byte[] value = read(candidate.store(), key);
+        if (value != null) {
+          return new AnalysisCandidate(candidate.id(), value);
+        }
+      }
+    }
+    return null;
+  }
+
+  boolean acceptAnalysisCandidate(AnalysisCandidate accepted) {
+    lifecycle.readLock().lock();
+    try {
+      if (closed) {
+        return false;
+      }
+      if (accepted.publication().equals(id)) {
+        return true;
+      }
+      // Candidates remain pinned until finish. A late acceptance after finish must be a miss.
+      for (Candidate candidate : candidates) {
+        if (candidate.id().equals(accepted.publication())) {
+          usedParents.add(candidate.id());
+          sharedReads.incrementAndGet();
+          return true;
+        }
+      }
+      return false;
     } finally {
       lifecycle.readLock().unlock();
     }
@@ -533,12 +611,13 @@ final class LocalCacheSession implements FingerprintValueStore {
       try (var out = new DataOutputStream(buffer)) {
         out.writeInt(MAGIC);
         out.writeUTF(id);
+        out.writeUTF(inputs.cacheNamespace());
         out.writeUTF(inputs.sourceDigest());
         out.writeInt(usedParents.size());
         for (String parent : usedParents.stream().sorted().toList()) {
           out.writeUTF(parent);
         }
-        List<LocalInputSnapshot.Witness> witnesses = inputs.witnesses();
+        List<LocalInputSnapshot.Witness> witnesses = inputs.globalWitnesses();
         out.writeInt(witnesses.size());
         for (var witness : witnesses) {
           out.writeUTF(witness.path());
@@ -648,7 +727,8 @@ final class LocalCacheSession implements FingerprintValueStore {
       String namespace = in.readUTF();
       if (!namespace.matches("[0-9a-f]{64}")
           || !path.getFileName().toString().equals(namespace + ".manifest")
-          || !in.readUTF().equals(inputs.sourceDigest())) {
+          || !in.readUTF().equals(inputs.cacheNamespace())
+          || !in.readUTF().matches("[0-9a-f]{64}")) {
         throw new IOException("invalid publication identity");
       }
       List<String> parents = new ArrayList<>();

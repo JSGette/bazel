@@ -189,6 +189,28 @@ def main():
         assert all(row["skycache"]["published"] for row in protocol["phases"][-1]["builds"])
         pair("warm")
         for name in ("a", "b"):
+            shutdown(name)
+        pair("restarted-baseline-readers", require_hits=True)
+        # Change analysis action definitions, not merely action input contents. Publish the new
+        # value from B first while A still retains the old imported value in RAM. When A adopts
+        # the same edit, an ordinary hit for B's newer value must not keep A's old graph node.
+        original_rules = (root / "a/defs.bzl").read_text()
+        changed_rules = original_rules.replace('SUFFIX = ""', 'SUFFIX = "shared-rule-change"')
+        (root / "b/defs.bzl").write_text(changed_rules)
+        for name, phase in (("b", "publish-starlark-replacement"), ("a", "invalidate-retained-starlark")):
+            if name == "a":
+                (root / "a/defs.bzl").write_text(changed_rules)
+            row = build(name, phase)
+            protocol["phases"].append({"phase": phase, "builds": [row], "seconds": row["seconds"],
+                                       "purpose": "exact previously imported value invalidation"})
+            protocol_path.write_text(json.dumps(protocol, indent=2) + "\n")
+            print(json.dumps(protocol["phases"][-1]), flush=True)
+            if name == "b":
+                assert row["skycache"]["published"]
+        for name in ("a", "b"):
+            (root / name / "defs.bzl").write_text(original_rules)
+        pair("warm-starlark-revert")
+        for name in ("a", "b"):
             (root / name / "lib00/input").write_text("feature-" + name + "\n")
         pair("independent-source-edits")
         for name in ("a", "b"):

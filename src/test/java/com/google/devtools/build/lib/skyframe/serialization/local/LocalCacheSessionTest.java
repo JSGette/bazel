@@ -46,6 +46,54 @@ public final class LocalCacheSessionTest {
     return new LocalInputSnapshot(workspace, output, Map.of("PATH", "/usr/bin"));
   }
 
+  private void gitWorktree(Path workspace, Path common, String name) throws Exception {
+    Files.createDirectories(common.resolve("objects"));
+    Files.writeString(common.resolve("HEAD"), "ref: refs/heads/main\n");
+    Path gitDirectory = Files.createDirectories(common.resolve("worktrees/" + name));
+    Files.writeString(gitDirectory.resolve("commondir"), "../..\n");
+    Files.writeString(workspace.resolve(".git"), "gitdir: " + gitDirectory + "\n");
+  }
+
+  @Test
+  public void repositoryNamespaceSpansGitWorktreesButSeparatesProjectsAndEnvironments()
+      throws Exception {
+    Path a = temporary.newFolder("a").toPath();
+    Path b = temporary.newFolder("b").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    assertThat(snapshot(a, output).cacheNamespace())
+        .isNotEqualTo(snapshot(b, output).cacheNamespace());
+    Path common = temporary.newFolder("common").toPath();
+    gitWorktree(a, common, "a");
+    gitWorktree(b, common, "b");
+    Files.writeString(a.resolve("feature"), "one");
+    Files.writeString(b.resolve("feature"), "two");
+    var first = snapshot(a, output);
+    assertThat(first.sourceDigest()).isNotEqualTo(snapshot(b, output).sourceDigest());
+    assertThat(first.cacheNamespace()).isEqualTo(snapshot(b, output).cacheNamespace());
+    assertThat(new LocalInputSnapshot(a, output, Map.of("PATH", "different")).cacheNamespace())
+        .isNotEqualTo(first.cacheNamespace());
+    gitWorktree(b, temporary.newFolder("other-common").toPath(), "b");
+    assertThat(first.cacheNamespace()).isNotEqualTo(snapshot(b, output).cacheNamespace());
+    gitWorktree(a, temporary.newFolder("changed-common").toPath(), "a");
+    assertThat(first.isUnchanged()).isFalse();
+  }
+
+  @Test
+  public void gitMainCheckoutAndLinkedWorktreeShareNamespaceAndMalformedPointersFailClosed()
+      throws Exception {
+    Path main = temporary.newFolder("main").toPath();
+    Path linked = temporary.newFolder("linked").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path common = main.resolve(".git");
+    gitWorktree(linked, common, "linked");
+    assertThat(snapshot(main, output).cacheNamespace())
+        .isEqualTo(snapshot(linked, output).cacheNamespace());
+    Files.writeString(linked.resolve(".git"), "unexpected pointer");
+    assertThrows(IOException.class, () -> snapshot(linked, output));
+    Files.writeString(linked.resolve(".git"), "gitdir: " + "x".repeat(17000));
+    assertThrows(IOException.class, () -> snapshot(linked, output));
+  }
+
   @Test
   public void dependencyEvidenceIsPortableAndContentSensitive() throws Exception {
     Path a = temporary.newFolder("a").toPath();
@@ -206,7 +254,7 @@ public final class LocalCacheSessionTest {
     var first = new LocalCacheSession(cache, inputsA);
     first.put(new Key("a"), new byte[] {1}).get();
     assertThat(first.finish(true)).isTrue();
-    Path publications = cache.resolve("publications-v2").resolve(inputsA.sourceDigest());
+    Path publications = cache.resolve("publications-v3").resolve(inputsA.cacheNamespace());
     Path manifestA;
     try (var paths = Files.list(publications)) {
       manifestA = paths.findFirst().orElseThrow();
@@ -247,7 +295,7 @@ public final class LocalCacheSessionTest {
     var first = new LocalCacheSession(cache, inputs);
     first.put(new Key("a"), new byte[] {1}).get();
     assertThat(first.finish(true)).isTrue();
-    Path publications = cache.resolve("publications-v2").resolve(inputs.sourceDigest());
+    Path publications = cache.resolve("publications-v3").resolve(inputs.cacheNamespace());
     Path manifestA;
     try (var paths = Files.list(publications)) {
       manifestA = paths.findFirst().orElseThrow();
@@ -316,7 +364,8 @@ public final class LocalCacheSessionTest {
     writer.put(new Key("entry"), new byte[] {1}).get();
     assertThat(writer.finish(true)).isTrue();
     Path manifest;
-    try (var paths = Files.list(cache.resolve("publications-v2").resolve(inputs.sourceDigest()))) {
+    try (var paths =
+        Files.list(cache.resolve("publications-v3").resolve(inputs.cacheNamespace()))) {
       manifest = paths.findFirst().orElseThrow();
     }
     String id = manifest.getFileName().toString().replace(".manifest", "");
@@ -760,7 +809,7 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("chunk"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     Path parentManifest;
-    try (var files = Files.walk(cache.resolve("publications-v2"))) {
+    try (var files = Files.walk(cache.resolve("publications-v3"))) {
       parentManifest =
           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
     }
@@ -790,7 +839,7 @@ public final class LocalCacheSessionTest {
         var parent = new LocalCacheSession(cache, inputs);
         parent.put(new Key("parent-" + i), new byte[] {(byte) i}).get();
         assertThat(parent.finish(true)).isTrue();
-        publications = cache.resolve("publications-v2").resolve(inputs.sourceDigest());
+        publications = cache.resolve("publications-v3").resolve(inputs.cacheNamespace());
         try (var paths = Files.list(publications)) {
           parents.add(paths.filter(path -> !parents.contains(path)).findFirst().orElseThrow());
         }
@@ -876,7 +925,7 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("chunk"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     Path parentManifest;
-    try (var files = Files.walk(cache.resolve("publications-v2"))) {
+    try (var files = Files.walk(cache.resolve("publications-v3"))) {
       parentManifest =
           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
     }

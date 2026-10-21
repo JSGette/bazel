@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import threading
 import time
@@ -42,9 +43,19 @@ def main():
                         help="Stop after fresh, warm and restarted base builds; omit edit/revert phases")
     parser.add_argument("--restart-controls", action="store_true",
                         help="Measure cache-off restarts with populated output bases at base, edited and reverted states")
+    parser.add_argument("--cross-revision-edits", action="store_true",
+                        help="First import edited worktrees from baseline-only publications, then test warm reverts/edits")
+    parser.add_argument("--cross-revision-smoke", action="store_true",
+                        help="Diagnostic: stop after the first warm revert and keep the action disk cache enabled")
+    parser.add_argument("--build-timeout-seconds", type=int, default=1800,
+                        help="Cancel an owned build client after this deadline; a timeout fails the gate")
     parser.add_argument("--resume", action="store_true",
                         help="Revalidate saved phases and continue this probe's existing worktrees")
     args = parser.parse_args()
+    if args.cross_revision_smoke and (not args.cross_revision_edits or args.base_only):
+        parser.error("--cross-revision-smoke requires --cross-revision-edits without --base-only")
+    if args.build_timeout_seconds < 1:
+        parser.error("--build-timeout-seconds must be positive")
     binary = args.bazel.resolve(strict=True)
     root = args.root.resolve()
     initial_storage = check_storage([root, args.action_cache])
@@ -88,6 +99,9 @@ def main():
         "resources": "two servers; each Xmx4g, jobs=2, local_resources memory=3072",
         "controls": "separate worktrees/output bases; edited actions execute without shared disk cache",
         "restart_controls": args.restart_controls,
+        "cross_revision_edits": args.cross_revision_edits,
+        "cross_revision_smoke": args.cross_revision_smoke,
+        "build_timeout_seconds": args.build_timeout_seconds,
         "base_only": args.base_only,
         "java_home": str(java_home) if java_home else None,
         "seed_cache": str(seed_cache) if seed_cache else None,
@@ -100,6 +114,9 @@ def main():
             assert saved[key] == protocol[key], (key, saved[key], protocol[key])
         assert saved.get("restart_controls", False) == args.restart_controls
         assert saved.get("base_only", False) == args.base_only
+        assert saved.get("cross_revision_edits", False) == args.cross_revision_edits
+        assert saved.get("cross_revision_smoke", False) == args.cross_revision_smoke
+        assert saved.get("build_timeout_seconds", 1800) == args.build_timeout_seconds
         for key in ("java_home", "seed_cache", "seed_publications"):
             assert saved.get(key, {} if key == "seed_publications" else None) == protocol[key], key
         protocol = saved
@@ -166,6 +183,8 @@ def main():
         output_base = root / ("out-" + name)
         stats = output_base / "local-skycache.json"
         stats.unlink(missing_ok=True)
+        validation_stats = output_base / "local-skycache-validation.json"
+        validation_stats.unlink(missing_ok=True)
         argv = startup(name) + [
             "build", "//cmd/cluster-agent:cluster-agent", "--config=no-remote-cache",
             "--jobs=2", "--local_resources=memory=3072", "--lockfile_mode=off",
@@ -185,8 +204,20 @@ def main():
                                        stdout=log, stderr=subprocess.STDOUT)
             with client_lock:
                 active_clients[name] = process.pid
+            timed_out = False
             try:
-                code = process.wait()
+                try:
+                    code = process.wait(timeout=args.build_timeout_seconds)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    process.send_signal(signal.SIGINT)
+                    try:
+                        code = process.wait(timeout=90)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        code = process.wait()
+                    if code == 0:
+                        code = 124
             finally:
                 with client_lock:
                     active_clients.pop(name, None)
@@ -195,6 +226,7 @@ def main():
         hits = re.findall(r"CONFIGURED_TARGET: (\d+)/(\d+)", text)
         row = {
             "worktree": name, "argv": argv, "exit_code": code, "seconds": seconds,
+            "timed_out": timed_out,
             "analysis_hits": sum(int(a) for a, _ in hits),
             "analysis_hit_summary_present": bool(hits),
             "cache_disabled": "Local SkyCache disabled:" in text,
@@ -202,6 +234,8 @@ def main():
         }
         if cache and stats.exists():
             row["skycache"] = json.loads(stats.read_text())
+        if cache and validation_stats.exists():
+            row["dependency_validation"] = json.loads(validation_stats.read_text())
         if code == 0:
             artifacts = list((output_base / "execroot/_main/bazel-out").glob(
                 "*/bin/cmd/cluster-agent/cluster-agent_/cluster-agent"))
@@ -301,9 +335,33 @@ def main():
                 protocol["passed"] = True
                 (root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
                 return
+            if args.cross_revision_edits:
+                shutdown_pair(("a", "b"))
+                if "baseline_publications_before_edits" not in protocol:
+                    protocol["baseline_publications_before_edits"] = {
+                        str(p.relative_to(root / "cache")): hashlib.sha256(p.read_bytes()).hexdigest()
+                        for p in sorted((root / "cache").rglob("*.manifest"))
+                    }
+                    assert protocol["baseline_publications_before_edits"]
+                    (root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
+                edit(("a", "b"))
+                cold_features = pair("first-cross-revision-readers", ("a", "b"), cache=True,
+                                     disk_cache=args.cross_revision_smoke, edited=True,
+                                     require_hits=True, require_writes=True)
+                assert cold_features["a"] != cold_features["b"]
+                assert all(cold_features[n] != baseline[n] for n in ("a", "b"))
+                for name in ("a", "b"):
+                    (root / name / source_path).write_text(originals[name])
+                pair("reverted-warm-graphs", ("a", "b"), cache=True, expected=baseline)
+                if args.cross_revision_smoke:
+                    protocol["passed"] = True
+                    (root / "results.json").write_text(json.dumps(protocol, indent=2) + "\n")
+                    return
             edit(("a", "b"))
             feature_outputs = pair("edited-warm-graphs", ("a", "b"), cache=True,
-                                   disk_cache=False, edited=True, require_writes=True)
+                                   disk_cache=False, edited=True, require_writes=not args.cross_revision_edits)
+            if args.cross_revision_edits:
+                assert feature_outputs == cold_features
             assert feature_outputs["a"] != feature_outputs["b"]
             assert all(feature_outputs[n] != baseline[n] for n in ("a", "b"))
             shutdown_pair(("a", "b"))

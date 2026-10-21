@@ -107,6 +107,291 @@ public final class LocalDependencyValidatorTest {
     return put(bytes(List.of(), List.of(leaf), List.of(), null));
   }
 
+  private void shareRepository(Path a, Path b) throws Exception {
+    Path common = temporary.newFolder().toPath();
+    Files.createDirectories(common.resolve("objects"));
+    Files.writeString(common.resolve("HEAD"), "ref: refs/heads/main\n");
+    int index = 0;
+    for (Path worktree : List.of(a, b)) {
+      Path git = Files.createDirectories(common.resolve("worktrees/" + index++));
+      Files.writeString(git.resolve("commondir"), "../..\n");
+      Files.writeString(worktree.resolve(".git"), "gitdir: " + git + "\n");
+    }
+  }
+
+  private LocalAnalysisCacheClient client(LocalCacheSession session, LocalInputSnapshot inputs) {
+    return new LocalAnalysisCacheClient(
+        session, new LocalDependencyValidator(session, inputs, NONPROD_FINGERPRINTER, compression));
+  }
+
+  private void writeEntry(
+      LocalCacheSession session,
+      LocalInputSnapshot inputs,
+      Path dependency,
+      PackedFingerprint key,
+      byte value)
+      throws Exception {
+    byte[] evidence = inputs.captureDependency(dependency, false, List.of());
+    var leaf =
+        new StringKey("local-input-v1/" + NONPROD_FINGERPRINTER.fingerprint(evidence).toHex());
+    session.put(leaf, evidence).get();
+    byte[] node = bytes(List.of(), List.of(leaf), List.of(), null);
+    var root = NONPROD_FINGERPRINTER.fingerprint(node);
+    session.put(root, node).get();
+    var buffer = new ByteArrayOutputStream();
+    var coded = CodedOutputStream.newInstance(buffer);
+    coded.writeEnumNoTag(4);
+    root.writeTo(coded);
+    coded.writeRawByte(value);
+    coded.flush();
+    session.put(key, buffer.toByteArray()).get();
+  }
+
+  @Test
+  public void newerValidRevisionCannotKeepAnOlderImportedValueInRam() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {68});
+    var oldInputs = snapshot();
+    var writer = new LocalCacheSession(cache, oldInputs);
+    writeEntry(writer, oldInputs, file, key, (byte) 1);
+    assertThat(writer.finish(true)).isTrue();
+    var initialInputs = snapshot();
+    var initialSession = new LocalCacheSession(cache, initialInputs);
+    var initialClient = client(initialSession, initialInputs);
+    assertThat(initialClient.lookup(key.toBytes()).get().value()).isEqualTo(new byte[] {1});
+    var retained = initialClient.retainedRoots();
+    initialSession.finish(false);
+    Files.writeString(file, "two");
+    var newInputs = snapshot();
+    var newWriter = new LocalCacheSession(cache, newInputs);
+    writeEntry(newWriter, newInputs, file, key, (byte) 2);
+    assertThat(newWriter.finish(true)).isTrue();
+    var nextInputs = snapshot();
+    var nextSession = new LocalCacheSession(cache, nextInputs);
+    var nextClient =
+        new LocalAnalysisCacheClient(
+            nextSession,
+            new LocalDependencyValidator(
+                nextSession, nextInputs, NONPROD_FINGERPRINTER, compression),
+            retained);
+    assertThat(nextClient.isPreviouslyLoadedValueValid(key.toBytes()).get()).isFalse();
+    assertThat(nextClient.lookup(key.toBytes()).get().value()).isEqualTo(new byte[] {2});
+    // Invalidation always refers to the previous command, even after a concurrent new download.
+    assertThat(nextClient.isPreviouslyLoadedValueValid(key.toBytes()).get()).isFalse();
+    retained = nextClient.retainedRoots();
+    nextSession.finish(false);
+    var finalInputs = snapshot();
+    var finalSession = new LocalCacheSession(cache, finalInputs);
+    var finalClient =
+        new LocalAnalysisCacheClient(
+            finalSession,
+            new LocalDependencyValidator(
+                finalSession, finalInputs, NONPROD_FINGERPRINTER, compression),
+            retained);
+    try {
+      assertThat(finalClient.isPreviouslyLoadedValueValid(key.toBytes()).get()).isTrue();
+      assertThat(finalClient.isPreviouslyLoadedValueValid(new byte[] {9}).get()).isFalse();
+    } finally {
+      finalSession.finish(false);
+    }
+    assertThat(finalClient.isPreviouslyLoadedValueValid(key.toBytes()).get()).isFalse();
+  }
+
+  @Test
+  public void retainedRootCapacityEvictsToSafeInvalidationMisses() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var inputs = snapshot();
+    var session = new LocalCacheSession(cache, inputs);
+    var client =
+        new LocalAnalysisCacheClient(
+            session,
+            new LocalDependencyValidator(session, inputs, NONPROD_FINGERPRINTER, compression),
+            Map.of(),
+            1);
+    var first = NONPROD_FINGERPRINTER.fingerprint(new byte[] {69});
+    var second = NONPROD_FINGERPRINTER.fingerprint(new byte[] {70});
+    writeEntry(session, inputs, file, first, (byte) 1);
+    writeEntry(session, inputs, file, second, (byte) 2);
+    assertThat(client.lookup(first.toBytes()).get().value()).isEqualTo(new byte[] {1});
+    assertThat(client.lookup(second.toBytes()).get().value()).isEqualTo(new byte[] {2});
+    assertThat(client.retainedRoots()).hasSize(1);
+    assertThat(client.retainedRoots())
+        .doesNotContainKey(com.google.protobuf.ByteString.copyFrom(first.toBytes()));
+    session.finish(false);
+  }
+
+  @Test
+  public void analysisCandidatePrefersReadYourWritesAfterSharedPut() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {67});
+    for (byte value : new byte[] {1, 2}) {
+      var inputs = snapshot();
+      var session = new LocalCacheSession(cache, inputs);
+      session.put(key, new byte[] {value}).get();
+      assertThat(session.finish(true)).isTrue();
+    }
+    var probe = new LocalCacheSession(cache, snapshot());
+    byte first;
+    try {
+      first = probe.nextAnalysisCandidate(key, new java.util.HashSet<>()).value()[0];
+    } finally {
+      probe.finish(false);
+    }
+    byte wanted = (byte) (first == 1 ? 2 : 1);
+    var session = new LocalCacheSession(cache, snapshot());
+    try {
+      assertThat(session.put(key, new byte[] {wanted}).get()).isFalse();
+      assertThat(session.nextAnalysisCandidate(key, new java.util.HashSet<>()).value())
+          .isEqualTo(new byte[] {wanted});
+    } finally {
+      session.finish(false);
+    }
+  }
+
+  @Test
+  public void editedWorktreeReusesOnlyUnchangedEntriesAndPublishesSelectiveSourceEvidence()
+      throws Exception {
+    Path other = temporary.newFolder("other-worktree").toPath();
+    Files.createDirectory(other.resolve("dir"));
+    Files.writeString(other.resolve("dir/file"), "one");
+    Files.writeString(workspace.resolve("unrelated"), "base");
+    Files.writeString(other.resolve("unrelated"), "feature");
+    shareRepository(workspace, other);
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {61});
+    var extraKey = NONPROD_FINGERPRINTER.fingerprint(new byte[] {62});
+    var firstInputs = snapshot();
+    firstInputs.observe(workspace.resolve("unrelated"), false);
+    var first = new LocalCacheSession(cache, firstInputs);
+    writeEntry(first, firstInputs, file, key, (byte) 11);
+    assertThat(first.finish(true)).isTrue();
+    var otherInputs = new LocalInputSnapshot(other, output, Map.of());
+    assertThat(otherInputs.sourceDigest()).isNotEqualTo(firstInputs.sourceDigest());
+    var second = new LocalCacheSession(cache, otherInputs);
+    assertThat(client(second, otherInputs).lookup(key.toBytes()).get().value())
+        .isEqualTo(new byte[] {11});
+    writeEntry(second, otherInputs, other.resolve("unrelated"), extraKey, (byte) 12);
+    // Inheriting the first publication's unrelated source witness would wrongly reject this.
+    assertThat(second.finish(true)).isTrue();
+    Files.writeString(other.resolve("dir/file"), "two");
+    var editedInputs = new LocalInputSnapshot(other, output, Map.of());
+    var edited = new LocalCacheSession(cache, editedInputs);
+    try {
+      var client = client(edited, editedInputs);
+      assertThat(client.lookup(key.toBytes()).get().value()).isEmpty();
+      assertThat(client.lookup(extraKey.toBytes()).get().value()).isEqualTo(new byte[] {12});
+    } finally {
+      edited.finish(false);
+    }
+    Files.writeString(other.resolve("dir/file"), "one");
+    var revertedInputs = new LocalInputSnapshot(other, output, Map.of());
+    var reverted = new LocalCacheSession(cache, revertedInputs);
+    try {
+      assertThat(client(reverted, revertedInputs).lookup(key.toBytes()).get().value())
+          .isEqualTo(new byte[] {11});
+    } finally {
+      reverted.finish(false);
+    }
+  }
+
+  @Test
+  public void staleFirstCandidateDoesNotHideAnotherRevisionOfTheSameAnalysisKey() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {63});
+    for (int revision = 1; revision <= 2; revision++) {
+      Files.writeString(file, "revision" + revision);
+      var inputs = snapshot();
+      var session = new LocalCacheSession(cache, inputs);
+      writeEntry(session, inputs, file, key, (byte) revision);
+      assertThat(session.finish(true)).isTrue();
+    }
+    var probe = new LocalCacheSession(cache, snapshot());
+    byte[] first;
+    try {
+      first = probe.nextAnalysisCandidate(key, new java.util.HashSet<>()).value();
+    } finally {
+      probe.finish(false);
+    }
+    int wanted = first[first.length - 1] == 1 ? 2 : 1;
+    Files.writeString(file, "revision" + wanted);
+    var inputs = snapshot();
+    var session = new LocalCacheSession(cache, inputs);
+    try {
+      var client = client(session, inputs);
+      assertThat(client.lookup(key.toBytes()).get().value()).isEqualTo(new byte[] {(byte) wanted});
+      assertThat(client.validationStatisticsJson()).contains("\"rejected_roots\":1");
+    } finally {
+      session.finish(false);
+    }
+  }
+
+  @Test
+  public void parallelWritersCanPublishDifferentValuesForTheSameLogicalKey() throws Exception {
+    Path other = temporary.newFolder("parallel-worktree").toPath();
+    Files.createDirectory(other.resolve("dir"));
+    Files.writeString(other.resolve("dir/file"), "two");
+    shareRepository(workspace, other);
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {64});
+    var barrier = new java.util.concurrent.CyclicBarrier(2);
+    try (var executor = Executors.newFixedThreadPool(2)) {
+      var tasks = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+      for (Path tree : List.of(workspace, other)) {
+        tasks.add(
+            executor.submit(
+                () -> {
+                  var inputs = new LocalInputSnapshot(tree, output, Map.of());
+                  var session = new LocalCacheSession(cache, inputs);
+                  try {
+                    barrier.await();
+                    writeEntry(
+                        session,
+                        inputs,
+                        tree.resolve("dir/file"),
+                        key,
+                        (byte) (tree.equals(workspace) ? 1 : 2));
+                    return session.finish(true);
+                  } finally {
+                    session.finish(false);
+                  }
+                }));
+      }
+      for (var task : tasks) {
+        assertThat(task.get()).isTrue();
+      }
+    }
+    for (Path tree : List.of(workspace, other)) {
+      var inputs = new LocalInputSnapshot(tree, output, Map.of());
+      var session = new LocalCacheSession(cache, inputs);
+      try {
+        assertThat(client(session, inputs).lookup(key.toBytes()).get().value())
+            .isEqualTo(new byte[] {(byte) (tree.equals(workspace) ? 1 : 2)});
+      } finally {
+        session.finish(false);
+      }
+    }
+  }
+
+  @Test
+  public void acceptedSourceEvidenceIsRevalidatedAndLateCandidateAcceptanceFails()
+      throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {65});
+    var firstInputs = snapshot();
+    var first = new LocalCacheSession(cache, firstInputs);
+    writeEntry(first, firstInputs, file, key, (byte) 1);
+    assertThat(first.finish(true)).isTrue();
+    var inputs = snapshot();
+    var session = new LocalCacheSession(cache, inputs);
+    var candidate = session.nextAnalysisCandidate(key, new java.util.HashSet<>());
+    assertThat(client(session, inputs).lookup(key.toBytes()).get().value())
+        .isEqualTo(new byte[] {1});
+    session.put(NONPROD_FINGERPRINTER.fingerprint(new byte[] {66}), new byte[] {3}).get();
+    Files.writeString(file, "changed after lookup");
+    assertThat(session.finish(true)).isFalse();
+    assertThat(session.acceptAnalysisCandidate(candidate)).isFalse();
+  }
+
   @Test
   public void followsNestedParentsListingsAndSourceAndRejectsEachChange() throws Exception {
     var parent = leaf(file.getParent(), false, List.of());
