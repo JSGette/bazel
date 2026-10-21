@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 61. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 62. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -72,17 +72,18 @@ Large post-GC writer/reader and repeated restart checks were omitted under the c
 collector tests and earlier real-server lifecycle evidence remain separate. Net performance benefit,
 broader compatibility, longer histories and remote transport remain open.
 
-## Performance work after diagnosis
+## Architecture recommendation after the measured batch
 
-The [source/profile diagnosis](../skycache-performance-diagnosis-2026-10-21.md) prioritizes timing
-instrumentation, full-workspace capture cost, small synchronous record I/O, dependency-scoped
-admission and serialized validation. Inherited command cleanup already clears the client/session;
-quantify remaining heap ownership before proposing lifecycle changes. Trace action-cache digest
-mismatches and match action-output
-states before claiming an isolated speed improvement. Keep the evaluator and graphs in RAM.
-The subsequent [optimization batch](../skycache-optimization-batch-2026-10-21.md) coalesces record
-I/O, metadata reads and parsing overhead. The reader remains 30.7% slower than matched cache-off
-controls, so setup scope, serialized validation and deferred repository work remain priorities.
+The [architecture reassessment](../skycache-architecture-reassessment-2026-10-21.md) recommends
+pausing broad micro-optimization of the current freshness pipeline. Retain concurrent immutable
+storage, the existing serialization boundary and each server's in-memory graph. Prototype compact,
+dependency-scoped input certificates tied to evaluated observations, with selective publication and
+batched transfer. A trustworthy input-version/change mechanism is the hard part; Git or timestamps
+alone are insufficient. The full source guard cannot simply be deleted.
+
+The proposed redesign is not implemented. Require a measured reader/writer break-even gate before
+expanding scope. The current reader is 30.7% slower than matched controls; no count of equally slow
+readers amortizes the wall-time deficit. Evaluate actual concurrent throughput separately.
 
 ## Implemented design
 

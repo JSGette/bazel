@@ -214,12 +214,14 @@ attribution remain unmeasured. See the
 
 ## Suggested next work
 
-Use this branch as an opt-in local prototype. Follow the negative NVMe on/off observations with
-matched action-output state and repeated cold/warm/restarted builds across worktrees, reporting full command
-time, analysis time, memory and physical I/O. If validation still dominates, profile that phase
-before changing its correctness rules. Broaden rule/platform and long-running lifecycle coverage
-before treating this as a general replacement for recomputation. Keep remote transport separate
-until local benefit and operating behavior are understood.
+Treat this as a concurrency/correctness prototype. The
+[architecture reassessment](skycache-architecture-reassessment-2026-10-21.md) identifies broad
+freshness validation and fine-grained import as the main design mismatch. Retain the storage work;
+first prove a cheaper input-identity and scoped-import path, with selective publication, before
+further broad tuning. This is a recommendation, not an implemented redesign. Keep the graph in RAM
+and allow all workers to publish. Net performance benefit and concurrent throughput remain unproven.
+
+## Preserved evidence and cleanup
 
 The private raw-evidence archive preserves 2,534 files, including failed
 attempts and the successful final checks. Every archived file was read back against its SHA-256.

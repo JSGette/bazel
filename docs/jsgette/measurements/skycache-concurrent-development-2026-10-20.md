@@ -12,7 +12,7 @@ For setup, flags and interpreting hits, see the [local usage guide](../skycache-
 
 ## Current status
 
-Updated 2026-10-21 through Step 61. Experimental concurrent analysis reuse is implemented with
+Updated 2026-10-21 through Step 62. Experimental concurrent analysis reuse is implemented with
 full in-memory graphs and no evaluator changes. Current focused checks pass 284 Java cases across
 18 targets. The latest batch passes six sequential NVMe builds (two preparations, four measured):
 reader 25.285 s versus 19.348 s control mean, still 30.7% slower despite matching action reuse.
@@ -3578,3 +3578,21 @@ interval. No additional attempts were run after this batch.
 
 Raw evidence is readback-verified in the private archive recorded by the curated JSON. The source
 branch is separately pushed; docs/results remain on `jsgette/master`.
+
+
+## Step 62 — architecture reassessment (2026-10-21)
+
+Read-only review; no implementation edits or builds. The
+[assessment](../skycache-architecture-reassessment-2026-10-21.md) concludes that the concurrent
+immutable store remains useful, but the current freshness/import architecture has the wrong cost
+shape for this workload. A reader repeats whole-workspace setup, broad external admission and a
+serialized transitive proof beside Skyframe. Setup alone consumes about 70% of the control's
+reported analysis budget. One writer plus n readers adds approximately `14.418 + 5.938*n` sequential
+seconds over cache-off, so more current-speed readers do not amortize latency.
+
+Recommended: pause broad micro-optimization; prototype compact dependency-scoped evidence bound to
+actual evaluated inputs, trustworthy per-worktree change handling, selective publication and batched
+transfer. Keep storage safety, graphs in RAM and every worker's ability to publish. Do not delete
+source guards or use commit/mtime-only correctness shortcuts. A performance gate must precede
+further protocol expansion. This is a proposed direction, not a claim that the alternative is
+implemented or faster. Sequential observations do not establish concurrent throughput.
