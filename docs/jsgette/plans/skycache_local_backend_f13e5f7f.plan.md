@@ -275,6 +275,15 @@ falls from 10106.718 to 5588.584 ms in three alternating fresh-JVM pairs.
 Runtime diagnostics contain 0 native submission timeout(s); no whole-build improvement is
 claimed. Continue remaining deadline diagnosis, lifecycle coverage, statistics and reader-safe GC.
 
+## Warm lifecycle transitions (Step 36)
+
+54 builds and two query commands pass with two cache-enabled worktrees and independent cache-off
+controls. The same server processes survive configuration changes/reverts, cache disable/edit/re-enable,
+directory switches, repository/action environment changes and an intervening query. Outputs match
+expected bytes and controls with disk/remote action caching disabled. The test-environment flag case
+does not exercise test execution. No product change was needed; keep this regression probe for future
+lifecycle changes. Continue traffic statistics and reader-safe collection/quotas.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

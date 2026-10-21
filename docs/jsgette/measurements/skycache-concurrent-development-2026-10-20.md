@@ -2142,3 +2142,55 @@ Evidence: [paired benchmark](skycache-concurrent-2026-10-20/admission-validation
 [Datadog smoke](skycache-concurrent-2026-10-20/admission-validation-runtime.json),
 [runtime review](skycache-concurrent-2026-10-20/admission-validation-runtime-review.json),
 [fixture protocol](skycache-concurrent-2026-10-20/admission-validation-fixture-summary.json).
+
+
+## Step 36 — warm cache, configuration and environment transitions
+
+Probe: [c3f7d4bf03b1](https://github.com/JSGette/bazel/commit/c3f7d4bf03b1e1a25d6ab2b5ea02573f9e5bc9f7).
+The new reproducible lifecycle probe passes 54 builds and two query commands across two cache-enabled
+Git worktrees and two independent cache-off controls. It uses the unchanged Step 35 Bazel binary,
+whose source/tests were built with Cache&Carry. No new Bazel source compilation was necessary for
+this Python correctness harness. Disk and remote action caches are disabled in every build. Each
+server uses a 1 GiB heap and two action slots, with the host measurement lock held throughout.
+
+The fixture has six library genrules and an active app package. Output bytes depend on source files,
+a Starlark action suffix, a --define value, a repository rule reading --repo_env and a shell action
+reading --action_env. Every output is checked against directly constructed expected bytes. Each
+transition also matches independent cache-off builds in both worktrees, except the restarted-reader
+phase, whose expected baseline and preceding control hashes are already established.
+
+The first writers publish successfully, then both cache-enabled servers restart and read seven
+configured targets each from the shared cache. All later transitions preserve each server PID,
+including both query commands, so these checks exercise retained graphs rather than silently using
+fresh JVMs. Configuration and source reverts, cache-directory return and resumption after query
+obtain fresh analysis hits where needed. Disabling the local cache produces no local-cache statistics
+or analysis hits; source and Starlark edits still produce the correct new bytes. Re-enabling, switching
+to an empty cache directory and returning to the original directory remain correct. Changing the
+repository or action environment changes output bytes exactly as in both controls.
+
+| Phase | Builds | Fresh CT hits A/B |
+| --- | ---: | ---: |
+| initial-writers | 4 | 0/0 |
+| restarted-readers | 2 | 7/7 |
+| configuration-change | 4 | 0/0 |
+| configuration-revert | 4 | 7/7 |
+| disable-and-edit | 4 | 0/0 |
+| reenable-after-edit | 4 | 0/0 |
+| reenabled-source-revert | 4 | 7/7 |
+| switch-cache-directory | 4 | 0/0 |
+| switch-back | 4 | 7/7 |
+| repository-environment-change | 4 | 0/0 |
+| action-environment-change | 4 | 0/0 |
+| test-environment-change | 4 | 7/7 |
+| build-after-query | 4 | 7/7 |
+| restore-original-environment | 4 | 1/1 |
+
+The --test_env transition is a build of non-test targets, so it checks tolerance of that option
+change, not test-execution reuse. The query phase checks that the local caching session is inactive
+for a non-executing command and that the subsequent build resumes correctly. These are small,
+generated correctness cases; the saved per-command times are diagnostic context, not performance
+claims. All owned servers shut down cleanly. No product or evaluator change was required by this
+matrix. Retain the large Datadog results for workload coverage and continue with traffic statistics
+and reader-safe collection/quotas.
+
+Evidence: [complete lifecycle protocol](skycache-concurrent-2026-10-20/lifecycle-transitions.json).
