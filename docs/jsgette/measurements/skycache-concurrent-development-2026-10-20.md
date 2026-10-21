@@ -3289,11 +3289,19 @@ independent reader after forced collection. The additional repeated restart/re-e
 post-collection concurrent reader pair are omitted. The separate34-build membership matrix was
 already complete; it is neither repeated nor counted as new work under this cap.
 
-The live coordinator will switch schedules only after the completed warm phase's result and memory
-samples are saved. This preserves the first eight measured commands and their timings, then resumes
-with the explicit limit. No running Bazel build is cancelled to shorten the schedule. The terminal
-runtime audit must require exactly the selected16 builds and record the operator-requested boundary.
-At this step, that audit remains pending. No full pass is claimed.
+The coordinator switched schedules after the completed warm phase's result and memory samples were
+saved. All eight successful commands and their timings were preserved, and the resumed capped
+harness revalidated those rows. No running Bazel build was cancelled or rerun; no omitted restart
+phase had started. The old coordinator's SIGTERM reflects this operator-requested boundary, not a
+Bazel command failure. The terminal audit still requires exactly the selected16 builds; it remains
+pending, and no full pass is claimed.
+
+The final-run warm audit independently verified4,501 retained graph keys out of4,506, five unknown
+forwarding keys conservatively invalidated, zero dependency-root rejections and zero configured-target
+reloads. Warm B took154.002seconds, including approximately129seconds of validation (Bazel displayed
+2.150minutes). The audit parser was corrected to accept Bazel's minute unit; no product behavior or
+acceptance condition changed. This is correct retention with significant validation overhead, not
+an established performance win.
 
 The final matched performance table will compare the concurrent edited pair with its independent
 cache-off controls. A fresh restarted-baseline cache/control ratio is absent from this reduced run;

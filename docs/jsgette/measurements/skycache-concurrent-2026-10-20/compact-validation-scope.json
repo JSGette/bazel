@@ -57,8 +57,27 @@
   ],
   "preserve_completed_builds": true,
   "runtime_acceptance_pending": true,
-  "switch_policy": "Pause the coordinator only after warm-base outputs and samples are fully recorded. Preserve all eight completed builds, terminate only the idle coordinator, then revalidate saved rows and resume with the explicit16-build cap. Do not cancel or rerun completed builds.",
+  "switch_policy": "Completed at the saved warm-base boundary. All eight successful builds and their raw evidence were preserved and revalidated by the resumed capped harness. No omitted-phase log was created before the switch.",
   "retained": "Independent baseline/control outputs; warm reuse; two simultaneous semantic edits; warm reverts; independent edited cache-off controls without disk action cache; forced collection followed by writer and independent reader.",
   "omitted": "Repeated restarted cached baseline/edit/revert pairs, warm re-edit pair, edited/reverted restarted controls and the additional concurrent reader pair after collection.",
-  "limitations": "No fresh paired restarted-baseline performance ratio in this reduced run. Only the matched edited pair/control comparison remains. Existing34-build membership and prior runtime evidence are separate, not counted as new builds."
+  "limitations": "No fresh paired restarted-baseline performance ratio in this reduced run. Only the matched edited pair/control comparison remains. Existing34-build membership and prior runtime evidence are separate, not counted as new builds.",
+  "schedule_switch_completed": true,
+  "completed_builds_preserved": 8,
+  "no_build_cancelled": true,
+  "original_coordinator_terminal_reason": "Operator-requested schedule change at fully recorded phase boundary; its SIGTERM is not a Bazel build failure.",
+  "warm_retention": {
+    "passed": true,
+    "counts": {
+      "first_reader_hits": 4501,
+      "warm_checked_graph_keys": 4506,
+      "warm_invalidated_keys": 5,
+      "warm_retained_graph_keys": 4501,
+      "warm_reload_hits": 0,
+      "rejected_roots": 0
+    },
+    "warm_seconds": 154.0019661890001,
+    "invalidation_seconds": 129.0,
+    "invalidation_duration_display": "2.150 min",
+    "duration_precision": "Converted from Bazel rounded display; full command wall time is separately measured."
+  }
 }
