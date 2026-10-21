@@ -2872,3 +2872,58 @@ Evidence: [actual repairs and source hashes](skycache-concurrent-2026-10-20/coll
 [passing test log](skycache-concurrent-2026-10-20/collector-copied-output-tests.log),
 [collision regression before the fix](skycache-concurrent-2026-10-20/collector-copied-output-collision-before.log),
 [complete retry command](skycache-concurrent-2026-10-20/collector-d-retry3-command.json).
+
+
+## Step 46 — preserve normal native repository sharing on the guarded volume
+
+Harness implementation: [cdf34f2ee377](https://github.com/JSGette/bazel/commit/cdf34f2ee3779683aada7da10706647a077589bb).
+The repaired-link retry completes six successful builds with the same baseline executable hash,
+but its independent reader again gets zero analysis hits and zero shared reads. This remains a
+failed acceptance gate. Both manifests have the same namespace/source digest and 82,206 global
+witnesses each. All 900 differing witness entries (100 present in both manifests) concern Python
+`__pycache__` paths. The earlier copied workspace/output-root mismatches are gone. All servers stop,
+sources restore and no invalidation deadline expires.
+
+The fixture had disabled `--repository_cache` to keep large downloads away from the nearly full
+E volume. In this Bazel version that also disables the native repository contents cache by default.
+`rules_python` derives its default writable bytecode-cache location from the workspace path, so
+independently materialized Python repositories have different absolute cache links. The original
+successful E fixture used one native cached Python repository for both outputs. Conservative input
+validation correctly rejects the mismatched independently materialized repositories; it must not
+ignore those paths merely to produce hits.
+
+The harness now accepts `--repository-cache PATH`, passes both `--repository_cache` and
+`--repo_contents_cache=PATH/contents`, includes that location in initial and live storage checks,
+and records/checks it on resume. It rejects combination with `--disable-repository-cache`. A real
+negative CLI check rejects the low-capacity default E cache before creating any fixture or launching
+Bazel; the explicit D cache passes capacity checks. All 29 focused Python cases pass. An initial
+unit run inherited the live snapshot environment and interfered with two tests that mock interop;
+the runner now removes that environment variable only for the isolated unit subprocess. Real CLI
+and measurement processes retain the live observation. No production guard behavior changed.
+
+Four generated Python repository marker files were preserved, then native Bazel fetches rebuilt
+their bindings using the explicit D cache. All four outputs now point to the same native repository,
+the same bytecode-cache link and identical `pathlib.py` bytes. The serial fetches took
+22.273 / 27.825 / 13.023 / 12.645 seconds for control-A / control-B / A / B. They used all 32 available
+CPUs with an 8 GiB action-memory scheduling budget and a 4 GiB maximum JVM heap; all servers shut down.
+This prepares dependencies and is not an analysis-cache performance measurement. The normal small
+Python bytecode scratch directory remains under WSL `/tmp`; the explicit D path covers repository
+downloads and shared repository contents.
+
+Chosen: normal native repository sharing, enabled equally for all four worktrees. Discarded: ignoring
+Python witnesses, rewriting their fingerprints, or adding a special shared mutable bytecode-cache
+override. The SkyCache binary and Java implementation are unchanged; source builds/tests continue
+to use Cache&Carry. Remote action caching remains disabled for Datadog measurement isolation.
+
+The next complete matrix has a new result directory, an empty SkyCache and zero accepted prior
+phases. Both sets of failed publications and packed data are preserved. It retains the paired
+jobs=2, action-memory=3072 MiB and Xmx4g policy, resolved JDK/lockfile and compiled binary. The full
+32-build reuse/edit/revert/collection gate remains pending. D is a SATA HDD; compare matched phases
+within this run only. Initial materialization and observation costs are not general speed evidence.
+
+Evidence: [failed reuse gate](skycache-concurrent-2026-10-20/collector-d-python-path-rejection.json),
+[900 witness differences](skycache-concurrent-2026-10-20/collector-python-path-diagnosis.json),
+[native repository preparation](skycache-concurrent-2026-10-20/collector-native-repository-preparation.json),
+[CLI and unit checks](skycache-concurrent-2026-10-20/collector-native-repository-cli-checks.json),
+[29-case log](skycache-concurrent-2026-10-20/collector-native-repository-tests.log),
+[complete retry command](skycache-concurrent-2026-10-20/collector-d-retry4-command.json).
