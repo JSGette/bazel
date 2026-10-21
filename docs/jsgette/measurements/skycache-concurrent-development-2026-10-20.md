@@ -12,27 +12,17 @@ For setup, flags and interpreting hits, see the [local usage guide](../skycache-
 
 ## Current status
 
-Updated 2026-10-21, through Step 50. Experimental concurrent analysis reuse is implemented,
-with full in-memory graphs and no evaluator implementation changes. Current core checks cover
-277 Java cases across 18 targets. The 34-build file-membership runtime gate passes again
-on the current binary across two cached worktrees and two independent controls.
+Updated 2026-10-21 through Step 61. Experimental concurrent analysis reuse is implemented with
+full in-memory graphs and no evaluator changes. Current focused checks pass 284 Java cases across
+18 targets. The latest batch passes six sequential NVMe builds (two preparations, four measured):
+reader 25.285 s versus 19.348 s control mean, still 30.7% slower despite matching action reuse.
+See the [batch report](../skycache-optimization-batch-2026-10-21.md).
 
-The final collector-enabled 32-build Datadog acceptance matrix remains incomplete. Its corrected
-repository fixture now gives 4,501 actual analysis hits to independent and restarted readers,
-with output hashes matching controls. However, concurrent edited builds time out in final cache
-input validation after successful action execution. An earlier warm phase also hits the upstream
-invalidation deadline. Restarted cached readers are slower and use more memory than controls on
-this temporary SATA HDD. These are failures to address, not a speedup or a mature release.
-
-Steps 48–49 remove redundant inherited-input hashing and repeated hashing of large file aliases
-within a fresh validation pass. The full focused suite passes, with measured reductions in reads
-and latency. It has not yet passed a new
-substantial Datadog run. All failed evidence is preserved; test servers stopped and artificial
-source edits restored. Further latency investigation and the full reuse/edit/revert/collection
-gate remain required before the final acceptance audit can close.
-
-The numbered steps below are chronological checkpoints; each describes the implementation and
-evidence available at that point. Later steps supersede their pending-work statements.
+Earlier evidence includes a 34-build concurrent membership matrix and the capped Datadog matrix
+of 16 attempts: 14 passed, two timed out, with the last six correctness checks passing. Those
+remain evidence for their recorded binaries; this batch does not rerun the full concurrency matrix.
+Sources are restored and servers stopped. No production maturity or net performance benefit is
+claimed. Numbered steps preserve chronological evidence, including failures and superseded plans.
 
 ## Step 1: duplicate-write fast path
 
@@ -3550,11 +3540,41 @@ The clearest measured increment is 4.159 seconds in cache setup (51.3% of the ob
 reader gap). The implementation always captures full-workspace content before it knows whether
 novel writes are needed. The dependency validator serializes a 163,378-record proof and the pack
 API performs small synchronous reads despite returning futures. Memo tables are working and their
-limits are not hit. Writer publication repeats full source capture. Completed invocation validation
-metadata remains referenced until another command, creating an idle-memory cleanup opportunity.
+limits are not hit. Writer publication repeats full source capture. The initial idle-retention
+claim was retracted during Step 61: the inherited `afterCommand()` invokes `resetCommandState()`,
+which already clears session/client references. No redundant cleanup was implemented.
 
 BEP additionally identifies 2,297 writer / 2,248 reader action-cache DIGEST_MISMATCH misses, versus
 zero in controls; the exact changed digest components are untraced. GC notification spans are
 under one second and repository mapping time is common to both modes, so neither explains the
 multi-second regression alone. Phase durations are not added as an exact causal decomposition.
 Recommendations remain within the local backend/serialization layer and preserve correctness checks.
+
+
+## Step 61 — metadata and packed-I/O optimization batch (2026-10-21)
+
+Implementation: [`6f451b2dc6`](https://github.com/JSGette/bazel/commit/6f451b2dc6f783dda879ff3c7ed3fc8146d0f410).
+[Full batch report](../skycache-optimization-batch-2026-10-21.md) and
+[curated six-attempt evidence](skycache-concurrent-2026-10-20/batch-optimization-2026-10-21.json).
+
+Batched small packed-record reads/writes (three loops to one; large records three to two),
+combined fresh POSIX metadata observations, removed temporary digest-length buffers, and precompiled
+the dependency-key regex. Formats, content guards and validation semantics remain. Deferred parallel
+hashing and validator redesign to keep the requested quick batch narrow. Inherited command cleanup
+already clears references; the Step 60 idle-retention finding was retracted, not fixed redundantly.
+
+Cache&Carry build plus all 18 executed test targets passed 284 cases in 16.856 s, with three remote
+cache hits. Two preparation and four measured Datadog builds completed on E: NVMe with 32 jobs,
+Xmx6g and 6 GiB action memory. All outputs match; all four measured builds show 6,788 local action
+hits, zero digest mismatches and one unconditional internal action. Sources are unchanged; servers
+stopped. Writer published successfully and reader reused 4,501 configured targets without failure.
+
+Controls took 19.388/19.307 s, writer 33.766 s and reader 25.285 s. Reader remains 30.7% slower than
+the control mean. Reader setup is 3.723 s versus the earlier 4.161 s. Total historical improvement
+cannot be isolated from preparation/action-cache differences. Near-equal analysis phases also hide
+repository work deferred into execution; the report preserves exact span evidence. Peak reader PSS
+is 5.004 GiB versus 2.550/3.976 GiB controls. One observation per enabled role is not a confidence
+interval. No additional attempts were run after this batch.
+
+Raw evidence is readback-verified in the private archive recorded by the curated JSON. The source
+branch is separately pushed; docs/results remain on `jsgette/master`.

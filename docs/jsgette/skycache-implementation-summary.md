@@ -7,10 +7,9 @@ existing analysis serialization and service interfaces; the Skyframe evaluator i
 unchanged. There is no Rust evaluator, graph paging or graph-size limit derived from `--jobs`.
 
 Implementation: [`jsgette/skycache-concurrent`](https://github.com/JSGette/bazel/tree/jsgette/skycache-concurrent).
-The measured binary was built from `802d66bc21bd706a20dc5476791d305020363303`; the later
-`34688d19d6244ef3ccf633ebcca6e1376f12c87b` commit changes only the validation harness to enforce
-the user-requested 16-build limit. Documentation and results are on
-`jsgette/master`. The [usage guide](skycache-local-usage.md) provides flags and operating details;
+The latest measured binary is built from `6f451b2dc6f783dda879ff3c7ed3fc8146d0f410`.
+Earlier capped validation and NVMe results below retain their original binary provenance.
+Documentation and results are on `jsgette/master`. The [usage guide](skycache-local-usage.md) provides flags and operating details;
 the [development protocol](measurements/skycache-concurrent-development-2026-10-20.md) preserves
 individual measurements, failures, fixes and rejected alternatives.
 
@@ -47,10 +46,21 @@ preserves unknown layouts. Default collection limits are a soft 5 GiB and seven 
 after 30 idle seconds. Process death releases leases. JSON reports expose cache hits, shared reads,
 writes, deduplication, validation, publication and collection behavior.
 
+## Latest optimization batch
+
+Metadata/I/O batching and precompiled dependency-key parsing are implemented and pushed.
+Matched NVMe controls take 19.388/19.307 s; the fresh writer takes 33.766 s and independent reader
+25.285 s, still 30.7% slower than the control mean. All measured builds reuse 6,788 local actions
+with zero digest mismatches and produce identical outputs. Setup falls by about 0.44 s versus the
+prior reader observation, but historical whole-build improvement is confounded by preparation and
+action-cache state. See the [batch report](skycache-optimization-batch-2026-10-21.md) for full results,
+phase-shifting evidence, tests and limits. Net benefit remains unproven.
+
 ## Validation and measured performance
 
-The current binary passes 280 Java cases across 18 targets. Three retained-validation routing
-regressions fail before the fix. Its separate 34-build concurrent membership matrix covers edits,
+The current binary passes 284 Java cases across 18 targets and the six-build optimization batch
+below. Earlier evidence includes three retained-validation routing regressions that fail before
+their fix. The previous binary's separate 34-build concurrent membership matrix covers edits,
 additions, unchanged-content renames, deletions and reverts against independent cache-off controls.
 Focused recovery cases cover conflicting publishers, missing parents, corruption, process death,
 reader pins and collection races. Source builds/tests used Cache&Carry.
@@ -197,8 +207,9 @@ Read-only profile/source review identifies a 4.16-second cache setup stage conta
 unconditional whole-workspace content scan, a validator-wide lock over 163,378 dependency records,
 and hundreds of thousands of tiny synchronous pack operations. Memoization is effective but does
 not avoid that first proof. Writer final validation repeats the source scan. Extra action digest
-mismatches confound the full-build comparison; idle validation metadata also survives until the
-next command. Precise inner-method and heap attribution remain unmeasured. See the
+mismatches confound the full-build comparison. An earlier idle-retention claim was retracted after
+tracing the superclass, which already clears command state. Precise inner-method and heap
+attribution remain unmeasured. See the
 [ranked diagnosis and optimization order](skycache-performance-diagnosis-2026-10-21.md).
 
 ## Suggested next work

@@ -27,15 +27,15 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 60. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 61. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
 timer, shared mutable graph, graph paging, Rust service or evaluator residency limit.
 
 Implementation: [`jsgette/skycache-concurrent`](https://github.com/JSGette/bazel/tree/jsgette/skycache-concurrent),
-currently `34688d19d6244ef3ccf633ebcca6e1376f12c87b`. The measured Java binary remains the
-`802d66bc21bd706a20dc5476791d305020363303` implementation; the later commit changes only the harness. Documentation and results remain on
+currently `6f451b2dc6f783dda879ff3c7ed3fc8146d0f410`, including the measured metadata/I/O batch.
+Earlier results retain their original binary provenance. Documentation and results remain on
 `jsgette/master`. The [development protocol](../measurements/skycache-concurrent-development-2026-10-20.md)
 contains the chronological measurements and decisions. The
 [previous roadmap](skycache_local_backend_f13e5f7f.history-through-step49.md) is preserved for history;
@@ -43,8 +43,8 @@ its old pending-work statements do not describe current implementation status.
 
 ## Local prototype handoff; qualification remains open
 
-The current binary passes 280 Java cases across 18 targets and a 34-build concurrent membership
-matrix. The capped Datadog run contains 16 attempts: 14 passed and two timeouts. The last six passed
+The current binary passes 284 Java cases across 18 targets and six sequential NVMe builds.
+The previous binary passed a 34-build concurrent membership matrix. The capped Datadog run contains 16 attempts: 14 passed and two timeouts. The last six passed
 after repository inputs moved to NVMe while preserving logical paths: simultaneous edited
 reads/publications, exact warm reverts and independent edited controls. Both prior failed commands
 remain failures. No full 16/16 success, general speedup or production maturity is claimed.
@@ -76,10 +76,13 @@ broader compatibility, longer histories and remote transport remain open.
 
 The [source/profile diagnosis](../skycache-performance-diagnosis-2026-10-21.md) prioritizes timing
 instrumentation, full-workspace capture cost, small synchronous record I/O, dependency-scoped
-admission and serialized validation. Release invocation-only metadata after command completion
-once lifecycle users are checked. Trace action-cache digest mismatches and match action-output
+admission and serialized validation. Inherited command cleanup already clears the client/session;
+quantify remaining heap ownership before proposing lifecycle changes. Trace action-cache digest
+mismatches and match action-output
 states before claiming an isolated speed improvement. Keep the evaluator and graphs in RAM.
-No implementation changes were made during this diagnosis.
+The subsequent [optimization batch](../skycache-optimization-batch-2026-10-21.md) coalesces record
+I/O, metadata reads and parsing overhead. The reader remains 30.7% slower than matched cache-off
+controls, so setup scope, serialized validation and deferred repository work remain priorities.
 
 ## Implemented design
 

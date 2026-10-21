@@ -115,7 +115,7 @@ novel writes: repeat the whole-workspace content capture, validate retained witn
 pack and durably publish the manifest. This strongly implicates draining and publication in the
 writer's additional cost. The reader had `writes=0`, so it correctly skipped redundant publication.
 
-## 5. More temporary metadata, plus avoidable idle retention
+## 5. More temporary metadata; retained heap ownership remains unmeasured
 
 The reader's peak PSS was 5.139 GiB against 3.823/2.518 GiB controls, despite fewer final graph
 nodes (234,712 versus about 319,822). The graph node count is not the whole heap. Import creates
@@ -129,12 +129,12 @@ heap measurements. They support allocation churn, while under-one-second recorde
 not explain the multi-second latency gap. Existing object fingerprint caches already use weak
 references and `NOT_LINKED`; enabling those is not a new fix.
 
-There is also a concrete lifetime issue: [afterCommand](https://github.com/JSGette/bazel/blob/34688d19d6244ef3ccf633ebcca6e1376f12c87b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java#L210)
-extracts statistics and retained roots but leaves `Services.client` and `Services.session`
-referenced until the next command resets them. These retain invocation-only validator/input maps.
-[Store cleanup](https://github.com/JSGette/bazel/blob/34688d19d6244ef3ccf633ebcca6e1376f12c87b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java#L814) does not clear all those sets. Releasing
-completed invocation state is a worthwhile idle-memory cleanup after verifying lifecycle users.
-It is **not proof of the measured peak-PSS cause**; an allocation or heap profile is needed for that.
+**Correction after tracing inherited cleanup during the optimization batch:** the initial diagnosis
+incorrectly said `Services.client` and `Services.session` survive until the next command.
+`LocalSkycacheModule.afterCommand()` calls `super.afterCommand()`, and
+[SerializationModule.afterCommand](https://github.com/JSGette/bazel/blob/34688d19d6244ef3ccf633ebcca6e1376f12c87b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SerializationModule.java#L55)
+invokes `resetCommandState()`, clearing those references. No redundant lifecycle cleanup was added.
+The peak-PSS difference remains measured; its ownership still needs an allocation or heap profile.
 
 ## 6. Part of the observed wall-time gap is unequal action reuse
 
@@ -163,7 +163,8 @@ specific mismatches is required before assigning the entire 41.3% observed diffe
 4. **Remove the validator-wide bottleneck carefully:** bounded parallel or shared in-flight
    validation must preserve parent ordering, cycle detection, budgets and invocation-local validity.
    Compact evidence and precompiled key validation can reduce parsing/allocation overhead.
-5. **Release completed invocation-only state**, then quantify peak versus idle memory separately.
+5. **Quantify peak versus idle memory separately** with allocation/heap evidence. Inherited command
+   cleanup already clears the client/session references; no new reset is needed.
 6. **Repeat a matched on/off comparison** after each measured optimization, including exact action
    cache-state evidence. More CPU, more heap or graph paging is not the first response to this data.
 
