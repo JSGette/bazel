@@ -134,6 +134,30 @@ No new concurrent, warm-in-memory invalidation or post-GC measurement was made. 
 [Step 58](measurements/skycache-concurrent-development-2026-10-20.md#step-58--two-full-nvme-performance-observations-2026-10-21)
 and the [curated measurements](measurements/skycache-concurrent-2026-10-20/nvme-two-builds-2026-10-21.json).
 
+## NVMe cache-off comparison: two additional baselines
+
+Two later builds used the **identical fork binary with SkyCache disabled**, providing a feature-off
+baseline rather than a separate upstream release. Storage, resources, revision and target match
+Step 58. Each server started with an empty graph; both commands succeeded and outputs matched.
+
+| Metric | Cache off A | Cache off B | SkyCache reader | SkyCache writer |
+|---|---:|---:|---:|---:|
+| Full command | 20.471 s | 18.829 s | 27.762 s | 33.901 s |
+| Analysis phase | 5.505 s | 4.972 s | 7.451 s | 8.211 s |
+| Peak process-tree PSS | 3.823 GiB | 2.518 GiB | 5.139 GiB | 4.780 GiB |
+
+Against the **19.650-second baseline mean**, the reader was **41.3% slower** and the writer
+**72.5% slower** in these observations. Reader analysis also exceeded baseline mean analysis
+by 42.2%, despite 4,501 configured-target hits. Its cache setup before analysis took 4.161 seconds;
+this cost was negligible with the feature disabled. No speed or peak-memory benefit is demonstrated
+for this workload on NVMe.
+
+Initial action-output states differ: controls had 6,788 local hits each, while the reader had
+4,538 local hits, 1,197 disk hits and 1,054 internal actions. Runs were ordered, with no filesystem
+cache reset or repeated SkyCache sample. The observed percentages are not an isolated causal
+estimate of SkyCache overhead. See [Step 59](measurements/skycache-concurrent-development-2026-10-20.md#step-59--two-cache-off-baselines-on-the-same-nvme-2026-10-21)
+and the [curated comparison](measurements/skycache-concurrent-2026-10-20/nvme-cache-off-comparison-2026-10-21.json).
+
 ## Shortcomings and missing work
 
 - **End-to-end benefit remains workload dependent.** Input capture, content hashing, repository
@@ -169,8 +193,8 @@ and the [curated measurements](measurements/skycache-concurrent-2026-10-20/nvme-
 
 ## Suggested next work
 
-Use this branch as an opt-in local prototype. Build on the two native-SSD observations with matched
-cache-off controls and repeated cold/warm/restarted builds across worktrees, reporting full command
+Use this branch as an opt-in local prototype. Follow the negative NVMe on/off observations with
+matched action-output state and repeated cold/warm/restarted builds across worktrees, reporting full command
 time, analysis time, memory and physical I/O. If validation still dominates, profile that phase
 before changing its correctness rules. Broaden rule/platform and long-running lifecycle coverage
 before treating this as a general replacement for recomputation. Keep remote transport separate

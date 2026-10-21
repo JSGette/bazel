@@ -27,7 +27,7 @@ isProject: false
 ---
 # Concurrent SkyCache
 
-Updated 2026-10-21 through development Step 58. The intended result is an optional shared disk
+Updated 2026-10-21 through development Step 59. The intended result is an optional shared disk
 analysis cache that independent Bazel servers can read and write simultaneously while building
 worktrees of the same repository. Each server retains its own full graph in RAM, private output
 base, action execution and invalidation state. There is no designated writer, periodic snapshot
@@ -51,9 +51,16 @@ remain failures. No full 16/16 success, general speedup or production maturity i
 
 A separately authorized two-build follow-up on full E: NVMe storage passed with 32 jobs,
 Xmx6g and 6 GiB action memory: 33.901 seconds for fresh publication and 27.762 seconds for an
-independent reader with 4,501 analysis hits. Both outputs match the baseline. These are single
-observations with warm action outputs; cache-off speedup remains unmeasured. See development
+independent reader with 4,501 analysis hits. Both outputs match the baseline. Those single
+observations had warm action outputs and no cache-off control. See development
 Step 58 for the preserved harness assertion correction, raw-evidence hashes and qualifications.
+
+Two subsequent cache-off baselines using the same fork binary/resources/storage took 20.471 and
+18.829 seconds (mean 19.650). The saved SkyCache reader was 41.3% slower and used more peak PSS;
+analysis alone was also slower despite reuse. Initial action-output states differ and samples are
+ordered, so these are negative workload observations rather than an isolated causal overhead estimate.
+Development Step 59 records the comparison and limits; setup/validation/import costs remain the
+performance priority. The baseline is feature-off, not a separately built stock upstream binary.
 
 The [implementation summary](../skycache-implementation-summary.md) describes behavior, measurements,
 shortcomings and missing work. Raw evidence was archived and readback verified; four owned final

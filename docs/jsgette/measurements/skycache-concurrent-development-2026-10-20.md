@@ -3466,3 +3466,72 @@ are preserved privately in a readback-verified archive. Archive SHA-256:
 `508707d950fbd5cfdaab1ca2c313e29360d488b1aef231dccd0d63dcf207939d`.
 The [curated data and audit](skycache-concurrent-2026-10-20/nvme-two-builds-2026-10-21.json)
 contain per-phase metrics and evidence hashes.
+
+## Step 59 — two cache-off baselines on the same NVMe (2026-10-21)
+
+The user requested two vanilla Bazel measurements and comparison with SkyCache. Exactly two
+additional build commands ran, both successfully. The baseline here means **the identical fork
+binary with local and remote analysis caching explicitly disabled**, not a separately built
+unmodified upstream Bazel release. This holds installation/version identity constant while testing
+the ordinary analysis path. BEP canonical options confirm the disabled modes. It does not measure
+whether other fork changes affect the performance of a stock upstream binary.
+
+Both baseline servers started with empty in-memory graphs, sequentially, in the existing
+`control-a` and `control-b` fixtures on E: WD Blue SN570 2TB NVMe. Sources, outputs, repositories,
+toolchains, disk action cache and profiles remained on native WSL ext4. Resources match Step 58:
+32 jobs, Xmx6g, 6144 MiB action memory. Datadog revision, target, binary hash, resolved lockfile,
+remote-cache policy and repository bindings match; only the worktree's own `_main` binding differs.
+The same 15 GiB host reserve was monitored. There were no source changes, storage interruptions,
+new SkyCache statistics or analysis-cache reads. Both servers were stopped afterward.
+
+| Metric | Cache off A | Cache off B | SkyCache writer (Step 58) | SkyCache reader (Step 58) |
+|---|---:|---:|---:|---:|
+| Full command wall time | 20.471 s | 18.829 s | 33.901 s | 27.762 s |
+| Analysis phase | 5.505 s | 4.972 s | 8.211 s | 7.451 s |
+| Execution phase | 1.656 s | 1.207 s | 1.822 s | 4.201 s |
+| Bazel reported CPU time | 144.680 CPU-s | 137.940 CPU-s | 242.840 CPU-s | 155.380 CPU-s |
+| Peak process-tree PSS | 3.823 GiB | 2.518 GiB | 4.780 GiB | 5.139 GiB |
+| Configured-target analysis hits | 0 | 0 | 0 | 4,501 |
+| Newly configured targets | 57,369 | 57,369 | 57,369 | 14 |
+| Local action-cache hits | 6,788 | 6,788 | 4,489 | 4,538 |
+| Disk action-cache hits | 0 | 0 | 1,287 | 1,197 |
+| Internal actions | 1 | 1 | 1,013 | 1,054 |
+
+The baseline mean is **19.650 seconds**. The observed reader took **41.3% longer** and the writer
+**72.5% longer**. Reader analysis took **42.2% longer** than the 5.239-second baseline mean analysis
+phase. Reader CPU time was about 10.0% above the baseline mean. These are descriptive ratios of
+these observations, not estimates of a general regression distribution.
+
+All four output hashes are identical to the original baseline:
+`7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664`.
+The reader's 4,501 configured-target hits and reduction to 14 newly configured targets are real,
+but importing and validating those values did not beat recomputation here. Its sampled peak PSS
+also exceeded both baselines. The 3.823/2.518 GiB variation between baseline peaks illustrates
+allocation/GC sensitivity; memory is sampled process-tree PSS, not a total-system memory bound.
+
+There is now an on/off observation at matching resources and storage, but **initial action-output
+state was not matched**: both controls reused 6,788 actions locally while the reader restored
+1,197 actions from the disk cache and ran 1,054 internal actions. The baseline commands ran later;
+filesystem caches were not flushed. Their wall-time advantage therefore cannot be assigned wholly
+to the SkyCache implementation. The separately reported analysis timings are also single ordered
+observations, not a randomized repeated experiment. No clean compilation, concurrent comparison,
+warm in-memory invalidation or post-GC benchmark was added.
+
+The existing profiles show `LocalSkycacheModule.beforeCommand` taking **4.161 seconds** in the
+reader and **0.002/0.001 seconds** in the two controls. That identifies measurable cache setup
+cost before analysis. Together with slower analysis despite hits, this points to input capture,
+validation and deserialization as the next costs to isolate. These measurements do not apportion
+all remaining time between those mechanisms. No correctness checks were weakened and no product
+code was changed.
+
+The result for this measured workload is negative: **the current implementation has not shown a
+speed or peak-memory advantage over the cache-off path, even with full NVMe storage**. The next
+performance experiment should match initial action-output state and repeat the on/off comparison;
+optimization should target measured setup/validation/import cost. This two-build request is complete.
+
+The [curated comparison](skycache-concurrent-2026-10-20/nvme-cache-off-comparison-2026-10-21.json)
+contains source/binary identity, every reported phase and evidence hashes. Raw BEP, profiles,
+logs, commands, hardware mapping, memory samples and the harness remain private in a
+readback-verified archive, SHA-256
+`725b474357e4ae24892c59e5207eda2840308c03d9c1a25cb660a27a111a2dd0`.
+Step 58 and the original capped 16-attempt reports remain unchanged.
