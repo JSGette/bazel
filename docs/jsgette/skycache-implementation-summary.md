@@ -68,7 +68,9 @@ real shared analysis reads and published successfully; each distinct edited exec
 its independent cache-off control. Warm reverts matched the original baseline. Raw BEP timestamps
 confirm actual overlap in every successful paired phase. Sources were restored and servers stopped.
 
-| Storage cohort | Phase | Pair/command wall time (s) | Peak combined PSS (GiB) | Hits | Result |
+Pairs show separate A/B analysis-hit counts; single-server phases show one count.
+
+| Storage cohort | Phase | Pair/command wall time (s) | Peak combined PSS (GiB) | Analysis hits (A/B) | Result |
 |---|---|---:|---:|---|---|
 | HDD | `control-base` | 316.74 | 3.847 | 0/0 | passed |
 | HDD | `restarted-control-base` | 23.98 | 5.766 | 0/0 | passed |
