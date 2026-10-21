@@ -2834,3 +2834,41 @@ The large collection/rebuild gate and temporary-volume cleanup remain incomplete
 Evidence: [34-build membership gate](skycache-concurrent-2026-10-20/membership-runtime-34-builds.json),
 [failed Datadog reuse gate](skycache-concurrent-2026-10-20/collector-d-copied-output-rejection.json),
 [copied-link diagnosis](skycache-concurrent-2026-10-20/collector-copied-output-diagnosis.json).
+
+
+## Step 45 — repair copied fixture links while preserving cache validation
+
+Harness implementation: [66e01d60cf04](https://github.com/JSGette/bazel/commit/66e01d60cf04f254c51fded17861d94aa4e3acc0).
+The copy step now walks only the copied output directory, without following directory symlinks,
+and relocates absolute link targets under the known original workspace/output-base roots. Unrelated
+absolute links, relative links and ordinary file bytes remain intact. Source/destination overlap,
+a symlinked destination root or a server PID file rejects repair. Each link replacement is atomic.
+The helper also runs after future output-base copies and records its exact changes in the protocol.
+
+The stopped real fixtures required 225 / 171 / 579 / 579 link repairs for A / B / control-A /
+control-B: 1,554 total. Their second complete scans made zero changes. Repair plus this idempotence
+check took 42.664 / 33.435 / 64.875 / 54.947 seconds on the temporary HDD volume. These are preparation
+costs, not a cache speedup. Both failed publications and their packed data were retained in a
+separate directory; the new matrix starts with an empty SkyCache and accepts zero prior phases.
+The original E-backed fixtures remain untouched.
+
+Four focused filesystem regressions cover repository/SDK aliases, preservation of outside/source
+links and plain bytes, replacement failure, temporary-name collision, and refusal to modify an
+active/aliased/source directory. The collision regression first reproduced deletion of an existing
+temporary path. Creation now succeeds before cleanup takes ownership of that path. All 29 Python
+guard/harness cases pass. The running matrix had already repaired its fixtures without collisions;
+its exact launched source is preserved and hashed separately from this later failure-path hardening.
+No running process, compiled SkyCache binary, core Java source, invocation flag or resource budget
+changed. Source build/test policy continues to require Cache&Carry; no source rebuild was needed.
+
+The full retry is live. The initial controls are performing substantial disk I/O after relocation;
+read-only process observations show continuing reads and heavy kernel I/O pressure without current
+memory pressure. Those initial preparation timings are excluded from undisturbed comparisons.
+Independent reuse, simultaneous semantic edits, reverts and collection/rebuild still must pass;
+this commit does not claim that the substantial acceptance gate is complete.
+
+Evidence: [actual repairs and source hashes](skycache-concurrent-2026-10-20/collector-copied-output-repair.json),
+[29 focused checks](skycache-concurrent-2026-10-20/collector-copied-output-tests.json),
+[passing test log](skycache-concurrent-2026-10-20/collector-copied-output-tests.log),
+[collision regression before the fix](skycache-concurrent-2026-10-20/collector-copied-output-collision-before.log),
+[complete retry command](skycache-concurrent-2026-10-20/collector-d-retry3-command.json).

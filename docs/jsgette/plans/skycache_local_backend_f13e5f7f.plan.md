@@ -390,6 +390,17 @@ edits, glob additions, unchanged-content renames, deletions, fresh readers and r
 independent cache-off controls. Run it after the Datadog matrix under the same measurement lock.
 Core binary/source hashes and265focusedcases still match; no evaluator implementation changed.
 
+## File membership verified; final fixture repaired (Steps 44–45)
+
+The 34-build two-cache-server/two-control membership probe passes repeated edits, glob additions,
+unchanged-content renames, deletions, fresh readers and reverts, with independently checked outputs.
+The substantial D-backed retry built correct binaries but failed its independent-reuse check: copied
+output bases retained absolute links into older fixtures. Rejection was correct. The harness now
+relocates those known filesystem roots without following outside links or rewriting ordinary bytes.
+All 1,554 stale links were repaired, second scans are clean and 29 focused Python checks pass.
+Failed publications remain preserved. A complete retry with an empty SkyCache is running; large
+reuse/edit/collection validation and final temporary-volume cleanup remain open.
+
 ## Next implementation and measurement sequence
 
 ### 1. Rule and filesystem compatibility

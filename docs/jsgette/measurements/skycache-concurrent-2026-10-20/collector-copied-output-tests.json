@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "python3",
+    "-m",
+    "unittest",
+    "storage_preflight_test",
+    "datadog_worktree_probe_test"
+  ],
+  "exit_code": 0,
+  "cases": 29,
+  "source_sha256": {
+    "tools/skycache/datadog_worktree_probe.py": "854c6254b32afbf168e8789666076746bcf81aecb00b0919001896b43908c3f2",
+    "tools/skycache/datadog_worktree_probe_test.py": "a1b70fe787860d744cabe201ed5afb89701f53162c6bb233ae50f9a1713752b0",
+    "tools/skycache/storage_preflight.py": "e3e5e6eeeb3ca13365755842caa93d604217121fa2e91ec7e783300d99141dca",
+    "tools/skycache/storage_preflight_test.py": "d1d974e65aa332230a299035630f072fd4b4e39d7d4f02f79d369d0a59919891"
+  },
+  "regression_before": "copied-output-collision-before.log: existing colliding file was deleted; focused regression failed.",
+  "regression_after": "All29tests pass, including preserving a pre-existing temporary path and original symlink.",
+  "runtime_provenance": "The running retry3 already completed fixture repair without collisions. Its original source is preserved as harness-at-launch.py with the SHA recorded in its command. This change only hardens the helper failure path; no running process, compiled core, invocation or resource policy changed."
+}
