@@ -5,11 +5,16 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.NONPROD_FINGERPRINTER;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.devtools.build.lib.compress.CompressionServiceImpl;
+import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
 import com.google.devtools.build.lib.skyframe.serialization.Fingerprinter;
 import com.google.devtools.build.lib.skyframe.serialization.InMemoryFingerprintValueStore;
+import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
 import com.google.devtools.build.lib.skyframe.serialization.PackedFingerprint;
 import com.google.devtools.build.lib.skyframe.serialization.StringKey;
+import com.google.devtools.build.lib.skyframe.serialization.WriteStatus;
 import com.google.protobuf.CodedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
@@ -17,7 +22,9 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -603,6 +610,175 @@ public final class LocalDependencyValidatorTest {
     store.put(fixed, bytes(List.of(fixed), List.of(), List.of(), null)).get();
     var validator = new LocalDependencyValidator(store, snapshot(), constantHash, compression);
     assertThat(validator.validate(fixed)).isFalse();
+  }
+
+  @Test
+  public void unrelatedRootsEnterStoreConcurrently() throws Exception {
+    var first = root(leaf(file, false, List.of()));
+    var second =
+        root(leaf(Files.writeString(workspace.resolve("second"), "two"), false, List.of()));
+    var arrived = new CountDownLatch(2);
+    var concurrentStore =
+        new FingerprintValueStore() {
+          @Override
+          public WriteStatus put(KeyBytesProvider key, byte[] value) {
+            return store.put(key, value);
+          }
+
+          @Override
+          public ListenableFuture<byte[]> get(KeyBytesProvider key) throws java.io.IOException {
+            if (key.equals(first) || key.equals(second)) {
+              arrived.countDown();
+              try {
+                if (!arrived.await(10, TimeUnit.SECONDS)) {
+                  throw new java.io.IOException("independent root reads were serialized");
+                }
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new java.io.IOException(e);
+              }
+            }
+            return store.get(key);
+          }
+        };
+    var inputs = snapshot();
+    var validator =
+        new LocalDependencyValidator(concurrentStore, inputs, NONPROD_FINGERPRINTER, compression);
+    try (var pool = Executors.newFixedThreadPool(2)) {
+      var a = pool.submit(() -> validator.validate(first));
+      var b = pool.submit(() -> validator.validate(second));
+      assertThat(a.get(15, TimeUnit.SECONDS)).isTrue();
+      assertThat(b.get(15, TimeUnit.SECONDS)).isTrue();
+    }
+    assertThat(inputs.isUnchanged()).isTrue();
+    Files.writeString(file, "changed");
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
+  public void waitingForSharedSubtreeIsInterruptibleWithoutCancellingOwner() throws Exception {
+    var root = root(leaf(file, false, List.of()));
+    var dependent = put(bytes(List.of(root), List.of(), List.of(), null));
+    var entered = new CountDownLatch(1);
+    var blocked = SettableFuture.<byte[]>create();
+    var blockingStore =
+        new FingerprintValueStore() {
+          @Override
+          public WriteStatus put(KeyBytesProvider key, byte[] value) {
+            return store.put(key, value);
+          }
+
+          @Override
+          public ListenableFuture<byte[]> get(KeyBytesProvider key) {
+            if (key.equals(root)) {
+              entered.countDown();
+              return blocked;
+            }
+            return store.get(key);
+          }
+        };
+    var validator =
+        new LocalDependencyValidator(blockingStore, snapshot(), NONPROD_FINGERPRINTER, compression);
+    try (var pool = Executors.newFixedThreadPool(2)) {
+      var owner = pool.submit(() -> validator.validate(root));
+      var waiting = new CountDownLatch(1);
+      var interrupted = new CountDownLatch(1);
+      try {
+        assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
+        var waiter =
+            pool.submit(
+                () -> {
+                  waiting.countDown();
+                  try {
+                    validator.validate(dependent);
+                  } catch (InterruptedException e) {
+                    interrupted.countDown();
+                  }
+                });
+        assertThat(waiting.await(10, TimeUnit.SECONDS)).isTrue();
+        waiter.cancel(true);
+        assertThat(interrupted.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(owner.isDone()).isFalse();
+      } finally {
+        blocked.set(store.get(root).get());
+      }
+      assertThat(owner.get(10, TimeUnit.SECONDS)).isTrue();
+      assertThat(validator.validate(dependent)).isTrue();
+    }
+  }
+
+  @Test
+  public void crossRootCycleRejectsBothOwnersWithoutDeadlock() throws Exception {
+    var first = PackedFingerprint.fromBytes(new byte[16]);
+    byte[] other = new byte[16];
+    other[0] = 1;
+    var second = PackedFingerprint.fromBytes(other);
+    byte[] firstBytes = bytes(List.of(second), List.of(), List.of(), null);
+    byte[] secondBytes = bytes(List.of(first), List.of(), List.of(), null);
+    store.put(first, firstBytes).get();
+    store.put(second, secondBytes).get();
+    var fakeHash =
+        new Fingerprinter() {
+          @Override
+          public PackedFingerprint fingerprint(byte[] value) {
+            return Arrays.equals(value, firstBytes) ? first : second;
+          }
+
+          @Override
+          public PackedFingerprint fingerprint(byte[] value, String salt) {
+            return fingerprint(value);
+          }
+        };
+    var entered = new CountDownLatch(2);
+    var blockingStore =
+        new FingerprintValueStore() {
+          @Override
+          public WriteStatus put(KeyBytesProvider key, byte[] value) {
+            return store.put(key, value);
+          }
+
+          @Override
+          public ListenableFuture<byte[]> get(KeyBytesProvider key) throws java.io.IOException {
+            entered.countDown();
+            try {
+              if (!entered.await(10, TimeUnit.SECONDS))
+                throw new java.io.IOException("no concurrency");
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new java.io.IOException(e);
+            }
+            return store.get(key);
+          }
+        };
+    var validator = new LocalDependencyValidator(blockingStore, snapshot(), fakeHash, compression);
+    try (var pool = Executors.newFixedThreadPool(2)) {
+      var a = pool.submit(() -> validator.validate(first));
+      var b = pool.submit(() -> validator.validate(second));
+      assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
+      assertThat(a.get(15, TimeUnit.SECONDS)).isFalse();
+      assertThat(b.get(15, TimeUnit.SECONDS)).isFalse();
+    }
+    assertThat(validator.statisticsJson()).contains("\"memo_entries\":0");
+  }
+
+  @Test
+  public void overlappingAncestorRootsSucceedWithoutSpuriousWaitCycles() throws Exception {
+    var leaf = leaf(file, false, List.of());
+    var child = root(leaf);
+    var parent = put(bytes(List.of(child), List.of(leaf), List.of(), null));
+    try (var pool = Executors.newFixedThreadPool(4)) {
+      for (int round = 0; round < 100; round++) {
+        var validator = validator();
+        var tasks = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+        for (var key : List.of(parent, child, parent, child)) {
+          tasks.add(pool.submit(() -> validator.validate(key)));
+        }
+        for (var task : tasks) {
+          assertThat(task.get(10, TimeUnit.SECONDS)).isTrue();
+        }
+        assertThat(validator.statisticsJson()).contains("\"records_read\":3");
+      }
+    }
   }
 
   @Test

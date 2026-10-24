@@ -9,11 +9,37 @@ import com.google.devtools.common.options.OptionDocumentationCategory;
 import com.google.devtools.common.options.OptionEffectTag;
 import com.google.devtools.common.options.OptionsBase;
 import com.google.devtools.common.options.OptionsClass;
+import com.google.devtools.common.options.OptionsParsingException;
 import java.time.Duration;
 
 /** Options for the shared local analysis cache. */
 @OptionsClass
 public abstract class LocalSkycacheOptions extends OptionsBase {
+  /** IdleTaskManager schedules in whole seconds; do not silently truncate a positive timeout. */
+  public static final class IdleRetentionConverter extends DurationConverter {
+    @Override
+    public Duration convert(String input) throws OptionsParsingException {
+      Duration duration = super.convert(input);
+      if (duration.getNano() != 0) {
+        throw new OptionsParsingException("Idle retention must be a whole number of seconds");
+      }
+      return duration;
+    }
+  }
+
+  @Option(
+      name = "experimental_analysis_cache_idle_retention",
+      defaultValue = "0",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
+      converter = IdleRetentionConverter.class,
+      help =
+          "Release the retained Skyframe graph after this idle duration when a successful local"
+              + " SkyCache publication is available. Zero disables eviction. This prototype also"
+              + " drops loading state; the next build reloads eligible analysis and recomputes"
+              + " misses. Preserves the JVM, action-result cache and output files.")
+  public abstract Duration getAnalysisCacheIdleRetention();
+
   @Option(
       name = "experimental_local_skycache",
       defaultValue = "",

@@ -38,6 +38,7 @@ java_library(
 java_library(
     name = "local_skycache_module",
     srcs = [
+        "AnalysisCacheIdleRetentionTask.java",
         "LocalAnalysisCacheClient.java",
         "LocalCacheGarbageCollector.java",
         "LocalCacheGarbageCollectorIdleTask.java",

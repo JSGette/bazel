@@ -3,6 +3,20 @@ load("@rules_java//java:defs.bzl", "java_binary", "java_test")
 package(default_applicable_licenses = ["//:license"])
 
 java_test(
+    name = "AnalysisCacheIdleRetentionTaskTest",
+    size = "small",
+    srcs = ["AnalysisCacheIdleRetentionTaskTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/common/options",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
+
+java_test(
     name = "LocalPathCodecTest",
     size = "small",
     srcs = ["LocalPathCodecTest.java"],
@@ -53,6 +67,19 @@ java_test(
         "//third_party/java/guava:concurrent",
         "//third_party/java/junit",
         "//third_party/java/truth",
+    ],
+)
+
+java_binary(
+    name = "ParallelPackedStoreBenchmark",
+    testonly = True,
+    srcs = ["ParallelPackedStoreBenchmark.java"],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.ParallelPackedStoreBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
+        "//third_party/java/guava:concurrent",
     ],
 )
 
@@ -212,6 +239,28 @@ java_test(
         "//third_party/java/junit",
         "//third_party/java/protobuf:protobuf_lite",
         "//third_party/java/truth",
+    ],
+)
+
+java_binary(
+    name = "ParallelDependencyValidationBenchmark",
+    testonly = True,
+    srcs = [
+        "ParallelDependencyValidationBenchmark.java",
+        "SerialDependencyValidatorBenchmarkBaseline.java",
+    ],
+    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.ParallelDependencyValidationBenchmark",
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/protobuf:protobuf_lite",
     ],
 )
 

@@ -122,6 +122,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private long nextRefresh;
   private volatile boolean closed;
   private volatile String failure;
+  private volatile String importedPublicationId;
   private final AtomicLong writes = new AtomicLong();
   private final AtomicLong reads = new AtomicLong();
   private final AtomicLong sharedReads = new AtomicLong();
@@ -170,6 +171,17 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   String cacheNamespace() {
     return inputs.cacheNamespace();
+  }
+
+  /** Only use as backing for idle retention after finish has successfully published. */
+  Path publicationManifest() {
+    return publications.resolve(id + ".manifest");
+  }
+
+  /** A successfully validated analysis import, not merely a blob read from a rejected candidate. */
+  Path importedPublicationManifest() {
+    String imported = importedPublicationId;
+    return imported == null ? null : publications.resolve(imported + ".manifest");
   }
 
   long sharedReads() {
@@ -477,6 +489,9 @@ final class LocalCacheSession implements FingerprintValueStore {
       for (Candidate candidate : candidates) {
         if (candidate.id().equals(accepted.publication())) {
           usedParents.add(candidate.id());
+          if (importedPublicationId == null) {
+            importedPublicationId = candidate.id();
+          }
           sharedReads.incrementAndGet();
           return true;
         }

@@ -72,7 +72,13 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("parent"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     var child = new LocalCacheSession(cache, snapshot(workspace, output));
+    assertThat(child.importedPublicationManifest()).isNull();
     assertThat(child.get(new Key("parent")).get()).isEqualTo(new byte[] {1});
+    assertThat(child.importedPublicationManifest()).isNull();
+    var candidate = child.nextAnalysisCandidate(new Key("parent"), new java.util.HashSet<>());
+    assertThat(child.importedPublicationManifest()).isNull();
+    assertThat(child.acceptAnalysisCandidate(candidate)).isTrue();
+    assertThat(child.importedPublicationManifest()).isEqualTo(parent.publicationManifest());
     child.put(new Key("child"), new byte[] {2}).get();
     try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"))) {
       try (var catalog = collector.tryExclusiveCatalog();

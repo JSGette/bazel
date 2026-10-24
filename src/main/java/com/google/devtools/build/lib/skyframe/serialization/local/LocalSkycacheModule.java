@@ -57,6 +57,7 @@ public final class LocalSkycacheModule extends SerializationModule {
   private final Services services = new Services();
   @Nullable private CommandEnvironment environment;
   private boolean buildSucceeded;
+  @Nullable private Path retainedPublication;
 
   @Override
   protected Supplier<ObjectCodecRegistry> getAnalysisCodecRegistrySupplier(
@@ -139,9 +140,14 @@ public final class LocalSkycacheModule extends SerializationModule {
               new LocalCacheSession.ReadLimits(
                   options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
       RunfilesOrigin.setSharingEnabled(true);
-      if (!inputs.cacheNamespace().equals(services.retainedNamespace)) {
+      if (!inputs.cacheNamespace().equals(services.retainedNamespace)
+          || (retainedPublication != null
+              && !retainedPublication
+                  .getParent()
+                  .equals(services.session.publicationManifest().getParent()))) {
         services.retainedRoots = Map.of();
         services.retainedNamespace = inputs.cacheNamespace();
+        retainedPublication = null;
       }
       services.client =
           new LocalAnalysisCacheClient(
@@ -212,6 +218,7 @@ public final class LocalSkycacheModule extends SerializationModule {
     var env = environment;
     var session = services.session;
     if (env != null && session != null) {
+      Path importedPublication = session.importedPublicationManifest();
       boolean published = false;
       try {
         published = session.finish(buildSucceeded);
@@ -224,6 +231,35 @@ public final class LocalSkycacheModule extends SerializationModule {
             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
       }
       services.retainedRoots = services.client.retainedRoots();
+      if (published) {
+        retainedPublication = session.publicationManifest();
+      } else if (importedPublication != null) {
+        retainedPublication = importedPublication;
+      }
+      var retention =
+          env.getOptions().getOptions(LocalSkycacheOptions.class).getAnalysisCacheIdleRetention();
+      if (buildSucceeded
+          && session.failureReason() == null
+          && retainedPublication != null
+          && !retention.isZero()) {
+        // Capture server-owned objects only, never the command environment or closed session.
+        var workspace = env.getBlazeWorkspace();
+        env.addIdleTask(
+            new AnalysisCacheIdleRetentionTask(
+                retention,
+                retainedPublication,
+                Path.of(env.getOutputBase().getPathString())
+                    .resolve("skycache-idle-retention.json"),
+                () -> {
+                  workspace.resetEvaluator();
+                  services.retainedRoots = Map.of();
+                  services.client = null;
+                  services.session = null;
+                  services.clientId = null;
+                  // Keep the namespace/backing hint for repeated idle cycles with no new writes.
+                  // The next task reacquires a lease and rechecks existence before resetting.
+                }));
+      }
       String validation = services.client.validationStatisticsJson();
       env.getReporter().handle(Event.info("Local SkyCache dependency validation: " + validation));
       String statistics = session.statisticsJson(published);

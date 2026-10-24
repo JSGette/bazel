@@ -25,8 +25,12 @@ def main():
     parser.add_argument("--bazel", required=True, type=Path)
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--lock-file", type=Path)
+    parser.add_argument("--jdk", type=Path, help="Server JDK for source-built Bazel")
+    parser.add_argument("--output-user-root", type=Path)
+    parser.add_argument("--other-bazel", type=Path, help="Use this binary in worktree B for mixed-version checks")
     args = parser.parse_args()
     binary = args.bazel.resolve(strict=True)
+    other_binary = args.other_bazel.resolve(strict=True) if args.other_bazel else binary
     root = args.root.resolve()
     initial_storage = check_storage([root])
     root.mkdir(parents=True, exist_ok=False)
@@ -78,8 +82,14 @@ def main():
         git("worktree", "add", "--detach", str(root / name), "HEAD")
 
     def startup(name):
-        return [str(binary), "--nosystem_rc", "--nohome_rc", "--noworkspace_rc",
-                "--host_jvm_args=-Xmx2g", "--output_base=" + str(root / ("out-" + name))]
+        arguments = [str(binary if name == "a" else other_binary),
+                     "--nosystem_rc", "--nohome_rc", "--noworkspace_rc",
+                     "--host_jvm_args=-Xmx2g", "--output_base=" + str(root / ("out-" + name))]
+        if args.jdk:
+            arguments.append("--server_javabase=" + str(args.jdk.resolve(strict=True)))
+        if args.output_user_root:
+            arguments.append("--output_user_root=" + str(args.output_user_root.resolve()))
+        return arguments
 
     def shutdown(name):
         subprocess.run(startup(name) + ["shutdown"], cwd=root / name, env=environment,
@@ -127,6 +137,8 @@ def main():
     protocol = {
         "binary": str(binary),
         "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+        "other_binary": str(other_binary),
+        "other_binary_sha256": hashlib.sha256(other_binary.read_bytes()).hexdigest(),
         "purpose": "correctness; two concurrent servers, not a speed benchmark",
         "environment": "strict repository environment; natural per-worktree PWD and distinct session markers",
         "initial_storage": initial_storage,
