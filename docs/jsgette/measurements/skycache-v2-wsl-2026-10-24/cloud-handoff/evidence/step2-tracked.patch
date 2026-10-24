@@ -1,0 +1,566 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 7f4e602..449791f 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -38,6 +38,7 @@ java_library(
+ java_library(
+     name = "local_skycache_module",
+     srcs = [
++        "AnalysisCacheIdleRetentionTask.java",
+         "LocalAnalysisCacheClient.java",
+         "LocalCacheGarbageCollector.java",
+         "LocalCacheGarbageCollectorIdleTask.java",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+index a5b1ff7..52377bd 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+@@ -172,6 +172,21 @@ final class LocalCacheSession implements FingerprintValueStore {
+     return inputs.cacheNamespace();
+   }
+ 
++  /** Only use as backing for idle retention after finish has successfully published. */
++  Path publicationManifest() {
++    return publications.resolve(id + ".manifest");
++  }
++
++  /** Select while the command still holds its publication leases, before finish closes stores. */
++  Path importedPublicationManifest() {
++    for (Candidate candidate : candidates) {
++      if (usedParents.contains(candidate.id())) {
++        return publications.resolve(candidate.id() + ".manifest");
++      }
++    }
++    return null;
++  }
++
+   long sharedReads() {
+     return sharedReads.get();
+   }
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java
+index 853436c..668d87d 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java
+@@ -2,6 +2,7 @@
+ // Licensed under the Apache License, Version 2.0. See the repository LICENSE.
+ package com.google.devtools.build.lib.skyframe.serialization.local;
+ 
++import com.google.common.util.concurrent.Striped;
+ import com.google.devtools.build.lib.compress.CompressionService;
+ import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
+ import com.google.devtools.build.lib.skyframe.serialization.Fingerprinter;
+@@ -17,6 +18,11 @@ import java.util.ArrayList;
+ import java.util.HashSet;
+ import java.util.Iterator;
+ import java.util.List;
++import java.util.Set;
++import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.atomic.LongAdder;
++import java.util.concurrent.locks.Lock;
+ import java.util.concurrent.ExecutionException;
+ import java.util.regex.Pattern;
+ 
+@@ -47,14 +53,22 @@ final class LocalDependencyValidator {
+   private final Fingerprinter fingerprinter;
+   private final CompressionService compression;
+   private final Limits limits;
+-  private final HashSet<ByteString> validated = new HashSet<>();
+-  private final HashSet<LocalInputSnapshot.Witness> validatedWitnesses = new HashSet<>();
+-  private long witnessMemoHits;
+-  private long admissionWitnessMemoHits;
+-  private long recordsRead;
+-  private long memoHits;
+-  private long witnessesChecked;
+-  private long rejected;
++  // One root lock per traversal, never acquired recursively. Equal roots coalesce; unrelated
++  // roots can read and validate concurrently. Collisions only reduce concurrency, not correctness.
++  private final Striped<Lock> rootLocks = Striped.lock(4096);
++  private final Object memoInsertion = new Object();
++  private final Set<ByteString> validated = ConcurrentHashMap.newKeySet();
++  private final Set<LocalInputSnapshot.Witness> validatedWitnesses = ConcurrentHashMap.newKeySet();
++  // Only leaf checks wait on another owner; they cannot recursively wait on dependency nodes.
++  // Failed checks are removed immediately, so newly materialized repositories can be retried.
++  private final ConcurrentHashMap<LocalInputSnapshot.Witness, CompletableFuture<Boolean>>
++      witnessChecks = new ConcurrentHashMap<>();
++  private final LongAdder witnessMemoHits = new LongAdder();
++  private final LongAdder admissionWitnessMemoHits = new LongAdder();
++  private final LongAdder recordsRead = new LongAdder();
++  private final LongAdder memoHits = new LongAdder();
++  private final LongAdder witnessesChecked = new LongAdder();
++  private final LongAdder rejected = new LongAdder();
+ 
+   LocalDependencyValidator(
+       FingerprintValueStore store,
+@@ -82,13 +96,26 @@ final class LocalDependencyValidator {
+    * Every successful leaf is retained by inputs for final publication revalidation. No negative
+    * result is cached: repositories and dependency packs can become available later in the command.
+    */
+-  synchronized boolean validate(PackedFingerprint root) throws InterruptedException {
++  boolean validate(PackedFingerprint root) throws InterruptedException {
++    Lock lock = rootLocks.get(root);
++    lock.lockInterruptibly();
++    try {
++      return validateRoot(root);
++    } finally {
++      lock.unlock();
++    }
++  }
++
++  private boolean validateRoot(PackedFingerprint root) throws InterruptedException {
+     var active = new HashSet<ByteString>();
+     var stack = new ArrayDeque<Frame>();
+     long[] budget = {0, 0}; // newly read records and encoded/decompressed bytes for this lookup
+     try {
+       push(root, stack, active, budget);
+       while (!stack.isEmpty()) {
++        if (Thread.interrupted()) {
++          throw new InterruptedException();
++        }
+         Frame frame = stack.peek();
+         if (frame.children().hasNext()) {
+           push(frame.children().next(), stack, active, budget);
+@@ -98,42 +125,73 @@ final class LocalDependencyValidator {
+         // include logical path, operation and expected digest. Memoized successes are bounded and
+         // invocation-local, just like dependency records; final publication still rechecks content.
+         for (var witness : frame.witnesses()) {
+-          if (validatedWitnesses.contains(witness)) {
+-            witnessMemoHits++;
+-            continue;
+-          }
+-          if (inputs.includeAdmittedWitness(witness)) {
+-            admissionWitnessMemoHits++;
+-          } else {
+-            witnessesChecked++;
+-            if (!inputs.validateAndInclude(witness)) {
+-              throw new IOException("dependency content mismatch");
++          validateWitness(witness);
++        }
++        synchronized (memoInsertion) {
++          if (!validated.contains(frame.key())) {
++            if (validated.size() >= limits.records()) {
++              throw new IOException("dependency success memo capacity exceeded");
+             }
+-          }
+-          if (validatedWitnesses.size() < limits.records()) {
+-            validatedWitnesses.add(witness);
++            validated.add(frame.key());
+           }
+         }
+-        if (validated.size() >= limits.records()) {
+-          throw new IOException("dependency success memo capacity exceeded");
+-        }
+-        validated.add(frame.key());
+         active.remove(frame.key());
+         stack.pop();
+       }
+       return true;
+     } catch (IOException | ExecutionException | IllegalArgumentException e) {
+-      rejected++;
++      rejected.increment();
+       return false;
+     }
+   }
+ 
++  private void validateWitness(LocalInputSnapshot.Witness witness)
++      throws IOException, ExecutionException, InterruptedException {
++    if (validatedWitnesses.contains(witness)) {
++      witnessMemoHits.increment();
++      return;
++    }
++    var pending = new CompletableFuture<Boolean>();
++    var existing = witnessChecks.putIfAbsent(witness, pending);
++    if (existing != null) {
++      existing.get();
++      witnessMemoHits.increment();
++      return;
++    }
++    try {
++      // Close the race with a previous owner completing between the fast path and insertion.
++      if (validatedWitnesses.contains(witness)) {
++        witnessMemoHits.increment();
++      } else {
++        if (inputs.includeAdmittedWitness(witness)) {
++          admissionWitnessMemoHits.increment();
++        } else {
++          witnessesChecked.increment();
++          if (!inputs.validateAndInclude(witness)) {
++            throw new IOException("dependency content mismatch");
++          }
++        }
++        synchronized (memoInsertion) {
++          if (validatedWitnesses.size() < limits.records()) {
++            validatedWitnesses.add(witness);
++          }
++        }
++      }
++      pending.complete(true);
++    } catch (IOException | RuntimeException | Error e) {
++      pending.completeExceptionally(e);
++      throw e;
++    } finally {
++      witnessChecks.remove(witness, pending);
++    }
++  }
++
+   private void push(
+       KeyBytesProvider key, ArrayDeque<Frame> stack, HashSet<ByteString> active, long[] budget)
+       throws IOException, InterruptedException, ExecutionException {
+     ByteString identity = ByteString.copyFrom(key.toBytes());
+     if (validated.contains(identity)) {
+-      memoHits++;
++      memoHits.increment();
+       return;
+     }
+     if (!active.add(identity)) {
+@@ -143,7 +201,7 @@ final class LocalDependencyValidator {
+       throw new IOException("dependency traversal limit exceeded");
+     }
+     byte[] bytes = store.get(key).get();
+-    recordsRead++;
++    recordsRead.increment();
+     if (bytes == null || (budget[1] += bytes.length) > limits.bytes()) {
+       throw new IOException("missing or oversized dependency evidence");
+     }
+@@ -207,17 +265,17 @@ final class LocalDependencyValidator {
+     return new StringKey(key);
+   }
+ 
+-  synchronized String statisticsJson() {
++  String statisticsJson() {
+     return String.format(
+         java.util.Locale.ROOT,
+         "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d,\"admission_witness_memo_hits\":%d}",
+-        recordsRead,
+-        memoHits,
+-        witnessesChecked,
+-        rejected,
++        recordsRead.sum(),
++        memoHits.sum(),
++        witnessesChecked.sum(),
++        rejected.sum(),
+         validated.size(),
+-        witnessMemoHits,
++        witnessMemoHits.sum(),
+         validatedWitnesses.size(),
+-        admissionWitnessMemoHits);
++        admissionWitnessMemoHits.sum());
+   }
+ }
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
+index 5077645..9219d05 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
+@@ -57,6 +57,7 @@ public final class LocalSkycacheModule extends SerializationModule {
+   private final Services services = new Services();
+   @Nullable private CommandEnvironment environment;
+   private boolean buildSucceeded;
++  @Nullable private Path retainedPublication;
+ 
+   @Override
+   protected Supplier<ObjectCodecRegistry> getAnalysisCodecRegistrySupplier(
+@@ -142,6 +143,7 @@ public final class LocalSkycacheModule extends SerializationModule {
+       if (!inputs.cacheNamespace().equals(services.retainedNamespace)) {
+         services.retainedRoots = Map.of();
+         services.retainedNamespace = inputs.cacheNamespace();
++        retainedPublication = null;
+       }
+       services.client =
+           new LocalAnalysisCacheClient(
+@@ -212,6 +214,7 @@ public final class LocalSkycacheModule extends SerializationModule {
+     var env = environment;
+     var session = services.session;
+     if (env != null && session != null) {
++      Path importedPublication = session.importedPublicationManifest();
+       boolean published = false;
+       try {
+         published = session.finish(buildSucceeded);
+@@ -224,6 +227,34 @@ public final class LocalSkycacheModule extends SerializationModule {
+             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
+       }
+       services.retainedRoots = services.client.retainedRoots();
++      if (published) {
++        retainedPublication = session.publicationManifest();
++      } else if (importedPublication != null) {
++        retainedPublication = importedPublication;
++      }
++      var retention =
++          env.getOptions().getOptions(LocalSkycacheOptions.class).getAnalysisCacheIdleRetention();
++      if (buildSucceeded
++          && session.failureReason() == null
++          && retainedPublication != null
++          && !retention.isZero()) {
++        // Capture server-owned objects only, never the command environment or closed session.
++        var workspace = env.getBlazeWorkspace();
++        env.addIdleTask(
++            new AnalysisCacheIdleRetentionTask(
++                retention,
++                retainedPublication,
++                Path.of(env.getOutputBase().getPathString()).resolve("skycache-idle-retention.json"),
++                () -> {
++                  workspace.resetEvaluator();
++                  services.retainedRoots = Map.of();
++                  services.client = null;
++                  services.session = null;
++                  services.clientId = null;
++                  // Keep the namespace/backing hint for repeated idle cycles with no new writes.
++                  // The next task reacquires a lease and rechecks existence before resetting.
++                }));
++      }
+       String validation = services.client.validationStatisticsJson();
+       env.getReporter().handle(Event.info("Local SkyCache dependency validation: " + validation));
+       String statistics = session.statisticsJson(published);
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheOptions.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheOptions.java
+index 995c07f..f431088 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheOptions.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheOptions.java
+@@ -9,11 +9,37 @@ import com.google.devtools.common.options.OptionDocumentationCategory;
+ import com.google.devtools.common.options.OptionEffectTag;
+ import com.google.devtools.common.options.OptionsBase;
+ import com.google.devtools.common.options.OptionsClass;
++import com.google.devtools.common.options.OptionsParsingException;
+ import java.time.Duration;
+ 
+ /** Options for the shared local analysis cache. */
+ @OptionsClass
+ public abstract class LocalSkycacheOptions extends OptionsBase {
++  /** IdleTaskManager schedules in whole seconds; do not silently truncate a positive timeout. */
++  public static final class IdleRetentionConverter extends DurationConverter {
++    @Override
++    public Duration convert(String input) throws OptionsParsingException {
++      Duration duration = super.convert(input);
++      if (duration.getNano() != 0) {
++        throw new OptionsParsingException("Idle retention must be a whole number of seconds");
++      }
++      return duration;
++    }
++  }
++
++  @Option(
++      name = "experimental_analysis_cache_idle_retention",
++      defaultValue = "0",
++      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
++      effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
++      converter = IdleRetentionConverter.class,
++      help =
++          "Release the retained Skyframe graph after this idle duration when a successful local"
++              + " SkyCache publication is available. Zero disables eviction. This prototype also"
++              + " drops loading state; the next build reloads eligible analysis and recomputes"
++              + " misses. Preserves the JVM, action-result cache and output files.")
++  public abstract Duration getAnalysisCacheIdleRetention();
++
+   @Option(
+       name = "experimental_local_skycache",
+       defaultValue = "",
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index dfd47e5..15fc807 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -2,6 +2,20 @@ load("@rules_java//java:defs.bzl", "java_binary", "java_test")
+ 
+ package(default_applicable_licenses = ["//:license"])
+ 
++java_test(
++    name = "AnalysisCacheIdleRetentionTaskTest",
++    size = "small",
++    srcs = ["AnalysisCacheIdleRetentionTaskTest.java"],
++    tags = ["no_windows"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/server:idle_task",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
++        "//src/main/java/com/google/devtools/common/options",
++        "//third_party/java/junit",
++        "//third_party/java/truth",
++    ],
++)
++
+ java_test(
+     name = "LocalPathCodecTest",
+     size = "small",
+@@ -56,6 +70,19 @@ java_test(
+     ],
+ )
+ 
++java_binary(
++    name = "ParallelPackedStoreBenchmark",
++    testonly = True,
++    srcs = ["ParallelPackedStoreBenchmark.java"],
++    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.ParallelPackedStoreBenchmark",
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
++        "//third_party/java/guava:concurrent",
++    ],
++)
++
+ java_binary(
+     name = "ConcurrentFileStoreBenchmark",
+     testonly = True,
+@@ -215,6 +242,28 @@ java_test(
+     ],
+ )
+ 
++java_binary(
++    name = "ParallelDependencyValidationBenchmark",
++    testonly = True,
++    srcs = [
++        "ParallelDependencyValidationBenchmark.java",
++        "SerialDependencyValidatorBenchmarkBaseline.java",
++    ],
++    main_class = "com.google.devtools.build.lib.skyframe.serialization.local.ParallelDependencyValidationBenchmark",
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
++        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
++        "//third_party/java/guava:concurrent",
++        "//third_party/java/protobuf:protobuf_lite",
++    ],
++)
++
+ java_binary(
+     name = "LocalDependencyValidationBenchmark",
+     testonly = True,
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
+index 55ee26a..ea048e9 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
+@@ -72,7 +72,9 @@ public final class LocalCacheSessionTest {
+     parent.put(new Key("parent"), new byte[] {1}).get();
+     assertThat(parent.finish(true)).isTrue();
+     var child = new LocalCacheSession(cache, snapshot(workspace, output));
++    assertThat(child.importedPublicationManifest()).isNull();
+     assertThat(child.get(new Key("parent")).get()).isEqualTo(new byte[] {1});
++    assertThat(child.importedPublicationManifest()).isEqualTo(parent.publicationManifest());
+     child.put(new Key("child"), new byte[] {2}).get();
+     try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"))) {
+       try (var catalog = collector.tryExclusiveCatalog();
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
+index 9fe2ec5..0e3c94a 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
+@@ -5,11 +5,16 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
+ import static com.google.common.truth.Truth.assertThat;
+ import static com.google.devtools.build.lib.skyframe.serialization.FingerprintValueService.NONPROD_FINGERPRINTER;
+ 
++import com.google.common.util.concurrent.ListenableFuture;
++import com.google.common.util.concurrent.SettableFuture;
+ import com.google.devtools.build.lib.compress.CompressionServiceImpl;
++import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
+ import com.google.devtools.build.lib.skyframe.serialization.Fingerprinter;
+ import com.google.devtools.build.lib.skyframe.serialization.InMemoryFingerprintValueStore;
++import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
+ import com.google.devtools.build.lib.skyframe.serialization.PackedFingerprint;
+ import com.google.devtools.build.lib.skyframe.serialization.StringKey;
++import com.google.devtools.build.lib.skyframe.serialization.WriteStatus;
+ import com.google.protobuf.CodedOutputStream;
+ import java.io.ByteArrayOutputStream;
+ import java.nio.file.Files;
+@@ -17,7 +22,9 @@ import java.nio.file.Path;
+ import java.util.Arrays;
+ import java.util.List;
+ import java.util.Map;
++import java.util.concurrent.CountDownLatch;
+ import java.util.concurrent.Executors;
++import java.util.concurrent.TimeUnit;
+ import org.junit.Before;
+ import org.junit.Rule;
+ import org.junit.Test;
+@@ -605,6 +612,93 @@ public final class LocalDependencyValidatorTest {
+     assertThat(validator.validate(fixed)).isFalse();
+   }
+ 
++  @Test
++  public void unrelatedRootsEnterStoreConcurrently() throws Exception {
++    var first = root(leaf(file, false, List.of()));
++    var second = root(leaf(Files.writeString(workspace.resolve("second"), "two"), false, List.of()));
++    var arrived = new CountDownLatch(2);
++    var concurrentStore = new FingerprintValueStore() {
++      @Override
++      public WriteStatus put(KeyBytesProvider key, byte[] value) {
++        return store.put(key, value);
++      }
++
++      @Override
++      public ListenableFuture<byte[]> get(KeyBytesProvider key) throws java.io.IOException {
++        if (key.equals(first) || key.equals(second)) {
++          arrived.countDown();
++          try {
++            if (!arrived.await(10, TimeUnit.SECONDS)) {
++              throw new java.io.IOException("independent root reads were serialized");
++            }
++          } catch (InterruptedException e) {
++            Thread.currentThread().interrupt();
++            throw new java.io.IOException(e);
++          }
++        }
++        return store.get(key);
++      }
++    };
++    var inputs = snapshot();
++    var validator = new LocalDependencyValidator(concurrentStore, inputs, NONPROD_FINGERPRINTER, compression);
++    try (var pool = Executors.newFixedThreadPool(2)) {
++      var a = pool.submit(() -> validator.validate(first));
++      var b = pool.submit(() -> validator.validate(second));
++      assertThat(a.get(15, TimeUnit.SECONDS)).isTrue();
++      assertThat(b.get(15, TimeUnit.SECONDS)).isTrue();
++    }
++    assertThat(inputs.isUnchanged()).isTrue();
++    Files.writeString(file, "changed");
++    assertThat(inputs.isUnchanged()).isFalse();
++  }
++
++  @Test
++  public void waitingForIdenticalRootIsInterruptibleWithoutCancellingOwner() throws Exception {
++    var root = root(leaf(file, false, List.of()));
++    var entered = new CountDownLatch(1);
++    var blocked = SettableFuture.<byte[]>create();
++    var blockingStore = new FingerprintValueStore() {
++      @Override
++      public WriteStatus put(KeyBytesProvider key, byte[] value) {
++        return store.put(key, value);
++      }
++
++      @Override
++      public ListenableFuture<byte[]> get(KeyBytesProvider key) {
++        if (key.equals(root)) {
++          entered.countDown();
++          return blocked;
++        }
++        return store.get(key);
++      }
++    };
++    var validator = new LocalDependencyValidator(blockingStore, snapshot(), NONPROD_FINGERPRINTER, compression);
++    try (var pool = Executors.newFixedThreadPool(2)) {
++      var owner = pool.submit(() -> validator.validate(root));
++      var waiting = new CountDownLatch(1);
++      var interrupted = new CountDownLatch(1);
++      try {
++        assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
++        var waiter = pool.submit(() -> {
++          waiting.countDown();
++          try {
++            validator.validate(root);
++          } catch (InterruptedException e) {
++            interrupted.countDown();
++          }
++        });
++        assertThat(waiting.await(10, TimeUnit.SECONDS)).isTrue();
++        waiter.cancel(true);
++        assertThat(interrupted.await(10, TimeUnit.SECONDS)).isTrue();
++        assertThat(owner.isDone()).isFalse();
++      } finally {
++        blocked.set(store.get(root).get());
++      }
++      assertThat(owner.get(10, TimeUnit.SECONDS)).isTrue();
++      assertThat(validator.validate(root)).isTrue();
++    }
++  }
++
+   @Test
+   public void invocationMemoRetainsEvidenceForFinalRevalidation() throws Exception {
+     var root = root(leaf(file, false, List.of()));

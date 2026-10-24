@@ -1,0 +1,401 @@
+{
+  "tests": {
+    "targets": 12,
+    "cases": 190,
+    "failures": 0,
+    "details": [
+      {
+        "target": "AnalysisCacheIdleRetentionTaskTest",
+        "cases": 4,
+        "failures": 0,
+        "sha256": "3941cb2787d07a815ebe8ca6c3da4ab4d0da6e5dcc1cd4c767df34463898cc1a"
+      },
+      {
+        "target": "ConcurrentFileFingerprintValueStoreTest",
+        "cases": 5,
+        "failures": 0,
+        "sha256": "179c6c4cbe1e362da8d8d8773498661e872473cd325e32ca25c6a7575c91a9d4"
+      },
+      {
+        "target": "LocalCacheGarbageCollectorIdleTaskTest",
+        "cases": 4,
+        "failures": 0,
+        "sha256": "18ed223d79316cbb42ee956d03ef1132eef4eea3841745bb9b9f8d3723b9fb1a"
+      },
+      {
+        "target": "LocalCacheGarbageCollectorTest",
+        "cases": 20,
+        "failures": 0,
+        "sha256": "2cbe709f901da3a3df440b5f2b013b97bda8f323e0f57bad046debab81f7e689"
+      },
+      {
+        "target": "LocalCacheLeaseManagerTest",
+        "cases": 8,
+        "failures": 0,
+        "sha256": "da301fdd6b4e3ca4664bf671873824b3326038a20f2572384e8ffd5d167896bd"
+      },
+      {
+        "target": "LocalCacheSessionTest",
+        "cases": 64,
+        "failures": 0,
+        "sha256": "edaf9b045f8517b4d0e5935397734e0e7e86b578b5632efc98b569b73ebca0f0"
+      },
+      {
+        "target": "LocalContentHasherTest",
+        "cases": 10,
+        "failures": 0,
+        "sha256": "d4900f9ddf6361fe2e62190370e24517507b1f35baffc1ae9c2b154db93faa42"
+      },
+      {
+        "target": "LocalDependencyValidatorTest",
+        "cases": 31,
+        "failures": 0,
+        "sha256": "a6368de4776243debdd796d07dfe7ce1b9086ff51bc5124485bc1c0b6ca0e9db"
+      },
+      {
+        "target": "LocalPathCodecTest",
+        "cases": 2,
+        "failures": 0,
+        "sha256": "c6db2c216e2c0c21e428bd05221ea5346054fc66bc3c01684f89ee3bba0d0311"
+      },
+      {
+        "target": "LocalRepositoryMappingCodecTest",
+        "cases": 5,
+        "failures": 0,
+        "sha256": "b52afe7921577f0fd8244c4a9f0bec09169b8c9d819a8dabda0e84a7c7b7fabf"
+      },
+      {
+        "target": "LocalRunfilesCodecTest",
+        "cases": 27,
+        "failures": 0,
+        "sha256": "0c829ac001ad0c7c06f95e29b620d560375b7c6837c1a5e4ae64a3aad96e8a5a"
+      },
+      {
+        "target": "PackedFingerprintValueStoreTest",
+        "cases": 10,
+        "failures": 0,
+        "sha256": "47152a812e9e57198f39d4b59bb4172a94076ad5bcdeaa5ac5d843ed301e5fd0"
+      }
+    ]
+  },
+  "candidate_binary": {
+    "path": "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+    "sha256": "28026d467ef10667c0fcfb1741495fbefe4fee9dfed43d3d2d9733726b5cb159"
+  },
+  "baseline_binary": {
+    "path": "/home/jgett/REPOS/.work/skycache-concurrent/nvme-batch-optimization-2026-10-21/bazel",
+    "sha256": "a275f62018c2e5fc25f0b5f89199aac7da7464c9696b1daeec640db52c2e0e23",
+    "base": "6f451b2dc6f783dda879ff3c7ed3fc8146d0f410",
+    "provenance": "Previously built local binary, verified against committed batch-optimization-2026-10-21.json"
+  },
+  "fixture_builds": {
+    "idle": 25,
+    "cold_import": 2,
+    "worktrees": 18,
+    "mixed_worktrees": 18,
+    "total": 63
+  },
+  "idle": {
+    "skycache": {
+      "recovery_seconds": [
+        0.29225681100001566,
+        0.2215198879999889,
+        0.22780767999995533
+      ],
+      "median_recovery_seconds": 0.22780767999995533,
+      "median_warm_seconds": 0.19883560199991734,
+      "median_heap_released_mib": 130.8195571899414,
+      "median_pss_released_mib": 292.91796875
+    },
+    "off": {
+      "recovery_seconds": [
+        0.3999861700000338,
+        0.36536176599997816,
+        0.36152021199995943
+      ],
+      "median_recovery_seconds": 0.36536176599997816,
+      "median_warm_seconds": 0.2549656869999808,
+      "median_heap_released_mib": 130.40120697021484,
+      "median_pss_released_mib": 200.94921875
+    },
+    "recovery_ratio_off_over_on": 1.6038167194365431
+  },
+  "validator": [
+    {
+      "jvm": 1,
+      "threads": 1,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 35.364,
+      "root_stripes_median_ms": 35.234,
+      "serial_over_parallel": 1.0036896179826302
+    },
+    {
+      "jvm": 1,
+      "threads": 2,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 37.866,
+      "root_stripes_median_ms": 20.85,
+      "serial_over_parallel": 1.816115107913669
+    },
+    {
+      "jvm": 1,
+      "threads": 4,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 39.023,
+      "root_stripes_median_ms": 22.926,
+      "serial_over_parallel": 1.7021285876297656
+    },
+    {
+      "jvm": 1,
+      "threads": 8,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 37.606,
+      "root_stripes_median_ms": 17.979,
+      "serial_over_parallel": 2.0916624951332112
+    },
+    {
+      "jvm": 2,
+      "threads": 1,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 34.414,
+      "root_stripes_median_ms": 35.829,
+      "serial_over_parallel": 0.9605068519914036
+    },
+    {
+      "jvm": 2,
+      "threads": 2,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 37.768,
+      "root_stripes_median_ms": 20.551,
+      "serial_over_parallel": 1.8377694516081944
+    },
+    {
+      "jvm": 2,
+      "threads": 4,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 37.625,
+      "root_stripes_median_ms": 21.959,
+      "serial_over_parallel": 1.713420465412815
+    },
+    {
+      "jvm": 2,
+      "threads": 8,
+      "records_read": 8832,
+      "witnesses_checked": 8192,
+      "serial_baseline_median_ms": 37.96,
+      "root_stripes_median_ms": 18.283,
+      "serial_over_parallel": 2.076245692720013
+    }
+  ],
+  "packed_store": [
+    {
+      "size": "small",
+      "jvm": 1,
+      "threads": 1,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 236.289,
+      "median_read_ms": 13.889
+    },
+    {
+      "size": "small",
+      "jvm": 1,
+      "threads": 2,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 237.056,
+      "median_read_ms": 8.066
+    },
+    {
+      "size": "small",
+      "jvm": 1,
+      "threads": 4,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 226.601,
+      "median_read_ms": 5.358
+    },
+    {
+      "size": "small",
+      "jvm": 1,
+      "threads": 8,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 227.628,
+      "median_read_ms": 4.78
+    },
+    {
+      "size": "small",
+      "jvm": 2,
+      "threads": 1,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 246.047,
+      "median_read_ms": 13.068
+    },
+    {
+      "size": "small",
+      "jvm": 2,
+      "threads": 2,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 241.126,
+      "median_read_ms": 8.518
+    },
+    {
+      "size": "small",
+      "jvm": 2,
+      "threads": 4,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 241.837,
+      "median_read_ms": 5.536
+    },
+    {
+      "size": "small",
+      "jvm": 2,
+      "threads": 8,
+      "entries": 20000,
+      "value_bytes": 256,
+      "median_durable_write_ms": 249.825,
+      "median_read_ms": 5.477
+    },
+    {
+      "size": "medium",
+      "jvm": 1,
+      "threads": 1,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1087.65,
+      "median_read_ms": 22.661
+    },
+    {
+      "size": "medium",
+      "jvm": 1,
+      "threads": 2,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1086.296,
+      "median_read_ms": 13.685
+    },
+    {
+      "size": "medium",
+      "jvm": 1,
+      "threads": 4,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1075.196,
+      "median_read_ms": 7.671
+    },
+    {
+      "size": "medium",
+      "jvm": 1,
+      "threads": 8,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1092.795,
+      "median_read_ms": 5.028
+    },
+    {
+      "size": "medium",
+      "jvm": 2,
+      "threads": 1,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1079.45,
+      "median_read_ms": 22.641
+    },
+    {
+      "size": "medium",
+      "jvm": 2,
+      "threads": 2,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1066.079,
+      "median_read_ms": 13.599
+    },
+    {
+      "size": "medium",
+      "jvm": 2,
+      "threads": 4,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1059.42,
+      "median_read_ms": 7.531
+    },
+    {
+      "size": "medium",
+      "jvm": 2,
+      "threads": 8,
+      "entries": 8000,
+      "value_bytes": 4096,
+      "median_durable_write_ms": 1057.575,
+      "median_read_ms": 4.794
+    }
+  ],
+  "limitations": [
+    "Cloud and WSL results have different provenance and must not be pooled.",
+    "The run volume is ext4 on a loop image backed by C: through WSL drvfs; timings are not a native ext4/NVMe claim.",
+    "Normal filesystem/page caches remain enabled.",
+    "No production rollout or whole-build performance claim."
+  ],
+  "worktrees": {
+    "passed": true,
+    "phases": [
+      "concurrent-empty-cache",
+      "warm",
+      "restarted-baseline-readers",
+      "publish-starlark-replacement",
+      "invalidate-retained-starlark",
+      "warm-starlark-revert",
+      "independent-source-edits",
+      "independent-starlark-edits",
+      "reverted-restarted-readers",
+      "corrupt-chunks-fallback"
+    ],
+    "publication_failures": 0,
+    "corruption": {
+      "damaged_chunks": 2031,
+      "preserved_possible_roots": 345
+    }
+  },
+  "mixed_worktrees": {
+    "passed": true,
+    "phases": [
+      "concurrent-empty-cache",
+      "warm",
+      "restarted-baseline-readers",
+      "publish-starlark-replacement",
+      "invalidate-retained-starlark",
+      "warm-starlark-revert",
+      "independent-source-edits",
+      "independent-starlark-edits",
+      "reverted-restarted-readers",
+      "corrupt-chunks-fallback"
+    ],
+    "publication_failures": 0,
+    "corruption": {
+      "damaged_chunks": 2212,
+      "preserved_possible_roots": 410
+    }
+  },
+  "cold_import": {
+    "passed": true,
+    "same_pid_recovery": true,
+    "writes": [
+      0,
+      0
+    ],
+    "analysis_hits": [
+      1,
+      1
+    ]
+  }
+}

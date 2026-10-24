@@ -1,0 +1,1431 @@
+{
+  "binary": "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+  "binary_sha256": "28026d467ef10667c0fcfb1741495fbefe4fee9dfed43d3d2d9733726b5cb159",
+  "other_binary": "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+  "other_binary_sha256": "28026d467ef10667c0fcfb1741495fbefe4fee9dfed43d3d2d9733726b5cb159",
+  "purpose": "correctness; two concurrent servers, not a speed benchmark",
+  "environment": "strict repository environment; natural per-worktree PWD and distinct session markers",
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/mnt/skycache-v2-local",
+        "free_bytes": 61283446784,
+        "host_backing": {
+          "kind": "windows_loop_image",
+          "drive": "C:\\",
+          "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+          "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+          "backing_mount": {
+            "source": "C:\\",
+            "fstype": "9p",
+            "target": "/mnt/c"
+          },
+          "free_bytes": 81591619584
+        }
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 28531732480,
+      "system_drive": "C:\\",
+      "system_free_bytes": 81591619584,
+      "windows_drives": {
+        "C:\\": 81591619584,
+        "D:\\": 999685435392,
+        "E:\\": 28531732480
+      },
+      "observation_source": "wsl_interop",
+      "observed_unix": null
+    }
+  },
+  "phases": [
+    {
+      "phase": "concurrent-empty-cache",
+      "seconds": 10.709958052000047,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61282238464,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591619584
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591619584,
+          "windows_drives": {
+            "C:\\": 81591619584,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 894568,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 10.473761637000052,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 812,
+            "reads": 68,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 814,
+            "cas_accepted_puts": 814,
+            "cas_put_key_bytes": 17302,
+            "cas_put_value_bytes": 142278,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 10.708781283999997,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 812,
+            "reads": 68,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 814,
+            "cas_accepted_puts": 814,
+            "cas_put_key_bytes": 17302,
+            "cas_put_value_bytes": 142279,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 2,
+      "cache_index_files": 2,
+      "cache_packed_bytes": 468521,
+      "cache_record_count": 1624
+    },
+    {
+      "phase": "warm",
+      "seconds": 0.26256791000002977,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61280038912,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591652352
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591652352,
+          "windows_drives": {
+            "C:\\": 81591652352,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 904364,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.23860889800005225,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.261544707999974,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 0,
+            "reads": 0,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 0,
+            "cas_accepted_puts": 0,
+            "cas_put_key_bytes": 0,
+            "cas_put_value_bytes": 0,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 2,
+      "cache_index_files": 2,
+      "cache_packed_bytes": 468521,
+      "cache_record_count": 1624
+    },
+    {
+      "phase": "restarted-baseline-readers",
+      "seconds": 10.316724843000088,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61280415744,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591259136
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591259136,
+          "windows_drives": {
+            "C:\\": 81591259136,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 791920,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 10.052364134000072,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 777,
+            "shared_reads": 776,
+            "rejected_publications": 0,
+            "deduplicated_writes": 51,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 108398,
+            "cas_put_requests": 51,
+            "cas_accepted_puts": 51,
+            "cas_put_key_bytes": 816,
+            "cas_put_value_bytes": 1006,
+            "cas_get_requests": 727,
+            "cas_get_hits": 727,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 129160,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 10.315562289000013,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 777,
+            "shared_reads": 776,
+            "rejected_publications": 0,
+            "deduplicated_writes": 51,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 108398,
+            "cas_put_requests": 51,
+            "cas_accepted_puts": 51,
+            "cas_put_key_bytes": 816,
+            "cas_put_value_bytes": 1006,
+            "cas_get_requests": 727,
+            "cas_get_hits": 727,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 129160,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 2,
+      "cache_index_files": 2,
+      "cache_packed_bytes": 468521,
+      "cache_record_count": 1624
+    },
+    {
+      "phase": "publish-starlark-replacement",
+      "builds": [
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.6349096430000145,
+          "output_sha256": "8ddee00b38c9396239eef5969e34fe00d3bf0339acb30f1f583241fc5d6e309e",
+          "analysis_hits": 1,
+          "skycache": {
+            "writes": 246,
+            "reads": 941,
+            "shared_reads": 874,
+            "rejected_publications": 0,
+            "deduplicated_writes": 564,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 2,
+            "peak_candidate_metadata_bytes": 108398,
+            "cas_put_requests": 810,
+            "cas_accepted_puts": 810,
+            "cas_put_key_bytes": 17207,
+            "cas_put_value_bytes": 143362,
+            "cas_get_requests": 873,
+            "cas_get_hits": 873,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 125582,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "seconds": 0.6349096430000145,
+      "purpose": "exact previously imported value invalidation"
+    },
+    {
+      "phase": "invalidate-retained-starlark",
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.5158382490000122,
+          "output_sha256": "8ddee00b38c9396239eef5969e34fe00d3bf0339acb30f1f583241fc5d6e309e",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 1150,
+            "shared_reads": 1149,
+            "rejected_publications": 0,
+            "deduplicated_writes": 51,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 135561,
+            "cas_put_requests": 51,
+            "cas_accepted_puts": 51,
+            "cas_put_key_bytes": 816,
+            "cas_put_value_bytes": 1006,
+            "cas_get_requests": 1100,
+            "cas_get_hits": 1100,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 182541,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "seconds": 0.5158382490000122,
+      "purpose": "exact previously imported value invalidation"
+    },
+    {
+      "phase": "warm-starlark-revert",
+      "seconds": 0.4856029390000458,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61279326208,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591259136
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591259136,
+          "windows_drives": {
+            "C:\\": 81591259136,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 986844,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.48464374699995005,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 949,
+            "shared_reads": 948,
+            "rejected_publications": 0,
+            "deduplicated_writes": 51,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 135561,
+            "cas_put_requests": 51,
+            "cas_accepted_puts": 51,
+            "cas_put_key_bytes": 816,
+            "cas_put_value_bytes": 1006,
+            "cas_get_requests": 899,
+            "cas_get_hits": 899,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 152343,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.4682316669999409,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 777,
+            "shared_reads": 776,
+            "rejected_publications": 0,
+            "deduplicated_writes": 54,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 135561,
+            "cas_put_requests": 54,
+            "cas_accepted_puts": 54,
+            "cas_put_key_bytes": 864,
+            "cas_put_value_bytes": 1136,
+            "cas_get_requests": 727,
+            "cas_get_hits": 727,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 129160,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 3,
+      "cache_index_files": 3,
+      "cache_packed_bytes": 579892,
+      "cache_record_count": 1870
+    },
+    {
+      "phase": "independent-source-edits",
+      "seconds": 0.3651674279999497,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61279145984,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591259136
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591259136,
+          "windows_drives": {
+            "C:\\": 81591259136,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 999700,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.36427347199992255,
+          "output_sha256": "5f789304a2c3f68c25f05df20151c9d1611aec0f0015596053a36af39ec60701",
+          "analysis_hits": 1,
+          "skycache": {
+            "writes": 57,
+            "reads": 413,
+            "shared_reads": 406,
+            "rejected_publications": 0,
+            "deduplicated_writes": 335,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 135561,
+            "cas_put_requests": 392,
+            "cas_accepted_puts": 392,
+            "cas_put_key_bytes": 8659,
+            "cas_put_value_bytes": 62439,
+            "cas_get_requests": 405,
+            "cas_get_hits": 405,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 63986,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.3551482530000385,
+          "output_sha256": "3e06a2d68abe7ecfff6d8ce017cb52a9a15f22e4a075f4b0782681185f0e7b59",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 57,
+            "reads": 406,
+            "shared_reads": 399,
+            "rejected_publications": 0,
+            "deduplicated_writes": 334,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 3,
+            "peak_candidate_metadata_bytes": 135561,
+            "cas_put_requests": 391,
+            "cas_accepted_puts": 391,
+            "cas_put_key_bytes": 8643,
+            "cas_put_value_bytes": 62403,
+            "cas_get_requests": 399,
+            "cas_get_hits": 399,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 62896,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 5,
+      "cache_index_files": 5,
+      "cache_packed_bytes": 627298,
+      "cache_record_count": 1984
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "seconds": 0.5431909610000503,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61278969856,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591259136
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591259136,
+          "windows_drives": {
+            "C:\\": 81591259136,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 1116268,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 0.5424926050000067,
+          "output_sha256": "3e0e37342b8610bfbbdd2d74014335ea51666a34b9881876bf32908e8933b826",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 196,
+            "reads": 1260,
+            "shared_reads": 1193,
+            "rejected_publications": 0,
+            "deduplicated_writes": 613,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 5,
+            "peak_candidate_metadata_bytes": 171809,
+            "cas_put_requests": 809,
+            "cas_accepted_puts": 809,
+            "cas_put_key_bytes": 17191,
+            "cas_put_value_bytes": 142807,
+            "cas_get_requests": 1193,
+            "cas_get_hits": 1193,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 166706,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 0.5391632779999327,
+          "output_sha256": "45a61479ced25ff3fe03a0b31beca991e43400474fa57d00f44c66f42e2e180f",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 196,
+            "reads": 1274,
+            "shared_reads": 1207,
+            "rejected_publications": 0,
+            "deduplicated_writes": 613,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 5,
+            "peak_candidate_metadata_bytes": 171809,
+            "cas_put_requests": 809,
+            "cas_accepted_puts": 809,
+            "cas_put_key_bytes": 17191,
+            "cas_put_value_bytes": 142816,
+            "cas_get_requests": 1207,
+            "cas_get_hits": 1207,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 168164,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 7,
+      "cache_index_files": 7,
+      "cache_packed_bytes": 804889,
+      "cache_record_count": 2376
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "seconds": 19.513993524999933,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61279084544,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591259136
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591259136,
+          "windows_drives": {
+            "C:\\": 81591259136,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 855012,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 19.230890327999987,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 1146,
+            "shared_reads": 1145,
+            "rejected_publications": 0,
+            "deduplicated_writes": 51,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 7,
+            "peak_candidate_metadata_bytes": 221665,
+            "cas_put_requests": 51,
+            "cas_accepted_puts": 51,
+            "cas_put_key_bytes": 816,
+            "cas_put_value_bytes": 1006,
+            "cas_get_requests": 1096,
+            "cas_get_hits": 1096,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 181231,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 19.51296215399998,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 49,
+          "skycache": {
+            "writes": 0,
+            "reads": 1160,
+            "shared_reads": 1159,
+            "rejected_publications": 0,
+            "deduplicated_writes": 51,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 7,
+            "peak_candidate_metadata_bytes": 221665,
+            "cas_put_requests": 51,
+            "cas_accepted_puts": 51,
+            "cas_put_key_bytes": 816,
+            "cas_put_value_bytes": 1006,
+            "cas_get_requests": 1110,
+            "cas_get_hits": 1110,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 182624,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 7,
+      "cache_index_files": 7,
+      "cache_packed_bytes": 804889,
+      "cache_record_count": 2376
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "seconds": 10.60142189599992,
+      "storage_preflight": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local/worktrees",
+            "free_bytes": 61278871552,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81590857728
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591013376,
+          "windows_drives": {
+            "C:\\": 81590857728,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "peak_combined_server_rss_kib": 952276,
+      "builds": [
+        {
+          "worktree": "a",
+          "exit_code": 0,
+          "seconds": 10.401379617999964,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 742,
+            "reads": 405,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 70,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 7,
+            "peak_candidate_metadata_bytes": 221665,
+            "cas_put_requests": 814,
+            "cas_accepted_puts": 814,
+            "cas_put_key_bytes": 17302,
+            "cas_put_value_bytes": 142278,
+            "cas_get_requests": 337,
+            "cas_get_hits": 0,
+            "cas_get_misses": 337,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          }
+        },
+        {
+          "worktree": "b",
+          "exit_code": 0,
+          "seconds": 10.600231298000153,
+          "output_sha256": "44e5456323856ae8e7f082233f9f61ae38f6734b37ff22dd83bbd66f68f55200",
+          "analysis_hits": 0,
+          "skycache": {
+            "writes": 742,
+            "reads": 405,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 70,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 7,
+            "peak_candidate_metadata_bytes": 221665,
+            "cas_put_requests": 814,
+            "cas_accepted_puts": 814,
+            "cas_put_key_bytes": 17302,
+            "cas_put_value_bytes": 142279,
+            "cas_get_requests": 337,
+            "cas_get_hits": 0,
+            "cas_get_misses": 337,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          }
+        }
+      ],
+      "cache_entry_files": 0,
+      "cache_entry_bytes": 0,
+      "cache_pack_files": 9,
+      "cache_index_files": 9,
+      "cache_packed_bytes": 1233058,
+      "cache_record_count": 3860
+    }
+  ],
+  "corruption": {
+    "damaged_chunks": 2031,
+    "preserved_possible_roots": 345
+  },
+  "passed": true,
+  "commands": [
+    {
+      "phase": "concurrent-empty-cache",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/concurrent-empty-cache-a.bep.json"
+      ]
+    },
+    {
+      "phase": "concurrent-empty-cache",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/concurrent-empty-cache-b.bep.json"
+      ]
+    },
+    {
+      "phase": "warm",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/warm-a.bep.json"
+      ]
+    },
+    {
+      "phase": "warm",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/warm-b.bep.json"
+      ]
+    },
+    {
+      "phase": "restarted-baseline-readers",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/restarted-baseline-readers-a.bep.json"
+      ]
+    },
+    {
+      "phase": "restarted-baseline-readers",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/restarted-baseline-readers-b.bep.json"
+      ]
+    },
+    {
+      "phase": "publish-starlark-replacement",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/publish-starlark-replacement-b.bep.json"
+      ]
+    },
+    {
+      "phase": "invalidate-retained-starlark",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/invalidate-retained-starlark-a.bep.json"
+      ]
+    },
+    {
+      "phase": "warm-starlark-revert",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/warm-starlark-revert-a.bep.json"
+      ]
+    },
+    {
+      "phase": "warm-starlark-revert",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/warm-starlark-revert-b.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/independent-source-edits-a.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-source-edits",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/independent-source-edits-b.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/independent-starlark-edits-a.bep.json"
+      ]
+    },
+    {
+      "phase": "independent-starlark-edits",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/independent-starlark-edits-b.bep.json"
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/reverted-restarted-readers-a.bep.json"
+      ]
+    },
+    {
+      "phase": "reverted-restarted-readers",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/reverted-restarted-readers-b.bep.json"
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "worktree": "a",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-a",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/corrupt-chunks-fallback-a.bep.json"
+      ]
+    },
+    {
+      "phase": "corrupt-chunks-fallback",
+      "worktree": "b",
+      "argv": [
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx2g",
+        "--output_base=/mnt/skycache-v2-local/worktrees/out-b",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "build",
+        "//app:all",
+        "--jobs=2",
+        "--local_resources=memory=2048",
+        "--experimental_local_skycache=/mnt/skycache-v2-local/worktrees/cache",
+        "--experimental_active_directories=app",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--build_event_json_file=/mnt/skycache-v2-local/worktrees/corrupt-chunks-fallback-b.bep.json"
+      ]
+    }
+  ]
+}

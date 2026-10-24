@@ -1,0 +1,20 @@
+{
+  "attempts": [
+    {
+      "status": "rejected_incomplete_input",
+      "exit_code": 1,
+      "reason": "Aggregation was invoked while packed-medium-1 was still running. The expected 20 samples assertion rejected the incomplete file. No summary or completion status was written.",
+      "correction": "Require every expected stage to have passed before reading samples; wait for the runner to finish before retrying."
+    },
+    {
+      "status": "setup_failed",
+      "exit_code": 1,
+      "reason": "After the last benchmark process exited, /mnt/skycache-v2-local was no longer mounted. The ext4 image and copied evidence remained intact. Cause of the mount loss was not established."
+    },
+    {
+      "status": "passed",
+      "exit_code": 0,
+      "correction": "Remounted the existing image with Resume-Skycache.ps1 and kept a WSL foreground sleep process alive while finalizing. Rechecked all expected stages and sample counts."
+    }
+  ]
+}

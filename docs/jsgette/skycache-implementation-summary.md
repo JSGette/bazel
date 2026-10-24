@@ -1,5 +1,12 @@
 # Concurrent local SkyCache: implementation handoff
 
+The proposed [v2 implementation design](skycache-v2-design-2026-10-24.md) builds on this research
+with Merkle input certificates, parallel validation, selective publication, batched storage,
+and configurable idle retention for analysis and action-cache metadata.
+It is a design proposal; the implementation and measurements below remain the current baseline.
+The local [idle-retention prototype](skycache-idle-retention-prototype-2026-10-24.md) compiles
+and passes four focused cases, but its three-attempt runtime experiment produced no valid A/B result.
+
 The implementation is an experimental filesystem analysis cache for independent Bazel servers
 working in linked Git worktrees of one repository. Both servers may read and publish concurrently.
 Each retains its own full Skyframe graph, output base and action execution. Integration uses Bazel's
@@ -246,3 +253,20 @@ were verified stopped after cleanup.
 This closes the requested local prototype handoff within the tested scope. It does not establish
 production readiness, a general performance improvement or a passing 16/16 run. The validation
 omissions and product limitations above remain explicit follow-up work.
+
+
+## WSL continuation, 2026-10-24
+
+The cloud v2 handoff was restored and validated locally on branch
+`jsgette/skycache-v2-local`. All 190 local SkyCache cases and 63 fixture builds
+passed, including imported-only idle eviction, same-mtime content mutation,
+concurrent worktrees and old/new binary sharing. Synthetic median recovery was
+0.228 s with SkyCache versus 0.365 s without it. Eight-thread validator medians
+were about 2.1× faster than the serial baseline; packed durable-write scaling was
+small on the C:-backed ext4 loop volume. These do not establish a representative
+real-build speedup.
+
+See the [complete WSL protocol](skycache-v2-wsl-continuation-2026-10-24.md) for
+commands, source/binary hashes, storage provenance, every setup failure, raw
+samples and outstanding work. The original cloud handoff is archived separately
+with its incomplete runs intact.

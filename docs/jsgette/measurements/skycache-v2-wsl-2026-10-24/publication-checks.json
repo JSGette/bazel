@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "action": "Check current implementation patch against source HEAD in reverse",
+      "status": "passed"
+    },
+    {
+      "action": "Initial staged whitespace check over all evidence",
+      "status": "rejected_raw_evidence_whitespace",
+      "reason": "Raw Bazel logs have trailing spaces; unified patch context blank lines contain a required space. No commit or push occurred.",
+      "correction": "Scope .gitattributes to this evidence directory: preserve exact file bytes with -text and disable whitespace diagnostics only for .log and .patch data. Source/docs/script whitespace checks remain enabled."
+    },
+    {
+      "action": "Second staged whitespace check with byte preservation",
+      "status": "rejected_windows_line_endings",
+      "reason": "Preserved CRLF endings in hardware.json need the cr-at-eol whitespace attribute; added only for that Windows-generated snapshot."
+    }
+  ]
+}

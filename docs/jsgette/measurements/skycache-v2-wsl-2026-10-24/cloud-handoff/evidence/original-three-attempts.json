@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-24",
+  "status": "inconclusive_no_valid_ab_result",
+  "implementation_base": "6f451b2dc6f783dda879ff3c7ed3fc8146d0f410",
+  "local_branch": "jsgette/skycache-idle-retention-prototype",
+  "binary_sha256": "4e262a8b005e05141b5bfc67c02381d960d6f157fb5f4858b89ad3b0d0c332c0",
+  "implementation_patch_sha256": "c948e88c29c4efb7cd03a20fadd73cfa2f2b5222ffa31c257683bc83e8772170",
+  "source_build": {
+    "successful": true,
+    "seconds": 850.867,
+    "focused_tests": 4,
+    "failures": 0
+  },
+  "workload_attempt_limit": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "role": "seed",
+      "seconds": 6.547449542999857,
+      "exit_code": 32,
+      "published": false,
+      "cache_failure": false,
+      "analysis_hits": 0,
+      "expected_output_matches": null,
+      "output_sha256": null,
+      "sampled_peak_server_pss_kib": 235718,
+      "command_end_server_pss_kib": 237206,
+      "log_sha256": "167d2676bd04d1e665812c5492a889af125395fb94dce5ced998f77d9f7a7d6d"
+    },
+    {
+      "attempt": 2,
+      "role": "A_seed_before_idle",
+      "seconds": 8.526169182000103,
+      "exit_code": 1,
+      "published": false,
+      "cache_failure": false,
+      "analysis_hits": 0,
+      "expected_output_matches": null,
+      "output_sha256": null,
+      "sampled_peak_server_pss_kib": 323412,
+      "command_end_server_pss_kib": 323410,
+      "log_sha256": "21b68bbea9b806c0c81aaedf5345c8ad1da9230f3769e3f3a0d0d94c5788e1d5"
+    },
+    {
+      "attempt": 3,
+      "role": "memory_only_seed",
+      "seconds": 10.563845819000107,
+      "exit_code": 0,
+      "published": false,
+      "cache_failure": true,
+      "analysis_hits": 0,
+      "expected_output_matches": true,
+      "output_sha256": "303e01a2e9f45f8723dca27f0b6da98b0696f7b5b112dab53fabce221d87b3c5",
+      "sampled_peak_server_pss_kib": 612548,
+      "command_end_server_pss_kib": 621566,
+      "log_sha256": "ccb2b45f6f5a6cd0421c583b096e212d8abf34e0e36bd17bb16eaaf2ff528c4b"
+    }
+  ],
+  "fixture": {
+    "leaf_count": 2048,
+    "strings_per_leaf": 512,
+    "description": "Synthetic analysis-heavy Starlark providers; one FileWrite action"
+  },
+  "runtime": {
+    "jobs": 4,
+    "heap_gib": 4,
+    "action_memory_mib": 4096
+  },
+  "idle_eviction_observed": false,
+  "memory_saving": null,
+  "recovery_latency_seconds": null,
+  "failure_reasons": [
+    "Custom JDK lacked configured environment CA trust.",
+    "Fixture used unsupported Starlark zero-padding format.",
+    "Build/output correct but SkyCache rejected publication: inputs changed during invocation."
+  ],
+  "diagnosis": "Exact input mismatch was not logged. Changing output bases with convenience symlinks in the workspace is a plausible cause; not independently confirmed.",
+  "harness_fixes_after_last_attempt": [
+    "Auto-discover existing environment trust store when unique.",
+    "Create convenience links outside source workspace."
+  ],
+  "harness_fixes_retested": false,
+  "cleanup": "All task JVMs exited; remaining container zombie processes have zero RSS.",
+  "limits": [
+    "No valid A/B latency or memory comparison.",
+    "No v2 Merkle implementation tested.",
+    "Synthetic provider-heavy fixture; no real repository performance claim.",
+    "Action-result metadata idle unloading remains unimplemented."
+  ]
+}

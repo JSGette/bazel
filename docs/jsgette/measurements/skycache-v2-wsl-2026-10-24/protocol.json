@@ -1,0 +1,791 @@
+{
+  "kind": "skycache_v2_wsl_continuation",
+  "recorded_at_utc": "2026-10-24T20:51:09.508335+00:00",
+  "user_timezone": "Europe/Berlin",
+  "implementation_base": "6f451b2dc6f783dda879ff3c7ed3fc8146d0f410",
+  "research_base": "8f4ec5307f553018d00a2be926868c530678f5ef",
+  "implementation_branch": "jsgette/skycache-v2-local",
+  "documentation_branch": "jsgette/master",
+  "source_path": "/home/jgett/REPOS/bazel-skycache-v2",
+  "run_path": "/mnt/skycache-v2-local",
+  "archive_sha256": "5059db1d05615fc0a6a1f1855e9dfd7249669859c33d6ddf20ce490de09be0d3",
+  "all_archive_checksums_verified": true,
+  "setup": [
+    {
+      "action": "Inspect Downloads archive and WSL Ubuntu; read CONTINUE.md and repository AGENTS.md",
+      "status": "passed"
+    },
+    {
+      "action": "Safely extract archive into /home/jgett/REPOS/.work/skycache-v2-local and verify SHA256SUMS",
+      "status": "passed"
+    },
+    {
+      "action": "git worktree add -b jsgette/skycache-v2-local /home/jgett/REPOS/bazel-skycache-v2 6f451b2dc6f783dda879ff3c7ed3fc8146d0f410; git apply --check implementation.patch; git apply implementation.patch",
+      "status": "passed"
+    },
+    {
+      "action": "First inline PowerShell/WSL build command",
+      "status": "setup_failed",
+      "reason": "PowerShell quoting/parser error before Python or Bazel executed; replaced with a saved bash script"
+    },
+    {
+      "action": "Storage preflight on Ubuntu-backed run directory",
+      "status": "setup_failed",
+      "reason": "E:\\WSL\\Ubuntu backing volume had 26.6 GiB free, below unchanged 30 GiB reserve; no build started"
+    },
+    {
+      "action": "Create and mount dedicated 64 GiB ext4 image on C: at /mnt/skycache-v2-local",
+      "status": "passed",
+      "reason": "Preserve Linux filesystem semantics and normal storage guards; all new build/output/cache writes redirected here",
+      "persistent_mount_configuration_changed": false
+    },
+    {
+      "action": "git fetch origin jsgette/master jsgette/skycache-concurrent; fast-forward clean existing jsgette/master checkout to origin/jsgette/master",
+      "status": "passed"
+    },
+    {
+      "action": "git apply --check research-notes.patch; git apply research-notes.patch on jsgette/master at exact research base",
+      "status": "passed"
+    },
+    {
+      "action": "Verify Resume-Skycache.ps1 against the mounted task volume",
+      "status": "passed_after_fix",
+      "details": "resume-helper-checks.json preserves the initial PowerShell CRLF boundary failure and successful correction"
+    },
+    {
+      "action": "Aggregate results",
+      "status": "passed_after_setup_retries",
+      "details": "aggregation-checks.json preserves premature aggregation rejection and the missing-mount retry; no incomplete result was promoted"
+    }
+  ],
+  "stages": [
+    {
+      "name": "build-and-tests",
+      "status": "passed",
+      "completed_at_utc": "2026-10-24T20:57:57.081931+00:00",
+      "command_script": "build-skycache.sh",
+      "log": "build-tests.log"
+    },
+    {
+      "name": "shutdown-build-server",
+      "argv": [
+        "/home/jgett/REPOS/.tools/bazel",
+        "--output_user_root=/mnt/skycache-v2-local/bazel-user-root",
+        "--output_base=/mnt/skycache-v2-local/build-output",
+        "--host_jvm_args=-Xmx5g",
+        "shutdown"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T20:57:57.082370+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61762547712,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81592127488
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81592127488,
+          "windows_drives": {
+            "C:\\": 81592127488,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.6461972580000293,
+      "completed_at_utc": "2026-10-24T20:58:00.585780+00:00"
+    },
+    {
+      "name": "idle-ab",
+      "argv": [
+        "python3",
+        "/home/jgett/REPOS/bazel-skycache-v2/tools/skycache/idle_retention_benchmark.py",
+        "--bazel",
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--jdk",
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output-user-root",
+        "/mnt/skycache-v2-local/bazel-user-root",
+        "--root",
+        "/mnt/skycache-v2-local/idle-ab",
+        "--rounds=3",
+        "--with-off-control",
+        "--repeated-import-test"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T20:58:02.876670+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61762555904,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81592074240
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81592074240,
+          "windows_drives": {
+            "C:\\": 81592074240,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 190.65441616099997,
+      "completed_at_utc": "2026-10-24T21:01:02.279447+00:00"
+    },
+    {
+      "name": "cold-import",
+      "argv": [
+        "python3",
+        "/home/jgett/REPOS/bazel-skycache-v2/tools/skycache/idle_import_probe.py",
+        "--bazel",
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--fixture",
+        "/mnt/skycache-v2-local/idle-ab",
+        "--root",
+        "/mnt/skycache-v2-local/cold-import"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:01:02.283205+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61283557376,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591619584
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591619584,
+          "windows_drives": {
+            "C:\\": 81591619584,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 5.626832614000023,
+      "completed_at_utc": "2026-10-24T21:01:07.711510+00:00"
+    },
+    {
+      "name": "worktrees",
+      "argv": [
+        "python3",
+        "/home/jgett/REPOS/bazel-skycache-v2/tools/skycache/local_worktree_probe.py",
+        "--bazel",
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--jdk",
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output-user-root",
+        "/mnt/skycache-v2-local/bazel-user-root",
+        "--root",
+        "/mnt/skycache-v2-local/worktrees"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:01:07.712993+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61283450880,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81591619584
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81591619584,
+          "windows_drives": {
+            "C:\\": 81591619584,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 60.24288311400005,
+      "completed_at_utc": "2026-10-24T21:02:03.583105+00:00"
+    },
+    {
+      "name": "mixed-worktrees",
+      "argv": [
+        "python3",
+        "/home/jgett/REPOS/bazel-skycache-v2/tools/skycache/local_worktree_probe.py",
+        "--bazel",
+        "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+        "--jdk",
+        "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--output-user-root",
+        "/mnt/skycache-v2-local/bazel-user-root",
+        "--root",
+        "/mnt/skycache-v2-local/mixed-worktrees",
+        "--other-bazel",
+        "/home/jgett/REPOS/.work/skycache-concurrent/nvme-batch-optimization-2026-10-21/bazel"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:02:03.585989+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61278158848,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81590853632
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81590853632,
+          "windows_drives": {
+            "C:\\": 81590853632,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 58.07429554400005,
+      "completed_at_utc": "2026-10-24T21:02:58.238457+00:00"
+    },
+    {
+      "name": "dependency-1",
+      "argv": [
+        "/mnt/skycache-v2-local/build-output/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ParallelDependencyValidationBenchmark",
+        "--jvm_flag=-Xmx2g",
+        "/mnt/skycache-v2-local/dependency-1"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:02:58.241703+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61068881920,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81589391360
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81589391360,
+          "windows_drives": {
+            "C:\\": 81589391360,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 7.53077971200014,
+      "completed_at_utc": "2026-10-24T21:03:05.979631+00:00"
+    },
+    {
+      "name": "dependency-2",
+      "argv": [
+        "/mnt/skycache-v2-local/build-output/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ParallelDependencyValidationBenchmark",
+        "--jvm_flag=-Xmx2g",
+        "/mnt/skycache-v2-local/dependency-2"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:03:05.980616+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 61032513536,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81589391360
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81589391360,
+          "windows_drives": {
+            "C:\\": 81589391360,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 7.531020705000174,
+      "completed_at_utc": "2026-10-24T21:03:13.711982+00:00"
+    },
+    {
+      "name": "packed-small-1",
+      "argv": [
+        "/mnt/skycache-v2-local/build-output/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ParallelPackedStoreBenchmark",
+        "--jvm_flag=-Xmx2g",
+        "/mnt/skycache-v2-local/packed-small-1",
+        "20000",
+        "256"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:03:13.713100+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 60996149248,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81589391360
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81589391360,
+          "windows_drives": {
+            "C:\\": 81589391360,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 7.483450638000022,
+      "completed_at_utc": "2026-10-24T21:03:21.400214+00:00"
+    },
+    {
+      "name": "packed-small-2",
+      "argv": [
+        "/mnt/skycache-v2-local/build-output/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ParallelPackedStoreBenchmark",
+        "--jvm_flag=-Xmx2g",
+        "/mnt/skycache-v2-local/packed-small-2",
+        "20000",
+        "256"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:03:21.402351+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 60996136960,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81589387264
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81589387264,
+          "windows_drives": {
+            "C:\\": 81589387264,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 7.710864635999997,
+      "completed_at_utc": "2026-10-24T21:03:29.030209+00:00"
+    },
+    {
+      "name": "packed-medium-1",
+      "argv": [
+        "/mnt/skycache-v2-local/build-output/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ParallelPackedStoreBenchmark",
+        "--jvm_flag=-Xmx2g",
+        "/mnt/skycache-v2-local/packed-medium-1",
+        "8000",
+        "4096"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:03:29.031467+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 60996128768,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81589166080
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81589166080,
+          "windows_drives": {
+            "C:\\": 81589166080,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 32.74659315500003,
+      "completed_at_utc": "2026-10-24T21:04:07.063407+00:00"
+    },
+    {
+      "name": "packed-medium-2",
+      "argv": [
+        "/mnt/skycache-v2-local/build-output/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/ParallelPackedStoreBenchmark",
+        "--jvm_flag=-Xmx2g",
+        "/mnt/skycache-v2-local/packed-medium-2",
+        "8000",
+        "4096"
+      ],
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "started_at_utc": "2026-10-24T21:04:07.064713+00:00",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/mnt/skycache-v2-local",
+            "free_bytes": 60996116480,
+            "host_backing": {
+              "kind": "windows_loop_image",
+              "drive": "C:\\",
+              "image": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4",
+              "kernel_backing_file": "/sys/dev/block/7:0/loop/backing_file",
+              "backing_mount": {
+                "source": "C:\\",
+                "fstype": "9p",
+                "target": "/mnt/c"
+              },
+              "free_bytes": 81588985856
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28531732480,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81588985856,
+          "windows_drives": {
+            "C:\\": 81588985856,
+            "D:\\": 999685435392,
+            "E:\\": 28531732480
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 30.864896427000076,
+      "completed_at_utc": "2026-10-24T21:04:28.079187+00:00"
+    }
+  ],
+  "limitations": [
+    "Cloud and WSL results have different provenance and must not be pooled.",
+    "The run volume is ext4 on a loop image backed by C: through WSL drvfs; timings are not a native ext4/NVMe claim.",
+    "Normal filesystem/page caches remain enabled.",
+    "No production rollout or whole-build performance claim."
+  ],
+  "status": "local_validation_complete",
+  "candidate_binary": {
+    "path": "/mnt/skycache-v2-local/bin/bazel-skycache-v2-1",
+    "sha256": "28026d467ef10667c0fcfb1741495fbefe4fee9dfed43d3d2d9733726b5cb159"
+  },
+  "baseline_binary": {
+    "path": "/home/jgett/REPOS/.work/skycache-concurrent/nvme-batch-optimization-2026-10-21/bazel",
+    "sha256": "a275f62018c2e5fc25f0b5f89199aac7da7464c9696b1daeec640db52c2e0e23",
+    "base": "6f451b2dc6f783dda879ff3c7ed3fc8146d0f410",
+    "provenance": "Previously built local binary, verified against committed batch-optimization-2026-10-21.json"
+  },
+  "jdk": "openjdk version \"25.0.4\" 2026-07-21 LTS\nOpenJDK Runtime Environment Zulu25.36+15-CA (build 25.0.4+7-LTS)\nOpenJDK 64-Bit Server VM Zulu25.36+15-CA (build 25.0.4+7-LTS, mixed mode, sharing)\n",
+  "tests": {
+    "targets": 12,
+    "cases": 190,
+    "failures": 0,
+    "details": [
+      {
+        "target": "AnalysisCacheIdleRetentionTaskTest",
+        "cases": 4,
+        "failures": 0,
+        "sha256": "3941cb2787d07a815ebe8ca6c3da4ab4d0da6e5dcc1cd4c767df34463898cc1a"
+      },
+      {
+        "target": "ConcurrentFileFingerprintValueStoreTest",
+        "cases": 5,
+        "failures": 0,
+        "sha256": "179c6c4cbe1e362da8d8d8773498661e872473cd325e32ca25c6a7575c91a9d4"
+      },
+      {
+        "target": "LocalCacheGarbageCollectorIdleTaskTest",
+        "cases": 4,
+        "failures": 0,
+        "sha256": "18ed223d79316cbb42ee956d03ef1132eef4eea3841745bb9b9f8d3723b9fb1a"
+      },
+      {
+        "target": "LocalCacheGarbageCollectorTest",
+        "cases": 20,
+        "failures": 0,
+        "sha256": "2cbe709f901da3a3df440b5f2b013b97bda8f323e0f57bad046debab81f7e689"
+      },
+      {
+        "target": "LocalCacheLeaseManagerTest",
+        "cases": 8,
+        "failures": 0,
+        "sha256": "da301fdd6b4e3ca4664bf671873824b3326038a20f2572384e8ffd5d167896bd"
+      },
+      {
+        "target": "LocalCacheSessionTest",
+        "cases": 64,
+        "failures": 0,
+        "sha256": "edaf9b045f8517b4d0e5935397734e0e7e86b578b5632efc98b569b73ebca0f0"
+      },
+      {
+        "target": "LocalContentHasherTest",
+        "cases": 10,
+        "failures": 0,
+        "sha256": "d4900f9ddf6361fe2e62190370e24517507b1f35baffc1ae9c2b154db93faa42"
+      },
+      {
+        "target": "LocalDependencyValidatorTest",
+        "cases": 31,
+        "failures": 0,
+        "sha256": "a6368de4776243debdd796d07dfe7ce1b9086ff51bc5124485bc1c0b6ca0e9db"
+      },
+      {
+        "target": "LocalPathCodecTest",
+        "cases": 2,
+        "failures": 0,
+        "sha256": "c6db2c216e2c0c21e428bd05221ea5346054fc66bc3c01684f89ee3bba0d0311"
+      },
+      {
+        "target": "LocalRepositoryMappingCodecTest",
+        "cases": 5,
+        "failures": 0,
+        "sha256": "b52afe7921577f0fd8244c4a9f0bec09169b8c9d819a8dabda0e84a7c7b7fabf"
+      },
+      {
+        "target": "LocalRunfilesCodecTest",
+        "cases": 27,
+        "failures": 0,
+        "sha256": "0c829ac001ad0c7c06f95e29b620d560375b7c6837c1a5e4ae64a3aad96e8a5a"
+      },
+      {
+        "target": "PackedFingerprintValueStoreTest",
+        "cases": 10,
+        "failures": 0,
+        "sha256": "47152a812e9e57198f39d4b59bb4172a94076ad5bcdeaa5ac5d843ed301e5fd0"
+      }
+    ]
+  },
+  "planned_fixture_builds": {
+    "idle_ab_including_same_mtime_mutation": 25,
+    "cold_import": 2,
+    "same_version_worktrees": 18,
+    "mixed_version_worktrees": 18,
+    "total": 63,
+    "note": "Module lockfile setup and mechanism benchmark JVMs are separate."
+  },
+  "remaining_work": [
+    "Representative real-target A/B on matched storage and configuration",
+    "Separate serial-idle control and temporal drift control",
+    "Broader design items: proof blocks, observation-bound provenance, selective publication, global in-flight byte budget"
+  ],
+  "implementation_commit": "303a149a195bbd6ad770584bd34138ea749c3e9a",
+  "implementation_patch_sha256": "d7867b60d0911bf5b970c3634f99d0c4c7df9161444e0056dcc17f83cec0419e",
+  "completed_at_utc": "2026-10-24T21:07:22.855261+00:00",
+  "documentation_publication_target": "https://github.com/JSGette/bazel/tree/jsgette/master/docs/jsgette",
+  "hardware": {
+    "cpu": [
+      {
+        "Name": "AMD Ryzen 9 9950X3D 16-Core Processor          ",
+        "NumberOfCores": 16,
+        "NumberOfLogicalProcessors": 32
+      }
+    ],
+    "run_disk": [
+      {
+        "FriendlyName": "WDC WD BLACK SDBPNTY-512G-1106",
+        "BusType": "NVMe",
+        "Size": 512110190592
+      }
+    ]
+  }
+}

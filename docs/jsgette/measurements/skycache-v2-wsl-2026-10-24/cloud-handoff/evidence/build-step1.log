@@ -1,0 +1,22 @@
+Starting local Bazel server (9.3.0) and connecting to it...
+WARNING: /workspace/bazel-impl/src/conditions/BUILD:205:15: in config_setting rule //src/conditions:windows_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+WARNING: /workspace/bazel-impl/src/conditions/BUILD:196:15: in config_setting rule //src/conditions:windows_x64_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+WARNING: /workspace/bazel-impl/src/conditions/BUILD:128:15: in config_setting rule //src/conditions:darwin_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+DEBUG: /workspace/bazel-build-output/external/grpc-java+/java_grpc_library.bzl:202:14: Multiple values in 'deps' is deprecated in build_bazel_remote_execution_v2_remote_execution_java_grpc
+INFO: Analyzed 7 targets (646 packages loaded, 27342 targets configured, 184 aspect applications).
+ERROR: /workspace/bazel-impl/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD:38:13: Building src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/liblocal_skycache_module.jar (17 source files) and running annotation processors (OptionProcessor, OptionsClassProcessor) failed: (Exit 1): java failed: error executing Javac command (from java_library rule target //src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module) external/rules_java++toolchains+remotejdk25_linux/bin/java '--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED' '--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED' ... (remaining 19 arguments skipped)
+src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java:239: error: [FormatString] illegal format conversion: 'com.google.errorprone.bugpatterns.formatstring.FormatStringValidation$2' cannot be formatted using '%d'
+    return String.format(
+                        ^
+    (see https://errorprone.info/bugpattern/FormatString)
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 21.810s, Critical Path: 4.30s
+INFO: 35 processes: 6397 action cache hit, 24 internal, 4 linux-sandbox, 7 worker.
+ERROR: Build did NOT complete successfully
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest NO STATUS
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest NO STATUS
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:AnalysisCacheIdleRetentionTaskTest FAILED TO BUILD
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:PackedFingerprintValueStoreTest PASSED in 1.4s
+
+Executed 1 out of 4 tests: 1 test passes, 1 fails to build, and 2 were skipped.
+There were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.

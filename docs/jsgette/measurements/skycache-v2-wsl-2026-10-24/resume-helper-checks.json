@@ -1,0 +1,15 @@
+{
+  "purpose": "Verify the existing-volume resume helper without opening an interactive shell",
+  "attempts": [
+    {
+      "exit_code": 1,
+      "reason": "Windows PowerShell pipe added a carriage return to the final Bash command; mount was already present and unchanged"
+    },
+    {
+      "exit_code": 0,
+      "fix": "Strip carriage returns at the pipe boundary before running the fixed Bash script",
+      "verified_mount": "/mnt/skycache-v2-local",
+      "verified_backing": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/skycache-v2-data.ext4"
+    }
+  ]
+}
