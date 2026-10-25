@@ -72,13 +72,20 @@ pins that immutable publication and its parent closure against local collection.
 Uploading does not require the live source tree to remain unchanged after the snapshot
 was sealed: future readers validate the snapshot's evidence against their own inputs.
 
-If new writes depend on remote parents, finish first materializes the **used** remote parent
-closures, validates their complete local representation, and installs objects then manifests
-under the existing catalog lock. Pins remain held through child publication/export, and input
-revalidation runs after this I/O. Failure suppresses the new publication, not the build.
-Pure readers never perform this full import. Remote-only analysis does not qualify as durable
-local backing for idle graph eviction. Put deduplication probes only local candidates, avoiding
-speculative downloads caused by ordinary serialization writes.
+If new writes depend on remote parents, finish publishes a sealed child using the authenticated
+parent descriptors already discovered. It uploads the new child's files and any locally backed
+parents; remote parents keep their existing CAS digests. The private writer and local parent pins
+remain held through commit. A scratch child manifest is never linked into the local catalog:
+its parent closure is not fully present locally, so it cannot back idle graph eviction. Server
+commit still checks the complete CAS closure; eviction suppresses publication without failing
+the build. Input revalidation and all existing admission guards remain in force.
+
+Put deduplication also checks already fetched remote indexes and complete records. Its cached-only
+source methods cannot initiate RPCs, including when a cached file disappears between checking and
+reading. They preserve ordinary lookup order and all integrity checks. An unavailable/corrupt
+record causes a private write. Thus deduplication remains opportunistic: an unchanged reader can
+still publish a small child when some serialized records were never fetched. Remote-only reads
+and deduplicated puts conservatively disable local idle-retention backing.
 
 ## Running
 
@@ -114,7 +121,7 @@ Use `staging-b` for the reader. Startup reports discovered publication count; su
 exports report `Remote SkyCache: publication committed`. Existing `Local SkyCache`
 statistics report actual admitted candidates and hits. `Remote SkyCache transfers` and
 `remote-skycache.json` in the output base report verified downloaded bytes/chunks and
-materialized publication counts. Discovery alone does not establish a cache hit.
+materialized/reused publication counts. Discovery alone does not establish a cache hit.
 
 For TLS, use `grpcs://host:port`; the client uses normal platform trust roots. An optional
 `--experimental_remote_skycache_token_file=/path/token` supplies a bearer token to all
@@ -144,7 +151,7 @@ Missing/corrupt metadata, unsupported services, timeouts, and backend outages ca
 and normal local SkyCache/build fallback. This implementation does not provide an offline
 guarantee that every published remote candidate remains retrievable.
 
-## Verification
+## Initial demand-read verification
 
 Demand-reading verification on 25 October 2026 at implementation `1c46b460b637`:
 both binaries build, and **248 test cases
@@ -211,9 +218,9 @@ The probe and tests establish MVP correctness; no remote-cache speedup is claime
 Portable repository identities, explicit reader/primer policies, production authentication
 and retention management remain follow-up work.
 
-## Performance comparison
+## Initial performance comparison
 
-The demand-read implementation is **not an end-to-end speed improvement yet**. A controlled
+The initial demand-read implementation was **not an end-to-end speed improvement**. A controlled
 loopback experiment on 25 October 2026 compared normal builds, the full-import client
 (`c8325fda96c1`), and demand reads (`1c46b460b637`). Each binary primed its own frozen catalog
 from identical source inputs, because their built-in-tool repository installation paths differ.
@@ -250,7 +257,7 @@ WAN latency, or memory consumption. All 18 outputs were correct and all services
 | Changed / full import | 19,388,111 B | 19,440,115 B | 26 / 252 |
 | Changed / demand reads | 19,395,753 B | 19,513,577 B | 277 / 0 |
 
-The current end-to-end path therefore saves **no meaningful download bandwidth** here.
+That implementation saved **no meaningful download bandwidth** here.
 The direct mechanism is visible in the counters and code: remote candidates are excluded
 from put deduplication to avoid speculative reads. The unchanged demand reader consequently
 writes 19 metadata records, materializes its used parent, then exports the complete closure.
@@ -259,7 +266,8 @@ is request traffic, not publication data. The changed case publishes a child in 
 so both reupload their parent closure. Selective-read unit tests prove the range-reader seam,
 but the complete build lifecycle still defeats its potential bandwidth benefit.
 
-The next performance changes should be:
+This experiment identified the following work (the first two changes are implemented in
+`91d51164d3d315dc2d79bbe3d40af874b9dae9e0`):
 
 1. Deduplicate writes against **already fetched** remote indexes/records without triggering
    new network reads. Acceptance: unchanged readers do not publish solely because duplicate
@@ -283,15 +291,124 @@ python3 tools/skycache/remote_read_benchmark.py \
   --root /absolute/path/new-performance-directory
 ```
 
+## Cached records and remote parent reuse
+
+Implementation `91d51164d3d315dc2d79bbe3d40af874b9dae9e0` implements the first two
+performance changes above. All **259 cases across 19 suites pass**, including tests for
+cached-index/record disappearance, partial records, lookup precedence, integrity, immutable-key
+conflicts and input revalidation. A mixed local/remote closure test evicts a local ancestor's CAS
+pack, repairs it from the pinned local copy, reuses its remote child's exact descriptor, and opens
+the resulting three-publication closure from a fresh remote reader. GC runs inside commit and
+cannot reclaim pinned parents/private child; after finish it reclaims the orphan local objects.
+
+The real-worker probe passes all six phases. Unchanged and restarted readers hit seven configured
+targets, and a BUILD mutation hits six while producing the changed output. Remote-only children
+commit without installing a local manifest or materializing parents. The small unchanged reader
+deduplicates six of nine puts; three uncached records still become a small child. Empty CAS and
+offline behavior remain safe fallbacks. This probe checks correctness, not timing.
+
+[Tests](measurements/skycache-remote-parent-reuse-2026-10-25/tests.json) and
+[real-worker probe](measurements/skycache-remote-parent-reuse-2026-10-25/probe.json) preserve
+counts, output checks, transfer statistics and binary digests. The parallel optimization session
+was integrating the earlier `6a380e6eeb` implementation while this change was tested separately;
+the feature commit above is the additional integration point.
+
+### Performance after parent reuse
+
+A second 18-build matrix directly compares the previous demand reader (`1c46b460b637`)
+with cached-record deduplication plus parent reuse (`91d51164d3`). It uses the same workload,
+warm-JVM/clean-state protocol, per-binary primers, frozen catalogs, rotating order, three samples
+per cell and loopback counting proxy described above. The normal arm uses the new binary with
+SkyCache disabled. The shared `skyframe-measurements.lock` serialized this matrix after the
+parallel Datadog benchmark, avoiding overlapping measurement workloads.
+
+| Input state | Normal | Previous demand reader | Cached dedup + parent reuse | Time reduction |
+| --- | ---: | ---: | ---: | ---: |
+| Unchanged | 7.437 s | 9.706 s | 8.631 s | 11.1% |
+| One changed subtree | 7.443 s | 9.784 s | 8.724 s | 10.8% |
+
+These are median complete command times, including publication. Previous/current ranges are
+9.695–10.052 / 8.404–8.676 s unchanged, and 9.613–10.060 / 8.690–8.881 s changed. All 18 outputs
+matched; both remote versions hit 17 configured targets unchanged and 16 after the edit.
+All fixture services stopped successfully. **Normal builds remain faster on this cheap-analysis
+synthetic workload**; this demonstrates lower remote overhead, not a general build speedup.
+
+| Input state | Wire download before / after | Wire upload before / after |
+| --- | ---: | ---: |
+| Unchanged | 19,401,341 / 16,711,850 B | 19,411,184 / 15,807 B |
+| One changed subtree | 19,401,530 / 16,712,780 B | 19,519,816 / 67,830 B |
+
+Downloads fall about **13.9%** and uploads by **99.9% unchanged / 99.7% changed**. Parent
+materialization falls to zero; each current run reuses one remote parent descriptor. The remaining
+private writes fall from 19 to 3 unchanged and from 277 to 29 after the subtree edit. The remaining
+16.7 MB download illustrates fixed-chunk read amplification: useful serialized data is much
+smaller, but selected records touch many 1 MiB chunks. Smaller fixed chunks and RPC batching
+are a more immediate experiment than CDC for this access pattern. Neither WAN behavior nor
+peak-memory improvements were measured here.
+
+[Raw timings, counters, binary hashes and cleanup results](measurements/skycache-remote-parent-reuse-2026-10-25/performance.json)
+preserve all samples. The harness's historical internal mode keys `full` and `demand` mean
+reference and current respectively; `mode_labels` records their actual implementations. Reproduce:
+
+```sh
+flock /path/to/shared-measurement.lock python3 tools/skycache/remote_read_benchmark.py \
+  --old-bazel /absolute/path/bazel-remote-demand-v2 \
+  --new-bazel /absolute/path/bazel-remote-parent-reuse-v1 \
+  --old-label demand-before-parent-reuse \
+  --new-label cached-dedup-and-parent-reuse \
+  --worker /absolute/path/worker \
+  --root /absolute/path/new-performance-directory
+```
+
+## Content-defined chunking
+
+CDC is compatible with the current ordered, variable-length chunk descriptors; no proto change
+is needed. The standard REAPI FastCDC profile uses normalization 2, minimum average/4 and maximum
+average*4. Thus our 1 MiB hard chunk limit permits an average of at most 256 KiB; REAPI's recommended
+512 KiB average would need a larger maximum. Optional REAPI chunk-mapping RPCs are unnecessary
+for client-selected SkyCache chunks stored as ordinary CAS blobs.
+[REAPI profile and services](https://github.com/bazelbuild/remote-apis/blob/c2c07e3d718d3d490a4958344d9c3e47de0bfaf3/build/bazel/remote/execution/v2/remote_execution.proto)
+
+An offline experiment compared fixed 1 MiB/256 KiB/64 KiB chunks with FastCDC2020 averages of
+256 KiB and 64 KiB over **108 distinct actual packs, 38,361,013 bytes**, from the initial benchmark.
+The translated boundary routine passed both official REAPI test-vector seeds. Every algorithm
+required exactly the same new pack bytes relative to its primer, in all three repetitions:
+
+| Initial client / input | New pack bytes, all five algorithms |
+| --- | ---: |
+| Full import / unchanged | 0 B |
+| Full import / changed subtree | 43,850 B |
+| Demand reads / unchanged | 1,651 B |
+| Demand reads / changed subtree | 96,096 B |
+
+These are simulated unique payload bytes, not measured network transfer. Immutable parents were
+identical and child packs were already small, leaving CDC nothing extra to deduplicate. Warm-memory
+chunking plus SHA-256 took a median 14.60 ms with fixed 1 MiB chunks versus 24.82 ms with FastCDC
+256 KiB over the entire corpus; these C/Python harness timings do not predict Java build latency.
+A deliberately synthetic one-byte insertion reduced new bytes from 1,498,290 (fixed 1 MiB) to
+319,696 (FastCDC 256 KiB), demonstrating resynchronization but not an observed build benefit.
+
+**Keep CDC out of the production path for now.** First skip CAS blobs that already exist, then
+measure smaller fixed chunks, realistic large-record changes and compaction/repacking. Compare
+CDC with fixed chunks of the same nominal average so smaller transfer units are not mistaken
+for a content-boundary benefit. Stable serialization/order, more CAS requests, larger descriptors,
+chunking CPU and compression order all matter. Localized insertions are a good CDC use case;
+arbitrary record reordering is much less favorable.
+[FastCDC paper](https://www.usenix.org/conference/atc16/technical-sessions/presentation/xia)
+
+[Detailed findings](measurements/skycache-remote-parent-reuse-2026-10-25/cdc/findings.md),
+[raw metrics](measurements/skycache-remote-parent-reuse-2026-10-25/cdc/results.json), and
+[reproduction instructions](measurements/skycache-remote-parent-reuse-2026-10-25/cdc/README.md)
+include pinned primary sources, input hashes, synthetic-control limitations and the licensed
+algorithm translation. No CDC production code or wire-format change was introduced.
+
 ## Remaining limitations and next implementation choices
 
-1. **Publication after remote reuse still imports used parents.** The next useful optimization
-   is exporting a child with authenticated remote parent descriptors, reusing existing CAS
-   digests instead of downloading and reuploading those parents. That child needs either a
-   separate remote publication path or a durable local representation that explicitly tracks
-   remote backing. Writing a normal local manifest with missing local parents would break
-   recovery and garbage collection. Acceptance: changed-subtree build publishes its new values
-   without reading unrelated parent pack chunks, with CAS eviction remaining a safe miss.
+1. **Uncached/local uploads still send every chunk.** Remote-parent descriptor reuse removes
+   repeated parent transfer, but new local files still use singleton BatchUpdateBlobs calls.
+   Batch FindMissingBlobs and skip existing chunks before considering CDC; measure RPC overhead
+   and use bounded batches. Compare smaller fixed chunks for demand-read amplification. Cached
+   remote chunks are reread/hashed from disk, so profile that path before adding a memory cache.
 2. **Logical size and transfer bounds remain coupled in version 1.** Separate a larger logical
    closure bound from the actual downloaded-byte budget, then support bounded streamed export
    and reuse existing CAS chunks. Keep independent metadata/count limits. Acceptance: a
@@ -310,7 +427,7 @@ python3 tools/skycache/remote_read_benchmark.py \
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-The first item is the most direct next step for changed-subtree workloads. Protocol size and
+The first item is the next transfer optimization to measure. Protocol size and
 independent-clone portability are separate compatibility changes, not reasons to weaken the
 existing per-entry validator. The development server is sufficient for these correctness and
 controlled bandwidth/latency experiments; production catalog retention and access control remain
