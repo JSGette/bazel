@@ -1,0 +1,168 @@
+{
+  "correction": "The earlier report incorrectly attributed idle retention to Services.client/session remaining set. LocalSkycacheModule calls super.afterCommand(), which invokes Services.resetCommandState() and clears both references. This already existed in the profiled 1aac2aa baseline.",
+  "next_investigation": "SkyframeExecutor retains reader and manager dependency providers until noteCommandStart. RemoteAnalysisCacheDeps.LazyResolver retains the resolved client and fingerprint service. Confirm the complete retaining path and retained sizes in a heap dump before choosing a release point; preserve upload/cancellation quiescence and retained-root invalidation.",
+  "measured_histograms_remain_valid": true,
+  "heap_root_trace_collected": false,
+  "source": [
+    {
+      "revision": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java",
+      "sha256": "254efbcaff75c044183f728ab67b1f102515b22bceb8063729c19ceeabb16797",
+      "excerpts": [
+        {
+          "start_line": 233,
+          "text": "  public void afterCommand() {\n    RunfilesOrigin.setSharingEnabled(false);\n    var env = environment;\n    var session = services.session;\n    if (env != null && session != null) {\n      Path importedPublication = session.importedPublicationManifest();\n      boolean published = false;\n      try {\n        published = session.finish(buildSucceeded);\n      } catch (IOException e) {\n        env.getReporter()\n            .handle(Event.warn(\"Local SkyCache publication skipped: \" + e.getMessage()));\n      }\n      if (session.failureReason() != null) {"
+        },
+        {
+          "start_line": 297,
+          "text": "    super.afterCommand();\n  }\n\n  private static final class Services implements RemoteAnalysisCachingServicesSupplier {\n    private final SafeExecutorOwner executor = new SafeExecutorOwner(commonPool());\n    private final FingerprintValueStore fallback = new InMemoryFingerprintValueStore();\n    @Nullable private LocalCacheSession session;\n    @Nullable private LocalAnalysisCacheClient client;\n    @Nullable private ClientId clientId;\n    private boolean executionValues;\n    private String retainedNamespace = \"\";\n    private Map<\n            com.google.protobuf.ByteString,\n            com.google.devtools.build.lib.skyframe.serialization.PackedFingerprint>"
+        },
+        {
+          "start_line": 355,
+          "text": "    public void resetCommandState() {\n      session = null;\n      client = null;\n      clientId = null;\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "revision": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SerializationModule.java",
+      "sha256": "b98947cdc6012139b8c793486694901b0a98bf786fd608e698dcfdebeb4ec5ed",
+      "excerpts": [
+        {
+          "start_line": 55,
+          "text": "  public void afterCommand() {\n    if (remoteAnalysisCachingServicesSupplier != null) {\n      remoteAnalysisCachingServicesSupplier.resetCommandState();\n    }\n  }\n\n  @Override\n  public void blazeShutdown() {\n    if (remoteAnalysisCachingServicesSupplier != null) {\n      remoteAnalysisCachingServicesSupplier.blazeShutdown();\n    }\n  }\n\n  @ForOverride"
+        },
+        {
+          "start_line": 116,
+          "text": "    public void resetCommandState() {}\n  }\n}"
+        }
+      ]
+    },
+    {
+      "revision": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/SkyframeExecutor.java",
+      "sha256": "5fab6039cc5bfde9b7ce1332e6ee7547bdb4c1583cc0339b67b92d8386dfc825",
+      "excerpts": [
+        {
+          "start_line": 513,
+          "text": "  private RemoteAnalysisCacheReaderDepsProvider remoteAnalysisCacheReaderDepsProvider =\n      RemoteAnalysisCacheDeps.createDisabled();\n\n  /**\n   * The state of the remote analysis caching.\n   *\n   * <p>This is used to track the state of the remote analysis caching so that we can invalidate\n   * keys if needed. This object's lifetime is the same as the lifetime as the owning\n   * SkyframeExecutor object, or until resetEvaluator is called, which then resets this to the empty\n   * state.\n   */\n  private RemoteAnalysisCachingServerState remoteAnalysisCachingState =\n      RemoteAnalysisCachingServerState.initializeEmpty();\n"
+        },
+        {
+          "start_line": 573,
+          "text": "    this.remoteAnalysisCacheReaderDepsProvider = remoteAnalysisCacheReaderDepsProvider;\n  }\n\n  public RemoteAnalysisCachingServerState getRemoteAnalysisCachingState() {\n    return remoteAnalysisCachingState;\n  }\n\n  /**\n   * Syncs the {@link RemoteAnalysisCachingServerState} with the latest state from the current\n   * invocation.\n   */\n  public void syncRemoteAnalysisCachingState(\n      FrontierNodeVersion currentInvocationVersion, ClientId currentInvocationClientId) {\n    remoteAnalysisCachingState.setVersion(currentInvocationVersion);"
+        },
+        {
+          "start_line": 1078,
+          "text": "  public void noteCommandStart() {\n    // Prevent stale Skycache configuration from persisting between builds.\n    remoteAnalysisCachingDependenciesProvider = RemoteAnalysisCacheManager.createDisabled();\n    remoteAnalysisCacheReaderDepsProvider = RemoteAnalysisCacheDeps.createDisabled();\n  }\n\n  /**\n   * Notify listeners about changed files, and release any associated memory afterwards.\n   *\n   * <p>It's called at the end of the execution of a Blaze command and if the command builds, before\n   * the execution phase starts. In the latter case, the invocation at the end of the command will\n   * be a no-op so that the event about changed files is posted only once.\n   *\n   * <p>The reason why the event about changed files is posted early if the command builds is that"
+        },
+        {
+          "start_line": 1081,
+          "text": "    remoteAnalysisCacheReaderDepsProvider = RemoteAnalysisCacheDeps.createDisabled();\n  }\n\n  /**\n   * Notify listeners about changed files, and release any associated memory afterwards.\n   *\n   * <p>It's called at the end of the execution of a Blaze command and if the command builds, before\n   * the execution phase starts. In the latter case, the invocation at the end of the command will\n   * be a no-op so that the event about changed files is posted only once.\n   *\n   * <p>The reason why the event about changed files is posted early if the command builds is that\n   * it's used in the execution phase.\n   */\n  public void drainChangedFiles() {"
+        },
+        {
+          "start_line": 1224,
+          "text": "  public void notifyCommandComplete(ExtendedEventHandler eventHandler) throws InterruptedException {\n    try {\n      drainChangedFiles();\n      memoizingEvaluator.noteEvaluationsAtSameVersionMayBeFinished(eventHandler);\n    } finally {\n      globFunction.complete();\n      clearSyscallCache();\n      // So that the supplier object can be GC-ed.\n      mergedSkyframeAnalysisExecutionSupplier = null;\n      clearPlatformMappingCache();\n    }\n  }\n\n  /**"
+        }
+      ]
+    },
+    {
+      "revision": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java",
+      "sha256": "d73a044590a395f9101529d9c299b0f9e77fd85155be548de954478e668b8b36",
+      "excerpts": [
+        {
+          "start_line": 149,
+          "text": "    this.analysisCacheClient =\n        new LazyResolver<>(servicesSupplier.getAnalysisCacheClient(), \"analysis cache client\");\n    this.metadataWriter =\n        new LazyResolver<>(servicesSupplier.getMetadataWriter(), \"metadata writer\");\n    this.channelStateAdvisor = servicesSupplier.getChannelStateAdvisor();\n\n    this.graph = graph;\n    this.eventBus = eventBus;\n    this.versionGetter = versionGetter;\n  }\n\n  private RemoteAnalysisCacheDeps() {\n    this.mode = RemoteAnalysisCacheMode.OFF;\n    this.bailOutOnMissingFingerprint = false;"
+        },
+        {
+          "start_line": 176,
+          "text": "    this.analysisCacheClient = new LazyResolver<>(null, \"\");\n    this.metadataWriter = new LazyResolver<>(null, \"\");\n    this.channelStateAdvisor = SkycacheChannelStateAdvisor.DISABLED;\n\n    this.graph = null;\n    this.eventBus = null;\n    this.versionGetter = null;\n  }\n\n  static <T> T resolveWithTimeout(Future<? extends T> future, String what)\n      throws InterruptedException {\n    if (future == null) {\n      return null;\n    }"
+        },
+        {
+          "start_line": 451,
+          "text": "  private static final class LazyResolver<T> {\n    @Nullable private final Future<? extends T> future;\n    private final String description;\n    @Nullable private volatile T resolvedValue;\n    private volatile boolean initialized = false;\n\n    private LazyResolver(@Nullable Future<? extends T> future, String description) {\n      this.future = future;\n      this.description = description;\n    }\n\n    @Nullable\n    private T get() throws InterruptedException {\n      if (initialized) {"
+        }
+      ]
+    },
+    {
+      "revision": "0c80d7fe6847a3e628314fda4e10e6a5429f3d20",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java",
+      "sha256": "a4dfd8df03992dc25d56f9259bde59fb73702f977fe5883304e52241a611905b",
+      "excerpts": [
+        {
+          "start_line": 258,
+          "text": "  public void afterCommand() {\n    RunfilesOrigin.setSharingEnabled(false);\n    var env = environment;\n    var session = services.session;\n    if (env != null && session != null) {\n      Path importedPublication = session.importedPublicationManifest();\n      boolean published = false;\n      try {\n        published = session.finish(buildSucceeded);\n      } catch (IOException e) {\n        env.getReporter()\n            .handle(Event.warn(\"Local SkyCache publication skipped: \" + e.getMessage()));\n      }\n      if (session.failureReason() != null) {"
+        },
+        {
+          "start_line": 349,
+          "text": "    super.afterCommand();\n  }\n\n  private static final class Services implements RemoteAnalysisCachingServicesSupplier {\n    private final SafeExecutorOwner executor = new SafeExecutorOwner(commonPool());\n    private final FingerprintValueStore fallback = new InMemoryFingerprintValueStore();\n    @Nullable private LocalCacheSession session;\n    @Nullable private LocalAnalysisCacheClient client;\n    @Nullable private ClientId clientId;\n    private boolean executionValues;\n    private String retainedNamespace = \"\";\n    private Map<\n            com.google.protobuf.ByteString,\n            com.google.devtools.build.lib.skyframe.serialization.PackedFingerprint>"
+        },
+        {
+          "start_line": 407,
+          "text": "    public void resetCommandState() {\n      session = null;\n      client = null;\n      clientId = null;\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "revision": "0c80d7fe6847a3e628314fda4e10e6a5429f3d20",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SerializationModule.java",
+      "sha256": "b98947cdc6012139b8c793486694901b0a98bf786fd608e698dcfdebeb4ec5ed",
+      "excerpts": [
+        {
+          "start_line": 55,
+          "text": "  public void afterCommand() {\n    if (remoteAnalysisCachingServicesSupplier != null) {\n      remoteAnalysisCachingServicesSupplier.resetCommandState();\n    }\n  }\n\n  @Override\n  public void blazeShutdown() {\n    if (remoteAnalysisCachingServicesSupplier != null) {\n      remoteAnalysisCachingServicesSupplier.blazeShutdown();\n    }\n  }\n\n  @ForOverride"
+        },
+        {
+          "start_line": 116,
+          "text": "    public void resetCommandState() {}\n  }\n}"
+        }
+      ]
+    },
+    {
+      "revision": "0c80d7fe6847a3e628314fda4e10e6a5429f3d20",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/SkyframeExecutor.java",
+      "sha256": "5fab6039cc5bfde9b7ce1332e6ee7547bdb4c1583cc0339b67b92d8386dfc825",
+      "excerpts": [
+        {
+          "start_line": 513,
+          "text": "  private RemoteAnalysisCacheReaderDepsProvider remoteAnalysisCacheReaderDepsProvider =\n      RemoteAnalysisCacheDeps.createDisabled();\n\n  /**\n   * The state of the remote analysis caching.\n   *\n   * <p>This is used to track the state of the remote analysis caching so that we can invalidate\n   * keys if needed. This object's lifetime is the same as the lifetime as the owning\n   * SkyframeExecutor object, or until resetEvaluator is called, which then resets this to the empty\n   * state.\n   */\n  private RemoteAnalysisCachingServerState remoteAnalysisCachingState =\n      RemoteAnalysisCachingServerState.initializeEmpty();\n"
+        },
+        {
+          "start_line": 573,
+          "text": "    this.remoteAnalysisCacheReaderDepsProvider = remoteAnalysisCacheReaderDepsProvider;\n  }\n\n  public RemoteAnalysisCachingServerState getRemoteAnalysisCachingState() {\n    return remoteAnalysisCachingState;\n  }\n\n  /**\n   * Syncs the {@link RemoteAnalysisCachingServerState} with the latest state from the current\n   * invocation.\n   */\n  public void syncRemoteAnalysisCachingState(\n      FrontierNodeVersion currentInvocationVersion, ClientId currentInvocationClientId) {\n    remoteAnalysisCachingState.setVersion(currentInvocationVersion);"
+        },
+        {
+          "start_line": 1078,
+          "text": "  public void noteCommandStart() {\n    // Prevent stale Skycache configuration from persisting between builds.\n    remoteAnalysisCachingDependenciesProvider = RemoteAnalysisCacheManager.createDisabled();\n    remoteAnalysisCacheReaderDepsProvider = RemoteAnalysisCacheDeps.createDisabled();\n  }\n\n  /**\n   * Notify listeners about changed files, and release any associated memory afterwards.\n   *\n   * <p>It's called at the end of the execution of a Blaze command and if the command builds, before\n   * the execution phase starts. In the latter case, the invocation at the end of the command will\n   * be a no-op so that the event about changed files is posted only once.\n   *\n   * <p>The reason why the event about changed files is posted early if the command builds is that"
+        },
+        {
+          "start_line": 1081,
+          "text": "    remoteAnalysisCacheReaderDepsProvider = RemoteAnalysisCacheDeps.createDisabled();\n  }\n\n  /**\n   * Notify listeners about changed files, and release any associated memory afterwards.\n   *\n   * <p>It's called at the end of the execution of a Blaze command and if the command builds, before\n   * the execution phase starts. In the latter case, the invocation at the end of the command will\n   * be a no-op so that the event about changed files is posted only once.\n   *\n   * <p>The reason why the event about changed files is posted early if the command builds is that\n   * it's used in the execution phase.\n   */\n  public void drainChangedFiles() {"
+        },
+        {
+          "start_line": 1224,
+          "text": "  public void notifyCommandComplete(ExtendedEventHandler eventHandler) throws InterruptedException {\n    try {\n      drainChangedFiles();\n      memoizingEvaluator.noteEvaluationsAtSameVersionMayBeFinished(eventHandler);\n    } finally {\n      globFunction.complete();\n      clearSyscallCache();\n      // So that the supplier object can be GC-ed.\n      mergedSkyframeAnalysisExecutionSupplier = null;\n      clearPlatformMappingCache();\n    }\n  }\n\n  /**"
+        }
+      ]
+    },
+    {
+      "revision": "0c80d7fe6847a3e628314fda4e10e6a5429f3d20",
+      "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java",
+      "sha256": "d73a044590a395f9101529d9c299b0f9e77fd85155be548de954478e668b8b36",
+      "excerpts": [
+        {
+          "start_line": 149,
+          "text": "    this.analysisCacheClient =\n        new LazyResolver<>(servicesSupplier.getAnalysisCacheClient(), \"analysis cache client\");\n    this.metadataWriter =\n        new LazyResolver<>(servicesSupplier.getMetadataWriter(), \"metadata writer\");\n    this.channelStateAdvisor = servicesSupplier.getChannelStateAdvisor();\n\n    this.graph = graph;\n    this.eventBus = eventBus;\n    this.versionGetter = versionGetter;\n  }\n\n  private RemoteAnalysisCacheDeps() {\n    this.mode = RemoteAnalysisCacheMode.OFF;\n    this.bailOutOnMissingFingerprint = false;"
+        },
+        {
+          "start_line": 176,
+          "text": "    this.analysisCacheClient = new LazyResolver<>(null, \"\");\n    this.metadataWriter = new LazyResolver<>(null, \"\");\n    this.channelStateAdvisor = SkycacheChannelStateAdvisor.DISABLED;\n\n    this.graph = null;\n    this.eventBus = null;\n    this.versionGetter = null;\n  }\n\n  static <T> T resolveWithTimeout(Future<? extends T> future, String what)\n      throws InterruptedException {\n    if (future == null) {\n      return null;\n    }"
+        },
+        {
+          "start_line": 451,
+          "text": "  private static final class LazyResolver<T> {\n    @Nullable private final Future<? extends T> future;\n    private final String description;\n    @Nullable private volatile T resolvedValue;\n    private volatile boolean initialized = false;\n\n    private LazyResolver(@Nullable Future<? extends T> future, String description) {\n      this.future = future;\n      this.description = description;\n    }\n\n    @Nullable\n    private T get() throws InterruptedException {\n      if (initialized) {"
+        }
+      ]
+    }
+  ]
+}

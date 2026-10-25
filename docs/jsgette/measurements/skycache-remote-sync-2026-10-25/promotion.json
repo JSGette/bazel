@@ -1,0 +1,237 @@
+{
+  "commands": [
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "6931630c83d9222049e30bf7c50190ae810519f5\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-remote-mvp",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "4457be756fed7593d547f3648ebf68874bfebc0d\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-remote-mvp",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": " M tools/skycache/remote_read_benchmark.py\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "91d51164d3d315dc2d79bbe3d40af874b9dae9e0",
+        "4457be756fed7593d547f3648ebf68874bfebc0d"
+      ],
+      "exit_code": 0,
+      "output": "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/SHA256SUMS\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/LICENSE.fastcdc2020\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/PROVENANCE.md\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/README.md\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_cpu.py\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_experiment.py\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/chunk_and_hash_cpu.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/findings.md\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/input-packs.sha256.tsv\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/reproduction-validation.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/results.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/performance.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/probe.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/tests.json\ndocs/jsgette/skycache-remote-mvp.md\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "merge",
+        "--no-ff",
+        "-m",
+        "Merge remote SkyCache parent-reuse measurements and handoff",
+        "4457be756fed7593d547f3648ebf68874bfebc0d"
+      ],
+      "exit_code": 0,
+      "output": "Merge made by the 'ort' strategy.\n .../SHA256SUMS                                     |   13 +\n .../cdc/LICENSE.fastcdc2020                        |  201 +++\n .../cdc/PROVENANCE.md                              |   31 +\n .../cdc/README.md                                  |   18 +\n .../cdc/cdc_cpu.py                                 |   24 +\n .../cdc/cdc_experiment.py                          |  145 ++\n .../cdc/chunk_and_hash_cpu.json                    |   72 +\n .../cdc/findings.md                                |   62 +\n .../cdc/input-packs.sha256.tsv                     |  109 ++\n .../cdc/reproduction-validation.json               |   18 +\n .../cdc/results.json                               | 1073 +++++++++++++++\n .../performance.json                               | 1433 ++++++++++++++++++++\n .../probe.json                                     |  478 +++++++\n .../tests.json                                     |  142 ++\n docs/jsgette/skycache-remote-mvp.md                |  159 ++-\n 15 files changed, 3957 insertions(+), 21 deletions(-)\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/SHA256SUMS\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/LICENSE.fastcdc2020\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/PROVENANCE.md\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/README.md\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_cpu.py\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_experiment.py\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/chunk_and_hash_cpu.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/findings.md\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/input-packs.sha256.tsv\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/reproduction-validation.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/results.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/performance.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/probe.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/tests.json\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "c635cafd98789c51646aa1938b6ed8d7ddddfaa4\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD^{tree}"
+      ],
+      "exit_code": 0,
+      "output": "6cba9aad743382b2601e1cd0c884af8787976a2b\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "show",
+        "-s",
+        "--format=%P",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "6931630c83d9222049e30bf7c50190ae810519f5 4457be756fed7593d547f3648ebf68874bfebc0d\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "aaaa8c08036540b53f8c030513545e92c49f08fd",
+        "6cba9aad743382b2601e1cd0c884af8787976a2b"
+      ],
+      "exit_code": 0,
+      "output": "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/SHA256SUMS\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/LICENSE.fastcdc2020\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/PROVENANCE.md\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/README.md\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_cpu.py\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_experiment.py\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/chunk_and_hash_cpu.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/findings.md\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/input-packs.sha256.tsv\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/reproduction-validation.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/results.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/performance.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/probe.json\ndocs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/tests.json\ndocs/jsgette/skycache-remote-mvp.md\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "36a73d8fb4f13c315002d74f2c73532a2db67cdd\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "argv": [
+        "git",
+        "merge",
+        "--ff-only",
+        "c635cafd98789c51646aa1938b6ed8d7ddddfaa4"
+      ],
+      "exit_code": 0,
+      "output": "Updating 36a73d8fb4..c635cafd98\nFast-forward\n .../skycache-remote-demand-2026-10-25/SHA256SUMS   |    3 +\n .../restart-unavailable.json                       |  256 ++++\n .../skycache-remote-demand-2026-10-25/results.json |  473 +++++++\n .../skycache-remote-demand-2026-10-25/tests.json   |  142 ++\n .../skycache-remote-mvp-2026-10-25/results.json    |  217 +++\n .../SHA256SUMS                                     |   13 +\n .../cdc/LICENSE.fastcdc2020                        |  201 +++\n .../cdc/PROVENANCE.md                              |   31 +\n .../cdc/README.md                                  |   18 +\n .../cdc/cdc_cpu.py                                 |   24 +\n .../cdc/cdc_experiment.py                          |  145 ++\n .../cdc/chunk_and_hash_cpu.json                    |   72 +\n .../cdc/findings.md                                |   62 +\n .../cdc/input-packs.sha256.tsv                     |  109 ++\n .../cdc/reproduction-validation.json               |   18 +\n .../cdc/results.json                               | 1073 +++++++++++++++\n .../performance.json                               | 1433 ++++++++++++++++++++\n .../probe.json                                     |  478 +++++++\n .../tests.json                                     |  142 ++\n .../SHA256SUMS                                     |    3 +\n .../excluded-primer-trial.json                     |  134 ++\n .../excluded-witness-diff.json                     |  260 ++++\n .../results.json                                   | 1378 +++++++++++++++++++\n docs/jsgette/skycache-remote-mvp.md                |  434 ++++++\n .../build/lib/skyframe/serialization/BUILD         |    1 +\n .../build/lib/skyframe/serialization/local/BUILD   |    5 +\n .../serialization/local/LocalCacheSession.java     |  167 ++-\n .../serialization/local/LocalSkycacheModule.java   |   56 +\n .../serialization/local/LocalSkycacheOptions.java  |   35 +\n .../local/PackedFingerprintValueStore.java         |  169 ++-\n .../serialization/local/RemoteSkyCache.java        |  726 ++++++++++\n .../local/SegmentedFingerprintValueStore.java      |  167 ++-\n .../build/lib/skyframe/serialization/remote/BUILD  |   39 +\n .../serialization/remote/SkyCacheProtocol.java     |  122 ++\n .../serialization/remote/SkyCacheTransport.java    |  421 ++++++\n src/main/protobuf/BUILD                            |   17 +\n src/main/protobuf/skycache.proto                   |   61 +\n .../build/lib/skyframe/serialization/BUILD         |    1 +\n .../build/lib/skyframe/serialization/local/BUILD   |   28 +\n .../serialization/local/RemoteSkyCacheTest.java    | 1087 +++++++++++++++\n .../local/SegmentedFingerprintValueStoreTest.java  |  196 +++\n .../build/lib/skyframe/serialization/remote/BUILD  |   34 +\n .../remote/SkyCacheTransportTest.java              |  566 ++++++++\n .../com/google/devtools/build/remote/worker/BUILD  |    3 +\n .../devtools/build/remote/worker/RemoteWorker.java |   34 +-\n .../build/remote/worker/RemoteWorkerOptions.java   |   26 +\n .../build/remote/worker/SkyCacheCatalogStore.java  |  469 +++++++\n .../build/remote/worker/SkyCacheServer.java        |  199 +++\n .../com/google/devtools/build/remote/worker/BUILD  |   22 +\n .../remote/worker/SkyCacheCatalogStoreTest.java    |  318 +++++\n .../build/remote/worker/SkyCacheServerTest.java    |  287 ++++\n tools/skycache/remote_mvp_probe.py                 |  285 ++++\n tools/skycache/remote_read_benchmark.py            |  308 +++++\n 53 files changed, 12899 insertions(+), 69 deletions(-)\n create mode 100644 docs/jsgette/measurements/skycache-remote-demand-2026-10-25/SHA256SUMS\n create mode 100644 docs/jsgette/measurements/skycache-remote-demand-2026-10-25/restart-unavailable.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-demand-2026-10-25/results.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-demand-2026-10-25/tests.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-mvp-2026-10-25/results.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/SHA256SUMS\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/LICENSE.fastcdc2020\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/PROVENANCE.md\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/README.md\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_cpu.py\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_experiment.py\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/chunk_and_hash_cpu.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/findings.md\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/input-packs.sha256.tsv\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/reproduction-validation.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/results.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/performance.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/probe.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/tests.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-performance-2026-10-25/SHA256SUMS\n create mode 100644 docs/jsgette/measurements/skycache-remote-performance-2026-10-25/excluded-primer-trial.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-performance-2026-10-25/excluded-witness-diff.json\n create mode 100644 docs/jsgette/measurements/skycache-remote-performance-2026-10-25/results.json\n create mode 100644 docs/jsgette/skycache-remote-mvp.md\n create mode 100644 src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCache.java\n create mode 100644 src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote/BUILD\n create mode 100644 src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote/SkyCacheProtocol.java\n create mode 100644 src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote/SkyCacheTransport.java\n create mode 100644 src/main/protobuf/skycache.proto\n create mode 100644 src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCacheTest.java\n create mode 100644 src/test/java/com/google/devtools/build/lib/skyframe/serialization/remote/BUILD\n create mode 100644 src/test/java/com/google/devtools/build/lib/skyframe/serialization/remote/SkyCacheTransportTest.java\n create mode 100644 src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/SkyCacheCatalogStore.java\n create mode 100644 src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/SkyCacheServer.java\n create mode 100644 src/tools/remote/src/test/java/com/google/devtools/build/remote/worker/SkyCacheCatalogStoreTest.java\n create mode 100644 src/tools/remote/src/test/java/com/google/devtools/build/remote/worker/SkyCacheServerTest.java\n create mode 100755 tools/skycache/remote_mvp_probe.py\n create mode 100644 tools/skycache/remote_read_benchmark.py\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "c635cafd98789c51646aa1938b6ed8d7ddddfaa4\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-v2",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "remote_code": "91d51164d3d315dc2d79bbe3d40af874b9dae9e0",
+  "built_commit": "6931630c83d9222049e30bf7c50190ae810519f5",
+  "built_tree": "aaaa8c08036540b53f8c030513545e92c49f08fd",
+  "remote_head_observed": "4457be756fed7593d547f3648ebf68874bfebc0d",
+  "remote_status_observed": "M tools/skycache/remote_read_benchmark.py",
+  "documentation_updates": [
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/SHA256SUMS",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/LICENSE.fastcdc2020",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/PROVENANCE.md",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/README.md",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_cpu.py",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/cdc_experiment.py",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/chunk_and_hash_cpu.json",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/findings.md",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/input-packs.sha256.tsv",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/reproduction-validation.json",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/cdc/results.json",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/performance.json",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/probe.json",
+    "docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/tests.json",
+    "docs/jsgette/skycache-remote-mvp.md"
+  ],
+  "main_before": "36a73d8fb4f13c315002d74f2c73532a2db67cdd",
+  "main_after": "c635cafd98789c51646aa1938b6ed8d7ddddfaa4",
+  "main_status": "",
+  "patch_checks": [
+    {
+      "path": "remote-sync.patch",
+      "base": "36a73d8fb4f13c315002d74f2c73532a2db67cdd",
+      "tree": "2a07937736eefd7edbcc6effb53c09043d76dd0f",
+      "sha256": "f31450cb647324b7cd059af20c2ab980342dca418a9c7f2b1baa01930e280f8c"
+    },
+    {
+      "path": "integrated-from-previous.patch",
+      "base": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+      "tree": "2a07937736eefd7edbcc6effb53c09043d76dd0f",
+      "sha256": "f798912659797fe578d208d34dcfe6e8c3dd00c37d4c665affa165b83d587ea4"
+    },
+    {
+      "path": "integrated-from-upstream.patch",
+      "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+      "tree": "2a07937736eefd7edbcc6effb53c09043d76dd0f",
+      "sha256": "9b79fd03d7cc26e0a9d31973e85387482dfed7c41e399f01a66d91d8431b1c53"
+    },
+    {
+      "path": "update/remote-sync.patch",
+      "base": "36a73d8fb4f13c315002d74f2c73532a2db67cdd",
+      "tree": "6cba9aad743382b2601e1cd0c884af8787976a2b",
+      "sha256": "72fc3487860d1f7a16cb3df39240f823b2b9c94a4c65573bb3d78334128e043b"
+    },
+    {
+      "path": "update/integrated-from-previous.patch",
+      "base": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+      "tree": "6cba9aad743382b2601e1cd0c884af8787976a2b",
+      "sha256": "e916f9d4239998326aa80cd935bf2a3dcc4f2169232a65b47ba32608e7abe37a"
+    },
+    {
+      "path": "update/integrated-from-upstream.patch",
+      "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+      "tree": "6cba9aad743382b2601e1cd0c884af8787976a2b",
+      "sha256": "a132429d00cdb142f035105dcce73d25f483f311fcb3c153c20ef6cc817e8493"
+    }
+  ]
+}

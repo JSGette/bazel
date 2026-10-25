@@ -4,9 +4,9 @@
 
 SkyCache is an experimental persistent backend for Bazel's Skyframe analysis cache. It reuses validated configured-target values and selected remote execution metadata after the in-memory graph has been discarded. Its intended use is repeated builds after `bazel clean`, server restart, or switching between Git worktrees of the same repository.
 
-The implementation builds on Bazel's existing serialization, dependency-validation and graph-retrieval paths. Cache & Carry supplies the remote action cache and content-addressable store (CAS); SkyCache keeps graph values and output digests on a shared local filesystem. Output bytes remain in CAS until the build needs them.
+The implementation builds on Bazel's existing serialization, dependency-validation and graph-retrieval paths. Cache & Carry supplies the remote action cache and content-addressable store (CAS). SkyCache keeps graph values and output digests in immutable local publications, with an optional remote metadata catalog and CAS transport. Output bytes remain in the action CAS until the build needs them.
 
-Implementation snapshot: `1aac2aa2ec6fe31af2e979558f06a3b6971c601b`, 25 October 2026, merged with upstream `a5c50fcb65841b505ec72840d83381a704e70afa`. The [upstream sync report](skycache-upstream-sync-2026-10-25.md) contains the current implementation patch, 432 passing test cases and refreshed Datadog baseline. The [large-tree report](skycache-large-tree-2026-10-25.md) documents the preceding segmented-storage implementation. The [performance and memory investigation](skycache-perf-options-2026-10-25.md) evaluates two unpromoted fast-path prototypes and prioritizes shared witness evidence, validation-state lifetime and leaf summaries. Earlier measurements below are historical. This remains a prototype for discussion.
+Implementation snapshot: `c635cafd98789c51646aa1938b6ed8d7ddddfaa4`, with remote implementation through `91d51164d3` and upstream `a5c50fcb65841b505ec72840d83381a704e70afa`. The [local/remote integration report](skycache-remote-sync-2026-10-25.md) contains the full patch, 562 passing test cases, real recovery/concurrency probes and final after-clean Datadog measurements. Both optimizations from the [performance investigation](skycache-perf-options-2026-10-25.md) are integrated. That investigation's module-retention explanation is corrected in the integration report. Earlier measurements below are historical. This remains a prototype for discussion.
 
 ## Architecture
 
@@ -15,6 +15,8 @@ flowchart TD
   Request["Build request after clean"] --> Lookup["Skyframe retrieval"]
   Lookup --> Validate["Local dependency validation"]
   Packs["Immutable local packs and publication manifests"] --> Validate
+  Catalog["Optional remote publication catalog"] --> Metadata["Verified metadata chunks fetched on demand"]
+  Metadata --> Validate
   Validate -->|valid entry| Restore["Restore analysis or execution metadata"]
   Validate -->|miss or invalid entry| Evaluate["Normal Bazel evaluation"]
   Restore --> Need{"Are output bytes needed?"}
@@ -24,15 +26,17 @@ flowchart TD
   Rewind --> Evaluate
   Evaluate --> Publish["Validate inputs and publish successful writes"]
   Publish --> Packs
+  Publish -->|reuse remote parent descriptors| Catalog
 ```
 
-The integration has four layers:
+The integration has five layers:
 
 | Layer | Responsibility | Main implementation |
 |---|---|---|
 | Invocation setup | Select the local backend, capture input context, set the analysis-cache mode and apply retention policy | `LocalSkycacheModule`, `LocalSkycacheOptions` |
 | Validated graph retrieval | Read serialized values and validate their dependency roots against current input evidence | `LocalAnalysisCacheClient`, `LocalDependencyValidator`, `LocalInputSnapshot` |
 | Persistent storage | Store fingerprint-addressed values in immutable packs and publish a manifest after a successful build | `LocalCacheSession`, `SegmentedFingerprintValueStore`, `PackedFingerprintValueStore`, `LocalWitnessTable` |
+| Remote metadata transport | Discover immutable publications, fetch verified ranges and publish children using remote parent descriptors | `RemoteSkyCache`, `SkyCacheTransport`, `SkyCacheCatalogStore` |
 | Lifetime management | Pin readers, writers and required parent publications; collect unneeded publications during idle time | `LocalCacheLeaseManager`, `LocalCacheGarbageCollector` |
 
 The local backend uses the existing asynchronous bidirectional analysis-cache machinery. Current upstream makes `--experimental_active_directories` ineffective; the prior default `async_bidi` uploader already did not select uploads through that matcher. Read-time top-down retrieval still allows a restored value to prune its dependency traversal. Experimental selective publication (E4) is a separate prototype. A small number of restored frontier values can therefore avoid reconstructing a much larger dependency closure. The number of cache hits is not the number of configured targets whose work was avoided.
@@ -94,7 +98,9 @@ The 256 MiB admission budget charges expanded witness paths as well as encoded/d
 
 Publications record references to reused parents. Readers pin the required publication closure; active writers are pinned as well. Collection uses filesystem locks and preserves the parent closure needed by live readers or retained publications. Candidate counts and metadata budgets bound admission work.
 
-This is a shared local filesystem design. Its correctness relies on the filesystem's locking and durability semantics; the WSL ext4 tests do not establish suitability for arbitrary network filesystems or cross-machine distributed storage.
+The local storage layer uses a shared filesystem. Its correctness relies on the filesystem's locking and durability semantics; the WSL ext4 tests do not establish suitability for arbitrary network filesystems or cross-machine distributed storage.
+
+The optional remote backend keeps the same per-entry validator and worktree identity. It fetches manifests, witness blocks and root indexes during admission, then segment indexes and pack chunks as required. Cached-only put deduplication initiates no downloads. New children can reuse existing remote parent descriptors without importing or reuploading those parents; sparse publications never masquerade as durable local backing for idle eviction. The development catalog requires its custom service alongside REAPI CAS. The 256 MiB remote logical-bundle bound currently excludes the approximately 1.5 GB Datadog publication tested here. See the [remote implementation overview](skycache-remote-mvp.md) and [integration evidence](skycache-remote-sync-2026-10-25.md).
 
 The backend also has an idle graph-eviction policy. Benchmarks below set its idle-eviction timeout to zero and explicitly cleaned the graph, so their gains do not depend on leaving the analysis graph resident between measured builds.
 
@@ -142,7 +148,7 @@ Every requested executable digest matched the vanilla control. Minimal downloade
 
 The larger scopes failed with that historical snapshot. [Historical expanded benchmark, failed scopes and reproducible evidence](https://github.com/JSGette/bazel/blob/jsgette/master/docs/jsgette/skycache-datadog-wide-2026-10-25.md).
 
-## Current larger-tree results (snapshot d497180)
+## Historical segmented larger-tree results (snapshot d497180)
 
 Both previously rejected scopes now publish and reuse the segmented format. Each cell is a median of three after-clean builds with Cache & Carry; positive time reductions mean faster than vanilla and negative values mean slower.
 
@@ -154,6 +160,19 @@ Both previously rejected scopes now publish and reuse the segmented format. Each
 | 220,062 | toplevel | 20.68 | 21.38 | 19.02 | 8.0% | 3373 | 3088 |
 
 The final SkyCache package suite passes 201 cases across 15 targets. All executable digests match the controls; raw traffic and materialization inventories are retained. Capacity is improved, while eager input admission and dependency traversal still cost time. The [full report](skycache-large-tree-2026-10-25.md) includes ranges, same-binary controls, RAM, remote calls, diagnostic regressions, source patches and the complete protocol. The old-format concurrent-worktree and fault-injection results above are historical; the new format adds unit coverage for concurrent rotation and retains the existing lease/GC and validation suite.
+
+## Latest integration measurements
+
+The final local/remote integration was compared against the optimized local baseline after verified `bazel clean`, using the 237,112-target Datadog scope and Cache & Carry. Remote metadata was disabled for this large-scope regression check because the current bundle bound is smaller than the publication.
+
+| Policy | Implementation | Median build s (range) | Median analysis s | Median peak PSS MiB (range) |
+|---|---|---:|---:|---:|
+| minimal | Optimized local baseline | 14.005 (13.734–14.021) | 11.806 | 3183 (2933–3191) |
+| minimal | Merged SkyCache, local mode | 13.920 (13.831–14.070) | 11.763 | 2927 (2894–3073) |
+| toplevel | Optimized local baseline | 23.782 (23.780–23.989) | 12.077 | 3129 (3104–3225) |
+| toplevel | Merged SkyCache, local mode | 23.726 (23.475–23.875) | 11.945 | 3168 (2855–3184) |
+
+Every measured hit build performs zero action-result requests; minimal downloads no output bytes and toplevel fetches only the required output/runfile blobs. The [full report](skycache-remote-sync-2026-10-25.md) separates the final 12-build comparison from the earlier 18-build matrix with vanilla, and includes correctness probes for the combined remote backend.
 
 ## Discussion questions
 

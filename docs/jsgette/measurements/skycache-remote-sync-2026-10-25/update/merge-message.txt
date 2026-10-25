@@ -1,0 +1,9 @@
+Merge remote SkyCache cached reads and parent descriptor reuse
+
+Integrate 91d51164d3. Resolve packed/segmented lookup conflicts by passing
+the prepared key and SHA-256 through both normal and cached-only reads.
+Preserve newest-segment ordering and cached-only no-network behavior.
+
+Validation: Bazel and worker build; 562 cases across 21 targets; real remote
+restart/mutation/eviction/offline checks; execution rewind/output policies;
+two-worktree concurrent mutation/corruption checks.

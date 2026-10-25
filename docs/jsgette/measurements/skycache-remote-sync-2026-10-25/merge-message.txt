@@ -1,0 +1,8 @@
+Merge remote SkyCache demand reads with local performance optimizations
+
+Integrate remote MVP 6a380e6eeb and retain lookup key/hash reuse and
+array decoding from 36a73d8fb4. The merge has no manual resolutions.
+
+Validation: Bazel and remote worker build; 551 cases across 21 targets;
+real remote restart/mutation/eviction/offline probe; local execution
+rewind/output-mode probe; two-worktree concurrent mutation/corruption probe.

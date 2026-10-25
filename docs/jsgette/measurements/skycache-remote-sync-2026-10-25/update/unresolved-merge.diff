@@ -1,0 +1,69 @@
+diff --cc src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
+index 71a0b19a95,9ed2392586..0000000000
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
+@@@ -322,19 -350,24 +350,31 @@@ final class PackedFingerprintValueStor
+    }
+  
+    byte[] getIfPresent(KeyBytesProvider fingerprint) throws IOException {
+++<<<<<<< HEAD
+ +    byte[] key = checkedKey(fingerprint);
+ +    return getIfPresent(key, digest(key, key.length));
+ +  }
+ +
+ +  // A segmented lookup computes and owns these bytes once, across all of its segment probes.
+ +  byte[] getIfPresent(byte[] key, byte[] hash) throws IOException {
+++=======
++     return getIfPresent(fingerprint, false);
++   }
++ 
++   /** Returns an absent key as null, but distinguishes uncached data to preserve segment order. */
++   byte[] getIfPresentCached(KeyBytesProvider fingerprint) throws IOException {
++     return getIfPresent(fingerprint, true);
++   }
++ 
++   private byte[] getIfPresent(KeyBytesProvider fingerprint, boolean cachedOnly) throws IOException {
+++>>>>>>> 91d51164d3d315dc2d79bbe3d40af874b9dae9e0
+      lifecycle.readLock().lock();
+      try {
+        if (closed) {
+          throw new IOException("packed cache is closed");
+        }
+ -      byte[] key = checkedKey(fingerprint);
+ -      byte[] hash = digest(key, key.length);
+        Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
+-       return location == null ? null : readRecord(location, key);
++       return location == null ? null : readRecord(location, key, cachedOnly);
+      } finally {
+        lifecycle.readLock().unlock();
+      }
+diff --cc src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
+index 9533785e7d,f64f7b5a2d..0000000000
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
+@@@ -297,13 -321,15 +321,25 @@@ final class SegmentedFingerprintValueSt
+    }
+  
+    private byte[] find(Bucket bucket, KeyBytesProvider key) throws IOException {
+++<<<<<<< HEAD
+ +    byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+ +    return find(bucket, bytes, hash(bytes));
+ +  }
+ +
+ +  private byte[] find(Bucket bucket, byte[] key, byte[] digest) throws IOException {
+ +    for (int i = bucket.segments.size() - 1; i >= 0; i--) {
+ +      byte[] value = store(bucket.segments.get(i)).getIfPresent(key, digest);
+++=======
++     return find(bucket, key, false);
++   }
++ 
++   private byte[] find(Bucket bucket, KeyBytesProvider key, boolean cachedOnly) throws IOException {
++     for (int i = bucket.segments.size() - 1; i >= 0; i--) {
++       var store = store(bucket.segments.get(i), cachedOnly);
++       // An unavailable newer index or matching record stops this search. Skipping it could
++       // return a different older value than the ordinary lookup would return.
++       byte[] value = cachedOnly ? store.getIfPresentCached(key) : store.getIfPresent(key);
+++>>>>>>> 91d51164d3d315dc2d79bbe3d40af874b9dae9e0
+        if (value != null) {
+          return value;
+        }

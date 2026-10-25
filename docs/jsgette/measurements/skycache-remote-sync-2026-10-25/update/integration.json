@@ -1,0 +1,83 @@
+{
+  "started_at": "2026-10-25T12:41:01.413020+00:00",
+  "commands": [
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "0c80d7fe6847a3e628314fda4e10e6a5429f3d20\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-remote-mvp",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "output": "91d51164d3d315dc2d79bbe3d40af874b9dae9e0\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-remote-mvp",
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "output": " M docs/jsgette/skycache-remote-mvp.md\n?? docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "merge",
+        "--no-ff",
+        "--no-commit",
+        "91d51164d3d315dc2d79bbe3d40af874b9dae9e0"
+      ],
+      "exit_code": 1,
+      "output": "Auto-merging src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java\nCONFLICT (content): Merge conflict in src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java\nAuto-merging src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java\nCONFLICT (content): Merge conflict in src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java\nAutomatic merge failed; fix conflicts and then commit the result.\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "--diff-filter=U"
+      ],
+      "exit_code": 0,
+      "output": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java\nsrc/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java\n"
+    },
+    {
+      "cwd": "/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25",
+      "argv": [
+        "git",
+        "status",
+        "--short"
+      ],
+      "exit_code": 0,
+      "output": "M  src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java\nM  src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java\nUU src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java\nM  src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCache.java\nUU src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java\nM  src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCacheTest.java\nM  src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStoreTest.java\nM  tools/skycache/remote_read_benchmark.py\n"
+    }
+  ],
+  "base": "0c80d7fe6847a3e628314fda4e10e6a5429f3d20",
+  "remote_snapshot": "91d51164d3d315dc2d79bbe3d40af874b9dae9e0",
+  "remote_status": "M docs/jsgette/skycache-remote-mvp.md\n?? docs/jsgette/measurements/skycache-remote-parent-reuse-2026-10-25/",
+  "unmerged": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java\nsrc/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java",
+  "status": "M  src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java\nM  src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java\nUU src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java\nM  src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCache.java\nUU src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java\nM  src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCacheTest.java\nM  src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStoreTest.java\nM  tools/skycache/remote_read_benchmark.py"
+}

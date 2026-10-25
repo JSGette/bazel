@@ -1,0 +1,8 @@
+{
+  "files": [
+    "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java",
+    "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java"
+  ],
+  "decision": "Thread cachedOnly through the prepared-key/hash lookup; compute key bytes and SHA-256 once for normal and cached-only segmented reads. Preserve the remote newest-segment stop rule, record verification, lifecycle locks, and no-network cached-only reads.",
+  "staged_tree": "aaaa8c08036540b53f8c030513545e92c49f08fd"
+}
