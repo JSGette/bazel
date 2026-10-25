@@ -74,7 +74,7 @@ public final class AnalysisCacheIdleRetentionTaskTest {
   public void existingBackingReleasesGraphAndWritesReceipt() throws Exception {
     Path root = temporary.newFolder().toPath();
     Path manifest =
-        root.resolve("leased-v1/publications-v3/namespace/" + "a".repeat(64) + ".manifest");
+        root.resolve("leased-v2/publications-v4/namespace/" + "a".repeat(64) + ".manifest");
     Files.createDirectories(manifest.getParent());
     Files.writeString(manifest, "already-published fixture");
     var released = new AtomicInteger();

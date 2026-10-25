@@ -37,22 +37,22 @@ public final class LocalCacheGarbageCollectorTest {
 
   private Path cache() throws Exception {
     Path cache = temporary.newFolder().toPath();
-    Files.createDirectories(managed(cache).resolve("publications-v3"));
-    Files.createDirectories(managed(cache).resolve("objects/packed-v1"));
+    Files.createDirectories(managed(cache).resolve("publications-v4"));
+    Files.createDirectories(managed(cache).resolve("objects/segmented-v1"));
     try (var unused = LocalCacheLeaseManager.open(managed(cache))) {}
     return cache;
   }
 
   private static Path managed(Path cache) {
-    return cache.resolve("leased-v1");
+    return cache.resolve("leased-v2");
   }
 
   private static Path pack(Path cache, String id) {
-    return managed(cache).resolve("objects/packed-v1/" + id);
+    return managed(cache).resolve("objects/segmented-v1/" + id);
   }
 
   private static Path manifest(Path cache, String id) {
-    return managed(cache).resolve("publications-v3/" + NAMESPACE + "/" + id + ".manifest");
+    return managed(cache).resolve("publications-v4/" + NAMESPACE + "/" + id + ".manifest");
   }
 
   // Only manifest framing matters to collection. Live session tests below also use real packs.
@@ -68,7 +68,7 @@ public final class LocalCacheGarbageCollectorTest {
     Files.write(directory.resolve("index"), new byte[64]);
     var bytes = new ByteArrayOutputStream();
     try (var out = new DataOutputStream(bytes)) {
-      out.writeInt(0x534b5333);
+      out.writeInt(0x534b5334);
       out.writeUTF(id);
       out.writeUTF(namespace);
       out.writeUTF("f".repeat(64));
@@ -76,14 +76,11 @@ public final class LocalCacheGarbageCollectorTest {
       for (String parent : parents) {
         out.writeUTF(parent);
       }
-      out.writeInt(1);
-      out.writeUTF("file");
-      out.writeBoolean(false);
-      out.writeUTF("e".repeat(64));
+      out.writeInt(0); // No witness blocks are needed by these GC framing fixtures.
     }
     byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray());
     bytes.write(digest);
-    Path path = managed(cache).resolve("publications-v3/" + namespace + "/" + id + ".manifest");
+    Path path = managed(cache).resolve("publications-v4/" + namespace + "/" + id + ".manifest");
     Files.createDirectories(path.getParent());
     Files.write(path, bytes.toByteArray());
     Files.setLastModifiedTime(path, FileTime.fromMillis(time));

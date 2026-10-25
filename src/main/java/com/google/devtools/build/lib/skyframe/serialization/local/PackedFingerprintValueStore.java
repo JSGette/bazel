@@ -65,8 +65,9 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   private final Path namespace;
   private final FileChannel data;
   // Only writers need a mutable map. Published readers use fixed-width binary search.
-  private final Map<ByteString, Location> pending;
-  private final byte[] index;
+  private Map<ByteString, Location> pending;
+  private byte[] index;
+  private final String indexName;
   private final AtomicLong end = new AtomicLong();
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
   private boolean sealed;
@@ -80,12 +81,23 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
         namespace,
         PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
     syncDirectory(format);
+    return createFiles(namespace, "data.pack", "index");
+  }
+
+  static PackedFingerprintValueStore createSegment(Path namespace, String prefix)
+      throws IOException {
+    return createFiles(namespace, prefix + ".pack", prefix + ".index");
+  }
+
+  private static PackedFingerprintValueStore createFiles(
+      Path namespace, String dataName, String indexName) throws IOException {
     FileChannel data =
         FileChannel.open(
-            namespace.resolve("data.pack"),
+            namespace.resolve(dataName),
             Set.of(CREATE_NEW, READ, WRITE, NOFOLLOW_LINKS),
             PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
-    return new PackedFingerprintValueStore(namespace, data, new ConcurrentHashMap<>(), null);
+    return new PackedFingerprintValueStore(
+        namespace, data, new ConcurrentHashMap<>(), null, indexName);
   }
 
   /** Opens only a sealed namespace, verifying index bounds, checksum and data-file length. */
@@ -97,12 +109,22 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   static PackedFingerprintValueStore open(Path format, String id, long maxIndexBytes)
       throws IOException {
     checkId(id);
-    Path namespace = format.resolve(id);
+    return openFiles(format.resolve(id), "data.pack", "index", maxIndexBytes);
+  }
+
+  static PackedFingerprintValueStore openSegment(Path namespace, String prefix, long maxIndexBytes)
+      throws IOException {
+    return openFiles(namespace, prefix + ".pack", prefix + ".index", maxIndexBytes);
+  }
+
+  private static PackedFingerprintValueStore openFiles(
+      Path namespace, String dataName, String indexName, long maxIndexBytes) throws IOException {
     byte[] index;
     if (!Files.isDirectory(namespace, NOFOLLOW_LINKS)) {
       throw new IOException("packed cache namespace is not a directory");
     }
-    try (FileChannel channel = FileChannel.open(namespace.resolve("index"), READ, NOFOLLOW_LINKS)) {
+    try (FileChannel channel =
+        FileChannel.open(namespace.resolve(indexName), READ, NOFOLLOW_LINKS)) {
       long size = channel.size();
       if (size < INDEX_HEADER_BYTES + 32 || size > MAX_INDEX_BYTES || size > maxIndexBytes) {
         throw new IOException("packed cache index size outside bounds");
@@ -143,12 +165,12 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
         throw new IOException("packed cache record location outside bounds");
       }
     }
-    FileChannel data = FileChannel.open(namespace.resolve("data.pack"), READ, NOFOLLOW_LINKS);
+    FileChannel data = FileChannel.open(namespace.resolve(dataName), READ, NOFOLLOW_LINKS);
     try {
       if (data.size() != dataSize) {
         throw new IOException("packed cache data length mismatch");
       }
-      return new PackedFingerprintValueStore(namespace, data, null, index);
+      return new PackedFingerprintValueStore(namespace, data, null, index, indexName);
     } catch (IOException | RuntimeException e) {
       data.close();
       throw e;
@@ -160,8 +182,13 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   private PackedFingerprintValueStore(
-      Path namespace, FileChannel data, Map<ByteString, Location> pending, byte[] index) {
+      Path namespace,
+      FileChannel data,
+      Map<ByteString, Location> pending,
+      byte[] index,
+      String indexName) {
     this.namespace = namespace;
+    this.indexName = indexName;
     this.data = data;
     this.pending = pending;
     this.index = index;
@@ -231,18 +258,39 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       if (closed) {
         throw new IOException("packed cache is closed");
       }
-      byte[] key = checkedKey(fingerprint);
-      byte[] hash = digest(key, key.length);
-      Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
-      if (location == null) {
+      byte[] value = getIfPresent(fingerprint);
+      if (value == null) {
         throw new IOException("packed cache key is absent");
       }
-      return immediateFuture(readRecord(location, key));
+      return immediateFuture(value);
     } catch (IOException e) {
       return immediateFailedFuture(new MissingFingerprintValueException(fingerprint, e));
     } finally {
       lifecycle.readLock().unlock();
     }
+  }
+
+  byte[] getIfPresent(KeyBytesProvider fingerprint) throws IOException {
+    lifecycle.readLock().lock();
+    try {
+      if (closed) {
+        throw new IOException("packed cache is closed");
+      }
+      byte[] key = checkedKey(fingerprint);
+      byte[] hash = digest(key, key.length);
+      Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
+      return location == null ? null : readRecord(location, key);
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
+  long dataBytes() throws IOException {
+    return data.size();
+  }
+
+  byte[] indexDigest() {
+    return Arrays.copyOfRange(index, index.length - 32, index.length);
   }
 
   /** Makes all completed writes durable before the caller publishes the enclosing manifest. */
@@ -287,11 +335,14 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
           write(channel, buffer, 0);
           channel.force(true);
         }
-        Files.createLink(namespace.resolve("index"), temporary);
+        Files.createLink(namespace.resolve(indexName), temporary);
         syncDirectory(namespace);
       } finally {
         Files.deleteIfExists(temporary);
       }
+      index = buffer.array();
+      pending.clear();
+      pending = null;
       sealed = true;
     } finally {
       lifecycle.writeLock().unlock();

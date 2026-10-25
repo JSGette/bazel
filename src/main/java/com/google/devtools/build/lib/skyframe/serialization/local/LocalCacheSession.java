@@ -55,8 +55,8 @@ import java.util.function.LongSupplier;
  * closes.
  */
 final class LocalCacheSession implements FingerprintValueStore {
-  static final String MANAGED_DIRECTORY = "leased-v1";
-  private static final int MAGIC = 0x534b5333;
+  static final String MANAGED_DIRECTORY = "leased-v2";
+  private static final int MAGIC = 0x534b5334;
   private static final int MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
   private static final int MAX_WITNESSES = 1_000_000;
   private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
@@ -75,11 +75,11 @@ final class LocalCacheSession implements FingerprintValueStore {
       String id,
       List<LocalInputSnapshot.Witness> witnesses,
       List<String> parents,
-      long encodedBytes) {}
+      long metadataBytes) {}
 
   private record Candidate(
       String id,
-      PackedFingerprintValueStore store,
+      SegmentedFingerprintValueStore store,
       List<LocalInputSnapshot.Witness> witnesses,
       List<String> parents,
       long metadataBytes,
@@ -102,7 +102,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private final Path publications;
   private final LocalCacheLeaseManager leases;
   private final String id;
-  private volatile PackedFingerprintValueStore privateStore;
+  private volatile SegmentedFingerprintValueStore privateStore;
   // Puts hold locks across private writes and shared reads. Keep more stripes than writers
   // so unrelated keys rarely wait behind another record's I/O.
   private final Striped<Lock> putLocks = Striped.lock(4096);
@@ -161,9 +161,9 @@ final class LocalCacheSession implements FingerprintValueStore {
     this.inputs = inputs;
     this.nanoTime = nanoTime;
     Path managed = durableDirectory(root.toAbsolutePath().normalize().resolve(MANAGED_DIRECTORY));
-    this.objects = durableDirectory(managed.resolve("objects").resolve("packed-v1"));
+    this.objects = durableDirectory(managed.resolve("objects").resolve("segmented-v1"));
     this.publications =
-        durableDirectory(managed.resolve("publications-v3").resolve(inputs.cacheNamespace()));
+        durableDirectory(managed.resolve("publications-v4").resolve(inputs.cacheNamespace()));
     this.id =
         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
     this.leases = LocalCacheLeaseManager.open(managed);
@@ -339,12 +339,12 @@ final class LocalCacheSession implements FingerprintValueStore {
     }
   }
 
-  private synchronized PackedFingerprintValueStore storeForWrites() throws IOException {
+  private synchronized SegmentedFingerprintValueStore storeForWrites() throws IOException {
     if (privateStore == null) {
       try (var catalog = requireSharedCatalog()) {
         // The pin outlives this short catalog operation, including a partially created pack.
         leases.pinPublication(id);
-        privateStore = PackedFingerprintValueStore.create(objects, id);
+        privateStore = SegmentedFingerprintValueStore.create(objects, id);
       }
     }
     return privateStore;
@@ -514,7 +514,7 @@ final class LocalCacheSession implements FingerprintValueStore {
     return null;
   }
 
-  private static byte[] read(PackedFingerprintValueStore store, KeyBytesProvider key)
+  private static byte[] read(SegmentedFingerprintValueStore store, KeyBytesProvider key)
       throws InterruptedException {
     if (store == null) {
       return null;
@@ -617,7 +617,7 @@ final class LocalCacheSession implements FingerprintValueStore {
             continue;
           }
           Manifest manifest = readManifest(path, remaining);
-          long indexBudget = remaining - manifest.encodedBytes();
+          long indexBudget = remaining - manifest.metadataBytes();
           if (Files.size(objects.resolve(manifest.id()).resolve("index")) > indexBudget) {
             readLimitSkips++;
             inspected.remove(filename);
@@ -631,14 +631,14 @@ final class LocalCacheSession implements FingerprintValueStore {
           }
           if (matches) {
             rejectedWitnesses.remove(filename);
-            var store = PackedFingerprintValueStore.open(objects, manifest.id(), indexBudget);
+            var store = SegmentedFingerprintValueStore.open(objects, manifest.id(), indexBudget);
             Candidate candidate =
                 new Candidate(
                     manifest.id(),
                     store,
                     witnesses,
                     manifest.parents(),
-                    manifest.encodedBytes() + store.indexBytes(),
+                    manifest.metadataBytes() + store.indexBytes(),
                     pin);
             opened.add(candidate);
             pin = null; // Ownership transfers to the opened candidate.
@@ -650,6 +650,9 @@ final class LocalCacheSession implements FingerprintValueStore {
               validatedWitnessLists.put(witnesses, witnesses);
             }
           }
+        } catch (SegmentedFingerprintValueStore.BudgetExceededException e) {
+          readLimitSkips++;
+          inspected.remove(filename);
         } catch (IOException e) {
           rejected.incrementAndGet();
         } finally {
@@ -777,13 +780,8 @@ final class LocalCacheSession implements FingerprintValueStore {
         for (String parent : usedParents.stream().sorted().toList()) {
           out.writeUTF(parent);
         }
-        List<LocalInputSnapshot.Witness> witnesses = inputs.globalWitnesses();
-        out.writeInt(witnesses.size());
-        for (var witness : witnesses) {
-          out.writeUTF(witness.path());
-          out.writeBoolean(witness.listing());
-          out.writeUTF(witness.digest());
-        }
+        var blocks = LocalWitnessTable.write(objects.resolve(id), inputs.globalWitnesses());
+        LocalWitnessTable.writeDescriptors(out, blocks);
       }
       byte[] payload = buffer.toByteArray();
       if (payload.length > MAX_MANIFEST_BYTES) {
@@ -827,7 +825,7 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   // finish owns the lifecycle write lock, so no get or put can still be using a descriptor.
   private void closeStores() throws IOException {
-    List<PackedFingerprintValueStore> stores = new ArrayList<>();
+    List<SegmentedFingerprintValueStore> stores = new ArrayList<>();
     if (privateStore != null) {
       stores.add(privateStore);
       privateStore = null;
@@ -843,7 +841,7 @@ final class LocalCacheSession implements FingerprintValueStore {
     rejectedWitnesses.clear();
     inputs.clearAdmissionWitnesses();
     IOException failure = null;
-    for (PackedFingerprintValueStore store : stores) {
+    for (SegmentedFingerprintValueStore store : stores) {
       try {
         store.close();
       } catch (IOException e) {
@@ -913,16 +911,18 @@ final class LocalCacheSession implements FingerprintValueStore {
         }
         parents.add(parent);
       }
-      List<LocalInputSnapshot.Witness> witnesses = new ArrayList<>();
-      int witnessCount = boundedCount(in);
-      for (int i = 0; i < witnessCount; i++) {
-        witnesses.add(new LocalInputSnapshot.Witness(in.readUTF(), in.readBoolean(), in.readUTF()));
+      var blocks = LocalWitnessTable.readDescriptors(in);
+      long metadataBytes = bytes.length + LocalWitnessTable.metadataBytes(blocks);
+      if (metadataBytes > remainingBytes) {
+        throw new SegmentedFingerprintValueStore.BudgetExceededException();
       }
+      var witnesses =
+          LocalWitnessTable.read(objects.resolve(namespace), blocks, remainingBytes - bytes.length);
       if (in.read() != -1
           || !Files.isDirectory(objects.resolve(namespace), LinkOption.NOFOLLOW_LINKS)) {
         throw new IOException("incomplete publication");
       }
-      return new Manifest(namespace, List.copyOf(witnesses), List.copyOf(parents), bytes.length);
+      return new Manifest(namespace, witnesses, List.copyOf(parents), metadataBytes);
     }
   }
 

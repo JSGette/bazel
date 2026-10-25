@@ -48,7 +48,7 @@ final class AnalysisCacheIdleRetentionTask implements IdleTask {
     if (Thread.interrupted()) {
       throw new InterruptedException();
     }
-    // Publication layout: leased-v1/publications-v3/<namespace>/<id>.manifest.
+    // Publication layout: leased-v2/publications-v4/<namespace>/<id>.manifest.
     if (!Files.isRegularFile(manifest, NOFOLLOW_LINKS)) {
       logger.atInfo().log("SkyCache idle retention skipped: backing publication was collected");
       return;

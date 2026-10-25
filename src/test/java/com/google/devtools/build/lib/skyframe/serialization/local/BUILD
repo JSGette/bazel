@@ -439,3 +439,31 @@ java_test(
         "//third_party/java/truth",
     ],
 )
+
+java_test(
+    name = "LocalWitnessTableTest",
+    size = "medium",
+    srcs = ["LocalWitnessTableTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
+
+java_test(
+    name = "SegmentedFingerprintValueStoreTest",
+    size = "medium",
+    srcs = ["SegmentedFingerprintValueStoreTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)

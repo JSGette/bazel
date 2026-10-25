@@ -71,7 +71,7 @@ public final class LocalPublicationValidationBenchmark {
     }
     Path manifests =
         cache
-            .resolve("leased-v1/publications-v3")
+            .resolve("leased-v2/publications-v4")
             .resolve(new LocalInputSnapshot(workspace, output, Map.of()).cacheNamespace());
     Set<Path> parents;
     try (var entries = Files.list(manifests)) {

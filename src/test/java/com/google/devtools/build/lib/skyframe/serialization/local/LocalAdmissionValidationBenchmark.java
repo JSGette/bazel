@@ -34,7 +34,7 @@ public final class LocalAdmissionValidationBenchmark {
       var inputs = new LocalInputSnapshot(Path.of(args[1]), Path.of(args[2]), environment);
       if (!Files.isDirectory(cache.resolve("publications-v3").resolve(inputs.cacheNamespace()))
           && !Files.isDirectory(
-              cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace()))) {
+              cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace()))) {
         throw new IllegalStateException(
             "fixture environment or repository namespace does not match");
       }

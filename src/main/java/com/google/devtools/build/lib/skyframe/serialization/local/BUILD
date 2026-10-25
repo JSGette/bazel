@@ -24,7 +24,10 @@ java_library(
 
 java_library(
     name = "packed_store",
-    srcs = ["PackedFingerprintValueStore.java"],
+    srcs = [
+        "PackedFingerprintValueStore.java",
+        "SegmentedFingerprintValueStore.java",
+    ],
     deps = [
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
@@ -52,6 +55,7 @@ java_library(
         "LocalPathCodec.java",
         "LocalRepositoryMappingCodec.java",
         "LocalRunfilesCodec.java",
+        "LocalWitnessTable.java",
         "LocalSkycacheModule.java",
         "LocalSkycacheOptions.java",
         "LocalSourceArtifactCodec.java",

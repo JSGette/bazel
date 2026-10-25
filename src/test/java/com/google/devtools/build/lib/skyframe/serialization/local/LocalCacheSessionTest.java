@@ -55,7 +55,7 @@ public final class LocalCacheSessionTest {
   }
 
   private static java.util.List<String> publicationIds(Path cache) throws Exception {
-    try (var paths = Files.walk(cache.resolve("leased-v1/publications-v3"))) {
+    try (var paths = Files.walk(cache.resolve("leased-v2/publications-v4"))) {
       return paths
           .filter(p -> p.toString().endsWith(".manifest"))
           .map(p -> p.getFileName().toString().substring(0, 64))
@@ -80,9 +80,9 @@ public final class LocalCacheSessionTest {
     assertThat(child.acceptAnalysisCandidate(candidate)).isTrue();
     assertThat(child.importedPublicationManifest()).isEqualTo(parent.publicationManifest());
     child.put(new Key("child"), new byte[] {2}).get();
-    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"))) {
+    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v2"))) {
       try (var catalog = collector.tryExclusiveCatalog();
-          var objects = Files.list(cache.resolve("leased-v1/objects/packed-v1"))) {
+          var objects = Files.list(cache.resolve("leased-v2/objects/segmented-v1"))) {
         assertThat(catalog).isNotNull();
         var ids = objects.map(p -> p.getFileName().toString()).toList();
         assertThat(ids).hasSize(2);
@@ -126,7 +126,7 @@ public final class LocalCacheSessionTest {
     var clock = new AtomicLong();
     var reader = new LocalCacheSession(cache, snapshot(workspace, output), clock::get);
     var writer = new LocalCacheSession(cache, snapshot(workspace, output));
-    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"))) {
+    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v2"))) {
       try (var catalog = collector.tryExclusiveCatalog()) {
         assertThat(catalog).isNotNull();
         assertThrows(ExecutionException.class, () -> reader.get(key).get());
@@ -149,10 +149,10 @@ public final class LocalCacheSessionTest {
     var writer = new LocalCacheSession(cache, snapshot(workspace, output));
     writer.put(new Key("private"), new byte[] {2}).get();
     String id;
-    try (var objects = Files.list(cache.resolve("leased-v1/objects/packed-v1"))) {
+    try (var objects = Files.list(cache.resolve("leased-v2/objects/segmented-v1"))) {
       id = objects.findFirst().orElseThrow().getFileName().toString();
     }
-    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"));
+    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v2"));
         var catalog = collector.tryExclusiveCatalog()) {
       assertThat(catalog).isNotNull();
       assertThat(collector.tryCollectPublication(id)).isNull();
@@ -212,7 +212,7 @@ public final class LocalCacheSessionTest {
   }
 
   private static long coordinationDescriptors(Path cache) throws Exception {
-    Path lock = cache.resolve("leased-v1/leases.lock").toRealPath();
+    Path lock = cache.resolve("leased-v2/leases.lock").toRealPath();
     try (var descriptors = Files.list(Path.of("/proc/self/fd"))) {
       return descriptors
           .filter(
@@ -683,7 +683,7 @@ public final class LocalCacheSessionTest {
     first.put(new Key("a"), new byte[] {1}).get();
     assertThat(first.finish(true)).isTrue();
     Path publications =
-        cache.resolve("leased-v1/publications-v3").resolve(inputsA.cacheNamespace());
+        cache.resolve("leased-v2/publications-v4").resolve(inputsA.cacheNamespace());
     Path manifestA;
     try (var paths = Files.list(publications)) {
       manifestA = paths.findFirst().orElseThrow();
@@ -724,7 +724,7 @@ public final class LocalCacheSessionTest {
     var first = new LocalCacheSession(cache, inputs);
     first.put(new Key("a"), new byte[] {1}).get();
     assertThat(first.finish(true)).isTrue();
-    Path publications = cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace());
+    Path publications = cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace());
     Path manifestA;
     try (var paths = Files.list(publications)) {
       manifestA = paths.findFirst().orElseThrow();
@@ -772,7 +772,8 @@ public final class LocalCacheSessionTest {
             System::nanoTime,
             new LocalCacheSession.ReadLimits(1, 1024 * 1024, 100));
     assertThrows(ExecutionException.class, () -> reader.get(new Key("missing")).get());
-    assertThat(openPackDescriptors(cache)).isEqualTo(1);
+    // A missing key may consult an empty bucket without opening a data segment.
+    assertThat(openPackDescriptors(cache)).isAtMost(1);
     assertThat(reader.statisticsJson(false)).contains("\"peak_candidate_count\":1");
     assertThat(reader.put(new Key("private"), new byte[] {7}).get()).isTrue();
     assertThat(reader.get(new Key("private")).get()).isEqualTo(new byte[] {7});
@@ -794,17 +795,20 @@ public final class LocalCacheSessionTest {
     assertThat(writer.finish(true)).isTrue();
     Path manifest;
     try (var paths =
-        Files.list(cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace()))) {
+        Files.list(cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace()))) {
       manifest = paths.findFirst().orElseThrow();
     }
     String id = manifest.getFileName().toString().replace(".manifest", "");
-    Path format = cache.resolve("leased-v1/objects/packed-v1");
+    Path format = cache.resolve("leased-v2/objects/segmented-v1");
     Path index = format.resolve(id).resolve("index");
-    long bytes = Files.size(manifest) + Files.size(index);
+    long bytes;
+    try (var stored = SegmentedFingerprintValueStore.open(format, id, Long.MAX_VALUE)) {
+      bytes = Files.size(manifest) + stored.indexBytes();
+    }
     // The store also checks the opened channel's size, independently of a caller's preflight.
     assertThrows(
         IOException.class,
-        () -> PackedFingerprintValueStore.open(format, id, Files.size(index) - 1));
+        () -> SegmentedFingerprintValueStore.open(format, id, Files.size(index) - 1));
     assertThat(openPackDescriptors(cache)).isEqualTo(0);
     var tooSmall =
         new LocalCacheSession(
@@ -943,12 +947,9 @@ public final class LocalCacheSessionTest {
     Path cache = temporary.newFolder("cache").toPath();
     var writer = new LocalCacheSession(cache, snapshot(workspace, output));
     writer.put(new Key("entry"), new byte[] {7}).get();
-    try (var paths = Files.walk(cache.resolve("leased-v1/objects"))) {
+    try (var paths = Files.walk(cache.resolve("leased-v2/objects"))) {
       Path pack =
-          paths
-              .filter(p -> p.getFileName().toString().equals("data.pack"))
-              .findFirst()
-              .orElseThrow();
+          paths.filter(p -> p.getFileName().toString().endsWith(".pack")).findFirst().orElseThrow();
       Files.createDirectory(pack.getParent().resolve("index"));
     }
     assertThat(openPackDescriptors(cache)).isGreaterThan(0);
@@ -992,7 +993,7 @@ public final class LocalCacheSessionTest {
   }
 
   private static long openPackDescriptors(Path cache) throws java.io.IOException {
-    Path physicalCache = cache.resolve("leased-v1/objects").toRealPath();
+    Path physicalCache = cache.resolve("leased-v2/objects").toRealPath();
     try (var descriptors = Files.list(Path.of("/proc/self/fd"))) {
       return descriptors
           .filter(
@@ -1412,7 +1413,7 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("chunk"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     Path parentManifest;
-    try (var files = Files.walk(cache.resolve("leased-v1/publications-v3"))) {
+    try (var files = Files.walk(cache.resolve("leased-v2/publications-v4"))) {
       parentManifest =
           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
     }
@@ -1442,7 +1443,7 @@ public final class LocalCacheSessionTest {
         var parent = new LocalCacheSession(cache, inputs);
         parent.put(new Key("parent-" + i), new byte[] {(byte) i}).get();
         assertThat(parent.finish(true)).isTrue();
-        publications = cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace());
+        publications = cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace());
         try (var paths = Files.list(publications)) {
           parents.add(paths.filter(path -> !parents.contains(path)).findFirst().orElseThrow());
         }
@@ -1586,7 +1587,7 @@ public final class LocalCacheSessionTest {
     parent.put(new Key("chunk"), new byte[] {1}).get();
     assertThat(parent.finish(true)).isTrue();
     Path parentManifest;
-    try (var files = Files.walk(cache.resolve("leased-v1/publications-v3"))) {
+    try (var files = Files.walk(cache.resolve("leased-v2/publications-v4"))) {
       parentManifest =
           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
     }
@@ -1704,12 +1705,9 @@ public final class LocalCacheSessionTest {
     assertThat(parent.finish(true)).isTrue();
     var child = new LocalCacheSession(cache, snapshot(workspace, output));
     assertThat(child.put(key, new byte[] {1}).get()).isFalse();
-    try (var files = Files.walk(cache.resolve("leased-v1/objects"))) {
+    try (var files = Files.walk(cache.resolve("leased-v2/objects"))) {
       Path entry =
-          files
-              .filter(p -> p.getFileName().toString().equals("data.pack"))
-              .findFirst()
-              .orElseThrow();
+          files.filter(p -> p.getFileName().toString().endsWith(".pack")).findFirst().orElseThrow();
       Files.write(entry, new byte[] {0});
     }
     assertThrows(ExecutionException.class, () -> child.get(key).get());
@@ -1876,5 +1874,21 @@ public final class LocalCacheSessionTest {
     clock.set(1_000_000_001L);
     assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
     reader.finish(false);
+  }
+
+  @Test
+  public void segmentedLayoutLeavesPreviousLeasedCacheUntouched() throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    Path old = Files.createDirectories(cache.resolve("leased-v1/publications-v3"));
+    Path sentinel = Files.writeString(old.resolve("old.manifest"), "old-format-sentinel");
+    var writer =
+        new LocalCacheSession(
+            cache,
+            snapshot(
+                temporary.newFolder("workspace").toPath(), temporary.newFolder("output").toPath()));
+    writer.put(new Key("new"), new byte[] {1}).get();
+    assertThat(writer.finish(true)).isTrue();
+    new LocalCacheGarbageCollector(cache, new LocalCacheGarbageCollector.Policy(1, 0)).run();
+    assertThat(Files.readString(sentinel)).isEqualTo("old-format-sentinel");
   }
 }

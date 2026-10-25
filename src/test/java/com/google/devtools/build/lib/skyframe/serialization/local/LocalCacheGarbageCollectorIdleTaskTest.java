@@ -68,9 +68,9 @@ public final class LocalCacheGarbageCollectorIdleTaskTest {
   public void idleCollectionWritesCompleteJsonAndAtomicallyReplacesPriorReport() throws Exception {
     Path cache = temporary.newFolder().toPath();
     Path output = temporary.newFolder().toPath();
-    Files.createDirectories(cache.resolve("leased-v1/publications-v3"));
+    Files.createDirectories(cache.resolve("leased-v2/publications-v4"));
     Path pack =
-        Files.createDirectories(cache.resolve("leased-v1/objects/packed-v1/" + "1".repeat(64)));
+        Files.createDirectories(cache.resolve("leased-v2/objects/segmented-v1/" + "1".repeat(64)));
     Files.writeString(pack.resolve("data.pack"), "abandoned private write");
     var task =
         LocalCacheGarbageCollectorIdleTask.create(

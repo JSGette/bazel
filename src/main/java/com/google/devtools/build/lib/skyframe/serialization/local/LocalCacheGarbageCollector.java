@@ -33,7 +33,7 @@ import java.util.function.LongSupplier;
 
 /** Collects inactive publications without breaking live readers or publication parent closure. */
 final class LocalCacheGarbageCollector {
-  private static final int MANIFEST_MAGIC = 0x534b5333;
+  private static final int MANIFEST_MAGIC = 0x534b5334;
   private static final long MAX_MANIFEST_BYTES = 64L * 1024 * 1024 + 32;
   private static final long MAX_SCAN_BYTES = 2L * 1024 * 1024 * 1024;
   private static final long MAX_RECONCILE_BYTES = 128L * 1024 * 1024;
@@ -180,8 +180,8 @@ final class LocalCacheGarbageCollector {
 
   LocalCacheGarbageCollector(Path root, Policy policy, LongSupplier clock, Observer observer) {
     this.managed = root.toAbsolutePath().normalize().resolve(LocalCacheSession.MANAGED_DIRECTORY);
-    this.publications = managed.resolve("publications-v3");
-    this.objects = managed.resolve("objects/packed-v1");
+    this.publications = managed.resolve("publications-v4");
+    this.objects = managed.resolve("objects/segmented-v1");
     this.policy = policy;
     this.clock = clock;
     this.observer = observer;
@@ -352,16 +352,8 @@ final class LocalCacheGarbageCollector {
         }
         parents.add(parent);
       }
-      int witnesses = count(input);
-      byte[] scratch = new byte[65536];
-      for (int i = 0; i < witnesses; i++) {
-        if ((i & 255) == 0) {
-          interrupted();
-        }
-        skipUtf(input, scratch);
-        input.readBoolean();
-        skipUtf(input, scratch);
-      }
+      LocalWitnessTable.readDescriptors(input);
+      byte[] scratch = new byte[32];
       if (input.read() != -1
           || raw.readNBytes(scratch, 0, 32) != 32
           || !MessageDigest.isEqual(digest.digest(), java.util.Arrays.copyOf(scratch, 32))
@@ -614,7 +606,11 @@ final class LocalCacheGarbageCollector {
       for (Path file : entries) {
         counters.entry();
         String name = file.getFileName().toString();
-        if (!name.equals("data.pack") && !name.equals("index") && !pending(name, ".index")) {
+        if (!name.equals("data.pack")
+            && !name.equals("index")
+            && !pending(name, ".index")
+            && !name.matches("segment-[0-9]{5}\\.(pack|index)")
+            && !name.matches("witnesses-[0-9]{5}\\.block")) {
           safe = false;
           counters.foreign++;
         }
