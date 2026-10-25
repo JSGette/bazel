@@ -32,11 +32,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.annotation.Nullable;
 
 /**
  * Invocation-owned remote candidates with authenticated, demand-driven pack reads. Only complete
@@ -48,6 +50,7 @@ final class RemoteSkyCache implements AutoCloseable {
   static final int AUTHENTICATION_BLOCK_BYTES = 4096;
   private static final int AUTHENTICATION_CACHE_BYTES = 32 * 1024 * 1024;
   private static final int AUTHENTICATION_ENTRY_OVERHEAD = 128;
+  private static final long DEFAULT_LOCAL_CACHE_BYTES = 5L * 1024 * 1024 * 1024;
   // Bound temporary range/rehashing buffers independently of the retained hash-cache budget.
   private final int maxConcurrency;
   private final Semaphore cachedReaders;
@@ -62,6 +65,11 @@ final class RemoteSkyCache implements AutoCloseable {
   private final AtomicLong downloadRpcNanos = new AtomicLong();
   private final AtomicInteger activeDownloads = new AtomicInteger();
   private final AtomicInteger peakDownloads = new AtomicInteger();
+  private final AtomicLong localCacheHits = new AtomicLong();
+  private final AtomicLong localCacheBytes = new AtomicLong();
+  private final AtomicLong localCacheErrors = new AtomicLong();
+  private final long localCacheMaxBytes;
+  @Nullable private final RemoteChunkCache localChunks;
   private volatile boolean closed;
   private final Map<Digest, byte[]> authenticatedBlocks = new LinkedHashMap<>(16, 0.75f, true);
   private final int authenticationBudget;
@@ -142,7 +150,7 @@ final class RemoteSkyCache implements AutoCloseable {
       long start = 0;
       for (var chunk : file.getChunksList()) {
         long end = start + chunk.getSizeBytes();
-        if (start < offset + length && offset < end && !cached(chunk)) {
+        if (start < offset + length && offset < end && !cached(chunk) && !retained(chunk)) {
           return false;
         }
         start = end;
@@ -190,6 +198,18 @@ final class RemoteSkyCache implements AutoCloseable {
     return Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == digest.getSizeBytes();
   }
 
+  private boolean retained(Digest digest) {
+    if (localChunks == null) {
+      return false;
+    }
+    try {
+      return localChunks.contains(digest);
+    } catch (IOException e) {
+      localCacheErrors.incrementAndGet();
+      return false;
+    }
+  }
+
   private byte[] readCachedChunk(Digest digest) throws IOException {
     byte[] bytes = readCachedBytes(digest, 0, (int) digest.getSizeBytes());
     if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
@@ -228,10 +248,25 @@ final class RemoteSkyCache implements AutoCloseable {
     lifecycle.readLock().lock();
     try {
       checkOpen();
-      if (!cacheOnly
-          && (chunks == null || !Files.exists(chunks.resolve(digest.getHash()), NOFOLLOW_LINKS))) {
-        target.put(download(digest), offset, length);
-        return;
+      if (chunks == null || !Files.exists(chunks.resolve(digest.getHash()), NOFOLLOW_LINKS)) {
+        ReentrantLock lock = downloadLock(digest);
+        if (cacheOnly) {
+          if (!lock.tryLock()) {
+            throw new SegmentedFingerprintValueStore.NotCachedException();
+          }
+        } else {
+          lockDownload(lock);
+        }
+        try {
+          checkOpen();
+          if (chunks == null || !Files.exists(chunks.resolve(digest.getHash()), NOFOLLOW_LINKS)) {
+            target.put(downloadLocked(digest, cacheOnly), offset, length);
+            return;
+          }
+          // A coalesced caller needs only its range, not another whole-chunk read and hash.
+        } finally {
+          lock.unlock();
+        }
       }
       long started = beginCachedRead();
       try {
@@ -318,17 +353,11 @@ final class RemoteSkyCache implements AutoCloseable {
   private byte[] download(Digest digest) throws IOException {
     lifecycle.readLock().lock();
     try {
-      ReentrantLock downloadLock =
-          downloadLocks[digest.getHash().hashCode() & (downloadLocks.length - 1)];
-      try {
-        downloadLock.lockInterruptibly();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IOException("interrupted waiting for remote chunk", e);
-      }
+      ReentrantLock downloadLock = downloadLock(digest);
+      lockDownload(downloadLock);
       try {
         checkOpen();
-        return downloadLocked(digest);
+        return downloadLocked(digest, false);
       } finally {
         downloadLock.unlock();
       }
@@ -337,7 +366,20 @@ final class RemoteSkyCache implements AutoCloseable {
     }
   }
 
-  private byte[] downloadLocked(Digest digest) throws IOException {
+  private ReentrantLock downloadLock(Digest digest) {
+    return downloadLocks[digest.getHash().hashCode() & (downloadLocks.length - 1)];
+  }
+
+  private static void lockDownload(ReentrantLock lock) throws IOException {
+    try {
+      lock.lockInterruptibly();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted waiting for remote chunk", e);
+    }
+  }
+
+  private byte[] downloadLocked(Digest digest, boolean cacheOnly) throws IOException {
     synchronized (downloadLocks) {
       if (chunks == null) {
         chunks = newStage();
@@ -351,6 +393,19 @@ final class RemoteSkyCache implements AutoCloseable {
       } finally {
         endCachedRead(started);
       }
+    }
+    byte[] retained;
+    long cachedStarted = beginCachedRead();
+    try {
+      retained = reuseRetainedChunk(digest, path);
+    } finally {
+      endCachedRead(cachedStarted);
+    }
+    if (retained != null) {
+      return retained;
+    }
+    if (cacheOnly) {
+      throw new SegmentedFingerprintValueStore.NotCachedException();
     }
     try {
       downloadSlots.acquire();
@@ -378,12 +433,70 @@ final class RemoteSkyCache implements AutoCloseable {
         Files.deleteIfExists(pending);
       }
       rememberAuthentication(digest, bytes);
+      if (localChunks != null) {
+        try {
+          localChunks.store(digest, path);
+        } catch (IOException e) {
+          localCacheErrors.incrementAndGet();
+        }
+      }
       downloadedBytes.addAndGet(bytes.length);
       downloadedChunks.incrementAndGet();
       return bytes;
     } finally {
       activeDownloads.decrementAndGet();
       downloadSlots.release();
+    }
+  }
+
+  /** Pin before verification; only expose the final scratch name after complete authentication. */
+  @Nullable
+  private byte[] reuseRetainedChunk(Digest digest, Path target) {
+    if (localChunks == null) {
+      return null;
+    }
+    Path pending = target.resolveSibling(".retained-" + UUID.randomUUID());
+    boolean linked = false;
+    try {
+      if (!localChunks.link(digest, pending)) {
+        return null;
+      }
+      linked = true;
+      byte[] bytes;
+      try (var input = Files.newInputStream(pending, READ, NOFOLLOW_LINKS)) {
+        bytes = input.readNBytes((int) digest.getSizeBytes() + 1);
+      }
+      if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
+        localCacheErrors.incrementAndGet();
+        localChunks.invalidate(digest);
+        return null;
+      }
+      rememberAuthentication(digest, bytes);
+      Files.createLink(target, pending);
+      localCacheHits.incrementAndGet();
+      localCacheBytes.addAndGet(bytes.length);
+      try {
+        localChunks.touch(pending);
+      } catch (IOException e) {
+        localCacheErrors.incrementAndGet();
+      }
+      return bytes;
+    } catch (IOException e) {
+      localCacheErrors.incrementAndGet();
+      if (linked) {
+        try {
+          localChunks.invalidate(digest);
+        } catch (IOException ignored) {
+          localCacheErrors.incrementAndGet();
+        }
+      }
+      return null;
+    } finally {
+      try {
+        Files.deleteIfExists(pending);
+      } catch (IOException e) {
+        localCacheErrors.incrementAndGet();
+      }
     }
   }
 
@@ -449,6 +562,14 @@ final class RemoteSkyCache implements AutoCloseable {
             + peakDownloads.get()
             + ",\"max_concurrency\":"
             + maxConcurrency
+            + ",\"local_cache_hits\":"
+            + localCacheHits.get()
+            + ",\"local_cache_bytes\":"
+            + localCacheBytes.get()
+            + ",\"local_cache_errors\":"
+            + localCacheErrors.get()
+            + ",\"local_cache_max_bytes\":"
+            + localCacheMaxBytes
             + ",\"authentication_cache_bytes\":"
             + authenticationBytes
             + ",\"authentication_cache_evictions\":"
@@ -480,7 +601,8 @@ final class RemoteSkyCache implements AutoCloseable {
             options.getRemoteMaxTransferSize(),
             options.getRemoteMaxConcurrency()),
         AUTHENTICATION_CACHE_BYTES,
-        options.getRemoteMaxConcurrency());
+        options.getRemoteMaxConcurrency(),
+        options.getRemoteLocalCacheSize());
   }
 
   RemoteSkyCache(
@@ -513,6 +635,27 @@ final class RemoteSkyCache implements AutoCloseable {
       int authenticationBudget,
       int maxConcurrency)
       throws IOException {
+    this(
+        root,
+        namespace,
+        metadataBudget,
+        instance,
+        transport,
+        authenticationBudget,
+        maxConcurrency,
+        DEFAULT_LOCAL_CACHE_BYTES);
+  }
+
+  RemoteSkyCache(
+      Path root,
+      String namespace,
+      long metadataBudget,
+      String instance,
+      SkyCacheTransport transport,
+      int authenticationBudget,
+      int maxConcurrency,
+      long localCacheMaxBytes)
+      throws IOException {
     try {
       this.scope = Scope.newBuilder().setInstanceName(instance).setNamespaceId(namespace).build();
       SkyCacheProtocol.validateScope(scope);
@@ -525,12 +668,23 @@ final class RemoteSkyCache implements AutoCloseable {
       if (maxConcurrency < 1 || maxConcurrency > 1000) {
         throw new IOException("remote SkyCache concurrency must be between 1 and 1000");
       }
+      if (localCacheMaxBytes < 0) {
+        throw new IOException("negative remote SkyCache local cache size");
+      }
+      this.localCacheMaxBytes = localCacheMaxBytes;
       this.authenticationBudget = authenticationBudget;
       this.maxConcurrency = maxConcurrency;
       this.cachedReaders = new Semaphore(maxConcurrency);
       this.downloadSlots = new Semaphore(maxConcurrency);
       Arrays.setAll(downloadLocks, unused -> new ReentrantLock());
       this.managed = LocalCacheSession.durableDirectory(root.resolve("leased-v2"));
+      RemoteChunkCache cache = null;
+      try {
+        cache = new RemoteChunkCache(managed, localCacheMaxBytes);
+      } catch (IOException e) {
+        localCacheErrors.incrementAndGet();
+      }
+      this.localChunks = cache;
       this.objects = LocalCacheSession.durableDirectory(managed.resolve("objects/segmented-v1"));
       this.publications =
           LocalCacheSession.durableDirectory(managed.resolve("publications-v4").resolve(namespace));
@@ -1090,6 +1244,13 @@ final class RemoteSkyCache implements AutoCloseable {
           }
         }
         stages.clear();
+        if (localChunks != null) {
+          try {
+            localChunks.prune();
+          } catch (IOException e) {
+            localCacheErrors.incrementAndGet();
+          }
+        }
       }
     } finally {
       lifecycle.writeLock().unlock();

@@ -4,6 +4,7 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static org.junit.Assert.assertThrows;
 
 import build.bazel.remote.execution.v2.BatchUpdateBlobsRequest;
@@ -398,7 +399,9 @@ public final class RemoteSkyCacheTest {
                 32L * 1024 * 1024,
                 "instance",
                 new SkyCacheTransport(backend.endpoint(), "instance", "", Duration.ofSeconds(15)),
-                8320)) {
+                8320,
+                100,
+                0)) {
       var fixture = prepareRanges(source, backend, reader);
       assertThat(fixture.pack().getChunks(0)).isNotEqualTo(fixture.pack().getChunks(1));
       fixture.assertRead(0, 1);
@@ -497,9 +500,11 @@ public final class RemoteSkyCacheTest {
       parser.parse("--experimental_remote_skycache=" + backend.endpoint());
       var defaults = parser.getOptions(LocalSkycacheOptions.class);
       assertThat(defaults.getRemoteMaxConcurrency()).isEqualTo(100);
+      assertThat(defaults.getRemoteLocalCacheSize()).isEqualTo(5L * 1024 * 1024 * 1024);
       try (var reader =
           new RemoteSkyCache(temporary.newFolder("default-reader").toPath(), namespace, defaults)) {
         assertThat(statistic(reader, "max_concurrency")).isEqualTo(100);
+        assertThat(statistic(reader, "local_cache_max_bytes")).isEqualTo(5L * 1024 * 1024 * 1024);
       }
       parser.parse("--experimental_remote_skycache_max_concurrency=7");
       try (var reader =
@@ -514,6 +519,169 @@ public final class RemoteSkyCacheTest {
             OptionsParsingException.class,
             () -> parser.parse("--experimental_remote_skycache_max_concurrency=" + invalid));
       }
+    }
+  }
+
+  @Test
+  public void persistentChunksSurviveCloseAndRestoreWithoutBlobRpcs() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote()) {
+      RangeFixture fixture;
+      try (var reader = persistentRemote(destination, backend)) {
+        fixture = prepareRanges(source, backend, reader);
+        fixture.assertRead(0, 31);
+        fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES + 17, 129);
+        assertThat(statistic(reader, "local_cache_max_bytes")).isEqualTo(5L * 1024 * 1024 * 1024);
+        assertThat(statistic(reader, "downloaded_bytes")).isGreaterThan(0);
+      }
+      assertNoPrivateStages(destination);
+      assertThat(Files.isRegularFile(retainedChunk(destination, fixture.pack().getChunks(0))))
+          .isTrue();
+      backend.requestedDigests.clear();
+      long discoveries = backend.discoveryRequests.get();
+      try (var reader = persistentRemote(destination, backend)) {
+        assertThat(reader.prepare()).isEqualTo(1);
+        assertThat(backend.discoveryRequests.get()).isEqualTo(discoveries + 1);
+        var restored =
+            new RangeFixture(fixture.pack(), fixture.bytes(), reader.candidates().get(0).source());
+        // This pack chunk has not entered the new reader's private stage yet.
+        assertThat(restored.source().isCached(restored.pack().getName(), 0, 31)).isTrue();
+        var target = ByteBuffer.allocate(31);
+        restored.source().readCached(restored.pack().getName(), target, 0);
+        assertThat(target.array()).isEqualTo(Arrays.copyOfRange(fixture.bytes(), 0, 31));
+        restored.assertRead(SkyCacheProtocol.CHUNK_BYTES + 17, 129);
+        assertThat(statistic(reader, "local_cache_hits")).isGreaterThan(0);
+        assertThat(statistic(reader, "local_cache_bytes")).isGreaterThan(0);
+        assertThat(statistic(reader, "local_cache_errors")).isEqualTo(0);
+        assertThat(statistic(reader, "downloaded_bytes")).isEqualTo(0);
+        assertThat(backend.requestedDigests).isEmpty();
+      }
+      assertNoPrivateStages(destination);
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void damagedRetainedChunksNeverBecomeTrustedAndNetworkReadRepairsThem() throws Exception {
+    for (String damage : List.of("corrupt", "truncated", "symlink")) {
+      Path source = temporary.newFolder("source-" + damage).toPath();
+      Path destination = temporary.newFolder("destination-" + damage).toPath();
+      try (var backend = new MemoryRemote()) {
+        RangeFixture fixture;
+        try (var reader = persistentRemote(destination, backend)) {
+          fixture = prepareRanges(source, backend, reader);
+          fixture.assertRead(0, 31);
+        }
+        Digest digest = fixture.pack().getChunks(0);
+        Path retained = retainedChunk(destination, digest);
+        byte[] original = Files.readAllBytes(retained);
+        Path outside = temporary.newFile("outside-" + damage).toPath();
+        Files.write(outside, original);
+        switch (damage) {
+          case "corrupt" -> {
+            byte[] changed = original.clone();
+            changed[17] ^= 1;
+            Files.write(retained, changed);
+          }
+          case "truncated" -> Files.write(retained, Arrays.copyOf(original, original.length - 1));
+          case "symlink" -> {
+            Files.delete(retained);
+            Files.createSymbolicLink(retained, outside);
+          }
+          default -> throw new AssertionError(damage);
+        }
+        backend.requestedDigests.clear();
+        try (var reader = persistentRemote(destination, backend)) {
+          assertThat(reader.prepare()).isEqualTo(1);
+          var restored =
+              new RangeFixture(
+                  fixture.pack(), fixture.bytes(), reader.candidates().get(0).source());
+          var target = ByteBuffer.allocate(31);
+          assertThrows(
+              SegmentedFingerprintValueStore.NotCachedException.class,
+              () -> restored.source().readCached(restored.pack().getName(), target, 0));
+          assertThat(target.position()).isEqualTo(0);
+          assertThat(backend.requestedDigests).isEmpty();
+          restored.assertRead(0, 31);
+          assertThat(backend.requestedDigests).containsExactly(digest);
+          assertThat(Files.isRegularFile(retained, NOFOLLOW_LINKS)).isTrue();
+          assertThat(SkyCacheProtocol.digest(Files.readAllBytes(retained))).isEqualTo(digest);
+          assertThat(Files.readAllBytes(outside)).isEqualTo(original);
+        }
+        backend.requestedDigests.clear();
+        try (var reader = persistentRemote(destination, backend)) {
+          assertThat(reader.prepare()).isEqualTo(1);
+          new RangeFixture(fixture.pack(), fixture.bytes(), reader.candidates().get(0).source())
+              .assertRead(0, 31);
+          assertThat(backend.requestedDigests).isEmpty();
+        }
+        assertNoPrivateStages(destination);
+      }
+    }
+  }
+
+  @Test
+  public void disabledPersistentCacheRetainsNoChunksAcrossCommands() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote()) {
+      RangeFixture fixture;
+      try (var reader = remote(destination, backend)) {
+        fixture = prepareRanges(source, backend, reader);
+        fixture.assertRead(0, 31);
+        assertThat(statistic(reader, "local_cache_max_bytes")).isEqualTo(0);
+      }
+      assertNoPrivateStages(destination);
+      assertThat(Files.exists(destination.resolve("leased-v2/remote-chunks-v1"))).isFalse();
+      backend.requestedDigests.clear();
+      try (var reader = remote(destination, backend)) {
+        assertThat(reader.prepare()).isEqualTo(1);
+        new RangeFixture(fixture.pack(), fixture.bytes(), reader.candidates().get(0).source())
+            .assertRead(0, 31);
+        assertThat(backend.requestedDigests).contains(fixture.pack().getChunks(0));
+        assertThat(statistic(reader, "local_cache_hits")).isEqualTo(0);
+      }
+      assertNoPrivateStages(destination);
+      assertThat(Files.exists(destination.resolve("leased-v2/remote-chunks-v1"))).isFalse();
+    }
+  }
+
+  @Test
+  public void brokenPersistentCachePathDoesNotDisableNetworkReads() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    Path managed = Files.createDirectories(destination.resolve("leased-v2"));
+    Path obstruction = Files.writeString(managed.resolve("remote-chunks-v1"), "keep this file");
+    try (var backend = new MemoryRemote();
+        var reader = persistentRemote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 31);
+      assertThat(statistic(reader, "local_cache_errors")).isGreaterThan(0);
+      assertThat(statistic(reader, "local_cache_hits")).isEqualTo(0);
+      assertThat(backend.requestedDigests).contains(fixture.pack().getChunks(0));
+    }
+    assertThat(Files.readString(obstruction)).isEqualTo("keep this file");
+    assertNoPrivateStages(destination);
+  }
+
+  @Test
+  public void persistentCacheSizeOptionAcceptsZeroAndRejectsNegative() throws Exception {
+    try (var backend = new MemoryRemote()) {
+      var parser = OptionsParser.builder().optionsClasses(LocalSkycacheOptions.class).build();
+      parser.parse(
+          "--experimental_remote_skycache=" + backend.endpoint(),
+          "--experimental_remote_skycache_local_cache_size=0");
+      var options = parser.getOptions(LocalSkycacheOptions.class);
+      assertThat(options.getRemoteLocalCacheSize()).isEqualTo(0);
+      Path destination = temporary.newFolder("disabled-reader").toPath();
+      try (var reader = new RemoteSkyCache(destination, namespace, options)) {
+        assertThat(statistic(reader, "local_cache_max_bytes")).isEqualTo(0);
+      }
+      assertThat(Files.exists(destination.resolve("leased-v2/remote-chunks-v1"))).isFalse();
+      assertThrows(
+          OptionsParsingException.class,
+          () -> parser.parse("--experimental_remote_skycache_local_cache_size=-1"));
     }
   }
 
@@ -1420,6 +1588,20 @@ public final class RemoteSkyCacheTest {
     }
   }
 
+  private static Path retainedChunk(Path cache, Digest digest) {
+    return cache
+        .resolve("leased-v2/remote-chunks-v1/sha256")
+        .resolve(digest.getHash().substring(0, 2))
+        .resolve(digest.getHash() + "-" + digest.getSizeBytes());
+  }
+
+  private static void assertNoPrivateStages(Path cache) throws IOException {
+    try (var paths = Files.list(cache.resolve("leased-v2"))) {
+      assertThat(paths.anyMatch(path -> path.getFileName().toString().startsWith(".remote-")))
+          .isFalse();
+    }
+  }
+
   private record LargePublication(Path manifest, Key key, byte[] value) {}
 
   /** Inserts unindexed padding, relocating every indexed record and authenticating both indexes. */
@@ -1548,6 +1730,18 @@ public final class RemoteSkyCacheTest {
         namespace,
         32L * 1024 * 1024,
         "instance",
+        new SkyCacheTransport(backend.endpoint(), "instance", "", Duration.ofSeconds(15)),
+        32 * 1024 * 1024,
+        100,
+        0);
+  }
+
+  private RemoteSkyCache persistentRemote(Path cache, MemoryRemote backend) throws IOException {
+    return new RemoteSkyCache(
+        cache,
+        namespace,
+        32L * 1024 * 1024,
+        "instance",
         new SkyCacheTransport(backend.endpoint(), "instance", "", Duration.ofSeconds(15)));
   }
 
@@ -1591,6 +1785,7 @@ public final class RemoteSkyCacheTest {
     final ConcurrentLinkedQueue<Digest> requestedDigests = new ConcurrentLinkedQueue<>();
     final ConcurrentLinkedQueue<Digest> uploadedDigests = new ConcurrentLinkedQueue<>();
     final AtomicLong commitRequests = new AtomicLong();
+    final AtomicLong discoveryRequests = new AtomicLong();
     final AtomicLong downloadedBytes = new AtomicLong();
     volatile List<PublicationRef> discoveryCandidates;
     volatile Digest advertised;
@@ -1715,6 +1910,7 @@ public final class RemoteSkyCacheTest {
                     @Override
                     public void discoverPublications(
                         DiscoverRequest request, StreamObserver<DiscoverResponse> observer) {
+                      discoveryRequests.incrementAndGet();
                       var response = DiscoverResponse.newBuilder();
                       if (discoveryCandidates != null) {
                         response.addAllCandidates(discoveryCandidates);

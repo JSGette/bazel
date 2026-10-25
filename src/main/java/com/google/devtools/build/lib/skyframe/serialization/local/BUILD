@@ -61,6 +61,7 @@ java_library(
         "LocalSourceArtifactCodec.java",
         "LocalSymlinkEntryCodec.java",
         "RemoteSkyCache.java",
+        "RemoteChunkCache.java",
     ],
     deps = [
         ":packed_store",

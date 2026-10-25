@@ -3,6 +3,20 @@ load("@rules_java//java:defs.bzl", "java_binary", "java_test")
 package(default_applicable_licenses = ["//:license"])
 
 java_test(
+    name = "RemoteChunkCacheTest",
+    size = "small",
+    srcs = ["RemoteChunkCacheTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote:protocol",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+        "@remoteapis//:build_bazel_remote_execution_v2_remote_execution_java_proto",
+    ],
+)
+
+java_test(
     name = "RemoteSkyCacheTest",
     srcs = ["RemoteSkyCacheTest.java"],
     size = "small",

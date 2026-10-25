@@ -82,6 +82,19 @@ public abstract class LocalSkycacheOptions extends OptionsBase {
               + " and attempted-byte budgets. Higher concurrency uses more temporary buffers.")
   public abstract int getRemoteMaxConcurrency();
 
+  @Option(
+      name = "experimental_remote_skycache_local_cache_size",
+      defaultValue = "5G",
+      converter = ByteSizeConverter.class,
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
+      help =
+          "Soft size limit for downloaded SkyCache chunks retained beneath the local SkyCache"
+              + " directory. Zero disables retention. Chunks are verified before reuse; this"
+              + " does not import partial publications into the local catalog. Pruning occurs"
+              + " after commands; active or abandoned scratch pins can retain additional bytes.")
+  public abstract long getRemoteLocalCacheSize();
+
   /** IdleTaskManager schedules in whole seconds; do not silently truncate a positive timeout. */
   public static final class IdleRetentionConverter extends DurationConverter {
     @Override

@@ -15,9 +15,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -180,6 +187,232 @@ public final class SegmentedFingerprintValueStoreTest {
       var failure = assertThrows(IOException.class, () -> reader.getIfPresentCached(key));
       assertThat(failure).hasMessageThat().isEqualTo("packed cache value checksum mismatch");
       assertThat(source.normalReads).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void blockedOlderIndexAllowsSameBucketReadsAndRetriesAfterFailure() throws Exception {
+    var fixture = parallelFixture(true);
+    var source = fixture.source();
+    source.blockedFile = "segment-00000.index";
+    source.failBlockedRead.set(true);
+    var pool = Executors.newFixedThreadPool(2);
+    try (var reader = SegmentedFingerprintValueStore.open(source, 1000000)) {
+      try {
+        var blocked = pool.submit(() -> reader.get(fixture.older()).get());
+        assertThat(source.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        // Searching the older segment already opened the newer index. Its value must remain
+        // usable while an unrelated index in the same bucket is waiting for the source.
+        assertThat(pool.submit(() -> reader.get(fixture.newer()).get()).get(5, TimeUnit.SECONDS))
+            .isEqualTo(fixture.newerValue());
+        assertThat(
+                pool.submit(() -> reader.getIfPresentCached(fixture.newer()))
+                    .get(5, TimeUnit.SECONDS))
+            .isEqualTo(fixture.newerValue());
+        source.release.countDown();
+        assertThrows(ExecutionException.class, () -> blocked.get(5, TimeUnit.SECONDS));
+        assertThat(reader.get(fixture.older()).get()).isEqualTo(fixture.olderValue());
+        assertThat(source.normalReads.stream().filter("segment-00000.index"::equals).count())
+            .isEqualTo(2);
+      } finally {
+        source.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void blockedRecordAllowsAnotherChunkInSameSegmentAndBucket() throws Exception {
+    var fixture = parallelFixture(false);
+    var source = fixture.source();
+    source.blockedFile = "segment-00000.pack";
+    var pool = Executors.newFixedThreadPool(2);
+    try (var reader = SegmentedFingerprintValueStore.open(source, 1000000)) {
+      try {
+        var blocked = pool.submit(() -> reader.get(fixture.older()).get());
+        assertThat(source.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        // The first value spans more than a MiB, placing this record in a different wire chunk.
+        assertThat(pool.submit(() -> reader.get(fixture.newer()).get()).get(5, TimeUnit.SECONDS))
+            .isEqualTo(fixture.newerValue());
+        assertThat(
+                pool.submit(() -> reader.getIfPresentCached(fixture.newer()))
+                    .get(5, TimeUnit.SECONDS))
+            .isEqualTo(fixture.newerValue());
+        source.release.countDown();
+        assertThat(blocked.get(5, TimeUnit.SECONDS)).isEqualTo(fixture.olderValue());
+        assertThat(source.normalReads.stream().filter("segment-00000.index"::equals).count())
+            .isEqualTo(1);
+      } finally {
+        source.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void inFlightNewerIndexIsCachedMissWithoutFallingBackAndNormalReadsCoalesce()
+      throws Exception {
+    var fixture = parallelFixture(true);
+    var source = fixture.source();
+    source.blockedFile = "segment-00001.index";
+    source.uncached.add(source.blockedFile);
+    var pool = Executors.newFixedThreadPool(3);
+    try (var reader = SegmentedFingerprintValueStore.open(source, 1000000)) {
+      try {
+        var older = pool.submit(() -> reader.get(fixture.older()).get());
+        assertThat(source.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(
+                pool.submit(() -> reader.getIfPresentCached(fixture.older()))
+                    .get(5, TimeUnit.SECONDS))
+            .isNull();
+        assertThat(source.cachedReads).isEmpty();
+        assertThat(source.normalReads).doesNotContain("segment-00000.index");
+        var newer = pool.submit(() -> reader.get(fixture.newer()).get());
+        source.release.countDown();
+        assertThat(older.get(5, TimeUnit.SECONDS)).isEqualTo(fixture.olderValue());
+        assertThat(newer.get(5, TimeUnit.SECONDS)).isEqualTo(fixture.newerValue());
+        assertThat(source.normalReads.stream().filter("segment-00001.index"::equals).count())
+            .isEqualTo(1);
+      } finally {
+        source.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void closeWaitsForLazyInitializationAndRejectsLaterReads() throws Exception {
+    var fixture = parallelFixture(true);
+    var source = fixture.source();
+    source.blockedFile = "segment-00001.index";
+    var pool = Executors.newFixedThreadPool(2);
+    try (var reader = SegmentedFingerprintValueStore.open(source, 1000000)) {
+      try {
+        var blocked = pool.submit(() -> reader.get(fixture.newer()).get());
+        assertThat(source.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        var closing = new CountDownLatch(1);
+        var closed =
+            pool.submit(
+                () -> {
+                  closing.countDown();
+                  reader.close();
+                  return null;
+                });
+        assertThat(closing.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThrows(TimeoutException.class, () -> closed.get(100, TimeUnit.MILLISECONDS));
+        source.release.countDown();
+        assertThat(blocked.get(5, TimeUnit.SECONDS)).isEqualTo(fixture.newerValue());
+        closed.get(5, TimeUnit.SECONDS);
+        int reads = source.normalReads.size();
+        assertThrows(ExecutionException.class, () -> reader.get(fixture.newer()).get());
+        assertThrows(IOException.class, () -> reader.getIfPresentCached(fixture.newer()));
+        assertThat(source.normalReads).hasSize(reads);
+      } finally {
+        source.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  private ParallelFixture parallelFixture(boolean separateSegments) throws Exception {
+    var older = new StringKey("key-000");
+    var newer = otherKeyInSameBucket(older);
+    byte[] olderValue = new byte[separateSegments ? 1 : 1024 * 1024 + 17];
+    olderValue[0] = 1;
+    byte[] newerValue = {2, 3};
+    var directory = temporary.newFolder().toPath();
+    String id = "5".repeat(64);
+    try (var writer =
+        SegmentedFingerprintValueStore.create(
+            directory, id, separateSegments ? 1 : 8, 32L * 1024 * 1024)) {
+      writer.put(older, olderValue).get();
+      writer.put(newer, newerValue).get();
+      writer.seal();
+    }
+    return new ParallelFixture(
+        older, newer, olderValue, newerValue, new BlockingSource(directory.resolve(id)));
+  }
+
+  private record ParallelFixture(
+      StringKey older,
+      StringKey newer,
+      byte[] olderValue,
+      byte[] newerValue,
+      BlockingSource source) {}
+
+  /** Holds one source read without blocking unrelated file ranges or cached-only reads. */
+  private static final class BlockingSource implements SegmentedFingerprintValueStore.FileSource {
+    final Map<String, byte[]> files = new HashMap<>();
+    final Set<String> uncached = ConcurrentHashMap.newKeySet();
+    final List<String> normalReads = new CopyOnWriteArrayList<>();
+    final List<String> cachedReads = new CopyOnWriteArrayList<>();
+    final CountDownLatch entered = new CountDownLatch(1);
+    final CountDownLatch release = new CountDownLatch(1);
+    final AtomicBoolean failBlockedRead = new AtomicBoolean();
+    String blockedFile = "";
+
+    BlockingSource(Path directory) throws IOException {
+      try (var paths = Files.list(directory)) {
+        for (Path path : paths.toList()) {
+          files.put(path.getFileName().toString(), Files.readAllBytes(path));
+        }
+      }
+    }
+
+    @Override
+    public long size(String name) {
+      return files.get(name).length;
+    }
+
+    @Override
+    public byte[] read(String name, long maxBytes) throws IOException {
+      if (size(name) > maxBytes) {
+        throw new IOException("fixture file exceeds budget");
+      }
+      beforeRead(name, 0);
+      return files.get(name).clone();
+    }
+
+    @Override
+    public void read(String name, ByteBuffer target, long offset) throws IOException {
+      beforeRead(name, offset);
+      target.put(files.get(name), (int) offset, target.remaining());
+    }
+
+    private void beforeRead(String name, long offset) throws IOException {
+      normalReads.add(name);
+      if (name.equals(blockedFile) && offset == 0) {
+        entered.countDown();
+        try {
+          if (!release.await(10, TimeUnit.SECONDS)) {
+            throw new IOException("fixture read was not released");
+          }
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IOException("fixture read interrupted", e);
+        }
+        if (failBlockedRead.compareAndSet(true, false)) {
+          throw new IOException("fixture index read failed");
+        }
+      }
+    }
+
+    @Override
+    public boolean isCached(String name, long offset, long length) {
+      return !uncached.contains(name);
+    }
+
+    @Override
+    public void readCached(String name, ByteBuffer target, long offset) throws IOException {
+      cachedReads.add(name);
+      if (!isCached(name, offset, target.remaining())) {
+        throw new SegmentedFingerprintValueStore.NotCachedException();
+      }
+      target.put(files.get(name), (int) offset, target.remaining());
     }
   }
 
