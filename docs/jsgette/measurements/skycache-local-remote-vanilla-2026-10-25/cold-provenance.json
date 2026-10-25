@@ -1,0 +1,71 @@
+{
+  "skycache_commit": "6931630c83d9222049e30bf7c50190ae810519f5",
+  "vanilla_commit": "a5c50fcb65841b505ec72840d83381a704e70afa",
+  "sources": {
+    "skycache": {
+      "path": "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+      "sha256": "518de2101dbf40346f17200a520d3ce4dfd65a998f5909c537f3dd2a72689d3f"
+    },
+    "vanilla": {
+      "path": "/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25/bin/vanilla-upstream",
+      "sha256": "34a95ea73a865b8382e433ec616369fec24e51e69f7c02c148dd30097dd5863b"
+    }
+  },
+  "worker": "/home/jgett/REPOS/.work/skycache-remote-mvp/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+  "common_tools": "/home/jgett/.cache/bazel/_bazel_jgett/install/30645dc200dd3c4da7733204f17aaae1/embedded_tools",
+  "measurement_lock": "/home/jgett/REPOS/.work/skyframe-measurements.lock",
+  "started_at": "2026-10-25T12:59:10.977034+00:00",
+  "runs": [
+    {
+      "scope": "narrow",
+      "argv": [
+        "python3",
+        "/home/jgett/REPOS/bazel-skycache-remote-mvp/tools/skycache/remote_read_benchmark.py",
+        "--vanilla-bazel",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/comparison-local-remote-vanilla-1/bin/vanilla",
+        "--new-bazel",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/comparison-local-remote-vanilla-1/bin/skycache",
+        "--tools-dir",
+        "/home/jgett/.cache/bazel/_bazel_jgett/install/30645dc200dd3c4da7733204f17aaae1/embedded_tools",
+        "--worker",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+        "--root",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/comparison-local-remote-vanilla-1/narrow",
+        "--packages",
+        "512",
+        "--selected",
+        "16",
+        "--repetitions",
+        "3"
+      ],
+      "exit_code": 0
+    },
+    {
+      "scope": "wide",
+      "argv": [
+        "python3",
+        "/home/jgett/REPOS/bazel-skycache-remote-mvp/tools/skycache/remote_read_benchmark.py",
+        "--vanilla-bazel",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/comparison-local-remote-vanilla-1/bin/vanilla",
+        "--new-bazel",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/comparison-local-remote-vanilla-1/bin/skycache",
+        "--tools-dir",
+        "/home/jgett/.cache/bazel/_bazel_jgett/install/30645dc200dd3c4da7733204f17aaae1/embedded_tools",
+        "--worker",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+        "--root",
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/comparison-local-remote-vanilla-1/wide",
+        "--packages",
+        "512",
+        "--selected",
+        "512",
+        "--repetitions",
+        "3"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "harness_sha256": "56131b12e081488d5fcdda71486791e95fcc2387d22e9ae30bf1a59885f75744",
+  "passed": true,
+  "finished_at": "2026-10-25T13:06:23.111515+00:00"
+}

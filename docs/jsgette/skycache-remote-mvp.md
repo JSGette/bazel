@@ -360,6 +360,39 @@ flock /path/to/shared-measurement.lock python3 tools/skycache/remote_read_benchm
   --root /absolute/path/new-performance-directory
 ```
 
+## Direct comparison with local SkyCache and upstream Bazel
+
+The 2026-10-25 follow-up uses the integrated client `6931630c83d9` for both local and
+remote SkyCache and a separate upstream `a5c50fcb6584` binary for vanilla. Both use the
+same embedded tools, and local/remote share the exact same prepopulated metadata.
+The server's read paths are explicitly warmed outside the timer; new-publication writes
+remain inside the measured command. Median complete command times, three samples each:
+
+| Packages read / input | Vanilla Bazel | Local SkyCache | Remote SkyCache | Remote vs local |
+| --- | ---: | ---: | ---: | ---: |
+| 16 / unchanged | 7.351 s | 7.461 s | 8.499 s | +13.9% |
+| 16 / one subtree changed | 7.380 s | 7.458 s | 8.540 s | +14.5% |
+| 512 / unchanged | 8.136 s | 8.091 s | 12.209 s | +50.9% |
+| 512 / one subtree changed | 8.193 s | 8.427 s | 13.148 s | +56.0% |
+
+Local SkyCache is close to vanilla on this cheap-analysis synthetic workload; remote is
+14–56% slower than local. The common repository-mapping phase takes about 7.1 seconds.
+For the 512-package reader, combined analysis/execution is 0.859 / 0.890 s in vanilla,
+0.841 / 0.974 s locally and 4.885 / 5.564 s remotely (unchanged / changed). These are
+Skymeld combined phases, not exclusive analysis timings; most extra remote time occurs
+before the first recorded genrule.
+
+All 72 measured builds across cold-server and warmed-read-path matrices produced the
+expected outputs and cache hits. The narrow remote reader still downloads about 16.7 MB
+from a 19.4 MB primer, while changed-subtree uploads remain small. Backend startup alone
+does not explain the gap. Loopback, synthetic metadata, registry access and three samples
+limit generalization; no WAN, peak-memory or production-build speedup is established.
+The six-target Datadog publication exceeds the current remote size bound, so its separate
+local-only benchmark is not used as a remote comparison.
+
+[Full method, transfer/phase tables, raw samples, traces and provenance](measurements/skycache-local-remote-vanilla-2026-10-25/README.md)
+include reproducible vanilla/local/remote harness support and the optional server warm-up.
+
 ## Content-defined chunking
 
 CDC is compatible with the current ordered, variable-length chunk descriptors; no proto change
