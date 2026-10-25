@@ -148,8 +148,11 @@ final class LocalAnalysisCacheClient implements RetainedAnalysisCacheClient.Sync
         try {
           byte[] bytes = candidate.value();
           var input = CodedInputStream.newInstance(bytes);
-          // DataType.DATA_TYPE_ANALYSIS_NODE. This module deliberately caches analysis only.
-          if (input.readEnum() != 4) {
+          // Both envelopes carry the owner's dependency root, including source witnesses.
+          // Execution hits return metadata optimistically; missing CAS blobs are recovered by
+          // action rewinding when an output is actually needed.
+          int type = input.readEnum();
+          if (type != 4 && type != 5) {
             continue;
           }
           var root = PackedFingerprint.readFrom(input);

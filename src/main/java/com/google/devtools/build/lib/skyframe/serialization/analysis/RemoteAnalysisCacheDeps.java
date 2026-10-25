@@ -44,6 +44,7 @@ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.Re
 import com.google.devtools.build.lib.versioning.LongVersionGetter;
 import com.google.devtools.build.skyframe.InMemoryGraph;
 import com.google.devtools.build.skyframe.SkyKey;
+import com.google.devtools.build.skyframe.SkyValue;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -73,7 +74,7 @@ public class RemoteAnalysisCacheDeps
   private final FrontierNodeVersion frontierNodeVersion;
   private final boolean skycacheAnalysisOnly;
   private final boolean emitUploadedEvents;
-  private final boolean uploadExecutionValues;
+  private final Predicate<SkyValue> uploadExecutionValues;
   private final boolean retrieveExecutionValues;
   private final Predicate<String> uploadFailureHandler;
 
@@ -124,7 +125,7 @@ public class RemoteAnalysisCacheDeps
     this.bailOutOnMissingFingerprint = bailOutOnMissingFingerprint;
     this.skycacheAnalysisOnly = skycacheAnalysisOnly;
     this.emitUploadedEvents = emitUploadedEvents;
-    this.uploadExecutionValues = servicesSupplier.uploadsExecutionValues();
+    this.uploadExecutionValues = servicesSupplier::shouldUploadExecutionValue;
     this.retrieveExecutionValues = servicesSupplier.retrievesExecutionValues();
     this.uploadFailureHandler = servicesSupplier::discardFailedUpload;
     this.minimizeMemory = minimizeMemory;
@@ -170,7 +171,7 @@ public class RemoteAnalysisCacheDeps
     this.minimizeMemory = false;
     this.skycacheAnalysisOnly = false;
     this.emitUploadedEvents = false;
-    this.uploadExecutionValues = false;
+    this.uploadExecutionValues = value -> false;
     this.retrieveExecutionValues = false;
     this.uploadFailureHandler = reason -> false;
     this.serializedFrontierProfile = "";

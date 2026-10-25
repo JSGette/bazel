@@ -618,6 +618,18 @@ public class RemoteActionFileSystem extends FileSystem {
       throws IOException {
     linkPath = resolveSymbolicLinksForParent(linkPath);
 
+    // A Skycache hit may supply a remote input without creating its output directories. Make
+    // the target's parents visible to path canonicalization in memory; do not materialize bytes
+    // or directories on disk merely to validate a symlink to a known remote input.
+    PathFragment targetPath = linkPath.getParentDirectory().getRelative(targetFragment);
+    if (isOutput(targetPath)) {
+      var input = inputArtifactData.getInput(targetPath.relativeTo(execRoot));
+      var metadata = input != null ? inputArtifactData.getInputMetadata(input) : null;
+      if (metadata != null && metadata.isRemote()) {
+        remoteOutputTree.getPath(targetPath.getParentDirectory()).createDirectoryAndParents();
+      }
+    }
+
     if (isOutput(linkPath)) {
       remoteOutputTree.getPath(linkPath).createSymbolicLink(targetFragment, type);
     }

@@ -16,6 +16,7 @@ import com.google.devtools.build.lib.buildtool.buildevent.BuildCompleteEvent;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
 import com.google.devtools.build.lib.events.Event;
+import com.google.devtools.build.lib.remote.options.RemoteOptions;
 import com.google.devtools.build.lib.runtime.BlazeRuntime;
 import com.google.devtools.build.lib.runtime.CommandEnvironment;
 import com.google.devtools.build.lib.skyframe.RemoteConfiguredTargetValue;
@@ -29,6 +30,7 @@ import com.google.devtools.build.lib.skyframe.serialization.analysis.ClientId;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheClient;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingOptions;
 import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingServicesSupplier;
+import com.google.devtools.build.skyframe.SkyValue;
 import com.google.devtools.common.options.OptionPriority.PriorityCategory;
 import com.google.devtools.common.options.OptionsBase;
 import com.google.devtools.common.options.OptionsParser;
@@ -104,6 +106,7 @@ public final class LocalSkycacheModule extends SerializationModule {
     services.session = null;
     services.client = null;
     services.clientId = null;
+    services.executionValues = false;
     var options = env.getOptions().getOptions(LocalSkycacheOptions.class);
     if (options == null
         || options.getDirectory().isEmpty()
@@ -139,6 +142,11 @@ public final class LocalSkycacheModule extends SerializationModule {
               System::nanoTime,
               new LocalCacheSession.ReadLimits(
                   options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
+      var remote = env.getOptions().getOptions(RemoteOptions.class);
+      services.executionValues =
+          remote != null
+              && remote.getRemoteAcceptCached()
+              && (remote.getRemoteCache() != null || remote.isRemoteExecutionEnabled());
       RunfilesOrigin.setSharingEnabled(true);
       if (!inputs.cacheNamespace().equals(services.retainedNamespace)
           || (retainedPublication != null
@@ -187,6 +195,15 @@ public final class LocalSkycacheModule extends SerializationModule {
     String allowedYankedVersions = env.getClientEnv().get("BZLMOD_ALLOW_YANKED_VERSIONS");
     if (allowedYankedVersions != null) {
       inputs.put("bzlmod/BZLMOD_ALLOW_YANKED_VERSIONS", allowedYankedVersions);
+    }
+    // Remote output digests must be resolved against the same CAS namespace. Output download
+    // policy is deliberately excluded: minimal and toplevel share the same remote metadata.
+    var remote = env.getOptions().getOptions(RemoteOptions.class);
+    if (remote != null) {
+      inputs.put("execution/format", "remote-metadata-v1");
+      inputs.put("execution/cache", String.valueOf(remote.getRemoteCache()));
+      inputs.put("execution/executor", String.valueOf(remote.getRemoteExecutor()));
+      inputs.put("execution/instance", remote.getRemoteInstanceName());
     }
     return inputs;
   }
@@ -256,6 +273,7 @@ public final class LocalSkycacheModule extends SerializationModule {
                   services.client = null;
                   services.session = null;
                   services.clientId = null;
+                  services.executionValues = false;
                   // Keep the namespace/backing hint for repeated idle cycles with no new writes.
                   // The next task reacquires a lease and rechecks existence before resetting.
                 }));
@@ -285,6 +303,7 @@ public final class LocalSkycacheModule extends SerializationModule {
     @Nullable private LocalCacheSession session;
     @Nullable private LocalAnalysisCacheClient client;
     @Nullable private ClientId clientId;
+    private boolean executionValues;
     private String retainedNamespace = "";
     private Map<
             com.google.protobuf.ByteString,
@@ -298,13 +317,13 @@ public final class LocalSkycacheModule extends SerializationModule {
     }
 
     @Override
-    public boolean uploadsExecutionValues() {
-      return session == null;
+    public boolean shouldUploadExecutionValue(SkyValue value) {
+      return session == null || (executionValues && LocalExecutionValues.isPortable(value));
     }
 
     @Override
     public boolean retrievesExecutionValues() {
-      return session == null;
+      return session == null || executionValues;
     }
 
     @Override

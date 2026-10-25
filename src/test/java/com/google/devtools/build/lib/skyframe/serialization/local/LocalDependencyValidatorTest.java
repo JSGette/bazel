@@ -981,4 +981,34 @@ public final class LocalDependencyValidatorTest {
       session.finish(false);
     }
   }
+  @Test
+  public void executionClientValidatesSourceWitnessesBeforeReturningMetadata() throws Exception {
+    var inputs = snapshot();
+    var session = new LocalCacheSession(temporary.newFolder("cache").toPath(), inputs);
+    try {
+      byte[] evidence = writer.captureDependency(file, false, List.of());
+      var leaf =
+          new StringKey("local-input-v1/" + NONPROD_FINGERPRINTER.fingerprint(evidence).toHex());
+      session.put(leaf, evidence).get();
+      // The source slot, separate from the analysis file/listing dependencies, is required.
+      byte[] node = bytes(List.of(), List.of(), List.of(), leaf);
+      var root = NONPROD_FINGERPRINTER.fingerprint(node);
+      session.put(root, node).get();
+      var buffer = new ByteArrayOutputStream();
+      var coded = CodedOutputStream.newInstance(buffer);
+      coded.writeEnumNoTag(5);
+      root.writeTo(coded);
+      coded.writeRawBytes(new byte[] {11, 12});
+      coded.flush();
+      var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {78});
+      session.put(key, buffer.toByteArray()).get();
+      assertThat(client(session, inputs).lookup(key.toBytes()).get().value())
+          .isEqualTo(new byte[] {11, 12});
+      Files.writeString(file, "changed source");
+      assertThat(client(session, snapshot()).lookup(key.toBytes()).get().value()).isEmpty();
+    } finally {
+      session.finish(false);
+    }
+  }
+
 }

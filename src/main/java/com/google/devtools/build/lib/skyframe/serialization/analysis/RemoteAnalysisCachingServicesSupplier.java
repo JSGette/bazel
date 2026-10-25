@@ -22,6 +22,7 @@ import com.google.devtools.build.lib.skybridge.SkybridgeInterface;
 import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
 import com.google.devtools.build.lib.skyframe.serialization.SkycacheMetadataParams;
 import com.google.devtools.build.lib.util.SerializedAbruptExitException;
+import com.google.devtools.build.skyframe.SkyValue;
 import com.google.devtools.common.options.OptionsProvider;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +48,11 @@ public interface RemoteAnalysisCachingServicesSupplier extends BlazeService {
   /** Whether this backend accepts execution values in addition to analysis values. */
   default boolean uploadsExecutionValues() {
     return true;
+  }
+
+  /** Whether a completed execution value is portable to a later invocation. */
+  default boolean shouldUploadExecutionValue(SkyValue value) {
+    return uploadsExecutionValues();
   }
 
   /** Whether this backend can return execution values from analysis-cache lookups. */

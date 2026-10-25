@@ -790,6 +790,14 @@ public class ActionExecutionFunction implements SkyFunction {
           outputMetadataStore, reconstructedRichArtifactData, action);
     }
 
+    if (cachingDependenciesSupplier.get().retrievesExecutionValues()
+        && !ensureInputOwnersAvailable(
+            Iterables.concat(action.getInputs().toList(), action.getSchedulingDependencies().toList()),
+            state.compositeInputMetadataProvider,
+            env)) {
+      return null;
+    }
+
     outputMetadataStore.prepareForActionExecution();
 
     if (action.discoversInputs()) {
@@ -832,6 +840,12 @@ public class ActionExecutionFunction implements SkyFunction {
         return null;
       }
 
+      if (cachingDependenciesSupplier.get().retrievesExecutionValues()
+          && !ensureInputOwnersAvailable(
+              state.discoveredInputs.toList(), state.compositeInputMetadataProvider, env)) {
+        return null;
+      }
+
       // When discover inputs completes, post an event with the duration values.
       env.getListener()
           .post(
@@ -855,6 +869,40 @@ public class ActionExecutionFunction implements SkyFunction {
         new ActionPostprocessingImpl(state),
         state.discoveredInputs != null,
         previousOutputs);
+  }
+
+  /**
+   * Makes owners needed by the remote rewind locks available for inputs actually consumed here.
+   *
+   * <p>An execution metadata hit can prune its owner from Skyframe. The lock synchronizer needs
+   * that owner's primary output (and template expansion) to identify shared producers. Request
+   * these analysis values only on the execution fallback, never on the metadata-hit path. Do this
+   * even before the first rewind: a concurrent action can trigger the switch to fine-grained locks.
+   */
+  private static boolean ensureInputOwnersAvailable(
+      Iterable<Artifact> inputs, InputMetadataProvider metadataProvider, Environment env)
+      throws InterruptedException {
+    var pending = new java.util.ArrayDeque<Artifact>();
+    inputs.forEach(pending::add);
+    var visited = new java.util.HashSet<Artifact>();
+    while (!pending.isEmpty()) {
+      Artifact input = pending.removeFirst();
+      if (!(input instanceof Artifact.DerivedArtifact derived) || !visited.add(input)) {
+        continue;
+      }
+      if (input.isRunfilesTree()) {
+        metadataProvider.getRunfilesMetadata(input).getAllArtifacts().forEach(pending::add);
+        continue;
+      }
+      var dependencies =
+          ArtifactFunction.ArtifactDependencies.discoverDependencies(
+              derived, env, /* crashIfActionOwnerMissing= */ false);
+      if (dependencies != null && dependencies.isTemplateActionForTreeArtifact()) {
+        var key = derived.getGeneratingActionKey();
+        env.getValue(ActionTemplateExpansionValue.key(key.getActionLookupKey(), key.getActionIndex()));
+      }
+    }
+    return !env.valuesMissing();
   }
 
   /** Implementation of {@link ActionPostprocessing}. */

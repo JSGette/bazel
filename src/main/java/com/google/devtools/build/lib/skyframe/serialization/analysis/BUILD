@@ -592,6 +592,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:skycache_metadata_params",
         "//src/main/java/com/google/devtools/build/lib/util:serialized_abrupt_exit_exception",
         "//src/main/java/com/google/devtools/common/options",
+        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
         "//third_party/java/guava:concurrent",
         "//third_party/java/jsr305_annotations",
     ],

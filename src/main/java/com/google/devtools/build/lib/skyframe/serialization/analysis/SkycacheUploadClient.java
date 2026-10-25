@@ -51,7 +51,7 @@ public final class SkycacheUploadClient {
 
   private final SelectedEntrySerializer selectedEntrySerializer;
   private final SelectedEntrySerializer.SerializationStatus writeStatuses;
-  private final boolean uploadExecutionValues;
+  private final Predicate<SkyValue> uploadExecutionValues;
   private final Predicate<String> uploadFailureHandler;
 
   public SkycacheUploadClient(
@@ -64,7 +64,7 @@ public final class SkycacheUploadClient {
       LongVersionGetter versionGetter,
       boolean emitUploadedEvents,
       FileOpNodeMemoizingLookup fileOpNodes,
-      boolean uploadExecutionValues,
+      Predicate<SkyValue> uploadExecutionValues,
       Predicate<String> uploadFailureHandler) {
 
     this.uploadExecutionValues = uploadExecutionValues;
@@ -101,7 +101,7 @@ public final class SkycacheUploadClient {
 
   public void tryUpload(SkyKey key, SkyValue value, SkyFunction.Environment env)
       throws InterruptedException {
-    if (getLabel(key) == null || (!uploadExecutionValues && !(key instanceof ActionLookupKey))) {
+    if (getLabel(key) == null || (!(key instanceof ActionLookupKey) && !uploadExecutionValues.test(value))) {
       return;
     }
     writeStatuses.selectedEntryStartingCapped();

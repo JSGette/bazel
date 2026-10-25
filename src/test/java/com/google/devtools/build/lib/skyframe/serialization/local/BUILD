@@ -419,3 +419,23 @@ java_test(
         "//third_party/java/truth",
     ],
 )
+
+java_test(
+    name = "LocalExecutionValuesTest",
+    size = "small",
+    srcs = ["LocalExecutionValuesTest.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
+        "//src/main/java/com/google/devtools/build/lib/actions:file_metadata",
+        "//src/main/java/com/google/devtools/build/lib/collect/nestedset",
+        "//src/main/java/com/google/devtools/build/lib/skyframe:action_execution_value",
+        "//src/main/java/com/google/devtools/build/lib/skyframe:tree_artifact_value",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
+        "//src/test/java/com/google/devtools/build/lib/actions/util",
+        "//src/test/java/com/google/devtools/build/lib/testutil",
+        "//third_party/java/guava:collect",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)

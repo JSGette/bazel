@@ -3354,6 +3354,7 @@ java_library(
     name = "action_execution_function",
     srcs = ["ActionExecutionFunction.java"],
     deps = [
+        ":action_template_expansion_value",
         ":action_execution_state",
         ":action_execution_value",
         ":action_input_collected_event",
