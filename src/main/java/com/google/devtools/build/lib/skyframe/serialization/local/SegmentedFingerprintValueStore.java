@@ -47,6 +47,16 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
 
     /** Fills the target's remaining bytes from this offset, or throws on an incomplete read. */
     void read(String name, ByteBuffer target, long offset) throws IOException;
+
+    /** Checks availability without downloading data or changing cache state. */
+    default boolean isCached(String name, long offset, long length) throws IOException {
+      return false;
+    }
+
+    /** Reads cached bytes only; unavailable data must never trigger a download. */
+    default void readCached(String name, ByteBuffer target, long offset) throws IOException {
+      throw new NotCachedException();
+    }
   }
 
   private static final int MAGIC = 0x53475331;
@@ -60,6 +70,12 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
   static final class BudgetExceededException extends IOException {
     BudgetExceededException() {
       super("segmented metadata exceeds admission budget");
+    }
+  }
+
+  static final class NotCachedException extends IOException {
+    NotCachedException() {
+      super("requested cache data is not available locally");
     }
   }
 
@@ -279,14 +295,22 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
     return hash(key.toBytes())[0] & (BUCKETS - 1);
   }
 
-  private PackedFingerprintValueStore store(Segment segment) throws IOException {
+  private PackedFingerprintValueStore store(Segment segment, boolean cachedOnly)
+      throws IOException {
     if (segment.store == null) {
-      var opened =
-          source == null
-              ? PackedFingerprintValueStore.openSegment(
-                  Objects.requireNonNull(directory), segment.prefix(), segment.indexBytes)
-              : PackedFingerprintValueStore.openSegment(
-                  source, segment.prefix(), segment.indexBytes);
+      PackedFingerprintValueStore opened;
+      if (source == null) {
+        opened =
+            PackedFingerprintValueStore.openSegment(
+                Objects.requireNonNull(directory), segment.prefix(), segment.indexBytes);
+      } else if (cachedOnly) {
+        opened =
+            PackedFingerprintValueStore.openSegmentCached(
+                source, segment.prefix(), segment.indexBytes);
+      } else {
+        opened =
+            PackedFingerprintValueStore.openSegment(source, segment.prefix(), segment.indexBytes);
+      }
       if (!MessageDigest.isEqual(opened.indexDigest(), segment.indexDigest)) {
         opened.close();
         throw new IOException("segment index differs from publication descriptor");
@@ -298,12 +322,16 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
 
   private byte[] find(Bucket bucket, KeyBytesProvider key) throws IOException {
     byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
-    return find(bucket, bytes, hash(bytes));
+    return find(bucket, bytes, hash(bytes), false);
   }
 
-  private byte[] find(Bucket bucket, byte[] key, byte[] digest) throws IOException {
+  private byte[] find(Bucket bucket, byte[] key, byte[] digest, boolean cachedOnly)
+      throws IOException {
     for (int i = bucket.segments.size() - 1; i >= 0; i--) {
-      byte[] value = store(bucket.segments.get(i)).getIfPresent(key, digest);
+      var store = store(bucket.segments.get(i), cachedOnly);
+      // An unavailable newer index or matching record stops this search. Skipping it could
+      // return a different older value than the ordinary lookup would return.
+      byte[] value = store.getIfPresent(key, digest, cachedOnly);
       if (value != null) {
         return value;
       }
@@ -370,7 +398,7 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       byte[] digest = hash(bytes);
       Bucket bucket = buckets[digest[0] & (BUCKETS - 1)];
       synchronized (bucket) {
-        byte[] value = find(bucket, bytes, digest);
+        byte[] value = find(bucket, bytes, digest, false);
         if (value == null) {
           throw new IOException("segmented cache key is absent");
         }
@@ -378,6 +406,26 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       }
     } catch (IOException e) {
       return immediateFailedFuture(new MissingFingerprintValueException(key, e));
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
+  /** Returns null for absent or unavailable cached data, without requesting remote bytes. */
+  byte[] getIfPresentCached(KeyBytesProvider key) throws IOException {
+    lifecycle.readLock().lock();
+    try {
+      if (closed) {
+        throw new IOException("segmented store closed");
+      }
+      byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+      byte[] digest = hash(bytes);
+      Bucket bucket = buckets[digest[0] & (BUCKETS - 1)];
+      synchronized (bucket) {
+        return find(bucket, bytes, digest, true);
+      }
+    } catch (NotCachedException e) {
+      return null;
     } finally {
       lifecycle.readLock().unlock();
     }

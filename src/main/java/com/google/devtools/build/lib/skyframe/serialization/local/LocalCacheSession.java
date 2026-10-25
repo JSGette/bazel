@@ -128,6 +128,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private volatile String failure;
   private volatile String importedPublicationId;
   private volatile boolean importedRemoteAnalysis;
+  private boolean remotePublished;
   private RemoteSkyCache remote;
   private final AtomicLong writes = new AtomicLong();
   private final AtomicLong reads = new AtomicLong();
@@ -197,6 +198,10 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   boolean importedRemoteAnalysis() {
     return importedRemoteAnalysis;
+  }
+
+  boolean remotePublished() {
+    return remotePublished;
   }
 
   long sharedReads() {
@@ -305,7 +310,7 @@ final class LocalCacheSession implements FingerprintValueStore {
           }
           // Recheck the pinned record. If it disappeared or was damaged, repair with a private
           // write, preserving the first put's value and the read-your-writes guarantee.
-          if (Arrays.equals(read(previous.candidate().store(), key), bytes)) {
+          if (Arrays.equals(readForDeduplication(previous.candidate(), key), bytes)) {
             deduplicatedWrites.incrementAndGet();
             acceptedPuts.incrementAndGet();
             return immediateWriteStatus(false);
@@ -323,6 +328,9 @@ final class LocalCacheSession implements FingerprintValueStore {
           if (shared != null && read(privateStore, key) == null) {
             sharedPuts.put(keyBytes, shared);
             usedParents.add(shared.candidate().id());
+            if (shared.candidate().remote()) {
+              importedRemoteAnalysis = true;
+            }
             deduplicatedWrites.incrementAndGet();
             acceptedPuts.incrementAndGet();
             return immediateWriteStatus(false);
@@ -377,15 +385,25 @@ final class LocalCacheSession implements FingerprintValueStore {
   private SharedPut findIdenticalCandidate(KeyBytesProvider key, byte[] expected)
       throws InterruptedException {
     for (Candidate candidate : candidates) {
-      if (candidate.remote()) {
-        continue; // Serializing a new local value must not cause speculative remote downloads.
-      }
-      byte[] value = read(candidate.store(), key);
+      byte[] value = readForDeduplication(candidate, key);
       if (Arrays.equals(value, expected)) {
         return new SharedPut(candidate, sha256(value));
       }
     }
     return null;
+  }
+
+  private static byte[] readForDeduplication(Candidate candidate, KeyBytesProvider key)
+      throws InterruptedException {
+    if (!candidate.remote()) {
+      return read(candidate.store(), key);
+    }
+    try {
+      // Reuse already downloaded data, including adjacent records, without speculative RPCs.
+      return candidate.store().getIfPresentCached(key);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   @Override
@@ -528,6 +546,9 @@ final class LocalCacheSession implements FingerprintValueStore {
       byte[] value = read(candidate.store(), key);
       if (value != null) {
         usedParents.add(candidate.id());
+        if (candidate.remote()) {
+          importedRemoteAnalysis = true;
+        }
         sharedReads.incrementAndGet();
         return value;
       }
@@ -839,16 +860,11 @@ final class LocalCacheSession implements FingerprintValueStore {
           }
         }
       }
-      if (remote != null) {
-        // Persist complete used parent closures before publishing a local child. Sparse remote
-        // readers must never become durable local parent IDs or idle-retention backing.
-        var remoteParents = new HashSet<String>();
-        for (Candidate candidate : candidates) {
-          if (candidate.remote() && usedParents.contains(candidate.id())) {
-            remoteParents.add(candidate.id());
-          }
+      var remoteParents = new HashSet<String>();
+      for (Candidate candidate : candidates) {
+        if (candidate.remote() && usedParents.contains(candidate.id())) {
+          remoteParents.add(candidate.id());
         }
-        remote.materialize(remoteParents);
       }
       if (!inputs.isUnchanged()) {
         failure = "inputs changed during the invocation";
@@ -873,6 +889,20 @@ final class LocalCacheSession implements FingerprintValueStore {
       }
       // No manifest can reference private bytes that have not reached durable storage.
       privateStore.seal();
+      byte[] manifest =
+          com.google.common.primitives.Bytes.concat(
+              payload, HexFormat.of().parseHex(sha256(payload)));
+      if (!remoteParents.isEmpty()) {
+        // This child has no complete local parent closure. Publish directly while the private
+        // writer and local parent pins remain held; never expose it to the local catalog or idle
+        // retention. A failed remote commit still leaves the build's in-memory values valid.
+        importedRemoteAnalysis = true;
+        var localParents = new HashSet<>(usedParents);
+        localParents.removeAll(remoteParents);
+        remote.publishPending(id, manifest, localParents, remoteParents);
+        remotePublished = true;
+        return false;
+      }
       try (var catalog = requireSharedCatalog()) {
         Path temporary =
             Files.createTempFile(
@@ -882,10 +912,7 @@ final class LocalCacheSession implements FingerprintValueStore {
                 PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
         try {
           try (FileChannel channel = FileChannel.open(temporary, WRITE)) {
-            ByteBuffer contents =
-                ByteBuffer.wrap(
-                    com.google.common.primitives.Bytes.concat(
-                        payload, HexFormat.of().parseHex(sha256(payload))));
+            ByteBuffer contents = ByteBuffer.wrap(manifest);
             while (contents.hasRemaining()) {
               channel.write(contents);
             }
