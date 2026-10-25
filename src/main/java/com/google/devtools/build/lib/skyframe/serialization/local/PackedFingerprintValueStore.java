@@ -149,11 +149,39 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   static PackedFingerprintValueStore openSegment(
       SegmentedFingerprintValueStore.FileSource source, String prefix, long maxIndexBytes)
       throws IOException {
+    return openSegment(source, prefix, maxIndexBytes, false);
+  }
+
+  static PackedFingerprintValueStore openSegmentCached(
+      SegmentedFingerprintValueStore.FileSource source, String prefix, long maxIndexBytes)
+      throws IOException {
+    return openSegment(source, prefix, maxIndexBytes, true);
+  }
+
+  private static PackedFingerprintValueStore openSegment(
+      SegmentedFingerprintValueStore.FileSource source,
+      String prefix,
+      long maxIndexBytes,
+      boolean cachedOnly)
+      throws IOException {
     String indexName = prefix + ".index";
     String dataName = prefix + ".pack";
     long size = source.size(indexName);
     checkIndexLength(size, maxIndexBytes);
-    byte[] index = source.read(indexName, Math.min(maxIndexBytes, MAX_INDEX_BYTES)).clone();
+    byte[] index;
+    if (cachedOnly) {
+      if (!source.isCached(indexName, 0, size)) {
+        throw new SegmentedFingerprintValueStore.NotCachedException();
+      }
+      index = new byte[(int) size];
+      var target = ByteBuffer.wrap(index);
+      source.readCached(indexName, target, 0);
+      if (target.hasRemaining()) {
+        throw new EOFException("truncated packed cache index");
+      }
+    } else {
+      index = source.read(indexName, Math.min(maxIndexBytes, MAX_INDEX_BYTES)).clone();
+    }
     if (index.length != size) {
       throw new IOException("packed cache index length mismatch");
     }
@@ -322,6 +350,15 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   byte[] getIfPresent(KeyBytesProvider fingerprint) throws IOException {
+    return getIfPresent(fingerprint, false);
+  }
+
+  /** Returns an absent key as null, but distinguishes uncached data to preserve segment order. */
+  byte[] getIfPresentCached(KeyBytesProvider fingerprint) throws IOException {
+    return getIfPresent(fingerprint, true);
+  }
+
+  private byte[] getIfPresent(KeyBytesProvider fingerprint, boolean cachedOnly) throws IOException {
     lifecycle.readLock().lock();
     try {
       if (closed) {
@@ -330,7 +367,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       byte[] key = checkedKey(fingerprint);
       byte[] hash = digest(key, key.length);
       Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
-      return location == null ? null : readRecord(location, key);
+      return location == null ? null : readRecord(location, key, cachedOnly);
     } finally {
       lifecycle.readLock().unlock();
     }
@@ -422,14 +459,25 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   private byte[] readRecord(Location location, byte[] expectedKey) throws IOException {
+    return readRecord(location, expectedKey, false);
+  }
+
+  private byte[] readRecord(Location location, byte[] expectedKey, boolean cachedOnly)
+      throws IOException {
     int prefixLength = RECORD_HEADER_BYTES + expectedKey.length;
     if (location.length() < prefixLength
         || location.length() > (long) prefixLength + MAX_VALUE_BYTES) {
       throw new IOException("invalid packed cache record length");
     }
+    // Check the complete record before reading its header, including split large-value reads.
+    if (cachedOnly
+        && source != null
+        && !source.isCached(dataName, location.offset(), location.length())) {
+      throw new SegmentedFingerprintValueStore.NotCachedException();
+    }
     boolean coalesced = location.length() <= MAX_COALESCED_RECORD_BYTES;
     ByteBuffer record = ByteBuffer.allocate(coalesced ? location.length() : prefixLength);
-    readData(record, location.offset());
+    readData(record, location.offset(), cachedOnly);
     record.flip();
     int magic = record.getInt();
     int keyLength = record.getInt();
@@ -452,7 +500,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       value = Arrays.copyOfRange(record.array(), prefixLength, location.length());
     } else {
       value = new byte[valueLength];
-      readData(ByteBuffer.wrap(value), location.offset() + prefixLength);
+      readData(ByteBuffer.wrap(value), location.offset() + prefixLength, cachedOnly);
     }
     if (!MessageDigest.isEqual(checksum, digest(value, value.length))) {
       throw new IOException("packed cache value checksum mismatch");
@@ -460,11 +508,15 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     return value;
   }
 
-  private void readData(ByteBuffer target, long offset) throws IOException {
+  private void readData(ByteBuffer target, long offset, boolean cachedOnly) throws IOException {
     if (source == null) {
       read(Objects.requireNonNull(data), target, offset);
     } else {
-      source.read(dataName, target, offset);
+      if (cachedOnly) {
+        source.readCached(dataName, target, offset);
+      } else {
+        source.read(dataName, target, offset);
+      }
       if (target.hasRemaining()) {
         throw new EOFException("truncated packed cache data");
       }

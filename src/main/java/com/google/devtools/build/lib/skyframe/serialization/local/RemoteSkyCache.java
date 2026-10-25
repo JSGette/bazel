@@ -49,6 +49,7 @@ final class RemoteSkyCache implements AutoCloseable {
   private boolean prepared;
   private long downloadedBytes;
   private long downloadedChunks;
+  private int reusedPublications;
 
   record Candidate(
       LocalPublication publication,
@@ -96,6 +97,33 @@ final class RemoteSkyCache implements AutoCloseable {
 
     @Override
     public void read(String name, ByteBuffer target, long offset) throws IOException {
+      read(name, target, offset, false);
+    }
+
+    @Override
+    public boolean isCached(String name, long offset, long length) throws IOException {
+      var file = file(name);
+      if (offset < 0 || length < 0 || offset > file.getSizeBytes() - length) {
+        throw new IOException("remote range outside file bounds");
+      }
+      long start = 0;
+      for (var chunk : file.getChunksList()) {
+        long end = start + chunk.getSizeBytes();
+        if (start < offset + length && offset < end && !cached(chunk)) {
+          return false;
+        }
+        start = end;
+      }
+      return true;
+    }
+
+    @Override
+    public void readCached(String name, ByteBuffer target, long offset) throws IOException {
+      read(name, target, offset, true);
+    }
+
+    private void read(String name, ByteBuffer target, long offset, boolean cacheOnly)
+        throws IOException {
       var file = file(name);
       if (offset < 0 || offset > file.getSizeBytes() - target.remaining()) {
         throw new IOException("remote range outside file bounds");
@@ -107,7 +135,7 @@ final class RemoteSkyCache implements AutoCloseable {
         }
         long end = start + chunk.getSizeBytes();
         if (offset < end) {
-          byte[] bytes = download(chunk);
+          byte[] bytes = cacheOnly ? readCachedChunk(chunk) : download(chunk);
           int within = (int) (offset - start);
           int count = Math.min(target.remaining(), bytes.length - within);
           target.put(bytes, within, count);
@@ -121,20 +149,32 @@ final class RemoteSkyCache implements AutoCloseable {
     }
   }
 
+  private synchronized boolean cached(Digest digest) throws IOException {
+    if (chunks == null) {
+      return false;
+    }
+    Path path = chunks.resolve(digest.getHash());
+    return Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == digest.getSizeBytes();
+  }
+
+  private synchronized byte[] readCachedChunk(Digest digest) throws IOException {
+    if (!cached(digest)) {
+      throw new SegmentedFingerprintValueStore.NotCachedException();
+    }
+    byte[] bytes = Files.readAllBytes(chunks.resolve(digest.getHash()));
+    if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
+      throw new IOException("cached remote chunk checksum mismatch");
+    }
+    return bytes;
+  }
+
   private synchronized byte[] download(Digest digest) throws IOException {
     if (chunks == null) {
       chunks = newStage();
     }
     Path path = chunks.resolve(digest.getHash());
     if (Files.exists(path, NOFOLLOW_LINKS)) {
-      if (!Files.isRegularFile(path, NOFOLLOW_LINKS) || Files.size(path) != digest.getSizeBytes()) {
-        throw new IOException("invalid cached remote chunk");
-      }
-      byte[] bytes = Files.readAllBytes(path);
-      if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
-        throw new IOException("cached remote chunk checksum mismatch");
-      }
-      return bytes;
+      return readCachedChunk(digest);
     }
     byte[] bytes = transport.download(digest);
     Files.write(path, bytes, CREATE_NEW, WRITE, NOFOLLOW_LINKS);
@@ -166,6 +206,8 @@ final class RemoteSkyCache implements AutoCloseable {
         + candidates.size()
         + ",\"materialized_publications\":"
         + materialized.size()
+        + ",\"reused_publications\":"
+        + reusedPublications
         + "}";
   }
 
@@ -299,7 +341,7 @@ final class RemoteSkyCache implements AutoCloseable {
     return candidates.size();
   }
 
-  /** Explicit complete import, also used when persisting a child with remote parents. */
+  /** Explicit complete import for callers requiring durable local backing. */
   int hydrate() throws IOException {
     prepare();
     materialize(candidates.keySet());
@@ -371,57 +413,153 @@ final class RemoteSkyCache implements AutoCloseable {
       }
       var ordered = new LinkedHashMap<String, LocalCacheSession.ManifestHeader>();
       collect(id, ordered, new HashSet<>());
-      var bundle =
-          PublicationBundle.newBuilder()
-              .setFormatVersion(1)
-              .setNamespaceId(scope.getNamespaceId())
-              .setRootId(id);
+      var members = new LinkedHashMap<String, LocalPublication>();
       for (var header : ordered.values()) {
-        var publication =
-            LocalPublication.newBuilder().setId(header.id()).addAllParentIds(header.parents());
-        for (String name : filesFor(header, objects)) {
-          Path file =
-              name.equals("manifest")
-                  ? publications.resolve(header.id() + ".manifest")
-                  : objects.resolve(header.id()).resolve(name);
-          var entry = PublicationFile.newBuilder().setName(name);
-          try (var channel = FileChannel.open(file, READ, NOFOLLOW_LINKS)) {
-            long length = channel.size();
-            if (length > SkyCacheProtocol.MAX_TRANSFER_BYTES) {
-              throw new IOException("publication file exceeds transfer budget");
-            }
-            entry.setSizeBytes(length);
-            long remaining = length;
-            while (remaining > 0) {
-              var bytes =
-                  ByteBuffer.allocate((int) Math.min(remaining, SkyCacheProtocol.CHUNK_BYTES));
-              while (bytes.hasRemaining()) {
-                if (channel.read(bytes) < 0) {
-                  throw new IOException("truncated local publication");
-                }
-              }
-              entry.addChunks(transport.upload(bytes.array()));
-              remaining -= bytes.capacity();
-            }
-            if (channel.size() != length) {
-              throw new IOException("local publication changed during transfer");
+        members.put(
+            header.id(), uploadLocal(header, publications.resolve(header.id() + ".manifest")));
+      }
+      commit(id, members);
+    }
+  }
+
+  /**
+   * Publishes a sealed child without importing its remote parents. The caller must retain its
+   * private writer pin and all local parent pins until this method returns. Scratch manifests are
+   * never discoverable by local readers or the collector.
+   */
+  void publishPending(
+      String id, byte[] manifest, Set<String> localParents, Set<String> remoteParents)
+      throws IOException {
+    transport.beginTransfer();
+    Path stagedManifest = newStage().resolve(id + ".manifest");
+    Files.write(stagedManifest, manifest, CREATE_NEW, WRITE, NOFOLLOW_LINKS);
+    var root =
+        LocalCacheSession.readManifestHeader(
+            stagedManifest, scope.getNamespaceId(), metadataBudget);
+    var parents = new HashSet<>(localParents);
+    parents.addAll(remoteParents);
+    if (!parents.equals(new HashSet<>(root.parents()))
+        || localParents.stream().anyMatch(remoteParents::contains)) {
+      throw new IOException("pending publication parent provenance mismatch");
+    }
+    var members = new LinkedHashMap<String, LocalPublication>();
+    for (String parent : remoteParents.stream().sorted().toList()) {
+      collectDescriptors(parent, members);
+    }
+    var local = new LinkedHashMap<String, LocalCacheSession.ManifestHeader>();
+    for (String parent : localParents.stream().sorted().toList()) {
+      collect(parent, local, new HashSet<>());
+    }
+    int reused = members.size();
+    local.put(id, root);
+    for (var header : local.values()) {
+      var uploaded =
+          uploadLocal(
+              header,
+              header.id().equals(id)
+                  ? stagedManifest
+                  : publications.resolve(header.id() + ".manifest"));
+      var previous = members.putIfAbsent(header.id(), uploaded);
+      if (previous != null) {
+        if (!previous.equals(uploaded)) {
+          throw new IOException("conflicting local and remote publication identity");
+        }
+        reused--;
+      }
+    }
+    commit(id, members);
+    reusedPublications += reused;
+  }
+
+  private void collectDescriptors(String id, Map<String, LocalPublication> members)
+      throws IOException {
+    if (members.containsKey(id)) {
+      return;
+    }
+    var candidate = candidates.get(id);
+    if (candidate == null || members.size() >= SkyCacheProtocol.MAX_PUBLICATIONS) {
+      throw new IOException("unknown or over-budget remote parent");
+    }
+    // prepare validated the authenticated descriptor closure, including acyclicity.
+    for (String parent : candidate.publication().getParentIdsList()) {
+      collectDescriptors(parent, members);
+    }
+    members.put(id, candidate.publication());
+  }
+
+  private LocalPublication uploadLocal(LocalCacheSession.ManifestHeader header, Path manifest)
+      throws IOException {
+    var publication =
+        LocalPublication.newBuilder().setId(header.id()).addAllParentIds(header.parents());
+    for (String name : filesFor(header, objects)) {
+      Path file = name.equals("manifest") ? manifest : objects.resolve(header.id()).resolve(name);
+      var entry = PublicationFile.newBuilder().setName(name);
+      try (var channel = FileChannel.open(file, READ, NOFOLLOW_LINKS)) {
+        long length = channel.size();
+        if (length > SkyCacheProtocol.MAX_TRANSFER_BYTES) {
+          throw new IOException("publication file exceeds transfer budget");
+        }
+        entry.setSizeBytes(length);
+        long remaining = length;
+        while (remaining > 0) {
+          var bytes = ByteBuffer.allocate((int) Math.min(remaining, SkyCacheProtocol.CHUNK_BYTES));
+          while (bytes.hasRemaining()) {
+            if (channel.read(bytes) < 0) {
+              throw new IOException("truncated local publication");
             }
           }
-          publication.addFiles(entry);
+          entry.addChunks(transport.upload(bytes.array()));
+          remaining -= bytes.capacity();
         }
-        bundle.addPublications(publication);
+        if (channel.size() != length) {
+          throw new IOException("local publication changed during transfer");
+        }
       }
-      var completed = bundle.build();
-      SkyCacheProtocol.validateBundle(completed, scope.getNamespaceId());
-      var digest = transport.upload(completed.toByteArray());
-      transport.commit(
-          CommitRequest.newBuilder()
-              .setScope(scope)
-              .setManifest(digest)
-              // Deterministic key permits retry after an uncertain response or process restart.
-              .setIdempotencyKey(digest.getHash())
-              .build());
+      publication.addFiles(entry);
     }
+    return publication.build();
+  }
+
+  private void commit(String id, Map<String, LocalPublication> members) throws IOException {
+    var ordered = new LinkedHashMap<String, LocalPublication>();
+    order(id, members, ordered, new HashSet<>());
+    var bundle =
+        PublicationBundle.newBuilder()
+            .setFormatVersion(1)
+            .setNamespaceId(scope.getNamespaceId())
+            .setRootId(id)
+            .addAllPublications(ordered.values())
+            .build();
+    SkyCacheProtocol.validateBundle(bundle, scope.getNamespaceId());
+    var digest = transport.upload(bundle.toByteArray());
+    transport.commit(
+        CommitRequest.newBuilder()
+            .setScope(scope)
+            .setManifest(digest)
+            // Deterministic key permits retry after an uncertain response or process restart.
+            .setIdempotencyKey(digest.getHash())
+            .build());
+  }
+
+  private static void order(
+      String id,
+      Map<String, LocalPublication> members,
+      LinkedHashMap<String, LocalPublication> ordered,
+      Set<String> visiting)
+      throws IOException {
+    if (ordered.containsKey(id)) {
+      return;
+    }
+    var member = members.get(id);
+    if (member == null
+        || !visiting.add(id)
+        || visiting.size() > SkyCacheProtocol.MAX_PUBLICATIONS) {
+      throw new IOException("incomplete, cyclic or over-budget parent closure");
+    }
+    for (String parent : member.getParentIdsList()) {
+      order(parent, members, ordered, visiting);
+    }
+    ordered.put(id, member);
   }
 
   private void collect(

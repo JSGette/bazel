@@ -273,6 +273,10 @@ public final class LocalSkycacheModule extends SerializationModule {
             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
       }
       services.retainedRoots = services.client.retainedRoots();
+      if (session.remotePublished()) {
+        env.getReporter()
+            .handle(Event.info("Remote SkyCache: publication committed using remote parents"));
+      }
       if (published) {
         retainedPublication = session.publicationManifest();
         if (remoteSkyCache != null) {

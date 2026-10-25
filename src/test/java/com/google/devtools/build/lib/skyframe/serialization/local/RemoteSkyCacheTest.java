@@ -368,16 +368,13 @@ public final class RemoteSkyCacheTest {
   }
 
   @Test
-  public void childMaterializesOnlyUsedRemoteCandidateAndSurvivesLocalOnlyReopen()
-      throws Exception {
+  public void childReusesOnlyUsedRemoteDescriptorWithoutMaterializingParent() throws Exception {
     Path source = temporary.newFolder("source").toPath();
     Path unrelatedSource = temporary.newFolder("unrelated-source").toPath();
     Path destination = temporary.newFolder("destination").toPath();
+    Path reopened = temporary.newFolder("reopened").toPath();
     LargePublication fixture = publishLarge(source);
     Path unrelatedManifest = publishLocal(unrelatedSource, new Key("other"), new byte[] {99});
-    Path childManifest;
-    String usedId;
-    String unusedId;
     try (var backend = new MemoryRemote();
         var writer = remote(source, backend);
         var unrelatedWriter = remote(unrelatedSource, backend);
@@ -386,35 +383,55 @@ public final class RemoteSkyCacheTest {
       PublicationBundle used = backend.bundle();
       unrelatedWriter.publish(unrelatedManifest);
       PublicationBundle unused = backend.bundle();
-      usedId = used.getRootId();
-      unusedId = unused.getRootId();
+      PublicationFile usedPack = onlyFile(used, ".pack");
       // The requested entry belongs to the older candidate in this first discovery page.
       backend.advertiseCandidates(unused, used);
       assertThat(reader.prepare()).isEqualTo(2);
+      backend.uploadedDigests.clear();
       var session = new LocalCacheSession(destination, snapshot());
       session.setRemote(reader);
       try {
         assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
-        session.put(new Key("child"), new byte[] {8}).get();
-        assertThat(session.finish(true)).isTrue();
-        childManifest = session.publicationManifest();
+        assertThat(session.importedRemoteAnalysis()).isTrue();
+        assertThat(session.put(new Key("child"), new byte[] {8}).get()).isTrue();
+        assertThat(session.finish(true)).isFalse();
+        assertThat(session.remotePublished()).isTrue();
+        assertThat(Files.exists(session.publicationManifest())).isFalse();
+        assertThat(session.importedPublicationManifest()).isNull();
       } finally {
         session.finish(false);
       }
-      assertThat(Files.exists(manifestDirectory(destination).resolve(usedId + ".manifest")))
-          .isTrue();
-      assertThat(Files.exists(manifestDirectory(destination).resolve(unusedId + ".manifest")))
-          .isFalse();
-      assertThat(Files.exists(childManifest)).isTrue();
+      PublicationBundle child = backend.bundle();
+      assertThat(child.getPublicationsCount()).isEqualTo(2);
+      assertThat(child.getPublications(0)).isEqualTo(used.getPublications(0));
+      assertThat(child.getPublications(1).getId()).isEqualTo(child.getRootId());
+      assertThat(child.getPublications(1).getParentIdsList()).containsExactly(used.getRootId());
+      assertThat(child.getPublicationsList().stream().map(p -> p.getId()).toList())
+          .doesNotContain(unused.getRootId());
+      assertThat(backend.requestedDigests).contains(usedPack.getChunks(0));
       assertThat(backend.requestedDigests)
-          .containsAtLeastElementsIn(onlyFile(used, ".pack").getChunksList());
+          .containsNoneIn(usedPack.getChunksList().subList(1, usedPack.getChunksCount()));
       assertThat(backend.requestedDigests)
           .containsNoneIn(onlyFile(unused, ".pack").getChunksList());
+      assertThat(backend.uploadedDigests).containsNoneIn(usedPack.getChunksList());
+      assertThat(backend.uploadedDigests).containsNoneIn(onlyFile(unused, ".pack").getChunksList());
+      assertNoPublications(destination);
+
+      try (var freshReader = remote(reopened, backend)) {
+        assertThat(freshReader.prepare()).isEqualTo(2);
+        var fresh = new LocalCacheSession(reopened, snapshot());
+        fresh.setRemote(freshReader);
+        try {
+          assertThat(fresh.get(fixture.key()).get()).isEqualTo(fixture.value());
+          assertThat(fresh.get(new Key("child")).get()).isEqualTo(new byte[] {8});
+          assertThat(fresh.finish(true)).isFalse();
+          assertThat(fresh.remotePublished()).isFalse();
+        } finally {
+          fresh.finish(false);
+        }
+        assertNoPublications(reopened);
+      }
     }
-    assertValue(destination, fixture.key(), fixture.value());
-    assertValue(destination, new Key("child"), new byte[] {8});
-    var header = LocalCacheSession.readManifestHeader(childManifest, namespace, 32L * 1024 * 1024);
-    assertThat(header.parents()).containsExactly(usedId);
   }
 
   @Test
@@ -447,7 +464,124 @@ public final class RemoteSkyCacheTest {
   }
 
   @Test
-  public void missingUnusedBytesOfUsedParentSuppressesChildPublication() throws Exception {
+  public void mixedClosureReuploadsEvictedLocalAncestorAndKeepsWriterPinnedThroughCommit()
+      throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    Path reopened = temporary.newFolder("reopened").toPath();
+    Key ancestor = new Key("ancestor");
+    Key remoteParent = new Key("remote-parent");
+    Key child = new Key("child");
+    Path ancestorManifest = publishLocal(source, ancestor, new byte[] {1});
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend)) {
+      writer.publish(ancestorManifest);
+      PublicationBundle ancestorBundle = backend.bundle();
+      Digest ancestorPack = onlyFile(ancestorBundle, ".pack").getChunks(0);
+      try (var importer = remote(destination, backend)) {
+        assertThat(importer.hydrate()).isEqualTo(1);
+      }
+      var parentWriter = new LocalCacheSession(source, snapshot());
+      try {
+        assertThat(parentWriter.get(ancestor).get()).isEqualTo(new byte[] {1});
+        assertThat(parentWriter.put(remoteParent, new byte[] {2}).get()).isTrue();
+        assertThat(parentWriter.finish(true)).isTrue();
+      } finally {
+        parentWriter.finish(false);
+      }
+      writer.publish(parentWriter.publicationManifest());
+      PublicationBundle parentBundle = backend.bundle();
+      var remoteDescriptor = parentBundle.getPublications(1);
+      List<Digest> remotePackChunks =
+          remoteDescriptor.getFilesList().stream()
+              .filter(file -> file.getName().endsWith(".pack"))
+              .flatMap(file -> file.getChunksList().stream())
+              .toList();
+
+      try (var reader = remote(destination, backend)) {
+        assertThat(reader.prepare()).isEqualTo(2);
+        backend.blobs.remove(ancestorPack);
+        backend.requestedDigests.clear();
+        backend.uploadedDigests.clear();
+        var collectionDuringCommit = new ConcurrentLinkedQueue<LocalCacheGarbageCollector.Stats>();
+        backend.beforeCommit =
+            () -> {
+              try {
+                collectionDuringCommit.add(
+                    new LocalCacheGarbageCollector(
+                            destination, new LocalCacheGarbageCollector.Policy(1, 0))
+                        .run());
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+              }
+            };
+        var session = new LocalCacheSession(destination, snapshot());
+        session.setRemote(reader);
+        try {
+          assertThat(session.get(ancestor).get()).isEqualTo(new byte[] {1});
+          assertThat(session.get(remoteParent).get()).isEqualTo(new byte[] {2});
+          assertThat(session.put(child, new byte[] {3}).get()).isTrue();
+          assertThat(session.finish(true)).isFalse();
+          assertThat(session.remotePublished()).isTrue();
+          assertThat(Files.exists(session.publicationManifest())).isFalse();
+        } finally {
+          session.finish(false);
+          backend.beforeCommit = null;
+        }
+        assertThat(collectionDuringCommit).hasSize(1);
+        var during = collectionDuringCommit.element();
+        assertThat(during.status()).isEqualTo("complete");
+        assertThat(during.activeSlots()).isGreaterThan(0);
+        assertThat(during.deletedPublications()).isEqualTo(0);
+        assertThat(during.deletedPacks()).isEqualTo(0);
+        assertThat(during.deletedPendingFiles()).isEqualTo(0);
+        assertThat(backend.requestedDigests).doesNotContain(ancestorPack);
+        assertThat(backend.uploadedDigests).contains(ancestorPack);
+        assertThat(backend.uploadedDigests).containsNoneIn(remotePackChunks);
+        PublicationBundle published = backend.bundle();
+        assertThat(published.getPublicationsCount()).isEqualTo(3);
+        assertThat(published.getPublications(0)).isEqualTo(ancestorBundle.getPublications(0));
+        assertThat(published.getPublications(1)).isEqualTo(remoteDescriptor);
+        assertThat(published.getPublications(2).getParentIdsList())
+            .containsExactly(ancestorBundle.getRootId(), parentBundle.getRootId());
+        assertThat(
+                Files.exists(
+                    manifestDirectory(destination).resolve(ancestorManifest.getFileName())))
+            .isTrue();
+        try (var manifests = Files.list(manifestDirectory(destination))) {
+          assertThat(manifests.filter(path -> path.toString().endsWith(".manifest")).count())
+              .isEqualTo(1);
+        }
+
+        var after =
+            new LocalCacheGarbageCollector(destination, new LocalCacheGarbageCollector.Policy(1, 0))
+                .run();
+        assertThat(after.status()).isEqualTo("complete");
+        assertThat(after.deletedPublications()).isEqualTo(1);
+        assertThat(after.deletedPacks()).isEqualTo(2);
+        assertNoPublications(destination);
+      }
+
+      try (var freshReader = remote(reopened, backend)) {
+        assertThat(freshReader.prepare()).isEqualTo(3);
+        var fresh = new LocalCacheSession(reopened, snapshot());
+        fresh.setRemote(freshReader);
+        try {
+          assertThat(fresh.get(ancestor).get()).isEqualTo(new byte[] {1});
+          assertThat(fresh.get(remoteParent).get()).isEqualTo(new byte[] {2});
+          assertThat(fresh.get(child).get()).isEqualTo(new byte[] {3});
+        } finally {
+          fresh.finish(false);
+        }
+        assertNoPublications(reopened);
+      }
+    }
+  }
+
+  @Test
+  public void missingUnusedBytesOfUsedParentSuppressesChildPublicationWithoutFetchingThem()
+      throws Exception {
     Path source = temporary.newFolder("source").toPath();
     Path destination = temporary.newFolder("destination").toPath();
     LargePublication fixture = publishLarge(source);
@@ -455,22 +589,226 @@ public final class RemoteSkyCacheTest {
         var writer = remote(source, backend);
         var reader = remote(destination, backend)) {
       writer.publish(fixture.manifest());
+      Digest previousPublication = backend.advertised;
       PublicationFile pack = onlyFile(backend.bundle(), ".pack");
       Digest missing = pack.getChunks(pack.getChunksCount() - 1);
       backend.blobs.remove(missing);
       assertThat(reader.prepare()).isEqualTo(1);
+      backend.uploadedDigests.clear();
+      long commitsBefore = backend.commitRequests.get();
       var session = new LocalCacheSession(destination, snapshot());
       session.setRemote(reader);
       try {
         assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
-        session.put(new Key("child"), new byte[] {8}).get();
-        assertThat(backend.requestedDigests).doesNotContain(missing);
+        assertThat(session.put(new Key("child"), new byte[] {8}).get()).isTrue();
         assertThrows(IOException.class, () -> session.finish(true));
+        assertThat(session.remotePublished()).isFalse();
+        assertThat(session.importedRemoteAnalysis()).isTrue();
       } finally {
         session.finish(false);
       }
-      assertThat(backend.requestedDigests).contains(missing);
+      assertThat(backend.commitRequests.get()).isEqualTo(commitsBefore + 1);
+      assertThat(backend.advertised).isEqualTo(previousPublication);
+      assertThat(backend.requestedDigests).doesNotContain(missing);
+      assertThat(backend.uploadedDigests).containsNoneIn(pack.getChunksList());
       assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void putBeforeReadDoesNotDownloadRemoteIndexOrPack() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    Key key = new Key("entry");
+    byte[] value = {1, 2, 3};
+    Path manifest = publishLocal(source, key, value);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(manifest);
+      assertThat(reader.prepare()).isEqualTo(1);
+      backend.requestedDigests.clear();
+      backend.uploadedDigests.clear();
+      long commitsBefore = backend.commitRequests.get();
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.put(key, value).get()).isTrue();
+        assertThat(session.deduplicatedWrites()).isEqualTo(0);
+        assertThat(session.importedRemoteAnalysis()).isFalse();
+        assertThat(session.get(key).get()).isEqualTo(value);
+      } finally {
+        session.finish(false);
+      }
+      assertThat(backend.requestedDigests).isEmpty();
+      assertThat(backend.uploadedDigests).isEmpty();
+      assertThat(backend.commitRequests.get()).isEqualTo(commitsBefore);
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void identicalPutAfterEarlierReadDeduplicatesWithoutPublishing() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    Key key = new Key("entry");
+    byte[] value = {1, 2, 3};
+    Path manifest = publishLocal(source, key, value);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(manifest);
+      assertThat(reader.prepare()).isEqualTo(1);
+      var warmup = new LocalCacheSession(destination, snapshot());
+      warmup.setRemote(reader);
+      try {
+        assertThat(warmup.get(key).get()).isEqualTo(value);
+      } finally {
+        warmup.finish(false);
+      }
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.importedRemoteAnalysis()).isFalse();
+        backend.requestedDigests.clear();
+        backend.uploadedDigests.clear();
+        long commitsBefore = backend.commitRequests.get();
+        assertThat(session.put(key, value).get()).isFalse();
+        assertThat(session.deduplicatedWrites()).isEqualTo(1);
+        assertThat(session.importedRemoteAnalysis()).isTrue();
+        assertThat(session.finish(true)).isFalse();
+        assertThat(session.remotePublished()).isFalse();
+        assertThat(backend.requestedDigests).isEmpty();
+        assertThat(backend.uploadedDigests).isEmpty();
+        assertThat(backend.commitRequests.get()).isEqualTo(commitsBefore);
+      } finally {
+        session.finish(false);
+      }
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void missingOrCorruptCachedChunkRepairsSharedPutPrivatelyWithoutNetwork()
+      throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Key key = new Key("entry");
+    byte[] value = {1, 2, 3};
+    Path manifest = publishLocal(source, key, value);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend)) {
+      writer.publish(manifest);
+      Digest chunk = onlyFile(backend.bundle(), ".pack").getChunks(0);
+      for (boolean corrupt : new boolean[] {false, true}) {
+        Path destination = temporary.newFolder("destination-" + corrupt).toPath();
+        try (var reader = remote(destination, backend)) {
+          assertThat(reader.prepare()).isEqualTo(1);
+          var session = new LocalCacheSession(destination, snapshot());
+          session.setRemote(reader);
+          try {
+            assertThat(session.get(key).get()).isEqualTo(value);
+            assertThat(session.put(key, value).get()).isFalse();
+            Path cached = cachedChunk(destination, chunk);
+            if (corrupt) {
+              byte[] bytes = Files.readAllBytes(cached);
+              bytes[bytes.length - 1] ^= 1;
+              Files.write(cached, bytes);
+            } else {
+              Files.delete(cached);
+            }
+            backend.requestedDigests.clear();
+            backend.uploadedDigests.clear();
+            assertThat(session.put(key, value).get()).isTrue();
+            assertThat(session.get(key).get()).isEqualTo(value);
+            assertThat(session.deduplicatedWrites()).isEqualTo(1);
+            assertThat(session.failureReason()).isNull();
+            assertThat(backend.requestedDigests).isEmpty();
+            assertThat(backend.uploadedDigests).isEmpty();
+          } finally {
+            session.finish(false);
+          }
+          assertNoPublications(destination);
+        }
+      }
+    }
+  }
+
+  @Test
+  public void conflictingRepeatedRemoteDeduplicatedPutSuppressesPublication() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    Key key = new Key("entry");
+    byte[] value = {1, 2, 3};
+    Path manifest = publishLocal(source, key, value);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(manifest);
+      assertThat(reader.prepare()).isEqualTo(1);
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(key).get()).isEqualTo(value);
+        assertThat(session.put(key, value).get()).isFalse();
+        assertThat(session.put(new Key("child"), new byte[] {8}).get()).isTrue();
+        backend.requestedDigests.clear();
+        backend.uploadedDigests.clear();
+        long commitsBefore = backend.commitRequests.get();
+        assertThat(session.put(key, new byte[] {4, 5, 6}).get()).isFalse();
+        assertThat(session.failureReason()).contains("conflicting immutable shared cache value");
+        assertThat(session.get(key).get()).isEqualTo(value);
+        assertThat(session.finish(true)).isFalse();
+        assertThat(session.remotePublished()).isFalse();
+        assertThat(backend.requestedDigests).isEmpty();
+        assertThat(backend.uploadedDigests).isEmpty();
+        assertThat(backend.commitRequests.get()).isEqualTo(commitsBefore);
+      } finally {
+        session.finish(false);
+      }
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void changedInputSuppressesRemoteChildBeforeUpload() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    Key key = new Key("entry");
+    byte[] value = {1, 2, 3};
+    Path manifest = publishLocal(source, key, value);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(manifest);
+      assertThat(reader.prepare()).isEqualTo(1);
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(key).get()).isEqualTo(value);
+        assertThat(session.put(new Key("child"), new byte[] {8}).get()).isTrue();
+        backend.requestedDigests.clear();
+        backend.uploadedDigests.clear();
+        long commitsBefore = backend.commitRequests.get();
+        Files.writeString(evidence, "changed");
+        assertThat(session.finish(true)).isFalse();
+        assertThat(session.failureReason()).contains("inputs changed");
+        assertThat(session.remotePublished()).isFalse();
+        assertThat(backend.requestedDigests).isEmpty();
+        assertThat(backend.uploadedDigests).isEmpty();
+        assertThat(backend.commitRequests.get()).isEqualTo(commitsBefore);
+      } finally {
+        session.finish(false);
+      }
+      assertNoPublications(destination);
+    }
+  }
+
+  private static Path cachedChunk(Path cache, Digest digest) throws IOException {
+    try (var paths = Files.walk(cache.resolve("leased-v2"))) {
+      List<Path> matches =
+          paths.filter(path -> path.getFileName().toString().equals(digest.getHash())).toList();
+      assertThat(matches).hasSize(1);
+      return matches.get(0);
     }
   }
 
@@ -577,10 +915,18 @@ public final class RemoteSkyCacheTest {
   private static final class MemoryRemote implements AutoCloseable {
     final Map<Digest, byte[]> blobs = new ConcurrentHashMap<>();
     final ConcurrentLinkedQueue<Digest> requestedDigests = new ConcurrentLinkedQueue<>();
+    final ConcurrentLinkedQueue<Digest> uploadedDigests = new ConcurrentLinkedQueue<>();
+    final AtomicLong commitRequests = new AtomicLong();
     final AtomicLong downloadedBytes = new AtomicLong();
     volatile List<PublicationRef> discoveryCandidates;
     volatile Digest advertised;
+    volatile CommitObserver beforeCommit;
     private final Server server;
+
+    @FunctionalInterface
+    private interface CommitObserver {
+      void run() throws IOException;
+    }
 
     MemoryRemote() throws IOException {
       server =
@@ -599,6 +945,7 @@ public final class RemoteSkyCacheTest {
                           return;
                         }
                         blobs.put(entry.getDigest(), bytes);
+                        uploadedDigests.add(entry.getDigest());
                         response.addResponses(
                             BatchUpdateBlobsResponse.Response.newBuilder()
                                 .setDigest(entry.getDigest()));
@@ -640,9 +987,40 @@ public final class RemoteSkyCacheTest {
                     @Override
                     public void commitPublication(
                         CommitRequest request, StreamObserver<PublicationRef> observer) {
-                      advertised = request.getManifest();
-                      observer.onNext(reference());
-                      observer.onCompleted();
+                      commitRequests.incrementAndGet();
+                      try {
+                        if (beforeCommit != null) {
+                          beforeCommit.run();
+                        }
+                        byte[] encoded = blobs.get(request.getManifest());
+                        if (encoded == null
+                            || !SkyCacheProtocol.digest(encoded).equals(request.getManifest())) {
+                          throw new IOException("missing or corrupt publication bundle");
+                        }
+                        PublicationBundle bundle =
+                            PublicationBundle.parseFrom(
+                                encoded, ExtensionRegistry.getEmptyRegistry());
+                        SkyCacheProtocol.validateBundle(
+                            bundle, request.getScope().getNamespaceId());
+                        for (var publication : bundle.getPublicationsList()) {
+                          for (var file : publication.getFilesList()) {
+                            for (Digest chunk : file.getChunksList()) {
+                              if (!blobs.containsKey(chunk)) {
+                                throw new IOException("missing referenced publication chunk");
+                              }
+                            }
+                          }
+                        }
+                        advertised = request.getManifest();
+                        discoveryCandidates = null;
+                        observer.onNext(reference());
+                        observer.onCompleted();
+                      } catch (IOException e) {
+                        observer.onError(
+                            Status.FAILED_PRECONDITION
+                                .withDescription(e.getMessage())
+                                .asRuntimeException());
+                      }
                     }
 
                     @Override

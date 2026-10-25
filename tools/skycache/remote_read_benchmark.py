@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 The Bazel Authors. All rights reserved.
 # Licensed under the Apache License, Version 2.0. See the repository LICENSE.
-"""Paired local-loopback benchmark of normal, full-import and demand-read builds.
+"""Paired local-loopback benchmark of normal, reference and current builds.
 
 Uses warm Bazel JVMs, clean analysis/action state, fresh client metadata directories,
 and a frozen primer catalog per binary. A counting TCP proxy reports gRPC
@@ -53,6 +53,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--old-bazel', type=Path, required=True)
     parser.add_argument('--new-bazel', type=Path, required=True)
+    parser.add_argument('--old-label', default='full import')
+    parser.add_argument('--new-label', default='demand reads')
     parser.add_argument('--worker', type=Path, required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--packages', type=int, default=512)
@@ -100,6 +102,8 @@ def main():
     threading.Thread(target=proxy.serve_forever, daemon=True).start()
     endpoint = 'grpc://127.0.0.1:' + str(proxy.server_address[1])
     report = {'passed': False, 'method': __doc__, 'parameters': vars(args).copy(),
+              'mode_labels': {'normal': 'SkyCache disabled',
+                              'full': args.old_label, 'demand': args.new_label},
               'endpoint': endpoint, 'runs': [], 'warmups': [], 'cleanup_errors': [],
               'binary_sha256': {key: hashlib.sha256(path.read_bytes()).hexdigest()
                                 for key, path in binaries.items()}}
