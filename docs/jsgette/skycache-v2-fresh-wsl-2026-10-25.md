@@ -87,3 +87,7 @@ The first vanilla build ran 5,704 local sandbox actions. Six asynchronous remote
 Full raw BEP, profiles, logs and samples are retained in `/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25` and a verified private archive on D:. Public evidence includes the exact harness versions, filtered metrics, compact sample series, storage protocols, source-lock patch and hashes of raw evidence. Arbitrary BEP client environment values are not published.
 
 Evidence: [reset, setup, benchmark and validation artifacts](measurements/skycache-v2-fresh-wsl-2026-10-25/).
+
+## Actual clean comparison
+
+A separate [six-build comparison after verified `bazel clean`](skycache-v2-datadog-clean-2026-10-25.md) tests SkyCache enabled versus disabled using the same binary, with zero graph nodes and empty local outputs before every build. The warm-build figures above do not describe that scenario.
