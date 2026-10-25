@@ -28,6 +28,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -64,6 +65,8 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
 
   private final Path namespace;
   private final FileChannel data;
+  private final SegmentedFingerprintValueStore.FileSource source;
+  private final String dataName;
   // Only writers need a mutable map. Published readers use fixed-width binary search.
   private Map<ByteString, Location> pending;
   private byte[] index;
@@ -126,12 +129,49 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     try (FileChannel channel =
         FileChannel.open(namespace.resolve(indexName), READ, NOFOLLOW_LINKS)) {
       long size = channel.size();
-      if (size < INDEX_HEADER_BYTES + 32 || size > MAX_INDEX_BYTES || size > maxIndexBytes) {
-        throw new IOException("packed cache index size outside bounds");
-      }
+      checkIndexLength(size, maxIndexBytes);
       index = new byte[(int) size];
       read(channel, ByteBuffer.wrap(index), 0);
     }
+    long dataSize = checkIndex(index, maxIndexBytes);
+    FileChannel data = FileChannel.open(namespace.resolve(dataName), READ, NOFOLLOW_LINKS);
+    try {
+      if (data.size() != dataSize) {
+        throw new IOException("packed cache data length mismatch");
+      }
+      return new PackedFingerprintValueStore(namespace, data, null, index, indexName);
+    } catch (IOException | RuntimeException e) {
+      data.close();
+      throw e;
+    }
+  }
+
+  static PackedFingerprintValueStore openSegment(
+      SegmentedFingerprintValueStore.FileSource source, String prefix, long maxIndexBytes)
+      throws IOException {
+    String indexName = prefix + ".index";
+    String dataName = prefix + ".pack";
+    long size = source.size(indexName);
+    checkIndexLength(size, maxIndexBytes);
+    byte[] index = source.read(indexName, Math.min(maxIndexBytes, MAX_INDEX_BYTES)).clone();
+    if (index.length != size) {
+      throw new IOException("packed cache index length mismatch");
+    }
+    long dataSize = checkIndex(index, maxIndexBytes);
+    if (source.size(dataName) != dataSize) {
+      throw new IOException("packed cache data length mismatch");
+    }
+    return new PackedFingerprintValueStore(source, dataName, index, indexName);
+  }
+
+  private static void checkIndexLength(long size, long maxIndexBytes) throws IOException {
+    if (size < INDEX_HEADER_BYTES + 32 || size > MAX_INDEX_BYTES || size > maxIndexBytes) {
+      throw new IOException("packed cache index size outside bounds");
+    }
+  }
+
+  private static long checkIndex(byte[] index, long maxIndexBytes) throws IOException {
+    checkIndexLength(index.length, maxIndexBytes);
     int payloadSize = index.length - 32;
     if (!MessageDigest.isEqual(
         digest(index, payloadSize), Arrays.copyOfRange(index, payloadSize, index.length))) {
@@ -165,16 +205,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
         throw new IOException("packed cache record location outside bounds");
       }
     }
-    FileChannel data = FileChannel.open(namespace.resolve(dataName), READ, NOFOLLOW_LINKS);
-    try {
-      if (data.size() != dataSize) {
-        throw new IOException("packed cache data length mismatch");
-      }
-      return new PackedFingerprintValueStore(namespace, data, null, index, indexName);
-    } catch (IOException | RuntimeException e) {
-      data.close();
-      throw e;
-    }
+    return dataSize;
   }
 
   int indexBytes() {
@@ -190,9 +221,26 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     this.namespace = namespace;
     this.indexName = indexName;
     this.data = data;
+    this.source = null;
+    this.dataName = "";
     this.pending = pending;
     this.index = index;
     this.sealed = pending == null;
+  }
+
+  private PackedFingerprintValueStore(
+      SegmentedFingerprintValueStore.FileSource source,
+      String dataName,
+      byte[] index,
+      String indexName) {
+    this.namespace = null;
+    this.data = null;
+    this.source = source;
+    this.dataName = dataName;
+    this.pending = null;
+    this.index = index;
+    this.indexName = indexName;
+    this.sealed = true;
   }
 
   @Override
@@ -231,9 +279,12 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
               if (coalesced) {
                 record.put(value);
               }
-              write(data, record.flip(), offset);
+              write(Objects.requireNonNull(data), record.flip(), offset);
               if (!coalesced) {
-                write(data, ByteBuffer.wrap(value), offset + RECORD_HEADER_BYTES + key.length);
+                write(
+                    Objects.requireNonNull(data),
+                    ByteBuffer.wrap(value),
+                    offset + RECORD_HEADER_BYTES + key.length);
               }
               novel[0] = true;
               return new Location(offset, length);
@@ -290,7 +341,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   long dataBytes() throws IOException {
-    return data.size();
+    return source == null ? Objects.requireNonNull(data).size() : source.size(dataName);
   }
 
   byte[] indexDigest() {
@@ -307,6 +358,8 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       if (sealed) {
         return;
       }
+      FileChannel localData = Objects.requireNonNull(data);
+      Path localNamespace = Objects.requireNonNull(namespace);
       if (pending.size() > MAX_ENTRIES) {
         throw new IOException("packed cache entry count exceeds size limit");
       }
@@ -319,7 +372,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
           ByteBuffer.allocate(payloadSize + 32)
               .putInt(INDEX_MAGIC)
               .putInt(entries.size())
-              .putLong(data.size());
+              .putLong(localData.size());
       for (var entry : entries) {
         buffer
             .put(entry.getKey().toByteArray())
@@ -327,10 +380,10 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
             .putLong(entry.getValue().length());
       }
       buffer.put(digest(buffer.array(), payloadSize)).flip();
-      data.force(true);
+      localData.force(true);
       Path temporary =
           Files.createTempFile(
-              namespace,
+              localNamespace,
               ".pending-",
               ".index",
               PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
@@ -339,8 +392,8 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
           write(channel, buffer, 0);
           channel.force(true);
         }
-        Files.createLink(namespace.resolve(indexName), temporary);
-        syncDirectory(namespace);
+        Files.createLink(localNamespace.resolve(indexName), temporary);
+        syncDirectory(localNamespace);
       } finally {
         Files.deleteIfExists(temporary);
       }
@@ -380,7 +433,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     }
     boolean coalesced = location.length() <= MAX_COALESCED_RECORD_BYTES;
     ByteBuffer record = ByteBuffer.allocate(coalesced ? location.length() : prefixLength);
-    read(data, record, location.offset());
+    readData(record, location.offset());
     record.flip();
     int magic = record.getInt();
     int keyLength = record.getInt();
@@ -403,7 +456,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
       value = Arrays.copyOfRange(record.array(), prefixLength, location.length());
     } else {
       value = new byte[valueLength];
-      read(data, ByteBuffer.wrap(value), location.offset() + prefixLength);
+      readData(ByteBuffer.wrap(value), location.offset() + prefixLength);
     }
     if (!MessageDigest.isEqual(checksum, digest(value, value.length))) {
       throw new IOException("packed cache value checksum mismatch");
@@ -411,12 +464,25 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     return value;
   }
 
+  private void readData(ByteBuffer target, long offset) throws IOException {
+    if (source == null) {
+      read(Objects.requireNonNull(data), target, offset);
+    } else {
+      source.read(dataName, target, offset);
+      if (target.hasRemaining()) {
+        throw new EOFException("truncated packed cache data");
+      }
+    }
+  }
+
   @Override
   public void close() throws IOException {
     lifecycle.writeLock().lock();
     try {
       closed = true;
-      data.close();
+      if (data != null) {
+        data.close();
+      }
       if (pending != null) {
         pending.clear();
       }

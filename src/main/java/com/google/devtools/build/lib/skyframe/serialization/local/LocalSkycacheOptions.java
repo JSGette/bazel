@@ -15,6 +15,41 @@ import java.time.Duration;
 /** Options for the shared local analysis cache. */
 @OptionsClass
 public abstract class LocalSkycacheOptions extends OptionsBase {
+  @Option(
+      name = "experimental_remote_skycache",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help =
+          "Experimental SkyCache catalog and REAPI CAS endpoint (grpc:// or grpcs://)."
+              + " Requires --experimental_local_skycache as the validated staging cache.")
+  public abstract String getRemoteEndpoint();
+
+  @Option(
+      name = "experimental_remote_skycache_instance_name",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help = "Instance shared by the remote SkyCache catalog and metadata CAS.")
+  public abstract String getRemoteInstanceName();
+
+  @Option(
+      name = "experimental_remote_skycache_token_file",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help = "Optional file containing a bearer token for the SkyCache endpoint.")
+  public abstract String getRemoteTokenFile();
+
+  @Option(
+      name = "experimental_remote_skycache_timeout",
+      defaultValue = "60s",
+      converter = DurationConverter.class,
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help = "Total deadline for each remote SkyCache import or export. Failures are cache misses.")
+  public abstract Duration getRemoteTimeout();
+
   /** IdleTaskManager schedules in whole seconds; do not silently truncate a positive timeout. */
   public static final class IdleRetentionConverter extends DurationConverter {
     @Override

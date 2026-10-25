@@ -110,6 +110,8 @@ public final class RemoteWorker {
   private final ExecutionImplBase execServer;
   private final CapabilitiesImplBase capabilitiesServer;
   private final FetchImplBase fetchServer;
+  private final SkyCacheCatalogStore skyCacheCatalog;
+  private final SkyCacheServer skyCacheServer;
 
   static FileSystem getFileSystem() {
     final DigestHashFunction hashFunction;
@@ -152,7 +154,7 @@ public final class RemoteWorker {
     public <ReqT, RespT> Listener<ReqT> interceptCall(
         ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
       Optional<String> actualToken = getTokenFromMetadata(headers);
-      if (!expectedToken.equals(actualToken.get())) {
+      if (!expectedToken.equals(actualToken.orElse(null))) {
         call.close(Status.PERMISSION_DENIED, new Metadata());
         return new ServerCall.Listener<ReqT>() {};
       }
@@ -260,6 +262,22 @@ public final class RemoteWorker {
     }
     this.capabilitiesServer = new CapabilitiesServer(digestUtil, execServer != null, workerOptions);
     this.fetchServer = new FetchServer(cache, digestUtil, workPath.getRelative("fetch-temp"));
+    if (!workerOptions.getSkycacheCatalogPath().isEmpty()) {
+      if (digestUtil.getDigestFunction()
+          != build.bazel.remote.execution.v2.DigestFunction.Value.SHA256) {
+        throw new IOException("SkyCache requires a SHA-256 CAS");
+      }
+      var catalogPath = java.nio.file.Path.of(workerOptions.getSkycacheCatalogPath());
+      if (!catalogPath.isAbsolute()) {
+        throw new IOException("--skycache_catalog_path must be absolute");
+      }
+      skyCacheCatalog = new SkyCacheCatalogStore(catalogPath);
+      skyCacheServer =
+          new SkyCacheServer(skyCacheCatalog, cache, workerOptions.getSkycacheInstanceName());
+    } else {
+      skyCacheCatalog = null;
+      skyCacheServer = null;
+    }
   }
 
   public Server startServer() throws IOException {
@@ -283,7 +301,11 @@ public final class RemoteWorker {
     }
 
     NettyServerBuilder b =
-        NettyServerBuilder.forPort(workerOptions.getListenPort())
+        (workerOptions.getListenAddress().isEmpty()
+                ? NettyServerBuilder.forPort(workerOptions.getListenPort())
+                : NettyServerBuilder.forAddress(
+                    new java.net.InetSocketAddress(
+                        workerOptions.getListenAddress(), workerOptions.getListenPort())))
             // Support large messages such as the ActionResult of an action with many
             // output files (https://github.com/bazelbuild/bazel/issues/29821).
             .maxInboundMessageSize(Integer.MAX_VALUE)
@@ -295,6 +317,11 @@ public final class RemoteWorker {
 
     if (workerOptions.getTlsCertificate() != null) {
       b.sslContext(getSslContextBuilder(workerOptions).build());
+    }
+
+    if (skyCacheServer != null) {
+      b.addService(ServerInterceptors.intercept(skyCacheServer, interceptors));
+      logger.atInfo().log("Experimental SkyCache catalog enabled");
     }
 
     if (execServer != null) {
@@ -425,6 +452,9 @@ public final class RemoteWorker {
     worker.createPidFile();
 
     server.awaitTermination();
+    if (worker.skyCacheCatalog != null) {
+      worker.skyCacheCatalog.close();
+    }
     if (ch != null) {
       ch.closeFuture().sync().get();
     }

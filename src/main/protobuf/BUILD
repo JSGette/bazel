@@ -8,6 +8,23 @@ load("//tools/build_rules:utilities.bzl", "java_library_srcs")
 
 package(default_visibility = ["//visibility:public"])
 
+proto_library(
+    name = "skycache_proto",
+    srcs = ["skycache.proto"],
+    deps = ["@remoteapis//:build_bazel_remote_execution_v2_remote_execution_proto"],
+)
+
+java_proto_library(
+    name = "skycache_java_proto",
+    deps = [":skycache_proto"],
+)
+
+java_grpc_library(
+    name = "skycache_java_grpc",
+    srcs = [":skycache_proto"],
+    deps = [":skycache_java_proto"],
+)
+
 FILES = [
     "action_cache",
     "bazel_flags",
