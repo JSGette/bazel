@@ -18,13 +18,21 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.devtools.build.lib.collect.nestedset.Depset;
 import com.google.devtools.build.lib.collect.nestedset.NestedSet;
 import com.google.devtools.build.lib.concurrent.BlazeInterners;
+import com.google.devtools.build.lib.skyframe.serialization.AsyncDeserializationContext;
+import com.google.devtools.build.lib.skyframe.serialization.DeferredObjectCodec;
+import com.google.devtools.build.lib.skyframe.serialization.SerializationContext;
+import com.google.devtools.build.lib.skyframe.serialization.SerializationException;
 import com.google.devtools.build.lib.skyframe.serialization.VisibleForSerialization;
 import com.google.devtools.build.lib.util.HashCodes;
 import com.google.errorprone.annotations.ForOverride;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -89,11 +97,15 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {
   abstract void setValueAt(int i, Object val);
 
   @VisibleForSerialization
-  Object[] getValuesForSerialization() {
+  final Object[] getValuesForSerialization() {
     int n = provider.getFields().size();
     Object[] table = new Object[n];
     for (int i = 0; i < n; i++) {
-      table[i] = getValueAt(i);
+      Object value = getValueAt(i);
+      // The provider is resolved in the receiving server, whose type predictor can be empty or
+      // have learned a different type. Never send a bare NestedSet without its element class.
+      table[i] =
+          value instanceof NestedSet<?> nestedSet ? provider.rewrapDepset(i, nestedSet) : value;
     }
     return table;
   }
@@ -109,6 +121,66 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {
       case 5 -> new Schema5(provider, vs[0], vs[1], vs[2], vs[3], vs[4]);
       default -> new SchemaN(provider, vs);
     };
+  }
+
+  @SuppressWarnings("unused") // Discovered by CodecScanner.
+  private static final class StarlarkInfoWithSchemaCodec
+      extends DeferredObjectCodec<StarlarkInfoWithSchema> {
+    @Override
+    public Class<StarlarkInfoWithSchema> getEncodedClass() {
+      return StarlarkInfoWithSchema.class;
+    }
+
+    @Override
+    public ImmutableSet<Class<? extends StarlarkInfoWithSchema>> additionalEncodedClasses() {
+      return ImmutableSet.of(
+          Schema0.class,
+          Schema1.class,
+          Schema2.class,
+          Schema3.class,
+          Schema4.class,
+          Schema5.class,
+          SchemaN.class);
+    }
+
+    @Override
+    public void serialize(
+        SerializationContext context, StarlarkInfoWithSchema value, CodedOutputStream codedOut)
+        throws SerializationException, IOException {
+      context.serialize(value.provider, codedOut);
+      context.serialize(value.getValuesForSerialization(), codedOut);
+    }
+
+    @Override
+    public DeferredValue<StarlarkInfoWithSchema> deserializeDeferred(
+        AsyncDeserializationContext context, CodedInputStream codedIn)
+        throws SerializationException, IOException {
+      var builder = new DeserializationBuilder();
+      context.deserialize(
+          codedIn, builder, (target, value) -> target.provider = (StarlarkProvider) value);
+      context.deserialize(codedIn, builder, (target, value) -> target.values = (Object[]) value);
+      return builder;
+    }
+
+    private static final class DeserializationBuilder
+        implements DeferredValue<StarlarkInfoWithSchema> {
+      private StarlarkProvider provider;
+      private Object[] values;
+
+      @Override
+      public StarlarkInfoWithSchema call() {
+        Preconditions.checkState(
+            values.length == provider.getFields().size(), "schema size mismatch");
+        for (int i = 0; i < values.length; i++) {
+          if (values[i] instanceof Depset depset) {
+            // Reapply the receiver's optimization. If it predicts another type, keep this value
+            // wrapped instead of changing the meaning of existing provider instances.
+            values[i] = provider.maybeUnwrapDepset(i, depset);
+          }
+        }
+        return create(provider, values);
+      }
+    }
   }
 
   static StarlarkProvider.StarlarkInfoFactory newStarlarkInfoFactory(
@@ -639,11 +711,6 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {
     @Override
     void setValueAt(int i, Object val) {
       vs[i] = val;
-    }
-
-    @Override
-    Object[] getValuesForSerialization() {
-      return vs;
     }
 
     @Override

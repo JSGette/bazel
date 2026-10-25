@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.devtools.build.lib.analysis.util.BuildViewTestCase;
 import com.google.devtools.build.lib.cmdline.Label;
+import com.google.devtools.build.lib.collect.nestedset.Depset;
 import com.google.devtools.build.lib.compress.CompressionService;
 import com.google.devtools.build.lib.compress.CompressionServiceImpl;
 import com.google.devtools.build.lib.packages.StarlarkInfo;
@@ -33,6 +34,7 @@ import com.google.devtools.build.skyframe.state.EnvironmentForUtilities;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkInt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +45,8 @@ import org.junit.runners.JUnit4;
 public final class StarlarkInfoCodecTest extends BuildViewTestCase {
   private static final CompressionService COMPRESSION_SERVICE = new CompressionServiceImpl();
 
-  private final ObjectCodecs objectCodecs = new ObjectCodecs();
+  private final ObjectCodecs objectCodecs =
+      new ObjectCodecs(AutoRegistry.get().getBuilder().addReferenceConstant(Starlark.NONE).build());
   private final FingerprintValueService fingerprintValueService =
       FingerprintValueService.createForTesting();
 
@@ -56,6 +59,75 @@ public final class StarlarkInfoCodecTest extends BuildViewTestCase {
             provider,
             ImmutableMap.of(
                 "a", StarlarkInt.of(1), "b", StarlarkInt.of(2), "c", StarlarkInt.of(3))));
+  }
+
+  @Test
+  public void schemafulDepsetsWithFreshReaderProvider() throws Exception {
+    verifySchemafulDepsets(/* primeReaderWithDifferentType= */ false);
+  }
+
+  @Test
+  public void schemafulDepsetsWithDifferentReaderPrediction() throws Exception {
+    verifySchemafulDepsets(/* primeReaderWithDifferentType= */ true);
+  }
+
+  private void verifySchemafulDepsets(boolean primeReaderWithDifferentType) throws Exception {
+    // Covers every compact Schema0..5 subclass and the array-backed SchemaN.
+    for (int count = 0; count <= 7; count++) {
+      String path = "schema" + count;
+      scratch.file(path + "/BUILD");
+      String definition =
+          "fields = ['f' + str(i) for i in range("
+              + count
+              + ")]\n"
+              + "MyTestInfo = provider(fields = fields)\n";
+      scratch.file(
+          path + "/lib.bzl", definition + "value = MyTestInfo(**{f: depset([f]) for f in fields})");
+      BzlLoadValue.Key key =
+          BzlLoadValue.keyForBuild(Label.parseCanonicalUnchecked("//" + path + ":lib.bzl"));
+      StarlarkInfo original = (StarlarkInfo) getBzlLoadValue(key).getModule().getGlobal("value");
+      ByteString serialized = objectCodecs.serializeMemoized(original);
+
+      scratch.overwriteFile(
+          path + "/lib.bzl",
+          definition
+              + (primeReaderWithDifferentType
+                  ? "other = MyTestInfo(**{f: depset([123]) for f in fields})"
+                  : "# A fresh reader has not created any provider instances."));
+      invalidatePackages(/* alsoConfigs= */ false);
+      StarlarkProvider reader =
+          (StarlarkProvider) getBzlLoadValue(key).getModule().getGlobal("MyTestInfo");
+      assertThat(reader).isNotSameInstanceAs(original.getProvider());
+      StarlarkInfo restored = deserializeWithSkyframe(serialized);
+      assertThat(restored.getProvider()).isSameInstanceAs(reader);
+      assertThat(restored.getFieldNames()).containsExactlyElementsIn(original.getFieldNames());
+      for (String field : original.getFieldNames()) {
+        Depset depset = (Depset) restored.getValue(field);
+        assertThat(depset.getElementClass()).isEqualTo(String.class);
+        assertThat(depset.toList(String.class)).containsExactly(field);
+      }
+    }
+  }
+
+  @Test
+  public void schemafulAbsentScalarAndEmptyDepsetFields() throws Exception {
+    scratch.file("schema/BUILD");
+    String definition = "MyTestInfo = provider(fields = ['absent', 'empty', 'none', 'scalar'])";
+    scratch.file(
+        "schema/lib.bzl",
+        definition,
+        "value = MyTestInfo(empty = depset(), none = None, scalar = 'plain')");
+    BzlLoadValue.Key key =
+        BzlLoadValue.keyForBuild(Label.parseCanonicalUnchecked("//schema:lib.bzl"));
+    StarlarkInfo original = (StarlarkInfo) getBzlLoadValue(key).getModule().getGlobal("value");
+    ByteString serialized = objectCodecs.serializeMemoized(original);
+    scratch.overwriteFile("schema/lib.bzl", definition);
+    invalidatePackages(/* alsoConfigs= */ false);
+    StarlarkInfo restored = deserializeWithSkyframe(serialized);
+    assertThat(restored.getValue("absent")).isNull();
+    assertThat(((Depset) restored.getValue("empty")).isEmpty()).isTrue();
+    assertThat(restored.getValue("none")).isSameInstanceAs(Starlark.NONE);
+    assertThat(restored.getValue("scalar")).isEqualTo("plain");
   }
 
   private void verifyRoundTripWithSkyframe(StarlarkInfo original) throws Exception {
