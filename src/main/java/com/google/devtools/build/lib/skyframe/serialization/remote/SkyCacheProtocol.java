@@ -16,7 +16,8 @@ import java.util.HexFormat;
 public final class SkyCacheProtocol {
   public static final int CHUNK_BYTES = 1024 * 1024;
   public static final int MAX_BUNDLE_BYTES = 1024 * 1024;
-  public static final long MAX_TRANSFER_BYTES = 256L * 1024 * 1024;
+  // Logical parent closure, independent of the bytes a demand reader actually fetches.
+  public static final long MAX_PUBLICATION_BYTES = 4L * 1024 * 1024 * 1024;
   public static final int MAX_PUBLICATIONS = 64;
 
   private SkyCacheProtocol() {}
@@ -81,7 +82,7 @@ public final class SkyCacheProtocol {
                     "manifest|index|segment-[0-9]{5}\\.(index|pack)|witnesses-[0-9]{5}\\.block")
             || !names.add(file.getName())
             || file.getSizeBytes() < 0
-            || file.getSizeBytes() > MAX_TRANSFER_BYTES - total) {
+            || file.getSizeBytes() > MAX_PUBLICATION_BYTES - total) {
           throw new IOException("invalid or over-budget publication file");
         }
         total += file.getSizeBytes();

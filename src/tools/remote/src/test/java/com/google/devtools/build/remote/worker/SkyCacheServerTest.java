@@ -3,6 +3,7 @@
 package com.google.devtools.build.remote.worker;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import build.bazel.remote.execution.v2.Digest;
 import com.google.devtools.build.lib.remote.common.CacheNotFoundException;
@@ -176,6 +177,139 @@ public final class SkyCacheServerTest {
     }
   }
 
+  @Test
+  public void commitAcceptsLargeLogicalClosureThroughExactFourGiBBoundary() throws Exception {
+    assertThat(SkyCacheProtocol.MAX_PUBLICATION_BYTES).isEqualTo(4L * 1024 * 1024 * 1024);
+    for (long logicalBytes :
+        new long[] {256L * 1024 * 1024 + 1, SkyCacheProtocol.MAX_PUBLICATION_BYTES}) {
+      var blobs = new MemoryBlobs();
+      PublicationBundle bundle = largeBundle(blobs, logicalBytes);
+      SkyCacheProtocol.validateBundle(bundle, NAMESPACE);
+      assertThat(bundle.getSerializedSize()).isLessThan(SkyCacheProtocol.MAX_BUNDLE_BYTES);
+      CommitRequest request = request(blobs, bundle);
+      try (var store = new SkyCacheCatalogStore(temporaryFolder.newFolder().toPath())) {
+        var server = new SkyCacheServer(store, blobs, "instance");
+        var committed = commit(server, request);
+        committed.assertSuccess();
+        assertThat(blobs.downloads).isEqualTo(1);
+        // Repeated logical references require only four distinct, small CAS objects.
+        assertThat(blobs.refreshes).isEqualTo(4);
+        var discovered = discover(server, SCOPE);
+        discovered.assertSuccess();
+        assertThat(discovered.value.getCandidatesList()).containsExactly(committed.value);
+      }
+    }
+  }
+
+  @Test
+  public void excessiveAndOverflowingLogicalClosuresFailBeforeChunkRefresh() throws Exception {
+    for (boolean overflow : new boolean[] {false, true}) {
+      var blobs = new MemoryBlobs();
+      PublicationBundle bundle = largeBundle(blobs, SkyCacheProtocol.MAX_PUBLICATION_BYTES + 1);
+      if (overflow) {
+        var forged = bundle.toBuilder();
+        forged.getPublicationsBuilder(0).getFilesBuilder(2).setSizeBytes(Long.MAX_VALUE);
+        bundle = forged.build();
+      }
+      PublicationBundle invalid = bundle;
+      assertThat(
+              assertThrows(
+                  IOException.class, () -> SkyCacheProtocol.validateBundle(invalid, NAMESPACE)))
+          .hasMessageThat()
+          .contains("over-budget publication file");
+      CommitRequest request = request(blobs, invalid);
+      try (var store = new SkyCacheCatalogStore(temporaryFolder.newFolder().toPath())) {
+        var server = new SkyCacheServer(store, blobs, "instance");
+        commit(server, request).assertFailure(Status.Code.INVALID_ARGUMENT);
+        assertThat(blobs.downloads).isEqualTo(1);
+        assertThat(blobs.refreshes).isEqualTo(0);
+        assertThat(store.lookup(request)).isNull();
+        var discovered = discover(server, SCOPE);
+        discovered.assertSuccess();
+        assertThat(discovered.value.getCandidatesList()).isEmpty();
+      }
+    }
+  }
+
+  @Test
+  public void largeLogicalClosureStillRequiresEveryReferencedChunk() throws Exception {
+    var blobs = new MemoryBlobs();
+    PublicationBundle bundle = largeBundle(blobs, SkyCacheProtocol.MAX_PUBLICATION_BYTES);
+    CommitRequest request = request(blobs, bundle);
+    Digest missing = bundle.getPublications(0).getFiles(2).getChunks(0);
+    blobs.contents.remove(missing);
+    try (var store = new SkyCacheCatalogStore(temporaryFolder.newFolder().toPath())) {
+      var server = new SkyCacheServer(store, blobs, "instance");
+      commit(server, request).assertFailure(Status.Code.FAILED_PRECONDITION);
+      assertThat(blobs.downloads).isEqualTo(1);
+      assertThat(blobs.refreshes).isEqualTo(3);
+      assertThat(store.lookup(request)).isNull();
+      var discovered = discover(server, SCOPE);
+      discovered.assertSuccess();
+      assertThat(discovered.value.getCandidatesList()).isEmpty();
+    }
+  }
+
+  @Test
+  public void largerLogicalClosureDoesNotRelaxChunkOrBundleSizeBounds() throws Exception {
+    var blobs = new MemoryBlobs();
+    PublicationBundle bundle = largeBundle(blobs, 256L * 1024 * 1024 + 1);
+    Digest tooLarge =
+        bundle.getPublications(0).getFiles(2).getChunks(0).toBuilder()
+            .setSizeBytes(SkyCacheProtocol.CHUNK_BYTES + 1L)
+            .build();
+    var oversizedChunk = bundle.toBuilder();
+    oversizedChunk.getPublicationsBuilder(0).setFiles(2, file("segment-00000.pack", tooLarge));
+    assertThat(
+            assertThrows(
+                IOException.class,
+                () -> SkyCacheProtocol.validateBundle(oversizedChunk.build(), NAMESPACE)))
+        .hasMessageThat()
+        .contains("over-budget SHA-256 digest");
+
+    Digest tiny = blobs.put(new byte[] {1});
+    var manyChunks = PublicationFile.newBuilder().setName("segment-00000.pack").setSizeBytes(16384);
+    for (int i = 0; i < 16384; i++) {
+      manyChunks.addChunks(tiny);
+    }
+    var oversizedBundle = bundle.toBuilder();
+    oversizedBundle.getPublicationsBuilder(0).setFiles(2, manyChunks);
+    PublicationBundle invalid = oversizedBundle.build();
+    assertThat(invalid.getSerializedSize()).isGreaterThan(SkyCacheProtocol.MAX_BUNDLE_BYTES);
+    assertThat(
+            assertThrows(
+                IOException.class, () -> SkyCacheProtocol.validateBundle(invalid, NAMESPACE)))
+        .hasMessageThat()
+        .contains("over-budget publication bundle");
+  }
+
+  private static PublicationBundle largeBundle(MemoryBlobs blobs, long logicalBytes) {
+    Digest manifest = blobs.put("local manifest".getBytes(StandardCharsets.UTF_8));
+    Digest index = blobs.put("local index".getBytes(StandardCharsets.UTF_8));
+    long packBytes = logicalBytes - manifest.getSizeBytes() - index.getSizeBytes();
+    var pack = PublicationFile.newBuilder().setName("segment-00000.pack").setSizeBytes(packBytes);
+    // Represent multi-GiB logical files using one repeated 1 MiB payload and a final partial chunk.
+    Digest fullChunk = blobs.put(new byte[SkyCacheProtocol.CHUNK_BYTES]);
+    while (packBytes >= SkyCacheProtocol.CHUNK_BYTES) {
+      pack.addChunks(fullChunk);
+      packBytes -= SkyCacheProtocol.CHUNK_BYTES;
+    }
+    if (packBytes > 0) {
+      pack.addChunks(blobs.put(new byte[(int) packBytes]));
+    }
+    return PublicationBundle.newBuilder()
+        .setFormatVersion(1)
+        .setNamespaceId(NAMESPACE)
+        .setRootId(PUBLICATION)
+        .addPublications(
+            LocalPublication.newBuilder()
+                .setId(PUBLICATION)
+                .addFiles(file("manifest", manifest))
+                .addFiles(file("index", index))
+                .addFiles(pack))
+        .build();
+  }
+
   private static CommitRequest request(MemoryBlobs blobs, String namespace) {
     Digest manifestFile = blobs.put("local manifest".getBytes(StandardCharsets.UTF_8));
     Digest indexFile = blobs.put("local index".getBytes(StandardCharsets.UTF_8));
@@ -190,6 +324,10 @@ public final class SkyCacheServerTest {
                     .addFiles(file("manifest", manifestFile))
                     .addFiles(file("index", indexFile)))
             .build();
+    return request(blobs, bundle);
+  }
+
+  private static CommitRequest request(MemoryBlobs blobs, PublicationBundle bundle) {
     return CommitRequest.newBuilder()
         .setScope(SCOPE)
         .setManifest(blobs.put(bundle.toByteArray()))

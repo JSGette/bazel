@@ -35,6 +35,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -254,6 +255,113 @@ public final class RemoteSkyCacheTest {
       assertNoPublications(destination);
       assertThat(backend.requestedDigests)
           .containsNoneIn(pack.getChunksList().subList(1, pack.getChunksCount()));
+    }
+  }
+
+  @Test
+  public void gigabyteLogicalPublicationReadsOnlyRequestedChunksWithDefaultTransferBudget()
+      throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      PublicationFile originalPack = onlyFile(backend.bundle(), ".pack");
+      var padded = prependUnusedPackChunks(backend, backend.bundle(), 1536);
+      PublicationFile paddedPack = onlyFile(padded, ".pack");
+      PublicationFile index = onlyFile(padded, ".index");
+      assertThat(paddedPack.getSizeBytes()).isGreaterThan(1536L * SkyCacheProtocol.CHUNK_BYTES);
+      backend.advertise(padded);
+      assertThat(reader.prepare()).isEqualTo(1);
+      assertThat(backend.requestedDigests).containsNoneIn(paddedPack.getChunksList());
+
+      backend.requestedDigests.clear();
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+      } finally {
+        session.finish(false);
+      }
+      var expectedReads = new ArrayList<>(index.getChunksList());
+      expectedReads.add(originalPack.getChunks(0));
+      assertThat(backend.requestedDigests).containsExactlyElementsIn(expectedReads);
+      assertThat(backend.downloadedBytes.get()).isLessThan(4L * SkyCacheProtocol.CHUNK_BYTES);
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void materializationRejectsUnionOverLogicalBudgetBeforeCreatingFiles() throws Exception {
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var bundles = new ArrayList<PublicationBundle>();
+      var roots = new HashSet<String>();
+      for (int i = 0; i < 3; i++) {
+        Path source = temporary.newFolder("source-" + i).toPath();
+        LargePublication fixture = publishLarge(source);
+        try (var writer = remote(source, backend)) {
+          writer.publish(fixture.manifest());
+        }
+        var padded = prependUnusedPackChunks(backend, backend.bundle(), 1536);
+        bundles.add(padded);
+        roots.add(padded.getRootId());
+      }
+      backend.advertiseCandidates(bundles.toArray(PublicationBundle[]::new));
+      assertThat(reader.prepare()).isEqualTo(3);
+      backend.requestedDigests.clear();
+      List<Path> before;
+      try (var paths = Files.walk(destination)) {
+        before = paths.sorted().toList();
+      }
+      var failure = assertThrows(IOException.class, () -> reader.materialize(roots));
+      assertThat(failure)
+          .hasMessageThat()
+          .contains("materialization exceeds its logical byte budget");
+      assertThat(backend.requestedDigests).isEmpty();
+      try (var paths = Files.walk(destination)) {
+        assertThat(paths.sorted().toList()).containsExactlyElementsIn(before).inOrder();
+      }
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void failedMaterializationAttemptsConsumeLogicalBudget() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      var padded = prependUnusedPackChunks(backend, backend.bundle(), 1536);
+      Digest missing = onlyFile(padded, ".pack").getChunks(0);
+      backend.advertise(padded);
+      assertThat(reader.prepare()).isEqualTo(1);
+      backend.blobs.remove(missing);
+      var roots = java.util.Set.of(padded.getRootId());
+      for (int i = 0; i < 2; i++) {
+        var failure = assertThrows(IOException.class, () -> reader.materialize(roots));
+        assertThat(failure).hasMessageThat().contains("NOT_FOUND");
+      }
+      backend.requestedDigests.clear();
+      List<Path> before;
+      try (var paths = Files.walk(destination)) {
+        before = paths.sorted().toList();
+      }
+      var failure = assertThrows(IOException.class, () -> reader.materialize(roots));
+      assertThat(failure)
+          .hasMessageThat()
+          .contains("materialization exceeds its logical byte budget");
+      assertThat(backend.requestedDigests).isEmpty();
+      try (var paths = Files.walk(destination)) {
+        assertThat(paths.sorted().toList()).containsExactlyElementsIn(before).inOrder();
+      }
+      assertNoPublications(destination);
     }
   }
 
@@ -813,6 +921,72 @@ public final class RemoteSkyCacheTest {
   }
 
   private record LargePublication(Path manifest, Key key, byte[] value) {}
+
+  /** Inserts unindexed padding, relocating every indexed record and authenticating both indexes. */
+  private static PublicationBundle prependUnusedPackChunks(
+      MemoryRemote backend, PublicationBundle original, int paddingChunks) throws Exception {
+    assertThat(original.getPublicationsCount()).isEqualTo(1);
+    PublicationFile pack = onlyFile(original, ".pack");
+    PublicationFile index = onlyFile(original, ".index");
+    PublicationFile rootIndex =
+        original.getPublications(0).getFilesList().stream()
+            .filter(file -> file.getName().equals("index"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(index.getChunksCount()).isEqualTo(1);
+    assertThat(rootIndex.getChunksCount()).isEqualTo(1);
+    long paddingBytes = (long) paddingChunks * SkyCacheProtocol.CHUNK_BYTES;
+    long dataBytes = pack.getSizeBytes() + paddingBytes;
+    Digest zeroChunk = backend.putBlob(new byte[SkyCacheProtocol.CHUNK_BYTES]);
+    var paddedPack = pack.toBuilder().setSizeBytes(dataBytes).clearChunks();
+    for (int i = 0; i < paddingChunks; i++) {
+      paddedPack.addChunks(zeroChunk);
+    }
+    paddedPack.addAllChunks(pack.getChunksList());
+
+    byte[] indexBytes = backend.blobs.get(index.getChunks(0)).clone();
+    var packedIndex = ByteBuffer.wrap(indexBytes);
+    packedIndex.putLong(8, dataBytes);
+    for (int i = 0; i < packedIndex.getInt(4); i++) {
+      int offsetField = 16 + i * 48 + 32;
+      packedIndex.putLong(offsetField, packedIndex.getLong(offsetField) + paddingBytes);
+    }
+    byte[] indexChecksum = refreshChecksum(indexBytes);
+    byte[] rootBytes = backend.blobs.get(rootIndex.getChunks(0)).clone();
+    var root = ByteBuffer.wrap(rootBytes);
+    assertThat(root.getInt(4)).isEqualTo(1);
+    assertThat(root.getLong(16)).isEqualTo(pack.getSizeBytes());
+    root.putLong(16, dataBytes);
+    root.position(28);
+    root.put(indexChecksum);
+    refreshChecksum(rootBytes);
+
+    var publication = original.getPublications(0).toBuilder();
+    for (int i = 0; i < publication.getFilesCount(); i++) {
+      String name = publication.getFiles(i).getName();
+      if (name.equals(pack.getName())) {
+        publication.setFiles(i, paddedPack);
+      } else if (name.equals(index.getName()) || name.equals("index")) {
+        byte[] bytes = name.equals("index") ? rootBytes : indexBytes;
+        publication.setFiles(
+            i,
+            publication.getFiles(i).toBuilder()
+                .setSizeBytes(bytes.length)
+                .clearChunks()
+                .addChunks(backend.putBlob(bytes)));
+      }
+    }
+    var result = original.toBuilder().setPublications(0, publication).build();
+    SkyCacheProtocol.validateBundle(result, original.getNamespaceId());
+    return result;
+  }
+
+  private static byte[] refreshChecksum(byte[] encoded) throws Exception {
+    byte[] checksum =
+        MessageDigest.getInstance("SHA-256").digest(Arrays.copyOf(encoded, encoded.length - 32));
+    System.arraycopy(checksum, 0, encoded, encoded.length - 32, checksum.length);
+    return checksum;
+  }
 
   private LargePublication publishLarge(Path cache) throws Exception {
     Key requested = new Key("requested");

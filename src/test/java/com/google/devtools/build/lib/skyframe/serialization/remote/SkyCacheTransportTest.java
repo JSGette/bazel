@@ -295,6 +295,102 @@ public final class SkyCacheTransportTest {
   }
 
   @Test
+  public void explicitByteBudgetIsCumulativeAcrossUploadsAndDownloadsAndResets() throws Exception {
+    for (boolean readSession : new boolean[] {false, true}) {
+      try (Backend backend = new Backend();
+          SkyCacheTransport transport =
+              new SkyCacheTransport(
+                  backend.endpoint(), INSTANCE, "", Duration.ofSeconds(5), 2L * CONTENT.length)) {
+        if (readSession) {
+          transport.beginReadSession();
+        } else {
+          transport.beginTransfer();
+        }
+        assertThat(transport.upload(CONTENT)).isEqualTo(DIGEST);
+        assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+        assertThat(assertThrows(IOException.class, () -> transport.upload(new byte[] {1})))
+            .hasMessageThat()
+            .contains("byte budget");
+        assertThat(assertThrows(IOException.class, () -> transport.download(DIGEST)))
+            .hasMessageThat()
+            .contains("byte budget");
+        assertThat(backend.uploadCalls.get()).isEqualTo(1);
+        assertThat(backend.readCalls.get()).isEqualTo(1);
+
+        // Switching modes also resets the same configured byte budget, not the default budget.
+        if (readSession) {
+          transport.beginTransfer();
+        } else {
+          transport.beginReadSession();
+        }
+        assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+        assertThat(transport.upload(CONTENT)).isEqualTo(DIGEST);
+        assertThat(assertThrows(IOException.class, () -> transport.upload(new byte[] {1})))
+            .hasMessageThat()
+            .contains("byte budget");
+        assertThat(backend.uploadCalls.get()).isEqualTo(2);
+        assertThat(backend.readCalls.get()).isEqualTo(2);
+      }
+    }
+  }
+
+  @Test
+  public void explicitByteBudgetChargesFailedDownloadsBeforeRpc() throws Exception {
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(5), CONTENT.length)) {
+      transport.beginReadSession();
+      backend.readMode = "missing";
+      assertThat(assertThrows(IOException.class, () -> transport.download(DIGEST)))
+          .hasMessageThat()
+          .contains("NOT_FOUND");
+      assertThat(assertThrows(IOException.class, () -> transport.upload(new byte[] {1})))
+          .hasMessageThat()
+          .contains("byte budget");
+      assertThat(backend.readCalls.get()).isEqualTo(1);
+      assertThat(backend.uploadCalls.get()).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void explicitByteBudgetRejectsInvalidValuesBeforeRpc() throws Exception {
+    long maximum = SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES;
+    try (Backend backend = new Backend()) {
+      for (long budget : new long[] {0, -1, maximum + 1, Long.MAX_VALUE}) {
+        assertThrows(
+            IOException.class,
+            () ->
+                new SkyCacheTransport(
+                    backend.endpoint(), INSTANCE, "", Duration.ofSeconds(5), budget));
+      }
+      assertThat(backend.uploadCalls.get()).isEqualTo(0);
+      assertThat(backend.readCalls.get()).isEqualTo(0);
+      assertThat(backend.lastDiscovery).isNull();
+      assertThat(backend.commits).isEmpty();
+    }
+  }
+
+  @Test
+  public void explicitByteBudgetAboveTwoGiBAndAtMaximumDoesNotOverflow() throws Exception {
+    for (long budget :
+        new long[] {
+          (1L << 31) + 1, SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES
+        }) {
+      try (Backend backend = new Backend();
+          SkyCacheTransport transport =
+              new SkyCacheTransport(
+                  backend.endpoint(), INSTANCE, "", Duration.ofSeconds(5), budget)) {
+        transport.beginTransfer();
+        assertThat(transport.upload(CONTENT)).isEqualTo(DIGEST);
+        assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+        transport.beginReadSession();
+        assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+      }
+    }
+  }
+
+  @Test
   public void attemptedDownloadsConsumeSharedTransferBudget() throws Exception {
     Digest large = DIGEST.toBuilder().setSizeBytes(SkyCacheProtocol.CHUNK_BYTES).build();
     for (boolean readSession : new boolean[] {false, true}) {

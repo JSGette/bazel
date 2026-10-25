@@ -49,6 +49,7 @@ final class RemoteSkyCache implements AutoCloseable {
   private boolean prepared;
   private long downloadedBytes;
   private long downloadedChunks;
+  private long attemptedMaterializationBytes;
   private int reusedPublications;
 
   record Candidate(
@@ -221,7 +222,8 @@ final class RemoteSkyCache implements AutoCloseable {
             options.getRemoteEndpoint(),
             options.getRemoteInstanceName(),
             options.getRemoteTokenFile(),
-            options.getRemoteTimeout()));
+            options.getRemoteTimeout(),
+            options.getRemoteMaxTransferSize()));
   }
 
   RemoteSkyCache(
@@ -356,6 +358,21 @@ final class RemoteSkyCache implements AutoCloseable {
     if (required.isEmpty()) {
       return;
     }
+    long attemptedBytes = 0;
+    for (var candidate : required.values()) {
+      for (var file : candidate.publication().getFilesList()) {
+        if (file.getSizeBytes()
+            > SkyCacheProtocol.MAX_PUBLICATION_BYTES
+                - attemptedMaterializationBytes
+                - attemptedBytes) {
+          throw new IOException("remote materialization exceeds its logical byte budget");
+        }
+        attemptedBytes += file.getSizeBytes();
+      }
+    }
+    // Charge the entire attempt before creating files. Reused CAS chunks still occupy their
+    // full logical length on disk, and failed attempts must not reset this instance's bound.
+    attemptedMaterializationBytes += attemptedBytes;
     Path stage = newStage();
     Path stageObjects = Files.createDirectory(stage.resolve("objects"));
     Path stageManifests = Files.createDirectory(stage.resolve("manifests"));
@@ -496,8 +513,8 @@ final class RemoteSkyCache implements AutoCloseable {
       var entry = PublicationFile.newBuilder().setName(name);
       try (var channel = FileChannel.open(file, READ, NOFOLLOW_LINKS)) {
         long length = channel.size();
-        if (length > SkyCacheProtocol.MAX_TRANSFER_BYTES) {
-          throw new IOException("publication file exceeds transfer budget");
+        if (length > SkyCacheProtocol.MAX_PUBLICATION_BYTES) {
+          throw new IOException("publication file exceeds logical size bound");
         }
         entry.setSizeBytes(length);
         long remaining = length;

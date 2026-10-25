@@ -50,6 +50,19 @@ public abstract class LocalSkycacheOptions extends OptionsBase {
       help = "Total deadline for each remote SkyCache import or export. Failures are cache misses.")
   public abstract Duration getRemoteTimeout();
 
+  @Option(
+      name = "experimental_remote_skycache_max_transfer_size",
+      defaultValue = "257M",
+      converter = ByteSizeConverter.class,
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
+      help =
+          "Maximum attempted blob payload bytes per remote SkyCache read session or export."
+              + " Must be positive and at most 4 GiB + 1 MiB. Independent of the 4 GiB logical"
+              + " publication bound, 1 MiB chunk bound and local metadata admission budget."
+              + " Failed reads consume this budget; exhaustion is a cache miss.")
+  public abstract long getRemoteMaxTransferSize();
+
   /** IdleTaskManager schedules in whole seconds; do not silently truncate a positive timeout. */
   public static final class IdleRetentionConverter extends DurationConverter {
     @Override

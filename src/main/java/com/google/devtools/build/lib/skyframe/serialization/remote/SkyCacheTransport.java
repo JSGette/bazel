@@ -40,16 +40,16 @@ import java.util.function.LongSupplier;
 /**
  * Bounded blocking transport for one SkyCache transfer at a time. {@link #beginTransfer} gives an
  * export one absolute deadline. {@link #beginReadSession} charges a demand-driven reader only for
- * cumulative RPC time, excluding computation between requests. Both modes share a transfer byte
+ * cumulative RPC time, excluding computation between requests. Both modes share a configured byte
  * budget. {@code grpc://} sends plaintext and is intended for trusted local development; {@code
  * grpcs://} uses the platform's normal TLS trust roots.
  */
 public final class SkyCacheTransport implements AutoCloseable {
   private static final int MAX_PAGE_TOKEN_BYTES = 16 * 1024;
-  private static final long TRANSFER_BUDGET =
-      SkyCacheProtocol.MAX_TRANSFER_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES;
+  private static final long DEFAULT_TRANSFER_BUDGET = 257L * 1024 * 1024;
   private final String instanceName;
   private final long timeoutNanos;
+  private final long transferBudget;
   private final LongSupplier nanoTime;
   private final ManagedChannel channel;
   private final SkyCacheCatalogGrpc.SkyCacheCatalogBlockingStub catalog;
@@ -63,7 +63,14 @@ public final class SkyCacheTransport implements AutoCloseable {
 
   public SkyCacheTransport(String endpoint, String instanceName, String tokenFile, Duration timeout)
       throws IOException {
-    this(endpoint, instanceName, tokenFile, timeout, System::nanoTime);
+    this(endpoint, instanceName, tokenFile, timeout, DEFAULT_TRANSFER_BUDGET, System::nanoTime);
+  }
+
+  /** Configures attempted blob bytes independently of the logical publication size. */
+  public SkyCacheTransport(
+      String endpoint, String instanceName, String tokenFile, Duration timeout, long transferBudget)
+      throws IOException {
+    this(endpoint, instanceName, tokenFile, timeout, transferBudget, System::nanoTime);
   }
 
   // A monotonic elapsed-time seam keeps cumulative-budget tests independent of scheduler timing.
@@ -74,7 +81,25 @@ public final class SkyCacheTransport implements AutoCloseable {
       Duration timeout,
       LongSupplier nanoTime)
       throws IOException {
+    this(endpoint, instanceName, tokenFile, timeout, DEFAULT_TRANSFER_BUDGET, nanoTime);
+  }
+
+  private SkyCacheTransport(
+      String endpoint,
+      String instanceName,
+      String tokenFile,
+      Duration timeout,
+      long transferBudget,
+      LongSupplier nanoTime)
+      throws IOException {
     this.nanoTime = java.util.Objects.requireNonNull(nanoTime);
+    if (transferBudget <= 0
+        || transferBudget
+            > SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES) {
+      throw new IOException(
+          "SkyCache transfer byte budget must be between 1 byte and 4 GiB + 1 MiB");
+    }
+    this.transferBudget = transferBudget;
     URI uri = parseEndpoint(endpoint);
     if (instanceName == null || timeout == null) {
       throw new IOException("SkyCache instance and transfer timeout are required");
@@ -297,7 +322,7 @@ public final class SkyCacheTransport implements AutoCloseable {
   }
 
   private void charge(long size) throws IOException {
-    if (size > TRANSFER_BUDGET - transferredBytes) {
+    if (size > transferBudget - transferredBytes) {
       throw new IOException("SkyCache transfer exceeds its byte budget");
     }
     transferredBytes += size;
