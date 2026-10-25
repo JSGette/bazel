@@ -89,7 +89,7 @@ Publications record references to reused parents. Readers pin the required publi
 
 This is a shared local filesystem design. Its correctness relies on the filesystem's locking and durability semantics; the WSL ext4 tests do not establish suitability for arbitrary network filesystems or cross-machine distributed storage.
 
-The backend also has an idle graph-retention policy. Benchmarks below disabled that retention and explicitly cleaned the graph, so their gains do not depend on leaving the analysis graph resident between measured builds.
+The backend also has an idle graph-eviction policy. Benchmarks below set its idle-eviction timeout to zero and explicitly cleaned the graph, so their gains do not depend on leaving the analysis graph resident between measured builds.
 
 ## Evidence and limitations
 
@@ -116,12 +116,28 @@ A separate concurrent test used two Git worktrees with edits in different packag
 
 These are warm OS-page-cache and warm external-repository-download measurements on one machine, with a small sample and shared network service. PSS/RSS sampling covers the build process tree, not all host RAM or filesystem cache. Analysis-only caching was slower in an earlier series; the measured improvement depends on avoiding execution-graph traversal as well. Broader rule coverage, cold-filesystem behavior, larger graph scaling and production failure handling remain evaluation areas.
 
+The expanded Datadog scope exposed two current storage limits. A successful six-binary build configured 237,112 targets including aspects, but SkyCache publication failed because its manifest exceeded 64 MiB. Inspection of the unpublished pack reconstructed 418,098 external/absolute witnesses requiring at least 77,546,670 encoded bytes; Linux-header trees and shared-repository paths dominate. Its 1,664,716 unique records also exceed the separate one-million-entry pack sealing limit. A five-binary scope at 220,062 configured targets hit the same manifest limit. These scopes currently cannot produce a reusable publication; increasing only the manifest limit would not resolve both constraints.
+
+## Expanded Datadog results
+
+The follow-up benchmark built six application binaries—Cluster Agent, Process Agent, Trace Agent, DogStatsD, Installer and Private Action Runner—with 80,301 configured targets including aspects, 40% more than the original scope. Three preparation builds were followed by 18 measured builds, with the same verified empty-graph clean protocol and Cache & Carry enabled.
+
+| Output policy | Vanilla fork seconds | SkyCache seconds | Time reduction | Vanilla peak PSS MiB | SkyCache peak PSS MiB |
+|---|---:|---:|---:|---:|---:|
+| minimal | 11.68 | 6.42 | 45.0% | 2809 | 2372 |
+| toplevel | 20.58 | 15.33 | 25.5% | 2643 | 2611 |
+
+Each cell is a median of three measured builds. The same candidate with SkyCache disabled took 11.68 seconds for minimal and 20.94 seconds for toplevel. Relative to that comparator, peak PSS fell 13.8% for minimal but increased 11.0% for toplevel; the memory results do not support a uniform reduction.
+
+Analysis time remained around four seconds. The total-build improvement coincides with reducing normal action processing from 15,167 actions to 26 internal actions and eliminating 14,055 action-result lookups. SkyCache restored 18 configured-target values and 11 execution values; only 23 targets were configured during a hit build. Local validation still consumed substantial work.
+
+Every requested executable digest matched the vanilla control. Minimal downloaded no output bytes; toplevel fetched ten required output/runfile blobs totaling 304,075,144 bytes. Neither hit policy materialized intermediate `.a` or `.x` files. BES profile checks were identified separately from build-output validation.
+
+The 220k/237k-target scopes described above remain outside the current publication limits. [Full expanded benchmark, failed scopes and reproducible evidence](https://github.com/JSGette/bazel/blob/jsgette/master/docs/jsgette/skycache-datadog-wide-2026-10-25.md).
+
 ## Discussion questions
 
 - Is the existing analysis-cache retrieval interface the right place to admit portable remote execution metadata?
 - Which additional execution-value forms can safely survive output deletion and workspace relocation?
 - What validity and lifetime contracts should Bazel expose for local persistent publications, parent references and CAS rewind?
 - Which representative workloads and failure cases should gate an upstream proposal?
-
-A larger Datadog target-set comparison is the next experiment. It will retain the empty-graph clean protocol, measure configured-target counts, compare the same candidate off/on and the preserved vanilla fork, and report minimal and toplevel separately.
-

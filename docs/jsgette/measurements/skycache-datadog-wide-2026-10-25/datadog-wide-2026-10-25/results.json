@@ -1,0 +1,711 @@
+{
+  "status": "failed",
+  "started_at": "2026-10-25T07:42:01.118640+00:00",
+  "targets": [
+    "//cmd/agent:agent",
+    "//cmd/cluster-agent:cluster-agent",
+    "//cmd/process-agent:process-agent",
+    "//cmd/trace-agent:trace-agent",
+    "//cmd/security-agent:security-agent",
+    "//cmd/system-probe:system-probe"
+  ],
+  "workspace": "/home/jgett/REPOS/datadog-agent",
+  "output_base": "/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+  "analysis_cache": "/home/jgett/REPOS/.work/datadog-wide-2026-10-25/skycache",
+  "source_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "module_lock_sha256": "1988ae97ea0d31e99aa8683a9849a448049fe4d12f16c644b931d31553c77ee8",
+  "binary_sha256": {
+    "candidate": "1e17c582e2e91d983210d70f9a130e1dd4cea68de62419e3b86bd91df1b9cad9",
+    "vanilla": "1ef0d6ff94b24c787d539f63672f93f0da9bd96d49750d729489cbffc80aa588"
+  },
+  "boot_id": "30d3e99f-559f-4a90-95f3-061497b9eb26",
+  "runs": [
+    {
+      "label": "prepare-vanilla",
+      "mode": "toplevel",
+      "variant": "vanilla",
+      "preparation": true,
+      "started_at": "2026-10-25T07:42:01.399584+00:00",
+      "binary_sha256": "1ef0d6ff94b24c787d539f63672f93f0da9bd96d49750d729489cbffc80aa588",
+      "shutdown_before": null,
+      "clean": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "clean",
+          "--noasync",
+          "--noexpunge",
+          "--color=no",
+          "--curses=no",
+          "--color=no",
+          "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-"
+        ],
+        "seconds": 1.6795866579996073,
+        "exit_code": 0
+      },
+      "publications_preserved": true,
+      "execroot_after_clean": [],
+      "action_cache_after_clean": false,
+      "graph_dump": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "dump",
+          "--skyframe=summary"
+        ],
+        "seconds": 0.11408859599941934,
+        "exit_code": 0
+      },
+      "graph_nodes_after_clean": 0,
+      "graph_edges_after_clean": 0,
+      "argv": [
+        "/home/jgett/REPOS/datadog-agent/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+        "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx6g",
+        "--max_idle_secs=600",
+        "build",
+        "--jobs=16",
+        "--local_resources=memory=6144",
+        "--lockfile_mode=error",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--remote_instance_name=",
+        "--remote_timeout=600",
+        "--remote_retries=1",
+        "--noremote_local_fallback",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--bes_backend=grpc://10.55.0.1:8080",
+        "--bes_results_url=http://192.168.2.71:8088/invocation/",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-",
+        "--build_event_json_file=/home/jgett/REPOS/.work/datadog-wide-2026-10-25/prepare-vanilla.bep.json",
+        "--profile=/home/jgett/REPOS/.work/datadog-wide-2026-10-25/prepare-vanilla.profile.gz",
+        "//cmd/agent:agent",
+        "//cmd/cluster-agent:cluster-agent",
+        "//cmd/process-agent:process-agent",
+        "//cmd/trace-agent:trace-agent",
+        "//cmd/security-agent:security-agent",
+        "//cmd/system-probe:system-probe",
+        "--remote_download_outputs=toplevel",
+        "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-wide-2026-10-25/prepare-vanilla.grpc.bin",
+        "--remote_max_connections=1",
+        "--remote_max_concurrency_per_connection=16"
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-wide-2026-10-25",
+            "free_bytes": 973572083712,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 885495296000
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 885495296000,
+          "system_drive": "C:\\",
+          "system_free_bytes": 144722808832,
+          "windows_drives": {
+            "C:\\": 144722808832,
+            "D:\\": 992877461504,
+            "E:\\": 885495296000
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792914120.739
+        }
+      },
+      "exit_code": 1,
+      "seconds": 7.169160290000036,
+      "clean_plus_build_seconds": 8.848746947999643,
+      "peak_pss_kib": 2800457,
+      "peak_rss_kib": 2939956,
+      "sample_count": 62,
+      "server_pid_before_build": 381385,
+      "server_pid_after_build": 381385,
+      "guard_errors": [],
+      "analysis_hits": 0,
+      "execution_hits": 0,
+      "remote_warnings": [],
+      "publication_failures": [],
+      "cache_disabled": false,
+      "build_metrics": {
+        "actionSummary": {
+          "actionsExecuted": "1",
+          "actionData": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792914125029",
+              "lastEndedMs": "1792914125058"
+            }
+          ],
+          "runnerCount": [
+            {
+              "name": "total",
+              "count": 1
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "actionCacheStatistics": {
+            "sizeInBytes": "154",
+            "misses": 1,
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ]
+          }
+        },
+        "memoryMetrics": {
+          "garbageMetrics": [
+            {
+              "type": "CodeHeap 'non-profiled nmethods'",
+              "garbageCollected": "2273152"
+            },
+            {
+              "type": "CodeHeap 'profiled nmethods'",
+              "garbageCollected": "8180864"
+            },
+            {
+              "type": "Compressed Class Space",
+              "garbageCollected": "74448"
+            },
+            {
+              "type": "G1 Eden Space",
+              "garbageCollected": "9193914360"
+            },
+            {
+              "type": "G1 Old Gen",
+              "garbageCollected": "99374776"
+            },
+            {
+              "type": "G1 Survivor Space",
+              "garbageCollected": "142033032"
+            },
+            {
+              "type": "Metaspace",
+              "garbageCollected": "282800"
+            }
+          ]
+        },
+        "targetMetrics": {},
+        "packageMetrics": {},
+        "timingMetrics": {
+          "cpuTimeInMs": "121530",
+          "wallTimeInMs": "6755",
+          "analysisPhaseTimeInMs": "4876",
+          "executionPhaseTimeInMs": "70",
+          "actionsExecutionStartInMs": "6538",
+          "criticalPathTime": "0.026192017s"
+        },
+        "cumulativeMetrics": {
+          "numAnalyses": 1,
+          "numBuilds": 1,
+          "instanceId": "7e40c1f0-0886-4c6d-88c8-6742b80fcad5"
+        },
+        "buildGraphMetrics": {
+          "postInvocationSkyframeNodeCount": 227927,
+          "builtValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "7046"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "48"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "736"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "2346"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "12"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "736"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "141"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "50"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "47"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "6892"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "707"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "520"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "73"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "48526"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "1997"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "5719"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "737"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "90056"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "754"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "2440"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "11"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "10"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "739"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "15985"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "248"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "44"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "40979"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "46"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "49"
+            }
+          ],
+          "evaluatedValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "12765"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "2208"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "15"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "1561"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "454"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "76"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "145"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "15842"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "142"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "2574"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "2440"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "30"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "789"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "44823"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "8"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "296"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "40983"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "46"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "52"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "116"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "5566"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "15"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "1385"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "2568"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "107419"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "4745"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "5719"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "135118"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "870"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "11"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "24"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "60"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "18"
+            }
+          ]
+        }
+      },
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 1
+        },
+        {
+          "name": "internal",
+          "count": 1
+        }
+      ],
+      "bep_finished": {
+        "finishTimeMillis": "1792914130034",
+        "exitCode": {
+          "name": "PARSING_FAILURE",
+          "code": 1
+        },
+        "finishTime": "2026-10-25T07:42:10.034Z",
+        "failureDetail": {
+          "message": "Analysis of target '//cmd/system-probe:system-probe' failed; build aborted: MODULE.bazel.lock is no longer up-to-date because the usages of the extension '@@aspect_tools_telemetry+//:extension.bzl%telemetry' have changed. Please run `bazel mod deps --lockfile_mode=update` to update your lockfile.",
+          "externalDeps": {
+            "code": "BAD_LOCKFILE"
+          }
+        }
+      },
+      "bep_binaries": {},
+      "output_inventory": {
+        "regular_files": 2,
+        "bytes": 121,
+        "archives": 0,
+        "exports": 0,
+        "binaries": {}
+      },
+      "grpc": {
+        "method_attempt_counts": {
+          "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1
+        },
+        "status_counts": {
+          "0": 1
+        },
+        "status_by_method": [
+          {
+            "method": "build.bazel.remote.execution.v2.Capabilities/GetCapabilities",
+            "status": "0",
+            "count": 1
+          }
+        ],
+        "logical_rpc_count": 1,
+        "rpc_entries_without_id": 0,
+        "terminal_retry_summaries": 0,
+        "terminal_by_method": {},
+        "bytestream_read_calls": 0,
+        "bytestream_read_bytes": 0,
+        "log_bytes": 295
+      }
+    }
+  ],
+  "method": "Six Linux Agent binaries. Vanilla toplevel warmup, SkyCache minimal/toplevel preparation, then three rotated repetitions of vanilla/off/on per policy. Shutdown and synchronous clean before every build; verify zero graph and deleted outputs/action cache. Same output base, 6 GiB JVM, 16 jobs, 6144 MiB action budget, bounded remote transport 1 connection x 16 requests. Cache & Carry remote cache and BES enabled. Warm OS and external repository caches. Build time excludes clean; combined time also recorded. Process-tree PSS/RSS sampled every 100 ms.",
+  "failure": "AssertionError('prepare-vanilla build')",
+  "shutdown": {
+    "argv": [
+      "/home/jgett/REPOS/datadog-agent/tools/bazel",
+      "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+      "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+      "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+      "--host_jvm_args=-Xmx6g",
+      "--max_idle_secs=600",
+      "shutdown"
+    ],
+    "seconds": 0.5217765550005424,
+    "exit_code": 0
+  },
+  "workspace_unchanged": true,
+  "final_publications": {},
+  "finished_at": "2026-10-25T07:42:11.000160+00:00"
+}
