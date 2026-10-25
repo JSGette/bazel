@@ -211,6 +211,78 @@ The probe and tests establish MVP correctness; no remote-cache speedup is claime
 Portable repository identities, explicit reader/primer policies, production authentication
 and retention management remain follow-up work.
 
+## Performance comparison
+
+The demand-read implementation is **not an end-to-end speed improvement yet**. A controlled
+loopback experiment on 25 October 2026 compared normal builds, the full-import client
+(`c8325fda96c1`), and demand reads (`1c46b460b637`). Each binary primed its own frozen catalog
+from identical source inputs, because their built-in-tool repository installation paths differ.
+An initial cross-binary primer attempt was rejected by the existing `external/bazel_tools`
+binding check and excluded from timing comparisons; no validation guard was relaxed.
+
+The workload has 512 dependency packages with deterministic 32 KiB payloads, with a reader
+requesting 16 packages plus an aggregation target. Priming produces about 19.4 MB of remote
+metadata. The changed case edits one requested package's BUILD rule and verifies the changed
+output. Both remote modes hit 17 configured targets unchanged and 16 after the edit.
+
+Measurement conditions: warm Bazel JVMs, `bazel clean` before every measured invocation,
+fresh client metadata directories, frozen per-binary primer catalogs, no action caches,
+and warm OS file caches. Three repetitions per cell, rotating mode order, give 18 measured
+builds; warmups are excluded. The host is WSL2 Linux 6.6.87.2 on an AMD Ryzen 9 9950X3D;
+Bazel uses four jobs and a 2 GiB heap cap. A counting TCP proxy adds one local hop equally
+to both remote modes, with no network shaping. Byte counts include gRPC framing.
+
+| Input state | Normal build | Full import | Demand reads | Demand vs full |
+| --- | ---: | ---: | ---: | ---: |
+| Unchanged | 7.306 s | 8.243 s | 9.380 s | 13.8% slower |
+| One changed subtree | 7.304 s | 9.438 s | 9.445 s | Effectively tied |
+
+These are median complete client-command times, including publication after the build.
+For unchanged inputs, full import ranged 8.114–8.404 s and demand reads 9.365–9.429 s.
+For changed inputs their ranges overlap: 9.258–9.523 s and 9.429–9.568 s respectively.
+This is a small synthetic experiment, not evidence about production-repository speedups,
+WAN latency, or memory consumption. All 18 outputs were correct and all services stopped.
+
+| Input state / client | Median wire download | Median wire upload | Private writes / deduplicated puts |
+| --- | ---: | ---: | ---: |
+| Unchanged / full import | 19,383,980 B | 7,609 B | 0 / 19 |
+| Unchanged / demand reads | 19,395,382 B | 19,404,977 B | 19 / 0 |
+| Changed / full import | 19,388,111 B | 19,440,115 B | 26 / 252 |
+| Changed / demand reads | 19,395,753 B | 19,513,577 B | 277 / 0 |
+
+The current end-to-end path therefore saves **no meaningful download bandwidth** here.
+The direct mechanism is visible in the counters and code: remote candidates are excluded
+from put deduplication to avoid speculative reads. The unchanged demand reader consequently
+writes 19 metadata records, materializes its used parent, then exports the complete closure.
+The full-import reader deduplicates those 19 puts and publishes nothing. Its tiny upload count
+is request traffic, not publication data. The changed case publishes a child in both modes,
+so both reupload their parent closure. Selective-read unit tests prove the range-reader seam,
+but the complete build lifecycle still defeats its potential bandwidth benefit.
+
+The next performance changes should be:
+
+1. Deduplicate writes against **already fetched** remote indexes/records without triggering
+   new network reads. Acceptance: unchanged readers do not publish solely because duplicate
+   puts were skipped, while read-your-writes and immutable-key conflict checks remain intact.
+2. Publish new children using authenticated remote parent descriptors and existing CAS digests.
+   Acceptance: changed-subtree builds transfer new metadata without materializing/reuploading
+   unrelated parent bytes, while eviction remains a safe miss.
+3. Repeat this matrix, then test a real analysis-heavy repository and controlled network latency.
+   Profile local chunk-cache I/O, hashing and memory separately before claiming improvements there.
+
+[Raw timings and counters](measurements/skycache-remote-performance-2026-10-25/results.json),
+[the excluded primer trial](measurements/skycache-remote-performance-2026-10-25/excluded-primer-trial.json),
+and [its witness differences](measurements/skycache-remote-performance-2026-10-25/excluded-witness-diff.json)
+are preserved. Reproduce with the committed harness:
+
+```sh
+python3 tools/skycache/remote_read_benchmark.py \
+  --old-bazel /absolute/path/bazel-remote-mvp-tracing \
+  --new-bazel /absolute/path/bazel-remote-demand-v2 \
+  --worker /absolute/path/worker \
+  --root /absolute/path/new-performance-directory
+```
+
 ## Remaining limitations and next implementation choices
 
 1. **Publication after remote reuse still imports used parents.** The next useful optimization
