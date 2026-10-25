@@ -1,0 +1,124 @@
+WARNING: Option 'experimental_disk_cache_gc_max_size' is deprecated: Use --disk_cache_gc_max_size instead
+WARNING: Option 'incompatible_default_to_explicit_init_py' is deprecated
+INFO: Invocation ID: 64d1398d-e612-4fe7-82bd-a7325c4a9a51
+INFO: Streaming build results to: http://192.168.2.71:8088/invocation/64d1398d-e612-4fe7-82bd-a7325c4a9a51
+Computing main repo mapping: 
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+WARNING: Specifying --experimental_active_directories will override the active directories specified in the PROJECT.scl file
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (8 packages loaded, 6 targets configured)
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (11 packages loaded, 12 targets configured (6 remote cache hits))
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (11 packages loaded, 19 targets configured (13 remote cache hits))
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (135 packages loaded, 1717 targets configured (1711 remote cache hits))
+
+Analyzing: target //cmd/cluster-agent:cluster-agent (1613 packages loaded, 1732 targets configured (1725 remote cache hits))
+
+INFO: Analyzed target //cmd/cluster-agent:cluster-agent (3929 packages loaded, 1755 targets configured (1743 remote cache hits)).
+[1 / 1] no actions running
+ERROR: /home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/pkg/cli/subcommands/version/BUILD.bazel:4:11: GoCompilePkg pkg/cli/subcommands/version/version.a (from target //pkg/cli/subcommands/version:version) failed: Failed to query remote execution capabilities: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+ERROR: /home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/pkg/inventory/systeminfo/BUILD.bazel:4:11: GoCompilePkg pkg/inventory/systeminfo/systeminfo.a (from target //pkg/inventory/systeminfo:systeminfo) failed: Failed to query remote execution capabilities: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+Target //cmd/cluster-agent:cluster-agent failed to build
+  due to action in //pkg/cli/subcommands/version:version
+INFO: Skycache write: uploaded 1429202/16550479 key/value bytes and 71070 entries (71070 batches)
+INFO: Skycache read: 100.53 MB received in 280196 requests, 6050/6532 cache hits (92.62%) [Breakdown: ACTION_EXECUTION: 3778/4243 (89.04%), ARTIFACT: 1/1 (100.00%), CONFIGURED_TARGET: 2271/2288 (99.26%)]
+ERROR: /home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/cmd/cluster-agent/BUILD.bazel:127:19 GoLink cmd/cluster-agent/cluster-agent_/cluster-agent failed: Failed to query remote execution capabilities: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+INFO: Elapsed time: 21.544s, Critical Path: 0.18s
+INFO: 440 processes: 440 internal.
+ERROR: Build did NOT complete successfully
+FAILED: 
+WARNING: Uploading BEP referenced local file: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+com.google.devtools.build.lib.remote.common.RemoteExecutionCapabilitiesException: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+	at com.google.devtools.build.lib.remote.GoogleChannelConnectionFactory$1.onFailure(GoogleChannelConnectionFactory.java:164)
+	at com.google.common.util.concurrent.Futures$CallbackListener.run(Futures.java:1113)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:30)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1040)
+	at com.google.common.util.concurrent.AbstractFuture.complete(AbstractFuture.java:803)
+	at com.google.common.util.concurrent.AbstractFuture.setException(AbstractFuture.java:542)
+	at com.google.common.util.concurrent.AbstractTransformFuture.run(AbstractTransformFuture.java:108)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:30)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1040)
+	at com.google.common.util.concurrent.AbstractFuture.complete(AbstractFuture.java:803)
+	at com.google.common.util.concurrent.AbstractFuture.setFuture(AbstractFuture.java:591)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleAsyncTask.afterRanInterruptiblySuccess(TrustedListenableFutureTask.java:172)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleAsyncTask.afterRanInterruptiblySuccess(TrustedListenableFutureTask.java:147)
+	at com.google.common.util.concurrent.InterruptibleTask.run(InterruptibleTask.java:85)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask.run(TrustedListenableFutureTask.java:80)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleTask.runInterruptibly(TrustedListenableFutureTask.java:128)
+	at com.google.common.util.concurrent.InterruptibleTask.run(InterruptibleTask.java:72)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask.run(TrustedListenableFutureTask.java:80)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166)
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131)
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359)
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715)
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692)
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567)
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491)
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+WARNING: Uploading BEP referenced local file /home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/concurrent-writers-b.profile.gz hash: "6f72e8db3aa728599212f5ab9e9ed51aa5d204ab5f891a5443aa0f1f9eb8bdc6"
+size_bytes: 157398
+: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+com.google.devtools.build.lib.remote.common.RemoteExecutionCapabilitiesException: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+	at com.google.devtools.build.lib.remote.GoogleChannelConnectionFactory$1.onFailure(GoogleChannelConnectionFactory.java:164)
+	at com.google.common.util.concurrent.Futures$CallbackListener.run(Futures.java:1113)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:30)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1040)
+	at com.google.common.util.concurrent.AbstractFuture.complete(AbstractFuture.java:803)
+	at com.google.common.util.concurrent.AbstractFuture.setException(AbstractFuture.java:542)
+	at com.google.common.util.concurrent.AbstractTransformFuture.run(AbstractTransformFuture.java:108)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:30)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1040)
+	at com.google.common.util.concurrent.AbstractFuture.complete(AbstractFuture.java:803)
+	at com.google.common.util.concurrent.AbstractFuture.setFuture(AbstractFuture.java:591)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleAsyncTask.afterRanInterruptiblySuccess(TrustedListenableFutureTask.java:172)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleAsyncTask.afterRanInterruptiblySuccess(TrustedListenableFutureTask.java:147)
+	at com.google.common.util.concurrent.InterruptibleTask.run(InterruptibleTask.java:85)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask.run(TrustedListenableFutureTask.java:80)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleTask.runInterruptibly(TrustedListenableFutureTask.java:128)
+	at com.google.common.util.concurrent.InterruptibleTask.run(InterruptibleTask.java:72)
+	at com.google.common.util.concurrent.TrustedListenableFutureTask.run(TrustedListenableFutureTask.java:80)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: /10.55.0.1:8080
+Caused by: java.net.ConnectException: finishConnect(..) failed: Connection refused
+	at io.netty.channel.unix.Errors.newConnectException0(Errors.java:166)
+	at io.netty.channel.unix.Errors.handleConnectErrno(Errors.java:131)
+	at io.netty.channel.unix.Socket.finishConnect(Socket.java:359)
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.doFinishConnect(AbstractEpollChannel.java:715)
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.finishConnect(AbstractEpollChannel.java:692)
+	at io.netty.channel.epoll.AbstractEpollChannel$AbstractEpollUnsafe.epollOutReady(AbstractEpollChannel.java:567)
+	at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:491)
+	at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:399)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+INFO: Local SkyCache dependency validation: {"records_read":163265,"memo_hits":374235,"witnesses_checked":7732,"rejected_roots":11,"memo_entries":163212,"witness_memo_hits":76401,"witness_memo_entries":149968,"admission_witness_memo_hits":142247,"subtree_waits":23}
+INFO: Local SkyCache: {"writes":3364,"reads":280196,"shared_reads":279714,"rejected_publications":0,"deduplicated_writes":69100,"published":false,"failed":false,"read_limit_skips":0,"scan_limit_hits":0,"peak_candidate_count":1,"peak_candidate_metadata_bytes":48669050,"cas_put_requests":72723,"cas_accepted_puts":72711,"cas_put_key_bytes":1455650,"cas_put_value_bytes":16882100,"cas_get_requests":273664,"cas_get_hits":273664,"cas_get_misses":0,"cas_received_value_bytes":103915377,"catalog_busy_skips":0}
+ERROR: The Build Event Protocol upload failed: all 4 publishLifecycleEvent retry attempts failed: UNAVAILABLE: io exception

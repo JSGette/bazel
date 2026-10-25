@@ -1,0 +1,3680 @@
+{
+  "status": "failed",
+  "started_at": "2026-10-25T06:56:35.392014+00:00",
+  "binary": "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache-bwob",
+  "binary_sha256": "1e17c582e2e91d983210d70f9a130e1dd4cea68de62419e3b86bd91df1b9cad9",
+  "implementation_revision": "71521fabb3420707c39d73329fa9aa9622e8c382",
+  "source_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "lock_sha256": "1988ae97ea0d31e99aa8683a9849a448049fe4d12f16c644b931d31553c77ee8",
+  "remote_cache": "grpc://10.55.0.1:8080",
+  "cache": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+  "target": "//cmd/cluster-agent:cluster-agent",
+  "states": {
+    "a": "a",
+    "b": "b"
+  },
+  "expected": {
+    "base": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+  },
+  "phases": [
+    {
+      "label": "seed",
+      "started_at": "2026-10-25T06:56:57.392952+00:00",
+      "publications_before": {},
+      "preparation": [
+        {
+          "worktree": "a",
+          "shutdown": null,
+          "clean": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "clean",
+              "--noasync",
+              "--noexpunge",
+              "--color=no",
+              "--curses=no",
+              "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+              "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/a-"
+            ],
+            "seconds": 1.1765617350001776,
+            "exit_code": 0
+          },
+          "publications_preserved": true,
+          "execroot_after_clean": [],
+          "action_cache_after_clean": false,
+          "dump": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "dump",
+              "--skyframe=summary"
+            ],
+            "seconds": 0.11421953699982623,
+            "exit_code": 0
+          },
+          "graph_nodes": 0,
+          "graph_edges": 0,
+          "server_pid": 145274
+        }
+      ],
+      "runs": [
+        {
+          "label": "seed-a",
+          "worktree": "a",
+          "state": "base",
+          "skycache": true,
+          "mode": "minimal",
+          "argv": [
+            "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+            "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+            "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=600",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--jobs=8",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=error",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=",
+            "--remote_cache=grpc://10.55.0.1:8080",
+            "--remote_instance_name=",
+            "--remote_timeout=600",
+            "--remote_retries=1",
+            "--noremote_local_fallback",
+            "--remote_upload_local_results",
+            "--remote_accept_cached",
+            "--remote_download_outputs=minimal",
+            "--bes_backend=",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/a-",
+            "--build_event_json_file=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/seed-a.bep.json",
+            "--profile=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/seed-a.profile.gz",
+            "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/seed-a.grpc.bin",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+            "--experimental_active_directories=cmd/cluster-agent",
+            "--experimental_local_skycache_gc_max_size=0",
+            "--experimental_local_skycache_gc_max_age=0",
+            "--experimental_analysis_cache_idle_retention=0"
+          ],
+          "server_pid_before": 145274,
+          "start_monotonic": 2623.799768444,
+          "started_at": "2026-10-25T06:56:58.687918+00:00",
+          "end_monotonic": 2648.377412882,
+          "seconds": 24.57764443799988,
+          "exit_code": 0,
+          "server_pid_after": 145274,
+          "analysis_hits": 0,
+          "execution_hits": 0,
+          "warnings": [
+            "Option 'experimental_disk_cache_gc_max_size' is deprecated: Use --disk_cache_gc_max_size instead",
+            "Option 'incompatible_default_to_explicit_init_py' is deprecated",
+            "Specifying --experimental_active_directories will override the active directories specified in the PROJECT.scl file",
+            "Local SkyCache publication discarded: inputs changed during the invocation"
+          ],
+          "publication_failures": [
+            "inputs changed during the invocation"
+          ],
+          "cache_disabled": false,
+          "local-skycache.json": {
+            "writes": 449388,
+            "reads": 64425,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": false,
+            "failed": true,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 460242,
+            "cas_accepted_puts": 460242,
+            "cas_put_key_bytes": 10137566,
+            "cas_put_value_bytes": 381419343,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "local-skycache-validation.json": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0,
+            "subtree_waits": 0
+          },
+          "build_metrics": {
+            "actionSummary": {
+              "actionsCreated": "13812",
+              "actionsExecuted": "6789",
+              "actionsCreatedNotIncludingAspects": "13811",
+              "actionData": [
+                {
+                  "mnemonic": "GoCompilePkg",
+                  "actionsExecuted": "3845",
+                  "firstStartedMs": "1792911437559",
+                  "lastEndedMs": "1792911442197",
+                  "actionsCreated": "3862"
+                },
+                {
+                  "mnemonic": "CppCompile",
+                  "actionsExecuted": "1596",
+                  "firstStartedMs": "1792911437357",
+                  "lastEndedMs": "1792911441367",
+                  "actionsCreated": "1815"
+                },
+                {
+                  "mnemonic": "FileWrite",
+                  "actionsExecuted": "575",
+                  "firstStartedMs": "1792911437045",
+                  "lastEndedMs": "1792911439182",
+                  "actionsCreated": "4843"
+                },
+                {
+                  "mnemonic": "Symlink",
+                  "actionsExecuted": "415",
+                  "firstStartedMs": "1792911437293",
+                  "lastEndedMs": "1792911440988",
+                  "actionsCreated": "472"
+                },
+                {
+                  "mnemonic": "CcAutoconfCheck",
+                  "actionsExecuted": "95",
+                  "firstStartedMs": "1792911438064",
+                  "lastEndedMs": "1792911439148",
+                  "actionsCreated": "2287"
+                },
+                {
+                  "mnemonic": "CppArchive",
+                  "actionsExecuted": "55",
+                  "firstStartedMs": "1792911437435",
+                  "lastEndedMs": "1792911441372",
+                  "actionsCreated": "68"
+                },
+                {
+                  "mnemonic": "CppLink",
+                  "actionsExecuted": "42",
+                  "firstStartedMs": "1792911437442",
+                  "lastEndedMs": "1792911441377",
+                  "actionsCreated": "96"
+                },
+                {
+                  "mnemonic": "TemplateExpand",
+                  "actionsExecuted": "19",
+                  "firstStartedMs": "1792911437072",
+                  "lastEndedMs": "1792911437784",
+                  "actionsCreated": "24"
+                },
+                {
+                  "mnemonic": "CopyFile",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911437462",
+                  "lastEndedMs": "1792911440631",
+                  "actionsCreated": "16"
+                },
+                {
+                  "mnemonic": "RepoMappingManifest",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911437045",
+                  "lastEndedMs": "1792911439260",
+                  "actionsCreated": "43"
+                },
+                {
+                  "mnemonic": "SymlinkTree",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911437051",
+                  "lastEndedMs": "1792911439262",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "SourceSymlinkManifest",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911437046",
+                  "lastEndedMs": "1792911439260",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "RunfilesTree",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911437611",
+                  "lastEndedMs": "1792911442310",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "Genrule",
+                  "actionsExecuted": "15",
+                  "firstStartedMs": "1792911437565",
+                  "lastEndedMs": "1792911440037",
+                  "actionsCreated": "15"
+                },
+                {
+                  "mnemonic": "GenProtoDescriptorSet",
+                  "actionsExecuted": "10",
+                  "firstStartedMs": "1792911437295",
+                  "lastEndedMs": "1792911437394",
+                  "actionsCreated": "10"
+                },
+                {
+                  "mnemonic": "GoProtocGen",
+                  "actionsExecuted": "8",
+                  "firstStartedMs": "1792911439469",
+                  "lastEndedMs": "1792911439486",
+                  "actionsCreated": "8"
+                },
+                {
+                  "mnemonic": "ExecutableSymlink",
+                  "actionsExecuted": "8",
+                  "firstStartedMs": "1792911437466",
+                  "lastEndedMs": "1792911439469",
+                  "actionsCreated": "11"
+                },
+                {
+                  "mnemonic": "RunBinary",
+                  "actionsExecuted": "6",
+                  "firstStartedMs": "1792911437623",
+                  "lastEndedMs": "1792911437778",
+                  "actionsCreated": "6"
+                },
+                {
+                  "mnemonic": "GoLink",
+                  "actionsExecuted": "4",
+                  "firstStartedMs": "1792911439403",
+                  "lastEndedMs": "1792911442270",
+                  "actionsCreated": "4"
+                },
+                {
+                  "mnemonic": "UnresolvedSymlink",
+                  "actionsExecuted": "3",
+                  "firstStartedMs": "1792911437079",
+                  "lastEndedMs": "1792911437562",
+                  "actionsCreated": "3"
+                }
+              ],
+              "runnerCount": [
+                {
+                  "name": "total",
+                  "count": 6789
+                },
+                {
+                  "name": "remote cache hit",
+                  "count": 5704,
+                  "execKind": "Remote"
+                },
+                {
+                  "name": "internal",
+                  "count": 1085
+                }
+              ],
+              "actionCacheStatistics": {
+                "sizeInBytes": "3409378",
+                "saveTimeInMs": "9",
+                "misses": 6789,
+                "missDetails": [
+                  {},
+                  {
+                    "reason": "DIFFERENT_DEPS"
+                  },
+                  {
+                    "reason": "DIFFERENT_ENVIRONMENT"
+                  },
+                  {
+                    "reason": "DIFFERENT_FILES"
+                  },
+                  {
+                    "reason": "CORRUPTED_CACHE_ENTRY"
+                  },
+                  {
+                    "reason": "NOT_CACHED",
+                    "count": 6788
+                  },
+                  {
+                    "reason": "UNCONDITIONAL_EXECUTION",
+                    "count": 1
+                  },
+                  {
+                    "reason": "DIGEST_MISMATCH"
+                  }
+                ],
+                "loadTimeInMs": "1"
+              }
+            },
+            "memoryMetrics": {
+              "garbageMetrics": [
+                {
+                  "type": "CodeHeap 'non-profiled nmethods'",
+                  "garbageCollected": "1417216"
+                },
+                {
+                  "type": "CodeHeap 'profiled nmethods'",
+                  "garbageCollected": "9151232"
+                },
+                {
+                  "type": "Compressed Class Space",
+                  "garbageCollected": "72864"
+                },
+                {
+                  "type": "G1 Eden Space",
+                  "garbageCollected": "27111981048"
+                },
+                {
+                  "type": "G1 Old Gen",
+                  "garbageCollected": "380565024"
+                },
+                {
+                  "type": "G1 Survivor Space",
+                  "garbageCollected": "269723792"
+                },
+                {
+                  "type": "Metaspace",
+                  "garbageCollected": "275056"
+                }
+              ]
+            },
+            "timingMetrics": {
+              "cpuTimeInMs": "415880",
+              "wallTimeInMs": "24143",
+              "analysisPhaseTimeInMs": "12385",
+              "executionPhaseTimeInMs": "5372",
+              "actionsExecutionStartInMs": "18823",
+              "criticalPathTime": "0.566626583s"
+            },
+            "cumulativeMetrics": {
+              "numAnalyses": 1,
+              "numBuilds": 1,
+              "instanceId": "d1a7ea51-237c-491b-b0b2-e0a6ab0ed45f"
+            },
+            "buildGraphMetrics": {
+              "actionLookupValueCount": 49081,
+              "actionCount": 13809,
+              "outputArtifactCount": 23410,
+              "postInvocationSkyframeNodeCount": 318435,
+              "actionLookupValueCountNotIncludingAspects": 49020,
+              "actionCountNotIncludingAspects": 13808,
+              "inputFileConfiguredTargetCount": 40736,
+              "outputFileConfiguredTargetCount": 10,
+              "otherConfiguredTargetCount": 124,
+              "builtValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "6786"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "609"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "6"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "609"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "136"
+                },
+                {
+                  "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+                  "count": "32"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "5473"
+                },
+                {
+                  "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+                  "count": "42"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "11163"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "610"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1298"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_TOOLCHAINS",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "612"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "13995"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "40609"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "248"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "76797"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "6789"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "1955"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "582"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "435"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "7"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "83697"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "1832"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "5459"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "57578"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "610"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "56"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ASPECT",
+                  "count": "60"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "9"
+                }
+              ],
+              "evaluatedValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "12245"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "1827"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "1307"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "444"
+                },
+                {
+                  "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+                  "count": "51"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "135"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "12554"
+                },
+                {
+                  "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+                  "count": "83"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "22300"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "2119"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1298"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_TOOLCHAINS",
+                  "count": "10"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "661"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "38822"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "8"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "40614"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "297"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "76800"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "47"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "677"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "12564"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "4627"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "15"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "1128"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "2080"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "176623"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "4389"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "5459"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "114104"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "720"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "56"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "ASPECT",
+                  "count": "83"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "18"
+                }
+              ]
+            }
+          },
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 6789
+            },
+            {
+              "name": "remote cache hit",
+              "count": 5704,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1085
+            }
+          ],
+          "target_bep_files": [
+            {
+              "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "uri": "file:///home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "pathPrefix": [
+                "bazel-out",
+                "k8-fastbuild-ST-646df0be3f72",
+                "bin"
+              ],
+              "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+              "length": "119596056"
+            }
+          ],
+          "output_inventory": {
+            "files": 767,
+            "bytes": 4851860,
+            "archives": 0,
+            "exports": 0,
+            "target_files": []
+          },
+          "grpc": {
+            "method_attempt_counts": {
+              "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1,
+              "build.bazel.remote.execution.v2.ActionCache/GetActionResult": 5704,
+              "google.bytestream.ByteStream/Read": 1641
+            },
+            "status_counts": {
+              "0": 7346
+            },
+            "logical_rpc_count": 7346,
+            "bytestream_read_calls": 1641,
+            "bytestream_read_bytes": 15304814,
+            "target_blob_reads": [],
+            "log_bytes": 7714993
+          }
+        }
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25",
+            "free_bytes": 976584818688,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 897709109248
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 897709109248,
+          "system_drive": "C:\\",
+          "system_free_bytes": 146134835200,
+          "windows_drives": {
+            "C:\\": 146134835200,
+            "D:\\": 992987533312,
+            "E:\\": 897709109248
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792911416.091
+        }
+      },
+      "publications_after": {},
+      "publication_events": [],
+      "guard_errors": [],
+      "peak_combined_pss_kib": 2619644,
+      "peak_combined_rss_kib": 2623652,
+      "overlap_seconds": null
+    },
+    {
+      "label": "stabilize-b",
+      "started_at": "2026-10-25T06:58:19.635695+00:00",
+      "publications_before": {},
+      "preparation": [
+        {
+          "worktree": "b",
+          "shutdown": null,
+          "clean": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "clean",
+              "--noasync",
+              "--noexpunge",
+              "--color=no",
+              "--curses=no",
+              "--experimental_local_skycache=",
+              "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/b-"
+            ],
+            "seconds": 1.2250033269997402,
+            "exit_code": 0
+          },
+          "publications_preserved": true,
+          "execroot_after_clean": [],
+          "action_cache_after_clean": false,
+          "dump": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "dump",
+              "--skyframe=summary"
+            ],
+            "seconds": 0.11423038000020824,
+            "exit_code": 0
+          },
+          "graph_nodes": 0,
+          "graph_edges": 0,
+          "server_pid": 147186
+        }
+      ],
+      "runs": [
+        {
+          "label": "stabilize-b-b",
+          "worktree": "b",
+          "state": "base",
+          "skycache": false,
+          "mode": "minimal",
+          "argv": [
+            "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+            "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+            "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=600",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--jobs=8",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=error",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=",
+            "--remote_cache=grpc://10.55.0.1:8080",
+            "--remote_instance_name=",
+            "--remote_timeout=600",
+            "--remote_retries=1",
+            "--noremote_local_fallback",
+            "--noremote_upload_local_results",
+            "--remote_accept_cached",
+            "--remote_download_outputs=minimal",
+            "--bes_backend=",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/b-",
+            "--build_event_json_file=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/stabilize-b-b.bep.json",
+            "--profile=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/stabilize-b-b.profile.gz",
+            "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/stabilize-b-b.grpc.bin",
+            "--experimental_local_skycache=",
+            "--experimental_active_directories=cmd/cluster-agent",
+            "--experimental_local_skycache_gc_max_size=0",
+            "--experimental_local_skycache_gc_max_age=0",
+            "--experimental_analysis_cache_idle_retention=0"
+          ],
+          "server_pid_before": 147186,
+          "start_monotonic": 2707.552093429,
+          "started_at": "2026-10-25T06:58:20.981678+00:00",
+          "end_monotonic": 2718.542199514,
+          "seconds": 10.990106085000207,
+          "exit_code": 0,
+          "server_pid_after": 147186,
+          "analysis_hits": 0,
+          "execution_hits": 0,
+          "warnings": [
+            "Option 'experimental_disk_cache_gc_max_size' is deprecated: Use --disk_cache_gc_max_size instead",
+            "Option 'incompatible_default_to_explicit_init_py' is deprecated"
+          ],
+          "publication_failures": [],
+          "cache_disabled": false,
+          "build_metrics": {
+            "actionSummary": {
+              "actionsCreated": "13812",
+              "actionsExecuted": "6789",
+              "actionsCreatedNotIncludingAspects": "13811",
+              "actionData": [
+                {
+                  "mnemonic": "GoCompilePkg",
+                  "actionsExecuted": "3845",
+                  "firstStartedMs": "1792911509986",
+                  "lastEndedMs": "1792911511708",
+                  "actionsCreated": "3862"
+                },
+                {
+                  "mnemonic": "CppCompile",
+                  "actionsExecuted": "1596",
+                  "firstStartedMs": "1792911507435",
+                  "lastEndedMs": "1792911510193",
+                  "actionsCreated": "1815"
+                },
+                {
+                  "mnemonic": "FileWrite",
+                  "actionsExecuted": "575",
+                  "firstStartedMs": "1792911506688",
+                  "lastEndedMs": "1792911507416",
+                  "actionsCreated": "4843"
+                },
+                {
+                  "mnemonic": "Symlink",
+                  "actionsExecuted": "415",
+                  "firstStartedMs": "1792911506776",
+                  "lastEndedMs": "1792911509801",
+                  "actionsCreated": "472"
+                },
+                {
+                  "mnemonic": "CcAutoconfCheck",
+                  "actionsExecuted": "95",
+                  "firstStartedMs": "1792911508436",
+                  "lastEndedMs": "1792911508553",
+                  "actionsCreated": "2287"
+                },
+                {
+                  "mnemonic": "CppArchive",
+                  "actionsExecuted": "55",
+                  "firstStartedMs": "1792911507531",
+                  "lastEndedMs": "1792911510197",
+                  "actionsCreated": "68"
+                },
+                {
+                  "mnemonic": "CppLink",
+                  "actionsExecuted": "42",
+                  "firstStartedMs": "1792911507498",
+                  "lastEndedMs": "1792911510201",
+                  "actionsCreated": "96"
+                },
+                {
+                  "mnemonic": "TemplateExpand",
+                  "actionsExecuted": "19",
+                  "firstStartedMs": "1792911506751",
+                  "lastEndedMs": "1792911507457",
+                  "actionsCreated": "24"
+                },
+                {
+                  "mnemonic": "CopyFile",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911506813",
+                  "lastEndedMs": "1792911508977",
+                  "actionsCreated": "16"
+                },
+                {
+                  "mnemonic": "RepoMappingManifest",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911506687",
+                  "lastEndedMs": "1792911507126",
+                  "actionsCreated": "43"
+                },
+                {
+                  "mnemonic": "SymlinkTree",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911506694",
+                  "lastEndedMs": "1792911507323",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "SourceSymlinkManifest",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911506688",
+                  "lastEndedMs": "1792911507127",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "RunfilesTree",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911507511",
+                  "lastEndedMs": "1792911511797",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "Genrule",
+                  "actionsExecuted": "15",
+                  "firstStartedMs": "1792911507023",
+                  "lastEndedMs": "1792911509001",
+                  "actionsCreated": "15"
+                },
+                {
+                  "mnemonic": "GenProtoDescriptorSet",
+                  "actionsExecuted": "10",
+                  "firstStartedMs": "1792911507155",
+                  "lastEndedMs": "1792911509819",
+                  "actionsCreated": "10"
+                },
+                {
+                  "mnemonic": "GoProtocGen",
+                  "actionsExecuted": "8",
+                  "firstStartedMs": "1792911510127",
+                  "lastEndedMs": "1792911510177",
+                  "actionsCreated": "8"
+                },
+                {
+                  "mnemonic": "ExecutableSymlink",
+                  "actionsExecuted": "8",
+                  "firstStartedMs": "1792911509922",
+                  "lastEndedMs": "1792911510164",
+                  "actionsCreated": "11"
+                },
+                {
+                  "mnemonic": "RunBinary",
+                  "actionsExecuted": "6",
+                  "firstStartedMs": "1792911509864",
+                  "lastEndedMs": "1792911509886",
+                  "actionsCreated": "6"
+                },
+                {
+                  "mnemonic": "GoLink",
+                  "actionsExecuted": "4",
+                  "firstStartedMs": "1792911510002",
+                  "lastEndedMs": "1792911511770",
+                  "actionsCreated": "4"
+                },
+                {
+                  "mnemonic": "UnresolvedSymlink",
+                  "actionsExecuted": "3",
+                  "firstStartedMs": "1792911506722",
+                  "lastEndedMs": "1792911507123",
+                  "actionsCreated": "3"
+                }
+              ],
+              "runnerCount": [
+                {
+                  "name": "total",
+                  "count": 6789
+                },
+                {
+                  "name": "remote cache hit",
+                  "count": 5704,
+                  "execKind": "Remote"
+                },
+                {
+                  "name": "internal",
+                  "count": 1085
+                }
+              ],
+              "actionCacheStatistics": {
+                "sizeInBytes": "3408912",
+                "saveTimeInMs": "12",
+                "misses": 6789,
+                "missDetails": [
+                  {},
+                  {
+                    "reason": "DIFFERENT_DEPS"
+                  },
+                  {
+                    "reason": "DIFFERENT_ENVIRONMENT"
+                  },
+                  {
+                    "reason": "DIFFERENT_FILES"
+                  },
+                  {
+                    "reason": "CORRUPTED_CACHE_ENTRY"
+                  },
+                  {
+                    "reason": "NOT_CACHED",
+                    "count": 6788
+                  },
+                  {
+                    "reason": "UNCONDITIONAL_EXECUTION",
+                    "count": 1
+                  },
+                  {
+                    "reason": "DIGEST_MISMATCH"
+                  }
+                ],
+                "loadTimeInMs": "1"
+              }
+            },
+            "memoryMetrics": {
+              "garbageMetrics": [
+                {
+                  "type": "CodeHeap 'non-profiled nmethods'",
+                  "garbageCollected": "5065728"
+                },
+                {
+                  "type": "CodeHeap 'profiled nmethods'",
+                  "garbageCollected": "17108352"
+                },
+                {
+                  "type": "Compressed Class Space",
+                  "garbageCollected": "66528"
+                },
+                {
+                  "type": "G1 Eden Space",
+                  "garbageCollected": "13623099376"
+                },
+                {
+                  "type": "G1 Old Gen",
+                  "garbageCollected": "102044680"
+                },
+                {
+                  "type": "G1 Survivor Space",
+                  "garbageCollected": "265733648"
+                },
+                {
+                  "type": "Metaspace",
+                  "garbageCollected": "255136"
+                }
+              ]
+            },
+            "timingMetrics": {
+              "cpuTimeInMs": "143270",
+              "wallTimeInMs": "10850",
+              "analysisPhaseTimeInMs": "3299",
+              "executionPhaseTimeInMs": "5218",
+              "actionsExecutionStartInMs": "5679",
+              "criticalPathTime": "0.488803196s"
+            },
+            "cumulativeMetrics": {
+              "numAnalyses": 1,
+              "numBuilds": 1,
+              "instanceId": "a36c7863-50a9-4072-9516-1250549658d5"
+            },
+            "buildGraphMetrics": {
+              "actionLookupValueCount": 49081,
+              "actionCount": 13809,
+              "outputArtifactCount": 23410,
+              "postInvocationSkyframeNodeCount": 318168,
+              "actionLookupValueCountNotIncludingAspects": 49020,
+              "actionCountNotIncludingAspects": 13808,
+              "inputFileConfiguredTargetCount": 40736,
+              "outputFileConfiguredTargetCount": 10,
+              "otherConfiguredTargetCount": 124,
+              "builtValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "6786"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "609"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "6"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "609"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "136"
+                },
+                {
+                  "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+                  "count": "32"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "5473"
+                },
+                {
+                  "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+                  "count": "42"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "11162"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "610"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1298"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_TOOLCHAINS",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "612"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "13995"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "40609"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "248"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "76664"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "6789"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "1955"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "582"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "435"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "7"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "83564"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "1832"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "5459"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "57578"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "610"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "56"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ASPECT",
+                  "count": "60"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "9"
+                }
+              ],
+              "evaluatedValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "12245"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "1827"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "1307"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "444"
+                },
+                {
+                  "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+                  "count": "51"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "135"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "12549"
+                },
+                {
+                  "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+                  "count": "80"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "22321"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "2105"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1298"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_TOOLCHAINS",
+                  "count": "10"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "660"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "38846"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "8"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "81043"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "295"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "76667"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "47"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "677"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "12966"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "4629"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "15"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "1128"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "2066"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "176049"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "4380"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "5459"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "75088"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "720"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "56"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "ASPECT",
+                  "count": "86"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "18"
+                }
+              ]
+            }
+          },
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 6789
+            },
+            {
+              "name": "remote cache hit",
+              "count": 5704,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1085
+            }
+          ],
+          "target_bep_files": [
+            {
+              "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "uri": "file:///home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "pathPrefix": [
+                "bazel-out",
+                "k8-fastbuild-ST-646df0be3f72",
+                "bin"
+              ],
+              "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+              "length": "119596056"
+            }
+          ],
+          "output_inventory": {
+            "files": 767,
+            "bytes": 4851860,
+            "archives": 0,
+            "exports": 0,
+            "target_files": []
+          },
+          "grpc": {
+            "method_attempt_counts": {
+              "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1,
+              "build.bazel.remote.execution.v2.ActionCache/GetActionResult": 5704,
+              "google.bytestream.ByteStream/Read": 1641
+            },
+            "status_counts": {
+              "0": 7346
+            },
+            "logical_rpc_count": 7346,
+            "bytestream_read_calls": 1641,
+            "bytestream_read_bytes": 15304814,
+            "target_blob_reads": [],
+            "log_bytes": 7714692
+          }
+        }
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25",
+            "free_bytes": 976097566720,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 895494516736
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 895494516736,
+          "system_drive": "C:\\",
+          "system_free_bytes": 145865043968,
+          "windows_drives": {
+            "C:\\": 145865043968,
+            "D:\\": 992987533312,
+            "E:\\": 895494516736
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792911500.41
+        }
+      },
+      "publications_after": {},
+      "publication_events": [],
+      "guard_errors": [],
+      "peak_combined_pss_kib": 2075737,
+      "peak_combined_rss_kib": 2079736,
+      "overlap_seconds": null,
+      "passed": true
+    },
+    {
+      "label": "seed-retry",
+      "started_at": "2026-10-25T06:58:32.119434+00:00",
+      "publications_before": {},
+      "preparation": [
+        {
+          "worktree": "a",
+          "shutdown": null,
+          "clean": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "clean",
+              "--noasync",
+              "--noexpunge",
+              "--color=no",
+              "--curses=no",
+              "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+              "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/a-"
+            ],
+            "seconds": 1.4320458150000377,
+            "exit_code": 0
+          },
+          "publications_preserved": true,
+          "execroot_after_clean": [],
+          "action_cache_after_clean": false,
+          "dump": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "dump",
+              "--skyframe=summary"
+            ],
+            "seconds": 0.11412164100011069,
+            "exit_code": 0
+          },
+          "graph_nodes": 0,
+          "graph_edges": 0,
+          "server_pid": 148644
+        }
+      ],
+      "runs": [
+        {
+          "label": "seed-retry-a",
+          "worktree": "a",
+          "state": "base",
+          "skycache": true,
+          "mode": "minimal",
+          "argv": [
+            "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+            "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+            "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=600",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--jobs=8",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=error",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=",
+            "--remote_cache=grpc://10.55.0.1:8080",
+            "--remote_instance_name=",
+            "--remote_timeout=600",
+            "--remote_retries=1",
+            "--noremote_local_fallback",
+            "--remote_upload_local_results",
+            "--remote_accept_cached",
+            "--remote_download_outputs=minimal",
+            "--bes_backend=",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/a-",
+            "--build_event_json_file=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/seed-retry-a.bep.json",
+            "--profile=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/seed-retry-a.profile.gz",
+            "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/seed-retry-a.grpc.bin",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+            "--experimental_active_directories=cmd/cluster-agent",
+            "--experimental_local_skycache_gc_max_size=0",
+            "--experimental_local_skycache_gc_max_age=0",
+            "--experimental_analysis_cache_idle_retention=0"
+          ],
+          "server_pid_before": 148644,
+          "start_monotonic": 2720.243059645,
+          "started_at": "2026-10-25T06:58:33.672644+00:00",
+          "end_monotonic": 2741.518867104,
+          "seconds": 21.275807459000134,
+          "exit_code": 0,
+          "server_pid_after": 148644,
+          "analysis_hits": 0,
+          "execution_hits": 0,
+          "warnings": [
+            "Option 'experimental_disk_cache_gc_max_size' is deprecated: Use --disk_cache_gc_max_size instead",
+            "Option 'incompatible_default_to_explicit_init_py' is deprecated",
+            "Specifying --experimental_active_directories will override the active directories specified in the PROJECT.scl file"
+          ],
+          "publication_failures": [],
+          "cache_disabled": false,
+          "local-skycache.json": {
+            "writes": 449222,
+            "reads": 64425,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 460074,
+            "cas_accepted_puts": 460074,
+            "cas_put_key_bytes": 10132305,
+            "cas_put_value_bytes": 381392733,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "local-skycache-validation.json": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0,
+            "subtree_waits": 0
+          },
+          "build_metrics": {
+            "actionSummary": {
+              "actionsCreated": "13812",
+              "actionsExecuted": "6789",
+              "actionsCreatedNotIncludingAspects": "13811",
+              "actionData": [
+                {
+                  "mnemonic": "GoCompilePkg",
+                  "actionsExecuted": "3845",
+                  "firstStartedMs": "1792911527099",
+                  "lastEndedMs": "1792911531157",
+                  "actionsCreated": "3862"
+                },
+                {
+                  "mnemonic": "CppCompile",
+                  "actionsExecuted": "1596",
+                  "firstStartedMs": "1792911526841",
+                  "lastEndedMs": "1792911530612",
+                  "actionsCreated": "1815"
+                },
+                {
+                  "mnemonic": "FileWrite",
+                  "actionsExecuted": "575",
+                  "firstStartedMs": "1792911526520",
+                  "lastEndedMs": "1792911527674",
+                  "actionsCreated": "4843"
+                },
+                {
+                  "mnemonic": "Symlink",
+                  "actionsExecuted": "415",
+                  "firstStartedMs": "1792911526749",
+                  "lastEndedMs": "1792911529930",
+                  "actionsCreated": "472"
+                },
+                {
+                  "mnemonic": "CcAutoconfCheck",
+                  "actionsExecuted": "95",
+                  "firstStartedMs": "1792911528489",
+                  "lastEndedMs": "1792911528829",
+                  "actionsCreated": "2287"
+                },
+                {
+                  "mnemonic": "CppArchive",
+                  "actionsExecuted": "55",
+                  "firstStartedMs": "1792911527016",
+                  "lastEndedMs": "1792911530617",
+                  "actionsCreated": "68"
+                },
+                {
+                  "mnemonic": "CppLink",
+                  "actionsExecuted": "42",
+                  "firstStartedMs": "1792911528418",
+                  "lastEndedMs": "1792911530621",
+                  "actionsCreated": "96"
+                },
+                {
+                  "mnemonic": "TemplateExpand",
+                  "actionsExecuted": "19",
+                  "firstStartedMs": "1792911526541",
+                  "lastEndedMs": "1792911527627",
+                  "actionsCreated": "24"
+                },
+                {
+                  "mnemonic": "CopyFile",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911526791",
+                  "lastEndedMs": "1792911528375",
+                  "actionsCreated": "16"
+                },
+                {
+                  "mnemonic": "RepoMappingManifest",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911526520",
+                  "lastEndedMs": "1792911527658",
+                  "actionsCreated": "43"
+                },
+                {
+                  "mnemonic": "SymlinkTree",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911526536",
+                  "lastEndedMs": "1792911527660",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "SourceSymlinkManifest",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911526533",
+                  "lastEndedMs": "1792911527659",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "RunfilesTree",
+                  "actionsExecuted": "16",
+                  "firstStartedMs": "1792911527208",
+                  "lastEndedMs": "1792911531252",
+                  "actionsCreated": "40"
+                },
+                {
+                  "mnemonic": "Genrule",
+                  "actionsExecuted": "15",
+                  "firstStartedMs": "1792911527275",
+                  "lastEndedMs": "1792911529214",
+                  "actionsCreated": "15"
+                },
+                {
+                  "mnemonic": "GenProtoDescriptorSet",
+                  "actionsExecuted": "10",
+                  "firstStartedMs": "1792911526797",
+                  "lastEndedMs": "1792911526993",
+                  "actionsCreated": "10"
+                },
+                {
+                  "mnemonic": "GoProtocGen",
+                  "actionsExecuted": "8",
+                  "firstStartedMs": "1792911527390",
+                  "lastEndedMs": "1792911527430",
+                  "actionsCreated": "8"
+                },
+                {
+                  "mnemonic": "ExecutableSymlink",
+                  "actionsExecuted": "8",
+                  "firstStartedMs": "1792911526797",
+                  "lastEndedMs": "1792911527390",
+                  "actionsCreated": "11"
+                },
+                {
+                  "mnemonic": "RunBinary",
+                  "actionsExecuted": "6",
+                  "firstStartedMs": "1792911527217",
+                  "lastEndedMs": "1792911527271",
+                  "actionsCreated": "6"
+                },
+                {
+                  "mnemonic": "GoLink",
+                  "actionsExecuted": "4",
+                  "firstStartedMs": "1792911527335",
+                  "lastEndedMs": "1792911531222",
+                  "actionsCreated": "4"
+                },
+                {
+                  "mnemonic": "UnresolvedSymlink",
+                  "actionsExecuted": "3",
+                  "firstStartedMs": "1792911526552",
+                  "lastEndedMs": "1792911527015",
+                  "actionsCreated": "3"
+                }
+              ],
+              "runnerCount": [
+                {
+                  "name": "total",
+                  "count": 6789
+                },
+                {
+                  "name": "remote cache hit",
+                  "count": 5704,
+                  "execKind": "Remote"
+                },
+                {
+                  "name": "internal",
+                  "count": 1085
+                }
+              ],
+              "actionCacheStatistics": {
+                "sizeInBytes": "3408937",
+                "saveTimeInMs": "8",
+                "misses": 6789,
+                "missDetails": [
+                  {},
+                  {
+                    "reason": "DIFFERENT_DEPS"
+                  },
+                  {
+                    "reason": "DIFFERENT_ENVIRONMENT"
+                  },
+                  {
+                    "reason": "DIFFERENT_FILES"
+                  },
+                  {
+                    "reason": "CORRUPTED_CACHE_ENTRY"
+                  },
+                  {
+                    "reason": "NOT_CACHED",
+                    "count": 6788
+                  },
+                  {
+                    "reason": "UNCONDITIONAL_EXECUTION",
+                    "count": 1
+                  },
+                  {
+                    "reason": "DIGEST_MISMATCH"
+                  }
+                ],
+                "loadTimeInMs": "1"
+              }
+            },
+            "memoryMetrics": {
+              "garbageMetrics": [
+                {
+                  "type": "CodeHeap 'non-profiled nmethods'",
+                  "garbageCollected": "2070016"
+                },
+                {
+                  "type": "CodeHeap 'profiled nmethods'",
+                  "garbageCollected": "12794752"
+                },
+                {
+                  "type": "Compressed Class Space",
+                  "garbageCollected": "35376"
+                },
+                {
+                  "type": "G1 Eden Space",
+                  "garbageCollected": "26055016440"
+                },
+                {
+                  "type": "G1 Old Gen",
+                  "garbageCollected": "394289536"
+                },
+                {
+                  "type": "G1 Survivor Space",
+                  "garbageCollected": "159446728"
+                },
+                {
+                  "type": "Metaspace",
+                  "garbageCollected": "124680"
+                }
+              ]
+            },
+            "timingMetrics": {
+              "cpuTimeInMs": "388430",
+              "wallTimeInMs": "18107",
+              "analysisPhaseTimeInMs": "11605",
+              "executionPhaseTimeInMs": "4824",
+              "actionsExecutionStartInMs": "13311",
+              "criticalPathTime": "0.559988814s"
+            },
+            "cumulativeMetrics": {
+              "numAnalyses": 1,
+              "numBuilds": 1,
+              "instanceId": "3fcccea6-4df6-4643-985a-99d1f09798d5"
+            },
+            "buildGraphMetrics": {
+              "actionLookupValueCount": 49081,
+              "actionCount": 13809,
+              "outputArtifactCount": 23410,
+              "postInvocationSkyframeNodeCount": 318111,
+              "actionLookupValueCountNotIncludingAspects": 49020,
+              "actionCountNotIncludingAspects": 13808,
+              "inputFileConfiguredTargetCount": 40736,
+              "outputFileConfiguredTargetCount": 10,
+              "otherConfiguredTargetCount": 124,
+              "builtValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "6786"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "608"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "6"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "608"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "136"
+                },
+                {
+                  "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+                  "count": "32"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "5473"
+                },
+                {
+                  "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+                  "count": "42"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "11162"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "610"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1221"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_TOOLCHAINS",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "612"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "13915"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "40609"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "248"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "76715"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "6789"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "1955"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "582"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "435"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "7"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "83615"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "1832"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "5459"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "57578"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "610"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "56"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ASPECT",
+                  "count": "60"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "9"
+                }
+              ],
+              "evaluatedValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "12245"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "1824"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "1305"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "444"
+                },
+                {
+                  "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+                  "count": "51"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "135"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "12698"
+                },
+                {
+                  "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+                  "count": "86"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "22304"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "2107"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1221"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_TOOLCHAINS",
+                  "count": "10"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "661"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "38566"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "7"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "40614"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "297"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "76719"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "45"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "47"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "109"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "12579"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "4631"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "15"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "1129"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "2037"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "177078"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "4385"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "5459"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "114283"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "720"
+                },
+                {
+                  "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "56"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "ASPECT",
+                  "count": "85"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "18"
+                }
+              ]
+            }
+          },
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 6789
+            },
+            {
+              "name": "remote cache hit",
+              "count": 5704,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1085
+            }
+          ],
+          "target_bep_files": [
+            {
+              "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "uri": "file:///home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "pathPrefix": [
+                "bazel-out",
+                "k8-fastbuild-ST-646df0be3f72",
+                "bin"
+              ],
+              "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+              "length": "119596056"
+            }
+          ],
+          "output_inventory": {
+            "files": 767,
+            "bytes": 4851860,
+            "archives": 0,
+            "exports": 0,
+            "target_files": []
+          },
+          "grpc": {
+            "method_attempt_counts": {
+              "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1,
+              "build.bazel.remote.execution.v2.ActionCache/GetActionResult": 5704,
+              "google.bytestream.ByteStream/Read": 1641
+            },
+            "status_counts": {
+              "0": 7346
+            },
+            "logical_rpc_count": 7346,
+            "bytestream_read_calls": 1641,
+            "bytestream_read_bytes": 15304814,
+            "target_blob_reads": [],
+            "log_bytes": 7714903
+          }
+        }
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25",
+            "free_bytes": 976086048768,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 895460962304
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 895460962304,
+          "system_drive": "C:\\",
+          "system_free_bytes": 145864925184,
+          "windows_drives": {
+            "C:\\": 145864925184,
+            "D:\\": 992987533312,
+            "E:\\": 895460962304
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792911512.461
+        }
+      },
+      "publications_after": {
+        "leased-v1/publications-v3/5239b3fff179d33cee69bc1cb14c464fae52f2c8bb4f6dc7a0abcc988d07d759/97ae8dd58ce1e06aa08501651070518305dadc5660626a0286dc8da42ea5a589.manifest": "31e8db0683a012f7aa1e8f3d0f0551b2ec39fc56cc53a74a95ac1fe02fbb2596"
+      },
+      "publication_events": [
+        {
+          "elapsed": 21.26159467799971,
+          "monotonic": 2741.520469819,
+          "path": "leased-v1/publications-v3/5239b3fff179d33cee69bc1cb14c464fae52f2c8bb4f6dc7a0abcc988d07d759/97ae8dd58ce1e06aa08501651070518305dadc5660626a0286dc8da42ea5a589.manifest"
+        }
+      ],
+      "guard_errors": [],
+      "peak_combined_pss_kib": 2488760,
+      "peak_combined_rss_kib": 2504484,
+      "overlap_seconds": null,
+      "passed": true
+    },
+    {
+      "label": "cross-read-base",
+      "started_at": "2026-10-25T06:58:54.624684+00:00",
+      "publications_before": {
+        "leased-v1/publications-v3/5239b3fff179d33cee69bc1cb14c464fae52f2c8bb4f6dc7a0abcc988d07d759/97ae8dd58ce1e06aa08501651070518305dadc5660626a0286dc8da42ea5a589.manifest": "31e8db0683a012f7aa1e8f3d0f0551b2ec39fc56cc53a74a95ac1fe02fbb2596"
+      },
+      "preparation": [
+        {
+          "worktree": "b",
+          "shutdown": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "shutdown"
+            ],
+            "seconds": 0.5183363040000586,
+            "exit_code": 0
+          },
+          "clean": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "clean",
+              "--noasync",
+              "--noexpunge",
+              "--color=no",
+              "--curses=no",
+              "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+              "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/b-"
+            ],
+            "seconds": 1.3276830760000848,
+            "exit_code": 0
+          },
+          "publications_preserved": true,
+          "execroot_after_clean": [],
+          "action_cache_after_clean": false,
+          "dump": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "dump",
+              "--skyframe=summary"
+            ],
+            "seconds": 0.11457548899988979,
+            "exit_code": 0
+          },
+          "graph_nodes": 0,
+          "graph_edges": 0,
+          "server_pid": 150140
+        }
+      ],
+      "runs": [
+        {
+          "label": "cross-read-base-b",
+          "worktree": "b",
+          "state": "base",
+          "skycache": true,
+          "mode": "minimal",
+          "argv": [
+            "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+            "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+            "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+            "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--host_jvm_args=-Xmx4g",
+            "--max_idle_secs=600",
+            "build",
+            "//cmd/cluster-agent:cluster-agent",
+            "--jobs=8",
+            "--local_resources=memory=3072",
+            "--lockfile_mode=error",
+            "--experimental_strict_repo_env",
+            "--color=no",
+            "--curses=no",
+            "--disk_cache=",
+            "--remote_cache=grpc://10.55.0.1:8080",
+            "--remote_instance_name=",
+            "--remote_timeout=600",
+            "--remote_retries=1",
+            "--noremote_local_fallback",
+            "--remote_upload_local_results",
+            "--remote_accept_cached",
+            "--remote_download_outputs=minimal",
+            "--bes_backend=",
+            "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+            "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/b-",
+            "--build_event_json_file=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/cross-read-base-b.bep.json",
+            "--profile=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/cross-read-base-b.profile.gz",
+            "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/cross-read-base-b.grpc.bin",
+            "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/shared-skycache",
+            "--experimental_active_directories=cmd/cluster-agent",
+            "--experimental_local_skycache_gc_max_size=0",
+            "--experimental_local_skycache_gc_max_age=0",
+            "--experimental_analysis_cache_idle_retention=0"
+          ],
+          "server_pid_before": 150140,
+          "start_monotonic": 2743.683812003,
+          "started_at": "2026-10-25T06:58:56.630373+00:00",
+          "end_monotonic": 2754.165364451,
+          "seconds": 10.481552448000002,
+          "exit_code": 0,
+          "server_pid_after": 150140,
+          "analysis_hits": 12,
+          "execution_hits": 6,
+          "warnings": [
+            "Option 'experimental_disk_cache_gc_max_size' is deprecated: Use --disk_cache_gc_max_size instead",
+            "Option 'incompatible_default_to_explicit_init_py' is deprecated",
+            "Specifying --experimental_active_directories will override the active directories specified in the PROJECT.scl file"
+          ],
+          "publication_failures": [],
+          "cache_disabled": false,
+          "local-skycache.json": {
+            "writes": 0,
+            "reads": 255482,
+            "shared_reads": 255471,
+            "rejected_publications": 0,
+            "deduplicated_writes": 20,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 48669050,
+            "cas_put_requests": 20,
+            "cas_accepted_puts": 20,
+            "cas_put_key_bytes": 320,
+            "cas_put_value_bytes": 995,
+            "cas_get_requests": 255453,
+            "cas_get_hits": 255453,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 87619583,
+            "catalog_busy_skips": 0
+          },
+          "local-skycache-validation.json": {
+            "records_read": 163219,
+            "memo_hits": 367979,
+            "witnesses_checked": 7722,
+            "rejected_roots": 0,
+            "memo_entries": 163219,
+            "witness_memo_hits": 76401,
+            "witness_memo_entries": 149969,
+            "admission_witness_memo_hits": 142247,
+            "subtree_waits": 17
+          },
+          "build_metrics": {
+            "actionSummary": {
+              "actionsCreated": "7",
+              "actionsExecuted": "6",
+              "actionsCreatedNotIncludingAspects": "6",
+              "actionData": [
+                {
+                  "mnemonic": "SymlinkTree",
+                  "actionsExecuted": "1",
+                  "firstStartedMs": "1792911546898",
+                  "lastEndedMs": "1792911546904",
+                  "actionsCreated": "1"
+                },
+                {
+                  "mnemonic": "Symlink",
+                  "actionsExecuted": "1",
+                  "firstStartedMs": "1792911546910",
+                  "lastEndedMs": "1792911546912"
+                },
+                {
+                  "mnemonic": "RepoMappingManifest",
+                  "actionsExecuted": "1",
+                  "firstStartedMs": "1792911546892",
+                  "lastEndedMs": "1792911546938",
+                  "actionsCreated": "1"
+                },
+                {
+                  "mnemonic": "SourceSymlinkManifest",
+                  "actionsExecuted": "1",
+                  "firstStartedMs": "1792911546893",
+                  "lastEndedMs": "1792911546896",
+                  "actionsCreated": "1"
+                },
+                {
+                  "mnemonic": "BazelWorkspaceStatusAction",
+                  "actionsExecuted": "1",
+                  "firstStartedMs": "1792911541581",
+                  "lastEndedMs": "1792911541600",
+                  "actionsCreated": "1"
+                },
+                {
+                  "mnemonic": "RunfilesTree",
+                  "actionsExecuted": "1",
+                  "firstStartedMs": "1792911547022",
+                  "lastEndedMs": "1792911547024",
+                  "actionsCreated": "1"
+                },
+                {
+                  "mnemonic": "GoCompilePkg",
+                  "actionsCreated": "1"
+                },
+                {
+                  "mnemonic": "GoLink",
+                  "actionsCreated": "1"
+                }
+              ],
+              "runnerCount": [
+                {
+                  "name": "total",
+                  "count": 6
+                },
+                {
+                  "name": "internal",
+                  "count": 6
+                }
+              ],
+              "actionCacheStatistics": {
+                "sizeInBytes": "1211",
+                "misses": 8,
+                "missDetails": [
+                  {},
+                  {
+                    "reason": "DIFFERENT_DEPS"
+                  },
+                  {
+                    "reason": "DIFFERENT_ENVIRONMENT"
+                  },
+                  {
+                    "reason": "DIFFERENT_FILES"
+                  },
+                  {
+                    "reason": "CORRUPTED_CACHE_ENTRY"
+                  },
+                  {
+                    "reason": "NOT_CACHED",
+                    "count": 7
+                  },
+                  {
+                    "reason": "UNCONDITIONAL_EXECUTION",
+                    "count": 1
+                  },
+                  {
+                    "reason": "DIGEST_MISMATCH"
+                  }
+                ],
+                "loadTimeInMs": "1"
+              }
+            },
+            "memoryMetrics": {
+              "garbageMetrics": [
+                {
+                  "type": "CodeHeap 'non-profiled nmethods'",
+                  "garbageCollected": "1528320"
+                },
+                {
+                  "type": "CodeHeap 'profiled nmethods'",
+                  "garbageCollected": "6376960"
+                },
+                {
+                  "type": "Compressed Class Space",
+                  "garbageCollected": "7392"
+                },
+                {
+                  "type": "G1 Eden Space",
+                  "garbageCollected": "3720347648"
+                },
+                {
+                  "type": "G1 Old Gen",
+                  "garbageCollected": "52009160"
+                },
+                {
+                  "type": "G1 Survivor Space",
+                  "garbageCollected": "83484088"
+                },
+                {
+                  "type": "Metaspace",
+                  "garbageCollected": "25632"
+                }
+              ]
+            },
+            "timingMetrics": {
+              "cpuTimeInMs": "52030",
+              "wallTimeInMs": "10413",
+              "analysisPhaseTimeInMs": "5297",
+              "executionPhaseTimeInMs": "168",
+              "actionsExecutionStartInMs": "10241",
+              "criticalPathTime": "0.046661592s"
+            },
+            "cumulativeMetrics": {
+              "numAnalyses": 1,
+              "numBuilds": 1,
+              "instanceId": "dc864d1d-bc0e-4b76-8d5c-37d0baed78a6"
+            },
+            "buildGraphMetrics": {
+              "actionLookupValueCount": 13,
+              "actionCount": 6,
+              "outputArtifactCount": 8,
+              "postInvocationSkyframeNodeCount": 76681,
+              "actionLookupValueCountNotIncludingAspects": 13,
+              "actionCountNotIncludingAspects": 6,
+              "otherConfiguredTargetCount": 3,
+              "builtValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "3328"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "13"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "460"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "12"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "1397"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "460"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "13"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "3817"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "432"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "348"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "22"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "26404"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "945"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "3327"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "464"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "24"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "464"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1205"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "464"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "8333"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "26"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "248"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "24276"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "13"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "9"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "13"
+                }
+              ],
+              "evaluatedValues": [
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING",
+                  "count": "6655"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+                  "count": "42"
+                },
+                {
+                  "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+                  "count": "1380"
+                },
+                {
+                  "skyfunctionName": "ACTION_EXECUTION",
+                  "count": "18"
+                },
+                {
+                  "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+                  "count": "3410"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION",
+                  "count": "6"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILTINS",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_FILE",
+                  "count": "922"
+                },
+                {
+                  "skyfunctionName": "PLATFORM",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+                  "count": "15"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN",
+                  "count": "15"
+                },
+                {
+                  "skyfunctionName": "BUILD_DRIVER",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION",
+                  "count": "39"
+                },
+                {
+                  "skyfunctionName": "PACKAGE",
+                  "count": "9300"
+                },
+                {
+                  "skyfunctionName": "REPO_SPEC",
+                  "count": "62"
+                },
+                {
+                  "skyfunctionName": "REPO_PACKAGE_ARGS",
+                  "count": "858"
+                },
+                {
+                  "skyfunctionName": "GLOBS",
+                  "count": "1784"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT_NESTED_SET",
+                  "count": "44"
+                },
+                {
+                  "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+                  "count": "7"
+                },
+                {
+                  "skyfunctionName": "FILE",
+                  "count": "60605"
+                },
+                {
+                  "skyfunctionName": "BZL_LOAD",
+                  "count": "2331"
+                },
+                {
+                  "skyfunctionName": "DIRECTORY_LISTING_STATE",
+                  "count": "3327"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_DIRECTORY",
+                  "count": "2021"
+                },
+                {
+                  "skyfunctionName": "CONFIGURED_TARGET",
+                  "count": "63"
+                },
+                {
+                  "skyfunctionName": "BUILD_INFO",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "REPO_DEFINITION",
+                  "count": "486"
+                },
+                {
+                  "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+                  "count": "1205"
+                },
+                {
+                  "skyfunctionName": "BAZEL_LOCK_FILE",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_MAPPING",
+                  "count": "480"
+                },
+                {
+                  "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+                  "count": "1"
+                },
+                {
+                  "skyfunctionName": "PACKAGE_LOOKUP",
+                  "count": "26062"
+                },
+                {
+                  "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+                  "count": "3"
+                },
+                {
+                  "skyfunctionName": "PLATFORM_MAPPING",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "BAZEL_DEP_GRAPH",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "ARTIFACT",
+                  "count": "4"
+                },
+                {
+                  "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+                  "count": "26"
+                },
+                {
+                  "skyfunctionName": "BASELINE_OPTIONS",
+                  "count": "6"
+                },
+                {
+                  "skyfunctionName": "MODULE_FILE",
+                  "count": "297"
+                },
+                {
+                  "skyfunctionName": "TARGET_COMPLETION",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "PROJECT_FILES_LOOKUP",
+                  "count": "5"
+                },
+                {
+                  "skyfunctionName": "FILE_STATE",
+                  "count": "24279"
+                },
+                {
+                  "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+                  "count": "13"
+                },
+                {
+                  "skyfunctionName": "TARGET_PATTERN_PHASE",
+                  "count": "18"
+                },
+                {
+                  "skyfunctionName": "REGISTRY",
+                  "count": "2"
+                },
+                {
+                  "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+                  "count": "15"
+                }
+              ]
+            }
+          },
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 6
+            },
+            {
+              "name": "internal",
+              "count": 6
+            }
+          ],
+          "target_bep_files": [
+            {
+              "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "uri": "file:///home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+              "pathPrefix": [
+                "bazel-out",
+                "k8-fastbuild-ST-646df0be3f72",
+                "bin"
+              ],
+              "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+              "length": "119596056"
+            }
+          ],
+          "output_inventory": {
+            "files": 4,
+            "bytes": 45138,
+            "archives": 0,
+            "exports": 0,
+            "target_files": []
+          },
+          "grpc": {
+            "method_attempt_counts": {
+              "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1
+            },
+            "status_counts": {
+              "0": 1
+            },
+            "logical_rpc_count": 1,
+            "bytestream_read_calls": 0,
+            "bytestream_read_bytes": 0,
+            "target_blob_reads": [],
+            "log_bytes": 295
+          }
+        }
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25",
+            "free_bytes": 975617593344,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 894991200256
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 894991200256,
+          "system_drive": "C:\\",
+          "system_free_bytes": 145831354368,
+          "windows_drives": {
+            "C:\\": 145831354368,
+            "D:\\": 992987533312,
+            "E:\\": 894991200256
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792911536.571
+        }
+      },
+      "publications_after": {
+        "leased-v1/publications-v3/5239b3fff179d33cee69bc1cb14c464fae52f2c8bb4f6dc7a0abcc988d07d759/97ae8dd58ce1e06aa08501651070518305dadc5660626a0286dc8da42ea5a589.manifest": "31e8db0683a012f7aa1e8f3d0f0551b2ec39fc56cc53a74a95ac1fe02fbb2596"
+      },
+      "publication_events": [],
+      "guard_errors": [],
+      "peak_combined_pss_kib": 1637912,
+      "peak_combined_rss_kib": 1653700,
+      "overlap_seconds": null,
+      "passed": true
+    },
+    {
+      "label": "controls",
+      "started_at": "2026-10-25T06:59:08.330238+00:00",
+      "publications_before": {
+        "leased-v1/publications-v3/5239b3fff179d33cee69bc1cb14c464fae52f2c8bb4f6dc7a0abcc988d07d759/97ae8dd58ce1e06aa08501651070518305dadc5660626a0286dc8da42ea5a589.manifest": "31e8db0683a012f7aa1e8f3d0f0551b2ec39fc56cc53a74a95ac1fe02fbb2596"
+      },
+      "preparation": [
+        {
+          "worktree": "a",
+          "shutdown": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "shutdown"
+            ],
+            "seconds": 0.5183569559999341,
+            "exit_code": 0
+          },
+          "clean": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "clean",
+              "--noasync",
+              "--noexpunge",
+              "--color=no",
+              "--curses=no",
+              "--experimental_local_skycache=",
+              "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/a-"
+            ],
+            "seconds": 1.3674831990001621,
+            "exit_code": 0
+          },
+          "publications_preserved": true,
+          "execroot_after_clean": [],
+          "action_cache_after_clean": false,
+          "dump": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "dump",
+              "--skyframe=summary"
+            ],
+            "seconds": 0.11430425600019589,
+            "exit_code": 0
+          },
+          "graph_nodes": 0,
+          "graph_edges": 0,
+          "server_pid": 151501
+        },
+        {
+          "worktree": "b",
+          "shutdown": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "shutdown"
+            ],
+            "seconds": 0.5155843219999952,
+            "exit_code": 0
+          },
+          "clean": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "clean",
+              "--noasync",
+              "--noexpunge",
+              "--color=no",
+              "--curses=no",
+              "--experimental_local_skycache=",
+              "--symlink_prefix=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/links/b-"
+            ],
+            "seconds": 1.218921818999661,
+            "exit_code": 0
+          },
+          "publications_preserved": true,
+          "execroot_after_clean": [],
+          "action_cache_after_clean": false,
+          "dump": {
+            "argv": [
+              "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+              "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+              "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+              "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+              "--host_jvm_args=-Xmx4g",
+              "--max_idle_secs=600",
+              "dump",
+              "--skyframe=summary"
+            ],
+            "seconds": 0.1142419989996597,
+            "exit_code": 0
+          },
+          "graph_nodes": 0,
+          "graph_edges": 0,
+          "server_pid": 151499
+        }
+      ],
+      "runs": [],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25",
+            "free_bytes": 975685328896,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 894991200256
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 894991200256,
+          "system_drive": "C:\\",
+          "system_free_bytes": 145831231488,
+          "windows_drives": {
+            "C:\\": 145831231488,
+            "D:\\": 992987533312,
+            "E:\\": 894991200256
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792911548.601
+        }
+      }
+    }
+  ],
+  "setup": {
+    "a": {
+      "workspace": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a",
+      "output_base": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+      "git_common_dir": "/home/jgett/REPOS/datadog-agent/.git",
+      "relocated_symlinks": 170
+    },
+    "b": {
+      "workspace": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b",
+      "output_base": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+      "git_common_dir": "/home/jgett/REPOS/datadog-agent/.git",
+      "relocated_symlinks": 170
+    }
+  },
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25",
+        "free_bytes": 981294825472,
+        "host_backing": {
+          "kind": "wsl_distro",
+          "path": "E:\\WSL\\Ubuntu",
+          "free_bytes": 900225691648
+        }
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 900225691648,
+      "system_drive": "C:\\",
+      "system_free_bytes": 146134802432,
+      "windows_drives": {
+        "C:\\": 146134802432,
+        "D:\\": 992987533312,
+        "E:\\": 900225691648
+      },
+      "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+      "observed_unix": 1792911395.027
+    }
+  },
+  "limits": {
+    "heap_gib_each": 4,
+    "jobs_each": 8,
+    "local_action_memory_mib_each": 3072
+  },
+  "memory_scope": "Combined server process trees and descendants at 200 ms; excludes launcher/probe, OS page cache, unrelated processes.",
+  "method": "Seed A, cross-worktree read B, independent changed cache-off controls without uploads, concurrent divergent writers, concurrent clean readers, swap changes and cross-read minimal/toplevel. Shutdown and clean with zero graph before every build. Controls precede cache-on changed builds. Existing external downloads copied with known-root symlinks relocated; no local action/output state copied.",
+  "final_shutdowns": {
+    "a": {
+      "argv": [
+        "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/a/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-a",
+        "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=600",
+        "shutdown"
+      ],
+      "seconds": 0.6782488769999873,
+      "exit_code": 0
+    },
+    "b": {
+      "argv": [
+        "/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/b/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/datadog-concurrent-2026-10-25/out-b",
+        "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx4g",
+        "--max_idle_secs=600",
+        "shutdown"
+      ],
+      "seconds": 0.8261014479999176,
+      "exit_code": 0
+    }
+  },
+  "original_workspace_unchanged": true,
+  "finished_at": "2026-10-25T07:03:44.692091+00:00",
+  "initial_failure": "AssertionError('seed-a')",
+  "protocol_events": [
+    {
+      "at": "2026-10-25T06:58:18.908206+00:00",
+      "event": "Initial relocated-external seed build succeeded but rejected publication for inputs changing during the invocation. Preserve failure. Stabilize B with cache off, then retry A seed without source/product changes."
+    }
+  ],
+  "failure": "KeyError(3)"
+}
