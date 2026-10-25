@@ -6,7 +6,7 @@ SkyCache is an experimental persistent backend for Bazel's Skyframe analysis cac
 
 The implementation builds on Bazel's existing serialization, dependency-validation and graph-retrieval paths. Cache & Carry supplies the remote action cache and content-addressable store (CAS); SkyCache keeps graph values and output digests on a shared local filesystem. Output bytes remain in CAS until the build needs them.
 
-Implementation snapshot: `d4971808785aaa3cd46bf6dd1419cb65afb4319e`, 25 October 2026. The [complete implementation patch](measurements/skycache-large-tree-2026-10-25/implementation-current.patch) and [large-tree implementation, benchmark and protocol](skycache-large-tree-2026-10-25.md) include the segmented format and bounded validation memo update. Earlier measurements below are labeled by their historical implementation scope. This remains a prototype for discussion.
+Implementation snapshot: `1aac2aa2ec6fe31af2e979558f06a3b6971c601b`, 25 October 2026, merged with upstream `a5c50fcb65841b505ec72840d83381a704e70afa`. The [upstream sync report](skycache-upstream-sync-2026-10-25.md) contains the current implementation patch, 432 passing test cases and refreshed Datadog baseline. The [large-tree report](skycache-large-tree-2026-10-25.md) documents the preceding segmented-storage implementation. Earlier measurements below are historical. This remains a prototype for discussion.
 
 ## Architecture
 
@@ -35,7 +35,7 @@ The integration has four layers:
 | Persistent storage | Store fingerprint-addressed values in immutable packs and publish a manifest after a successful build | `LocalCacheSession`, `SegmentedFingerprintValueStore`, `PackedFingerprintValueStore`, `LocalWitnessTable` |
 | Lifetime management | Pin readers, writers and required parent publications; collect unneeded publications during idle time | `LocalCacheLeaseManager`, `LocalCacheGarbageCollector` |
 
-The local backend uses the existing asynchronous bidirectional analysis-cache machinery. `--experimental_active_directories` determines the active part of the graph and its reuse frontier. A small number of restored frontier values can therefore avoid reconstructing a much larger dependency closure. The number of cache hits is not the number of configured targets whose work was avoided.
+The local backend uses the existing asynchronous bidirectional analysis-cache machinery. Current upstream makes `--experimental_active_directories` ineffective; the prior default `async_bidi` uploader already did not select uploads through that matcher. Read-time top-down retrieval still allows a restored value to prune its dependency traversal. Experimental selective publication (E4) is a separate prototype. A small number of restored frontier values can therefore avoid reconstructing a much larger dependency closure. The number of cache hits is not the number of configured targets whose work was avoided.
 
 Analysis values and portable execution values use distinct envelopes. An execution hit returns remote output metadata through the existing `ActionExecutionFunction` and `ArtifactFunction` retrieval paths before the generating action's dependency closure is traversed.
 
@@ -45,7 +45,7 @@ A Git revision is not sufficient validity evidence. `LocalInputSnapshot` capture
 
 Each reused entry carries a dependency root. `LocalDependencyValidator` validates the persisted dependency graph and its file witnesses against the current filesystem, with memoization and bounded traversal. Changed or unusable evidence produces a cache miss. This remains real local validation work; the implementation does not eliminate source validation.
 
-The cache namespace includes the Git common-directory identity, native byte order and effective repository/action/test environments. It also includes the remote cache endpoint, executor endpoint, instance name and execution-metadata format. Repository bindings receive additional checks so that a repository name cannot silently resolve to a different tree. Without Git metadata, the namespace uses the workspace's real path.
+The cache namespace includes the Git common-directory identity, native byte order and effective repository/action/test environments. The upstream integration advances the namespace salt to `local-project-v4-content-sha256` because configuration-key serialization changed; older publications remain isolated and intact. It also includes the remote cache endpoint, executor endpoint, instance name and execution-metadata format. Repository bindings receive additional checks so that a repository name cannot silently resolve to a different tree. Without Git metadata, the namespace uses the workspace's real path.
 
 These checks allow two worktrees of one local Git repository to consult the same store while validating their different source contents. An independent clone does not automatically share that namespace. Build configurations still participate in Bazel's serialized keys; sharing a directory does not make distinct configurations interchangeable.
 

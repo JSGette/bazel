@@ -1,0 +1,183 @@
+{
+  "purpose": "Sampled call-stack attribution, not wall-time percentages or a new latency benchmark. Native samples include blocked I/O/event-loop threads. Methods are inclusive and overlap.",
+  "events": 1826,
+  "groups": {
+    "jdk.NativeMethodSample": {
+      "other JVM/Bazel/background": 642
+    },
+    "jdk.ExecutionSample": {
+      "other JVM/Bazel/background": 783,
+      "broad source capture": 1,
+      "other serialization": 165,
+      "publication admission": 11,
+      "other local pack reads": 165,
+      "dependency validation": 59
+    }
+  },
+  "inclusive_methods": {
+    "jdk.ExecutionSample": [
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.get",
+        133
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.find",
+        113
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.getIfPresent",
+        89
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.read",
+        59
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateRoot",
+        39
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.readCandidates",
+        31
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.push",
+        25
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.openSegment",
+        24
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.openFiles",
+        24
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.store",
+        24
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.digest",
+        23
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateWitness",
+        22
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.find",
+        20
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matches",
+        14
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validate",
+        14
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprint",
+        13
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.read",
+        13
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.remember",
+        13
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest",
+        12
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.hashContents",
+        12
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.readManifest",
+        11
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refreshCandidates",
+        11
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.includeAdmittedWitness",
+        10
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.resolve",
+        9
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refresh",
+        8
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.lambda$children$0",
+        7
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.hash",
+        7
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.readRecord",
+        6
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put",
+        4
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.get",
+        4
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.matchesForAdmission",
+        3
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.bucket",
+        3
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.captureSource",
+        1
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.captureDirectory",
+        1
+      ],
+      [
+        "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.isRepositoryBinding",
+        1
+      ]
+    ]
+  },
+  "observed_sample_spans": {
+    "broad source capture": {
+      "first": "2026-10-25T12:17:11.303910903+01:00",
+      "last": "2026-10-25T12:17:11.303910903+01:00"
+    },
+    "other serialization": {
+      "first": "2026-10-25T12:17:12.788990665+01:00",
+      "last": "2026-10-25T12:17:23.988627789+01:00"
+    },
+    "publication admission": {
+      "first": "2026-10-25T12:17:12.991305690+01:00",
+      "last": "2026-10-25T12:17:17.415232637+01:00"
+    },
+    "other local pack reads": {
+      "first": "2026-10-25T12:17:17.540323753+01:00",
+      "last": "2026-10-25T12:17:23.734395461+01:00"
+    },
+    "dependency validation": {
+      "first": "2026-10-25T12:17:17.666854542+01:00",
+      "last": "2026-10-25T12:17:23.380046077+01:00"
+    }
+  }
+}

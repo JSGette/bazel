@@ -1,0 +1,20 @@
+from pathlib import Path
+import subprocess,json,time
+BASE=Path('/home/jgett/REPOS/bazel-skycache-v2')
+WS=Path('/home/jgett/REPOS/bazel-skycache-upstream-2026-10-25')
+R=Path('/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25')
+R.mkdir(exist_ok=False)
+def git(*args,cwd=BASE,check=True):
+ r=subprocess.run(['git',*args],cwd=cwd,capture_output=True,text=True)
+ with (R/'git-protocol.jsonl').open('a') as f:f.write(json.dumps(dict(argv=['git',*args],cwd=str(cwd),exit_code=r.returncode,stdout=r.stdout,stderr=r.stderr,time=time.time()))+'\n')
+ if check:r.check_returncode()
+ return r.stdout.strip()
+assert not git('status','--porcelain')
+head=git('rev-parse','HEAD');up=git('rev-parse','refs/remotes/upstream/master');mb=git('merge-base',head,up)
+(R/'provenance.json').write_text(json.dumps(dict(original_head=head,upstream=up,merge_base=mb,worktree=str(WS),purpose='Upstream sync and baseline assessment before 64 MiB budget changes'),indent=2)+'\n')
+git('log','--oneline',head+'..'+up)
+git('diff','--stat',mb,up)
+git('worktree','add','-b','jsgette/skycache-upstream-2026-10-25',str(WS),head)
+git('merge','--no-ff','--no-commit',up,cwd=WS,check=False)
+print(git('status','--short',cwd=WS))
+print('CONFLICTS',git('diff','--name-only','--diff-filter=U',cwd=WS))
