@@ -402,9 +402,23 @@ public final class FileOpNodeMemoizingLookup {
   }
 
   /** Whether serialization skips {@code key}: absent from the graph, or deserialized from cache. */
-  private boolean isSkipped(SkyKey key) {
+  boolean isSkipped(SkyKey key) {
     InMemoryNodeEntry entry = graph.getIfPresent(key);
     return entry == null || entry.getValue() instanceof DeserializedSkyValue;
+  }
+
+  /** The node for {@code key}, which must already have been materialized. */
+  FileOpNodeOrEmpty resolvedNode(ActionLookupKey key) {
+    return switch (nodes.getValueOrFuture(key)) {
+      case FileOpNodeOrEmpty immediate -> immediate;
+      case FutureFileOpNode future -> {
+        try {
+          yield Futures.getDone(future);
+        } catch (ExecutionException | CancellationException e) {
+          throw new AssertionError("unexpected failure for already materialized node: " + key, e);
+        }
+      }
+    };
   }
 
   /**
@@ -415,7 +429,7 @@ public final class FileOpNodeMemoizingLookup {
    */
   private final class LookupQuiescence extends QuiescingFuture<ImmutableList<Throwable>>
       implements FutureCallback<FileOpNodeOrEmpty> {
-    // Soft bound on the number of errors that we accumlate here. This bound can be exceeded due to
+    // Soft bound on the number of errors that we accumulate here. This bound can be exceeded due to
     // a TOCTOU race condition, but it's of no practical concern.
     private static final int MAX_ERRORS = 100;
 
@@ -458,7 +472,8 @@ public final class FileOpNodeMemoizingLookup {
             SkyKey key = keys.get(i);
             // Skip keys that are never uploaded (see isSkipped). Materializing their nodes is
             // wasted work and, for keys absent from the graph, would report a spurious
-            // MissingSkyframeEntryException.
+            // MissingSkyframeEntryException. UploadLayout.partition must apply the same
+            // filter: it expects every key it keeps to have been materialized here.
             if (isSkipped(key)) {
               continue;
             }
@@ -503,7 +518,9 @@ public final class FileOpNodeMemoizingLookup {
     @Override
     @DoNotCall("Only called via track")
     public void onFailure(Throwable t) {
-      errors.add(t);
+      if (errors.size() < MAX_ERRORS) {
+        errors.add(t);
+      }
       decrement();
     }
   }

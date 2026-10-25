@@ -64,6 +64,7 @@ import com.google.devtools.build.lib.actions.ArtifactPathResolver;
 import com.google.devtools.build.lib.actions.CachedActionEvent;
 import com.google.devtools.build.lib.actions.DiscoveredModulesPruner;
 import com.google.devtools.build.lib.actions.EnvironmentalExecException;
+import com.google.devtools.build.lib.actions.ExecException;
 import com.google.devtools.build.lib.actions.Executor;
 import com.google.devtools.build.lib.actions.FileArtifactValue;
 import com.google.devtools.build.lib.actions.FilesetOutputTree;
@@ -71,6 +72,7 @@ import com.google.devtools.build.lib.actions.ImportantOutputHandler;
 import com.google.devtools.build.lib.actions.ImportantOutputHandler.ImportantOutputException;
 import com.google.devtools.build.lib.actions.InputMetadataProvider;
 import com.google.devtools.build.lib.actions.LostInputsActionExecutionException;
+import com.google.devtools.build.lib.actions.LostInputsExecException;
 import com.google.devtools.build.lib.actions.NotifyOnActionCacheHit;
 import com.google.devtools.build.lib.actions.NotifyOnActionCacheHit.ActionCachedContext;
 import com.google.devtools.build.lib.actions.OutputChecker;
@@ -194,6 +196,7 @@ public final class SkyframeActionExecutor {
   private Reporter reporter;
   private ImmutableMap<String, String> clientEnv = ImmutableMap.of();
   private Executor executorEngine;
+  private ExtendedEventHandler progressEmittingEventHandler;
   private ExtendedEventHandler progressSuppressingEventHandler;
   private ActionLogBufferPathGenerator actionLogBufferPathGenerator;
   private ActionCacheChecker actionCacheChecker;
@@ -224,6 +227,11 @@ public final class SkyframeActionExecutor {
   // get emitted before execution (e.g. ActionStartedEvent, SpawnExecutedEvent) must support
   // receiving more than one of those events per action.
   private Set<OwnerlessArtifactWrapper> rewoundActions;
+  // Actions that failed because they lost their own outputs. Like rewound actions, they have to
+  // regenerate their outputs rather than take them from a cache, but this alone must not suppress
+  // their progress events. An action can also be rewound later, after its retry completed.
+  // This set is expected to remain empty in Blaze, but not in Bazel.
+  private Set<OwnerlessArtifactWrapper> actionsWithLostOutputs;
 
   private ActionOutputDirectoryHelper outputDirectoryHelper;
 
@@ -333,13 +341,28 @@ public final class SkyframeActionExecutor {
       boolean keepStateAfterBuild) {
     this.reporter = checkNotNull(reporter);
     this.executorEngine = checkNotNull(executor);
-    this.progressSuppressingEventHandler = new ProgressSuppressingEventHandler(reporter);
+
+    var importantOutputHandler = executor.getContext(ImportantOutputHandler.class);
+    if (importantOutputHandler == null) {
+      this.progressEmittingEventHandler = reporter;
+      this.progressSuppressingEventHandler = new ProgressSuppressingEventHandler(reporter);
+    } else {
+      // SpawnExecutedEvent is a progress event, but the ImportantOutputHandler relies on observing
+      // it for every executed spawn, so notify it regardless of whether progress events are
+      // suppressed.
+      this.progressEmittingEventHandler =
+          new SpawnExecutedNotifyingEventHandler(reporter, importantOutputHandler);
+      this.progressSuppressingEventHandler =
+          new SpawnExecutedNotifyingEventHandler(
+              new ProgressSuppressingEventHandler(reporter), importantOutputHandler);
+    }
 
     var buildRequestOptions = options.getOptions(BuildRequestOptions.class);
 
     // Start with a new map each build so there's no issue with internal resizing.
     this.buildActionMap = new ConcurrentHashMap<>();
     this.rewoundActions = Sets.newConcurrentHashSet();
+    this.actionsWithLostOutputs = Sets.newConcurrentHashSet();
     this.hadExecutionError.set(false);
     this.actionCacheChecker = checkNotNull(actionCacheChecker);
     // Don't cache possibly stale data from the last build.
@@ -499,10 +522,12 @@ public final class SkyframeActionExecutor {
     this.reporter = null;
     this.options = null;
     this.executorEngine = null;
+    this.progressEmittingEventHandler = null;
     this.progressSuppressingEventHandler = null;
     this.outputService = null;
     this.buildActionMap = null;
     this.rewoundActions = null;
+    this.actionsWithLostOutputs = null;
     this.actionCacheChecker = null;
     this.bustActionCachesTarget = null;
     this.outputDirectoryHelper = null;
@@ -520,12 +545,19 @@ public final class SkyframeActionExecutor {
     return buildActionMap.get(new OwnerlessArtifactWrapper(action.getPrimaryOutput()));
   }
 
-  /** Determines whether the given action was rewound during the current build. */
+  /**
+   * Determines whether the given action was rewound during the current build, either because a
+   * consumer lost its outputs or because it lost its own outputs itself.
+   */
   public boolean wasRewound(ActionAnalysisMetadata action) {
     Artifact primaryOutput = action.getPrimaryOutput();
     // Only GrepIncludesAction (from include scanning) has a null primary output.
-    return primaryOutput != null
-        && rewoundActions.contains(new OwnerlessArtifactWrapper(primaryOutput));
+    if (primaryOutput == null) {
+      return false;
+    }
+    var ownerlessArtifactWrapper = new OwnerlessArtifactWrapper(primaryOutput);
+    return rewoundActions.contains(ownerlessArtifactWrapper)
+        || actionsWithLostOutputs.contains(ownerlessArtifactWrapper);
   }
 
   boolean checkRewoundActionOutputs() {
@@ -573,7 +605,7 @@ public final class SkyframeActionExecutor {
   }
 
   /**
-   * Returns the count of actions rewound during the current build.
+   * Returns the count of actions rewound during the current build after they completed.
    *
    * <p>If an action is rewound multiple times, it is only counted once.
    */
@@ -584,11 +616,13 @@ public final class SkyframeActionExecutor {
   /**
    * Determines whether the action should have its progress events emitted.
    *
-   * <p>Returns {@code false} for rewound actions, indicating that their progress events should be
-   * suppressed.
+   * <p>Returns {@code false} for actions rewound after they completed, indicating that their
+   * progress events should be suppressed.
    */
   boolean shouldEmitProgressEvents(Action action) {
-    return !wasRewound(action);
+    Artifact primaryOutput = action.getPrimaryOutput();
+    return primaryOutput == null
+        || !rewoundActions.contains(new OwnerlessArtifactWrapper(primaryOutput));
   }
 
   /**
@@ -598,8 +632,15 @@ public final class SkyframeActionExecutor {
   public void prepareForRewinding(
       ActionLookupData failedKey,
       Action failedAction,
-      ImmutableList<ActionAnalysisMetadata> depsToRewind) {
+      ImmutableList<ActionAnalysisMetadata> depsToRewind,
+      boolean lostOwnOutputs) {
     var ownerlessArtifactWrapper = new OwnerlessArtifactWrapper(failedAction.getPrimaryOutput());
+    if (lostOwnOutputs) {
+      actionsWithLostOutputs.add(ownerlessArtifactWrapper);
+      if (actionCacheChecker.enabled()) {
+        actionCacheChecker.removeCacheEntry(failedAction);
+      }
+    }
     ActionExecutionState state = buildActionMap.get(ownerlessArtifactWrapper);
     if (state != null) {
       // If an action failed from lost inputs during input discovery then it won't have a state to
@@ -747,7 +788,7 @@ public final class SkyframeActionExecutor {
   }
 
   private ExtendedEventHandler selectEventHandler(boolean emitProgressEvents) {
-    return emitProgressEvents ? reporter : progressSuppressingEventHandler;
+    return emitProgressEvents ? progressEmittingEventHandler : progressSuppressingEventHandler;
   }
 
   private ActionExecutionContext getContext(
@@ -1359,6 +1400,8 @@ public final class SkyframeActionExecutor {
         }
         eventHandler.post(new ActionSuccessEvent(actionExecutionValue));
         return new ActionPostprocessingStep(actionExecutionValue);
+      } catch (LostInputsActionExecutionException e) {
+        throw e;
       } catch (ActionExecutionException e) {
         return ActionStepOrResult.of(e);
       }
@@ -1414,7 +1457,11 @@ public final class SkyframeActionExecutor {
           try (SilentCloseable c =
               Profiler.instance().profile(ProfilerTask.INFO, "outputService.finalizeAction")) {
             outputService.finalizeAction(action, outputMetadataStore);
-          } catch (EnvironmentalExecException | IOException e) {
+          } catch (LostInputsExecException e) {
+            // The remote cache has lost an output of the action before it could be downloaded.
+            // Like a lost input, this is recovered from by rewinding rather than reported.
+            throw ActionExecutionException.fromExecException(e, action);
+          } catch (ExecException | IOException e) {
             logger.atWarning().withCause(e).log("unable to finalize action: '%s'", action);
             throw toActionExecutionException(
                 "unable to finalize action",
@@ -1425,6 +1472,7 @@ public final class SkyframeActionExecutor {
           }
         }
       } catch (ActionExecutionException actionException) {
+        maybeSignalLostInputs(actionException, primaryOutputPath);
         // Success in execution but failure in completion.
         reportActionExecution(
             eventHandler,

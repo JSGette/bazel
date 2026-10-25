@@ -30,8 +30,8 @@ import javax.annotation.Nullable;
  * <p>Every leaf ID becomes a bit position in a {@link org.roaringbitmap.RoaringBitmap} recording
  * the transitive leaf closure of a node. Roaring's run-length encoding only pays off when the bits
  * set in a single bitmap are contiguous, so the IDs are assigned by a depth-first walk of the node
- * graph (see {@link FileOpNodeMemoizingLookup#assignDenseLeafIds}): the leaves beneath any given
- * node are numbered consecutively at the point that node is first reached, which makes that node's
+ * graph (see {@link UploadLayout#computeLeafIdsAndUploadOrder}): the leaves beneath any given node
+ * are numbered consecutively at the point that node is first reached, which makes that node's
  * closure a small number of runs rather than a scatter of isolated bits.
  *
  * <p>IDs cannot be stored on the leaves themselves. {@link FileKey} and {@link DirectoryListingKey}
@@ -45,17 +45,17 @@ import javax.annotation.Nullable;
  * <h2>Leaves in dense vs. lazy mode</h2>
  *
  * <p>In dense mode, every leaf queried was reached by the node graph walk (see {@link
- * FileOpNodeMemoizingLookup#assignDenseLeafIds}). Non-leaf dependencies such as ancestor
- * directories, symlink parents, and unreferenced source files never query for an ID. A miss in
- * dense mode is therefore a bug, and dense mode fails fast with {@link IllegalStateException}
- * without allocating fallback maps.
+ * UploadLayout#computeLeafIdsAndUploadOrder}). Non-leaf dependencies such as ancestor directories,
+ * symlink parents, and unreferenced source files never query for an ID. A miss in dense mode is
+ * therefore a bug, and dense mode fails fast with {@link IllegalStateException} without allocating
+ * fallback maps.
  *
  * <p>Only {@link #lazy()} keeps concurrent fallback maps, which numbers leaves on demand for
  * callers that serialize without a materialized node graph.
  */
 final class LeafIdAssignment {
   /** Returned by the dense maps for a leaf they do not hold. Real IDs are non-negative. */
-  private static final int ABSENT = -1;
+  static final int ABSENT = -1;
 
   /**
    * Dense IDs, keyed on leaf identity.

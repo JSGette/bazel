@@ -89,7 +89,8 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
 
   private String captureNamespace() throws IOException {
     MessageDigest digest = sha256();
-    update(digest, "local-project-v3-content-sha256");
+    // Upstream test-configuration keys changed wire format. Keep old publications isolated.
+    update(digest, "local-project-v4-content-sha256");
     update(digest, java.nio.ByteOrder.nativeOrder().toString());
     Path git = workspace.resolve(".git");
     if (!Files.exists(git, NOFOLLOW_LINKS)) {
