@@ -7,6 +7,7 @@ import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+import build.bazel.remote.execution.v2.Digest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.CommitRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.LocalPublication;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.PublicationBundle;
@@ -26,9 +27,12 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Bounded complete-publication transport. Admission remains the local validator's responsibility.
+ * Invocation-owned remote candidates with authenticated, demand-driven pack reads. Only complete
+ * publications enter the durable local catalog; admission remains the local validator's job.
  */
 final class RemoteSkyCache implements AutoCloseable {
   private final Path managed;
@@ -37,6 +41,133 @@ final class RemoteSkyCache implements AutoCloseable {
   private final Scope scope;
   private final long metadataBudget;
   private final SkyCacheTransport transport;
+  private final Map<String, Candidate> candidates = new LinkedHashMap<>();
+  private final List<Path> stages = new ArrayList<>();
+  private final Set<String> materialized = new HashSet<>();
+  private LocalCacheLeaseManager importLeases;
+  private Path chunks;
+  private boolean prepared;
+  private long downloadedBytes;
+  private long downloadedChunks;
+
+  record Candidate(
+      LocalPublication publication,
+      Path objectRoot,
+      Path manifestRoot,
+      SegmentedFingerprintValueStore.FileSource source) {
+    String id() {
+      return publication.getId();
+    }
+  }
+
+  /** Resolves ranges using declared chunk lengths, which need not all be one MiB. */
+  private final class FileSource implements SegmentedFingerprintValueStore.FileSource {
+    private final Map<String, PublicationFile> files = new LinkedHashMap<>();
+
+    FileSource(LocalPublication publication) {
+      for (var file : publication.getFilesList()) {
+        files.put(file.getName(), file);
+      }
+    }
+
+    private PublicationFile file(String name) throws IOException {
+      var file = files.get(name);
+      if (file == null) {
+        throw new IOException("missing remote publication file");
+      }
+      return file;
+    }
+
+    @Override
+    public long size(String name) throws IOException {
+      return file(name).getSizeBytes();
+    }
+
+    @Override
+    public byte[] read(String name, long maxBytes) throws IOException {
+      long size = size(name);
+      if (size > maxBytes || size > Integer.MAX_VALUE) {
+        throw new IOException("remote metadata exceeds read budget");
+      }
+      var buffer = ByteBuffer.allocate((int) size);
+      read(name, buffer, 0);
+      return buffer.array();
+    }
+
+    @Override
+    public void read(String name, ByteBuffer target, long offset) throws IOException {
+      var file = file(name);
+      if (offset < 0 || offset > file.getSizeBytes() - target.remaining()) {
+        throw new IOException("remote range outside file bounds");
+      }
+      long start = 0;
+      for (var chunk : file.getChunksList()) {
+        if (!target.hasRemaining()) {
+          break;
+        }
+        long end = start + chunk.getSizeBytes();
+        if (offset < end) {
+          byte[] bytes = download(chunk);
+          int within = (int) (offset - start);
+          int count = Math.min(target.remaining(), bytes.length - within);
+          target.put(bytes, within, count);
+          offset += count;
+        }
+        start = end;
+      }
+      if (target.hasRemaining()) {
+        throw new IOException("incomplete remote range");
+      }
+    }
+  }
+
+  private synchronized byte[] download(Digest digest) throws IOException {
+    if (chunks == null) {
+      chunks = newStage();
+    }
+    Path path = chunks.resolve(digest.getHash());
+    if (Files.exists(path, NOFOLLOW_LINKS)) {
+      if (!Files.isRegularFile(path, NOFOLLOW_LINKS) || Files.size(path) != digest.getSizeBytes()) {
+        throw new IOException("invalid cached remote chunk");
+      }
+      byte[] bytes = Files.readAllBytes(path);
+      if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
+        throw new IOException("cached remote chunk checksum mismatch");
+      }
+      return bytes;
+    }
+    byte[] bytes = transport.download(digest);
+    Files.write(path, bytes, CREATE_NEW, WRITE, NOFOLLOW_LINKS);
+    downloadedBytes += bytes.length;
+    downloadedChunks++;
+    return bytes;
+  }
+
+  private Path newStage() throws IOException {
+    Path stage =
+        Files.createTempDirectory(
+            managed,
+            ".remote-",
+            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+    stages.add(stage);
+    return stage;
+  }
+
+  List<Candidate> candidates() {
+    return List.copyOf(candidates.values());
+  }
+
+  String statisticsJson() {
+    return "{\"downloaded_bytes\":"
+        + downloadedBytes
+        + ",\"downloaded_chunks\":"
+        + downloadedChunks
+        + ",\"discovered_publications\":"
+        + candidates.size()
+        + ",\"materialized_publications\":"
+        + materialized.size()
+        + "}";
+  }
 
   RemoteSkyCache(Path root, String namespace, LocalSkycacheOptions options) throws IOException {
     this(
@@ -76,60 +207,155 @@ final class RemoteSkyCache implements AutoCloseable {
     }
   }
 
-  /** Imports the newest structurally complete candidate in the first bounded discovery page. */
-  int hydrate() throws IOException {
-    transport.beginTransfer();
+  /** Fetches admission metadata for a bounded discovery page, leaving segment data in CAS. */
+  int prepare() throws IOException {
+    if (prepared) {
+      return candidates.size();
+    }
+    prepared = true;
+    transport.beginReadSession();
     var response = transport.discover(scope, ByteString.EMPTY);
     IOException lastFailure = null;
+    long remaining = metadataBudget;
     for (var candidate : response.getCandidatesList()) {
       Path stage = null;
+      boolean retained = false;
       try {
-        byte[] encoded = transport.download(candidate.getManifest());
+        byte[] encoded = download(candidate.getManifest());
         var bundle = PublicationBundle.parseFrom(encoded);
         SkyCacheProtocol.validateBundle(bundle, scope.getNamespaceId());
-        stage =
-            Files.createTempDirectory(
-                managed,
-                ".remote-",
-                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+        var ids = new HashSet<>(candidates.keySet());
+        for (var publication : bundle.getPublicationsList()) {
+          ids.add(publication.getId());
+          var previous = candidates.get(publication.getId());
+          if (previous != null && !previous.publication().equals(publication)) {
+            throw new IOException("conflicting remote publication identity");
+          }
+        }
+        if (ids.size() > SkyCacheProtocol.MAX_PUBLICATIONS) {
+          continue;
+        }
+        stage = newStage();
         Path stageObjects = Files.createDirectory(stage.resolve("objects"));
         Path stageManifests = Files.createDirectory(stage.resolve("manifests"));
+        var opened = new LinkedHashMap<String, Candidate>();
+        long budget = remaining;
         for (var publication : bundle.getPublicationsList()) {
-          Path directory = Files.createDirectory(stageObjects.resolve(publication.getId()));
-          for (var file : publication.getFilesList()) {
-            Path target =
-                file.getName().equals("manifest")
-                    ? stageManifests.resolve(publication.getId() + ".manifest")
-                    : directory.resolve(file.getName());
-            try (var channel = FileChannel.open(target, CREATE_NEW, WRITE, NOFOLLOW_LINKS)) {
-              for (var chunk : file.getChunksList()) {
-                var bytes = ByteBuffer.wrap(transport.download(chunk));
-                while (bytes.hasRemaining()) {
-                  channel.write(bytes);
-                }
-              }
-              channel.force(true);
-            }
+          if (candidates.containsKey(publication.getId())) {
+            continue;
           }
-          sync(directory);
+          Path directory = Files.createDirectory(stageObjects.resolve(publication.getId()));
+          var source = new FileSource(publication);
+          Path manifest = stageManifests.resolve(publication.getId() + ".manifest");
+          Files.write(manifest, source.read("manifest", budget), CREATE_NEW, WRITE);
+          var header =
+              LocalCacheSession.readManifestHeader(manifest, scope.getNamespaceId(), budget);
+          if (!header.parents().equals(publication.getParentIdsList())) {
+            throw new IOException("remote parent list differs from local manifest");
+          }
+          budget -= header.encodedBytes();
+          long witnessBytes = LocalWitnessTable.metadataBytes(header.blocks());
+          if (witnessBytes > budget) {
+            throw new IOException("remote witnesses exceed metadata budget");
+          }
+          var expected = new HashSet<String>();
+          expected.add("manifest");
+          for (int i = 0; i < header.blocks().size(); i++) {
+            String name = LocalWitnessTable.filename(i);
+            expected.add(name);
+            Files.write(directory.resolve(name), source.read(name, budget), CREATE_NEW, WRITE);
+          }
+          LocalWitnessTable.read(directory, header.blocks(), budget);
+          budget -= witnessBytes;
+          try (var store = SegmentedFingerprintValueStore.open(source, budget)) {
+            expected.addAll(store.sealedFiles());
+            budget -= store.indexBytes();
+          }
+          if (!expected.equals(
+              new HashSet<>(
+                  publication.getFilesList().stream().map(PublicationFile::getName).toList()))) {
+            throw new IOException("remote file inventory differs from local index");
+          }
+          opened.put(
+              publication.getId(),
+              new Candidate(publication, stageObjects, stageManifests, source));
         }
-        validateLocalBundle(bundle, stageObjects, stageManifests);
-        install(bundle, stageObjects, stageManifests);
-        return bundle.getPublicationsCount();
+        candidates.putAll(opened);
+        remaining = budget;
+        retained = true;
       } catch (IOException e) {
-        // A corrupt or evicted candidate is a miss. The invocation-wide transfer budget/deadline
-        // also applies to these attempts, so a broken catalog cannot induce unbounded downloads.
+        // Broken metadata is a miss. All attempts share the read session's I/O and byte budgets.
         lastFailure = e;
       } finally {
-        if (stage != null) {
+        if (stage != null && !retained) {
           removeStage(stage);
+          stages.remove(stage);
         }
       }
     }
-    if (lastFailure != null) {
+    if (candidates.isEmpty() && lastFailure != null) {
       throw lastFailure;
     }
-    return 0;
+    return candidates.size();
+  }
+
+  /** Explicit complete import, also used when persisting a child with remote parents. */
+  int hydrate() throws IOException {
+    prepare();
+    materialize(candidates.keySet());
+    return candidates.size();
+  }
+
+  void materialize(Set<String> used) throws IOException {
+    var required = new LinkedHashMap<String, Candidate>();
+    for (String id : used) {
+      collectRemote(id, required);
+    }
+    if (required.isEmpty()) {
+      return;
+    }
+    Path stage = newStage();
+    Path stageObjects = Files.createDirectory(stage.resolve("objects"));
+    Path stageManifests = Files.createDirectory(stage.resolve("manifests"));
+    var bundle = PublicationBundle.newBuilder();
+    for (var candidate : required.values()) {
+      Path directory = Files.createDirectory(stageObjects.resolve(candidate.id()));
+      for (var file : candidate.publication().getFilesList()) {
+        Path target =
+            file.getName().equals("manifest")
+                ? stageManifests.resolve(candidate.id() + ".manifest")
+                : directory.resolve(file.getName());
+        try (var channel = FileChannel.open(target, CREATE_NEW, WRITE, NOFOLLOW_LINKS)) {
+          for (var chunk : file.getChunksList()) {
+            var bytes = ByteBuffer.wrap(download(chunk));
+            while (bytes.hasRemaining()) {
+              channel.write(bytes);
+            }
+          }
+          channel.force(true);
+        }
+      }
+      sync(directory);
+      bundle.addPublications(candidate.publication());
+    }
+    var completed = bundle.build();
+    validateLocalBundle(completed, stageObjects, stageManifests);
+    install(completed, stageObjects, stageManifests);
+    materialized.addAll(required.keySet());
+  }
+
+  private void collectRemote(String id, LinkedHashMap<String, Candidate> required) {
+    if (required.containsKey(id) || materialized.contains(id)) {
+      return;
+    }
+    var candidate = candidates.get(id);
+    if (candidate == null) {
+      return; // A locally pinned parent needs no remote import.
+    }
+    for (String parent : candidate.publication().getParentIdsList()) {
+      collectRemote(parent, required);
+    }
+    required.put(id, candidate);
   }
 
   void publish(Path manifest) throws IOException {
@@ -260,7 +486,11 @@ final class RemoteSkyCache implements AutoCloseable {
 
   private void install(PublicationBundle bundle, Path objectRoot, Path manifestRoot)
       throws IOException {
-    try (var leases = LocalCacheLeaseManager.open(managed)) {
+    if (importLeases == null) {
+      importLeases = LocalCacheLeaseManager.open(managed);
+    }
+    var leases = importLeases;
+    {
       try (var catalog = leases.trySharedCatalog()) {
         if (catalog == null) {
           throw new IOException("local catalog busy");
@@ -336,6 +566,23 @@ final class RemoteSkyCache implements AutoCloseable {
 
   @Override
   public void close() {
-    transport.close();
+    try {
+      if (importLeases != null) {
+        importLeases.close();
+      }
+    } catch (IOException ignored) {
+      // Closing the manager releases all pins, including when one individual release fails.
+    } finally {
+      transport.close();
+      candidates.clear();
+      for (Path stage : stages) {
+        try {
+          removeStage(stage);
+        } catch (IOException ignored) {
+          // Private scratch data is never discoverable as a local publication.
+        }
+      }
+      stages.clear();
+    }
   }
 }

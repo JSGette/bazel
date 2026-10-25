@@ -86,7 +86,8 @@ final class LocalCacheSession implements FingerprintValueStore {
       List<LocalInputSnapshot.Witness> witnesses,
       List<String> parents,
       long metadataBytes,
-      LocalCacheLeaseManager.Lease lease)
+      LocalCacheLeaseManager.Lease lease,
+      boolean remote)
       implements AutoCloseable {
     @Override
     public void close() throws IOException {
@@ -126,6 +127,8 @@ final class LocalCacheSession implements FingerprintValueStore {
   private volatile boolean closed;
   private volatile String failure;
   private volatile String importedPublicationId;
+  private volatile boolean importedRemoteAnalysis;
+  private RemoteSkyCache remote;
   private final AtomicLong writes = new AtomicLong();
   private final AtomicLong reads = new AtomicLong();
   private final AtomicLong sharedReads = new AtomicLong();
@@ -176,6 +179,11 @@ final class LocalCacheSession implements FingerprintValueStore {
     return inputs.cacheNamespace();
   }
 
+  /** Called before this invocation starts reading. Remote scratch data is never local backing. */
+  void setRemote(RemoteSkyCache remote) {
+    this.remote = remote;
+  }
+
   /** Only use as backing for idle retention after finish has successfully published. */
   Path publicationManifest() {
     return publications.resolve(id + ".manifest");
@@ -185,6 +193,10 @@ final class LocalCacheSession implements FingerprintValueStore {
   Path importedPublicationManifest() {
     String imported = importedPublicationId;
     return imported == null ? null : publications.resolve(imported + ".manifest");
+  }
+
+  boolean importedRemoteAnalysis() {
+    return importedRemoteAnalysis;
   }
 
   long sharedReads() {
@@ -365,6 +377,9 @@ final class LocalCacheSession implements FingerprintValueStore {
   private SharedPut findIdenticalCandidate(KeyBytesProvider key, byte[] expected)
       throws InterruptedException {
     for (Candidate candidate : candidates) {
+      if (candidate.remote()) {
+        continue; // Serializing a new local value must not cause speculative remote downloads.
+      }
       byte[] value = read(candidate.store(), key);
       if (Arrays.equals(value, expected)) {
         return new SharedPut(candidate, sha256(value));
@@ -492,7 +507,10 @@ final class LocalCacheSession implements FingerprintValueStore {
       for (Candidate candidate : candidates) {
         if (candidate.id().equals(accepted.publication())) {
           usedParents.add(candidate.id());
-          if (importedPublicationId == null) {
+          if (candidate.remote()) {
+            importedRemoteAnalysis = true;
+          }
+          if (!candidate.remote() && importedPublicationId == null) {
             importedPublicationId = candidate.id();
           }
           sharedReads.incrementAndGet();
@@ -584,7 +602,9 @@ final class LocalCacheSession implements FingerprintValueStore {
     try {
       for (Path path : paths) {
         String filename = path.getFileName().toString();
-        if (inspected.contains(filename)) {
+        if (inspected.contains(filename)
+            || (filename.endsWith(".manifest")
+                && available.containsKey(filename.substring(0, filename.length() - 9)))) {
           continue;
         }
         if (available.size() >= limits.publications()) {
@@ -642,7 +662,8 @@ final class LocalCacheSession implements FingerprintValueStore {
                     witnesses,
                     manifest.parents(),
                     manifest.metadataBytes() + store.indexBytes(),
-                    pin);
+                    pin,
+                    false);
             opened.add(candidate);
             pin = null; // Ownership transfers to the opened candidate.
             available.put(candidate.id(), candidate);
@@ -661,6 +682,55 @@ final class LocalCacheSession implements FingerprintValueStore {
         } finally {
           if (pin != null) {
             pin.close();
+          }
+        }
+      }
+      if (remote != null) {
+        for (var source : remote.candidates()) {
+          if (available.containsKey(source.id())) {
+            continue;
+          }
+          if (available.size() >= limits.publications()) {
+            readLimitSkips++;
+            break;
+          }
+          try {
+            long remaining = limits.metadataBytes() - metadataBytes;
+            String filename = source.id() + ".manifest";
+            Manifest manifest =
+                readManifest(
+                    source.manifestRoot().resolve(filename), source.objectRoot(), remaining);
+            var witnesses = validatedWitnessLists.get(manifest.witnesses());
+            if (witnesses == null) {
+              witnesses = manifest.witnesses();
+              if (!matchesForAdmission(filename, witnesses, contents)) {
+                continue;
+              }
+            }
+            var store =
+                SegmentedFingerprintValueStore.open(
+                    source.source(), remaining - manifest.metadataBytes());
+            var candidate =
+                new Candidate(
+                    manifest.id(),
+                    store,
+                    witnesses,
+                    manifest.parents(),
+                    manifest.metadataBytes() + store.indexBytes(),
+                    null,
+                    true);
+            opened.add(candidate);
+            available.put(candidate.id(), candidate);
+            metadataBytes += candidate.metadataBytes();
+            peakCandidateCount = Math.max(peakCandidateCount, available.size());
+            peakCandidateMetadataBytes = Math.max(peakCandidateMetadataBytes, metadataBytes);
+            if (validatedWitnessLists.size() < MAX_VALIDATED_WITNESS_LISTS) {
+              validatedWitnessLists.put(witnesses, witnesses);
+            }
+          } catch (SegmentedFingerprintValueStore.BudgetExceededException e) {
+            readLimitSkips++;
+          } catch (IOException e) {
+            rejected.incrementAndGet();
           }
         }
       }
@@ -769,6 +839,17 @@ final class LocalCacheSession implements FingerprintValueStore {
           }
         }
       }
+      if (remote != null) {
+        // Persist complete used parent closures before publishing a local child. Sparse remote
+        // readers must never become durable local parent IDs or idle-retention backing.
+        var remoteParents = new HashSet<String>();
+        for (Candidate candidate : candidates) {
+          if (candidate.remote() && usedParents.contains(candidate.id())) {
+            remoteParents.add(candidate.id());
+          }
+        }
+        remote.materialize(remoteParents);
+      }
       if (!inputs.isUnchanged()) {
         failure = "inputs changed during the invocation";
         return false;
@@ -871,6 +952,11 @@ final class LocalCacheSession implements FingerprintValueStore {
   }
 
   private Manifest readManifest(Path path, long remainingBytes) throws IOException {
+    return readManifest(path, objects, remainingBytes);
+  }
+
+  private Manifest readManifest(Path path, Path objectRoot, long remainingBytes)
+      throws IOException {
     ManifestHeader header = readManifestHeader(path, inputs.cacheNamespace(), remainingBytes);
     long metadataBytes = header.encodedBytes() + LocalWitnessTable.metadataBytes(header.blocks());
     if (metadataBytes > remainingBytes) {
@@ -878,8 +964,10 @@ final class LocalCacheSession implements FingerprintValueStore {
     }
     var witnesses =
         LocalWitnessTable.read(
-            objects.resolve(header.id()), header.blocks(), remainingBytes - header.encodedBytes());
-    if (!Files.isDirectory(objects.resolve(header.id()), LinkOption.NOFOLLOW_LINKS)) {
+            objectRoot.resolve(header.id()),
+            header.blocks(),
+            remainingBytes - header.encodedBytes());
+    if (!Files.isDirectory(objectRoot.resolve(header.id()), LinkOption.NOFOLLOW_LINKS)) {
       throw new IOException("incomplete publication");
     }
     return new Manifest(header.id(), witnesses, header.parents(), metadataBytes);

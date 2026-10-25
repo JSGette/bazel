@@ -19,6 +19,7 @@ import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverResponse;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.PublicationBundle;
+import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.PublicationFile;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.PublicationRef;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProtocol;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheTransport;
@@ -28,16 +29,24 @@ import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -161,7 +170,7 @@ public final class RemoteSkyCacheTest {
   }
 
   @Test
-  public void changedWitnessStillRejectsHydratedValue() throws Exception {
+  public void changedWitnessStillRejectsDemandReadValue() throws Exception {
     Path source = temporary.newFolder("source").toPath();
     Path destination = temporary.newFolder("destination").toPath();
     Path manifest = publishLocal(source, new Key("entry"), new byte[] {1});
@@ -170,13 +179,15 @@ public final class RemoteSkyCacheTest {
         var reader = remote(destination, backend)) {
       writer.publish(manifest);
       Files.writeString(evidence, "changed");
-      assertThat(reader.hydrate()).isEqualTo(1);
+      assertThat(reader.prepare()).isEqualTo(1);
       var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
       try {
         assertThrows(ExecutionException.class, () -> session.get(new Key("entry")).get());
       } finally {
         session.finish(false);
       }
+      assertNoPublications(destination);
     }
   }
 
@@ -198,6 +209,312 @@ public final class RemoteSkyCacheTest {
       assertThat(Files.readString(index)).isEqualTo("existing immutable bytes");
       assertNoPublications(destination);
     }
+  }
+
+  @Test
+  public void prepareAndRepeatedReadsFetchOnlyRequestedRecordWithoutDurableImport()
+      throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      PublicationFile pack = onlyFile(backend.bundle(), ".pack");
+      PublicationFile index = onlyFile(backend.bundle(), ".index");
+      assertThat(pack.getChunksCount()).isAtLeast(3);
+      assertThat(reader.prepare()).isEqualTo(1);
+      assertThat(backend.requestedDigests).containsNoneIn(pack.getChunksList());
+      assertThat(backend.requestedDigests).containsNoneIn(index.getChunksList());
+      assertNoPublications(destination);
+
+      backend.requestedDigests.clear();
+      long beforeBytes = backend.downloadedBytes.get();
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+        var expectedReads = new ArrayList<>(index.getChunksList());
+        expectedReads.add(pack.getChunks(0));
+        assertThat(backend.requestedDigests).containsExactlyElementsIn(expectedReads);
+        assertThat(backend.downloadedBytes.get() - beforeBytes)
+            .isEqualTo(expectedReads.stream().mapToLong(Digest::getSizeBytes).sum());
+        int firstReads = backend.requestedDigests.size();
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+        var candidate = session.nextAnalysisCandidate(fixture.key(), new HashSet<>());
+        assertThat(candidate).isNotNull();
+        assertThat(session.acceptAnalysisCandidate(candidate)).isTrue();
+        assertThat(session.importedPublicationManifest()).isNull();
+        assertThat(session.importedRemoteAnalysis()).isTrue();
+        assertThat(backend.requestedDigests).hasSize(firstReads);
+      } finally {
+        assertThat(session.finish(true)).isFalse();
+      }
+      assertNoPublications(destination);
+      assertThat(backend.requestedDigests)
+          .containsNoneIn(pack.getChunksList().subList(1, pack.getChunksCount()));
+    }
+  }
+
+  @Test
+  public void missingUnusedPackChunkDoesNotBlockDemandRead() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      PublicationFile pack = onlyFile(backend.bundle(), ".pack");
+      Digest missing = pack.getChunks(pack.getChunksCount() - 1);
+      backend.blobs.remove(missing);
+      assertThat(reader.prepare()).isEqualTo(1);
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+      } finally {
+        session.finish(false);
+      }
+      assertThat(backend.requestedDigests).doesNotContain(missing);
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void missingOrCorruptRequiredPackChunkIsACacheMiss() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend)) {
+      writer.publish(fixture.manifest());
+      Digest required = onlyFile(backend.bundle(), ".pack").getChunks(0);
+      byte[] original = backend.blobs.get(required).clone();
+      for (boolean corrupt : List.of(false, true)) {
+        Path destination = temporary.newFolder().toPath();
+        if (corrupt) {
+          byte[] altered = original.clone();
+          altered[altered.length - 1] ^= 1;
+          backend.blobs.put(required, altered);
+        } else {
+          backend.blobs.remove(required);
+        }
+        try (var reader = remote(destination, backend)) {
+          assertThat(reader.prepare()).isEqualTo(1);
+          var session = new LocalCacheSession(destination, snapshot());
+          session.setRemote(reader);
+          try {
+            assertThrows(ExecutionException.class, () -> session.get(fixture.key()).get());
+          } finally {
+            session.finish(false);
+          }
+          assertNoPublications(destination);
+        }
+      }
+      assertThat(backend.requestedDigests).contains(required);
+    }
+  }
+
+  @Test
+  public void demandReadCrossesUnequalChunkBoundaries() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      var bundle = backend.bundle().toBuilder();
+      var publication = bundle.getPublications(0).toBuilder();
+      PublicationFile pack = onlyFile(bundle.build(), ".pack");
+      var bytes = new ByteArrayOutputStream();
+      for (Digest chunk : pack.getChunksList()) {
+        bytes.write(backend.blobs.get(chunk));
+      }
+      byte[] contents = bytes.toByteArray();
+      var changed = pack.toBuilder().clearChunks();
+      int offset = 0;
+      for (int size : new int[] {17, 39, 97}) {
+        changed.addChunks(backend.putBlob(Arrays.copyOfRange(contents, offset, offset + size)));
+        offset += size;
+      }
+      while (offset < contents.length) {
+        int end = Math.min(offset + SkyCacheProtocol.CHUNK_BYTES, contents.length);
+        changed.addChunks(backend.putBlob(Arrays.copyOfRange(contents, offset, end)));
+        offset = end;
+      }
+      for (int i = 0; i < publication.getFilesCount(); i++) {
+        if (publication.getFiles(i).getName().equals(pack.getName())) {
+          publication.setFiles(i, changed);
+        }
+      }
+      backend.advertise(bundle.setPublications(0, publication).build());
+      assertThat(reader.prepare()).isEqualTo(1);
+      backend.requestedDigests.clear();
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+      } finally {
+        session.finish(false);
+      }
+      assertThat(backend.requestedDigests)
+          .containsAtLeastElementsIn(changed.getChunksList().subList(0, 3));
+      assertThat(backend.requestedDigests)
+          .containsNoneIn(changed.getChunksList().subList(3, changed.getChunksCount()));
+      assertNoPublications(destination);
+    }
+  }
+
+  @Test
+  public void childMaterializesOnlyUsedRemoteCandidateAndSurvivesLocalOnlyReopen()
+      throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path unrelatedSource = temporary.newFolder("unrelated-source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    Path unrelatedManifest = publishLocal(unrelatedSource, new Key("other"), new byte[] {99});
+    Path childManifest;
+    String usedId;
+    String unusedId;
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var unrelatedWriter = remote(unrelatedSource, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      PublicationBundle used = backend.bundle();
+      unrelatedWriter.publish(unrelatedManifest);
+      PublicationBundle unused = backend.bundle();
+      usedId = used.getRootId();
+      unusedId = unused.getRootId();
+      // The requested entry belongs to the older candidate in this first discovery page.
+      backend.advertiseCandidates(unused, used);
+      assertThat(reader.prepare()).isEqualTo(2);
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+        session.put(new Key("child"), new byte[] {8}).get();
+        assertThat(session.finish(true)).isTrue();
+        childManifest = session.publicationManifest();
+      } finally {
+        session.finish(false);
+      }
+      assertThat(Files.exists(manifestDirectory(destination).resolve(usedId + ".manifest")))
+          .isTrue();
+      assertThat(Files.exists(manifestDirectory(destination).resolve(unusedId + ".manifest")))
+          .isFalse();
+      assertThat(Files.exists(childManifest)).isTrue();
+      assertThat(backend.requestedDigests)
+          .containsAtLeastElementsIn(onlyFile(used, ".pack").getChunksList());
+      assertThat(backend.requestedDigests)
+          .containsNoneIn(onlyFile(unused, ".pack").getChunksList());
+    }
+    assertValue(destination, fixture.key(), fixture.value());
+    assertValue(destination, new Key("child"), new byte[] {8});
+    var header = LocalCacheSession.readManifestHeader(childManifest, namespace, 32L * 1024 * 1024);
+    assertThat(header.parents()).containsExactly(usedId);
+  }
+
+  @Test
+  public void localParentAlsoAdvertisedRemotelyDoesNotRequireRemoteMaterialization()
+      throws Exception {
+    Path cache = temporary.newFolder("cache").toPath();
+    Key parent = new Key("parent");
+    Path manifest = publishLocal(cache, parent, new byte[] {7});
+    try (var backend = new MemoryRemote();
+        var writer = remote(cache, backend);
+        var reader = remote(cache, backend)) {
+      writer.publish(manifest);
+      Digest missing = onlyFile(backend.bundle(), ".pack").getChunks(0);
+      assertThat(reader.prepare()).isEqualTo(1);
+      backend.blobs.remove(missing);
+      var session = new LocalCacheSession(cache, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(parent).get()).isEqualTo(new byte[] {7});
+        session.put(new Key("child"), new byte[] {8}).get();
+        assertThat(session.finish(true)).isTrue();
+        assertThat(Files.exists(session.publicationManifest())).isTrue();
+      } finally {
+        session.finish(false);
+      }
+      assertThat(backend.requestedDigests).doesNotContain(missing);
+    }
+    assertValue(cache, parent, new byte[] {7});
+    assertValue(cache, new Key("child"), new byte[] {8});
+  }
+
+  @Test
+  public void missingUnusedBytesOfUsedParentSuppressesChildPublication() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    LargePublication fixture = publishLarge(source);
+    try (var backend = new MemoryRemote();
+        var writer = remote(source, backend);
+        var reader = remote(destination, backend)) {
+      writer.publish(fixture.manifest());
+      PublicationFile pack = onlyFile(backend.bundle(), ".pack");
+      Digest missing = pack.getChunks(pack.getChunksCount() - 1);
+      backend.blobs.remove(missing);
+      assertThat(reader.prepare()).isEqualTo(1);
+      var session = new LocalCacheSession(destination, snapshot());
+      session.setRemote(reader);
+      try {
+        assertThat(session.get(fixture.key()).get()).isEqualTo(fixture.value());
+        session.put(new Key("child"), new byte[] {8}).get();
+        assertThat(backend.requestedDigests).doesNotContain(missing);
+        assertThrows(IOException.class, () -> session.finish(true));
+      } finally {
+        session.finish(false);
+      }
+      assertThat(backend.requestedDigests).contains(missing);
+      assertNoPublications(destination);
+    }
+  }
+
+  private record LargePublication(Path manifest, Key key, byte[] value) {}
+
+  private LargePublication publishLarge(Path cache) throws Exception {
+    Key requested = new Key("requested");
+    Key unrelated = null;
+    int bucket =
+        Integer.parseInt(SkyCacheProtocol.digest(requested.toBytes()).getHash().substring(0, 2), 16)
+            & 15;
+    for (int i = 0; unrelated == null; i++) {
+      Key candidate = new Key("unrelated-" + i);
+      int otherBucket =
+          Integer.parseInt(
+                  SkyCacheProtocol.digest(candidate.toBytes()).getHash().substring(0, 2), 16)
+              & 15;
+      if (otherBucket == bucket) {
+        unrelated = candidate;
+      }
+    }
+    byte[] value = {1, 2, 3, 4, 5};
+    byte[] unused = new byte[2 * SkyCacheProtocol.CHUNK_BYTES + 4096];
+    new Random(12345).nextBytes(unused);
+    var writer = new LocalCacheSession(cache, snapshot());
+    try {
+      writer.put(requested, value).get();
+      writer.put(unrelated, unused).get();
+      assertThat(writer.finish(true)).isTrue();
+      return new LargePublication(writer.publicationManifest(), requested, value);
+    } finally {
+      writer.finish(false);
+    }
+  }
+
+  private static PublicationFile onlyFile(PublicationBundle bundle, String suffix) {
+    List<PublicationFile> files =
+        bundle.getPublicationsList().stream()
+            .flatMap(publication -> publication.getFilesList().stream())
+            .filter(
+                file -> file.getName().startsWith("segment-") && file.getName().endsWith(suffix))
+            .toList();
+    assertThat(files).hasSize(1);
+    return files.get(0);
   }
 
   private LocalInputSnapshot snapshot() throws IOException {
@@ -259,6 +576,9 @@ public final class RemoteSkyCacheTest {
   /** Real loopback RPC transport; this fixture deliberately permits corrupt catalog candidates. */
   private static final class MemoryRemote implements AutoCloseable {
     final Map<Digest, byte[]> blobs = new ConcurrentHashMap<>();
+    final ConcurrentLinkedQueue<Digest> requestedDigests = new ConcurrentLinkedQueue<>();
+    final AtomicLong downloadedBytes = new AtomicLong();
+    volatile List<PublicationRef> discoveryCandidates;
     volatile Digest advertised;
     private final Server server;
 
@@ -297,11 +617,13 @@ public final class RemoteSkyCacheTest {
                               .setHash(path[path.length - 2])
                               .setSizeBytes(Long.parseLong(path[path.length - 1]))
                               .build();
+                      requestedDigests.add(digest);
                       byte[] bytes = blobs.get(digest);
                       if (bytes == null) {
                         observer.onError(Status.NOT_FOUND.asRuntimeException());
                         return;
                       }
+                      downloadedBytes.addAndGet(bytes.length);
                       for (int offset = 0; offset < bytes.length; offset += 16384) {
                         observer.onNext(
                             ReadResponse.newBuilder()
@@ -327,7 +649,9 @@ public final class RemoteSkyCacheTest {
                     public void discoverPublications(
                         DiscoverRequest request, StreamObserver<DiscoverResponse> observer) {
                       var response = DiscoverResponse.newBuilder();
-                      if (advertised != null) {
+                      if (discoveryCandidates != null) {
+                        response.addAllCandidates(discoveryCandidates);
+                      } else if (advertised != null) {
                         response.addCandidates(reference());
                       }
                       observer.onNext(response.build());
@@ -352,6 +676,24 @@ public final class RemoteSkyCacheTest {
       Digest digest = SkyCacheProtocol.digest(bytes);
       blobs.put(digest, bytes);
       advertised = digest;
+    }
+
+    Digest putBlob(byte[] bytes) {
+      Digest digest = SkyCacheProtocol.digest(bytes);
+      blobs.put(digest, bytes);
+      return digest;
+    }
+
+    void advertiseCandidates(PublicationBundle... bundles) {
+      var references = new ArrayList<PublicationRef>();
+      for (int i = 0; i < bundles.length; i++) {
+        references.add(
+            PublicationRef.newBuilder()
+                .setManifest(putBlob(bundles[i].toByteArray()))
+                .setCatalogSequence(bundles.length - i)
+                .build());
+      }
+      discoveryCandidates = List.copyOf(references);
     }
 
     PublicationRef reference() {

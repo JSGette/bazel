@@ -22,6 +22,7 @@ import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.PublicationRef;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.Scope;
 import com.google.protobuf.ByteString;
+import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Server;
 import io.grpc.ServerCall;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -225,26 +227,104 @@ public final class SkyCacheTransportTest {
   }
 
   @Test
+  public void readSessionExcludesIdleTimeLongerThanItsTimeout() throws Exception {
+    AtomicLong clock = new AtomicLong();
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(10), clock::get)) {
+      transport.beginReadSession();
+      transport.discover(SCOPE, ByteString.EMPTY);
+      // Only RPC duration consumes the budget, even if build computation takes a full minute.
+      clock.addAndGet(Duration.ofMinutes(1).toNanos());
+      assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+      assertThat(backend.readCalls.get()).isEqualTo(1);
+    }
+  }
+
+  @Test
+  public void readSessionSlowRpcsShareDecreasingDeadlinesAndExhaustOneBudget() throws Exception {
+    AtomicLong clock = new AtomicLong();
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(10), clock::get)) {
+      // Advance the elapsed-time clock inside real RPC handling instead of sleeping in the test.
+      backend.duringRpc = () -> clock.addAndGet(Duration.ofSeconds(5).toNanos());
+      transport.beginReadSession();
+      assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+      clock.addAndGet(Duration.ofMinutes(1).toNanos());
+      assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+      assertThat(backend.observedReadDeadlines).hasSize(2);
+      assertThat(backend.observedReadDeadlines.get(0) - backend.observedReadDeadlines.get(1))
+          .isGreaterThan(Duration.ofSeconds(4).toNanos());
+      assertThat(assertThrows(IOException.class, () -> transport.discover(SCOPE, ByteString.EMPTY)))
+          .hasMessageThat()
+          .contains("DEADLINE_EXCEEDED");
+      assertThat(backend.lastDiscovery).isNull();
+      assertThat(backend.readCalls.get()).isEqualTo(2);
+    }
+  }
+
+  @Test
+  public void readSessionFailedRpcsSpendTimeAndCannotRetryWithoutBound() throws Exception {
+    AtomicLong clock = new AtomicLong();
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(10), clock::get)) {
+      backend.duringRpc = () -> clock.addAndGet(Duration.ofMillis(2500).toNanos());
+      backend.readMode = "missing";
+      transport.beginReadSession();
+      for (int i = 0; i < 4; i++) {
+        assertThat(assertThrows(IOException.class, () -> transport.download(DIGEST)))
+            .hasMessageThat()
+            .contains("NOT_FOUND");
+        clock.addAndGet(Duration.ofMinutes(1).toNanos());
+      }
+      assertThat(assertThrows(IOException.class, () -> transport.download(DIGEST)))
+          .hasMessageThat()
+          .contains("DEADLINE_EXCEEDED");
+      assertThat(backend.readCalls.get()).isEqualTo(4);
+      transport.beginReadSession();
+      assertThat(assertThrows(IOException.class, () -> transport.download(DIGEST)))
+          .hasMessageThat()
+          .contains("NOT_FOUND");
+      assertThat(backend.readCalls.get()).isEqualTo(5);
+    }
+  }
+
+  @Test
   public void attemptedDownloadsConsumeSharedTransferBudget() throws Exception {
     Digest large = DIGEST.toBuilder().setSizeBytes(SkyCacheProtocol.CHUNK_BYTES).build();
-    try (Backend backend = new Backend();
-        SkyCacheTransport transport = backend.transport(Duration.ofSeconds(30))) {
-      transport.beginTransfer();
-      backend.readMode = "missing";
-      for (int i = 0; i < 257; i++) {
+    for (boolean readSession : new boolean[] {false, true}) {
+      try (Backend backend = new Backend();
+          SkyCacheTransport transport = backend.transport(Duration.ofSeconds(30))) {
+        if (readSession) {
+          transport.beginReadSession();
+        } else {
+          transport.beginTransfer();
+        }
+        backend.readMode = "missing";
+        for (int i = 0; i < 257; i++) {
+          assertThat(assertThrows(IOException.class, () -> transport.download(large)))
+              .hasMessageThat()
+              .contains("NOT_FOUND");
+        }
+        assertThat(assertThrows(IOException.class, () -> transport.download(large)))
+            .hasMessageThat()
+            .contains("byte budget");
+        assertThat(backend.readCalls.get()).isEqualTo(257);
+        if (readSession) {
+          transport.beginReadSession();
+        } else {
+          transport.beginTransfer();
+        }
         assertThat(assertThrows(IOException.class, () -> transport.download(large)))
             .hasMessageThat()
             .contains("NOT_FOUND");
+        assertThat(backend.readCalls.get()).isEqualTo(258);
       }
-      assertThat(assertThrows(IOException.class, () -> transport.download(large)))
-          .hasMessageThat()
-          .contains("byte budget");
-      assertThat(backend.readCalls.get()).isEqualTo(257);
-      transport.beginTransfer();
-      assertThat(assertThrows(IOException.class, () -> transport.download(large)))
-          .hasMessageThat()
-          .contains("NOT_FOUND");
-      assertThat(backend.readCalls.get()).isEqualTo(258);
     }
   }
 
@@ -324,6 +404,8 @@ public final class SkyCacheTransportTest {
     private volatile DiscoverRequest lastDiscovery;
     private volatile DiscoverResponse discovery = DiscoverResponse.getDefaultInstance();
     private volatile boolean wrongCommitDigest;
+    private volatile Runnable duringRpc = () -> {};
+    private final List<Long> observedReadDeadlines = new CopyOnWriteArrayList<>();
     private final AtomicInteger uploadCalls = new AtomicInteger();
     private final AtomicInteger readCalls = new AtomicInteger();
     private final AtomicInteger unavailableCommits = new AtomicInteger();
@@ -343,6 +425,7 @@ public final class SkyCacheTransportTest {
                         ServerCall<ReqT, RespT> call,
                         Metadata headers,
                         ServerCallHandler<ReqT, RespT> next) {
+                      duringRpc.run();
                       RequestMetadata metadata =
                           TracingMetadataUtils.requestMetadataFromHeaders(headers);
                       if (metadata != null) {
@@ -389,6 +472,8 @@ public final class SkyCacheTransportTest {
                     @Override
                     public void read(ReadRequest request, StreamObserver<ReadResponse> observer) {
                       lastRead = request;
+                      observedReadDeadlines.add(
+                          Context.current().getDeadline().timeRemaining(TimeUnit.NANOSECONDS));
                       readCalls.incrementAndGet();
                       switch (readMode) {
                         case "missing" ->

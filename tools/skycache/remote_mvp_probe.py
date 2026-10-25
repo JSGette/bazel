@@ -155,7 +155,8 @@ def main():
                                        timeout=args.build_timeout)
         text = log_path.read_text()
         local_stats = re.findall(r'Local SkyCache: (\{[^\n]+\})', text)
-        imports = re.findall(r'Remote SkyCache: imported (\d+) publications', text)
+        imports = re.findall(r'Remote SkyCache: (?:imported|discovered) (\d+) publications', text)
+        transfers = re.findall(r'Remote SkyCache transfers: (\{[^\n]+\})', text)
         output_path = workspace / 'bazel-bin/app/all.txt'
         output = output_path.read_bytes() if completed.returncode == 0 else None
         row.update({
@@ -164,7 +165,8 @@ def main():
             'output_matches_expected': output == expected,
             'output_sha256': hashlib.sha256(output).hexdigest() if output is not None else None,
             'expected_sha256': hashlib.sha256(expected).hexdigest(),
-            'imported_publications': int(imports[-1]) if imports else 0,
+            'discovered_publications': int(imports[-1]) if imports else 0,
+            'remote_transfers': json.loads(transfers[-1]) if transfers else None,
             'remote_committed': 'Remote SkyCache: publication committed' in text,
             'remote_import_skipped': 'Remote SkyCache import skipped:' in text,
             'remote_publish_skipped': 'Remote SkyCache publication skipped:' in text,
@@ -183,7 +185,7 @@ def main():
         return row
 
     def require_remote_hit(row):
-        assert row['imported_publications'] > 0, row
+        assert row['discovered_publications'] > 0, row
         assert row['analysis_hits'] > 0, row
         assert row['local_stats']['shared_reads'] > 0, row
         assert not row['remote_import_skipped'], row
@@ -247,7 +249,7 @@ def main():
         start_worker('evicted')
         evicted = build('evicted', expected)
         assert evicted['remote_import_skipped'], evicted
-        assert evicted['imported_publications'] == 0, evicted
+        assert evicted['discovered_publications'] == 0, evicted
         assert evicted['local_stats']['shared_reads'] == 0, evicted
         assert evicted['remote_committed'], evicted
         shutdown('evicted')
@@ -255,7 +257,7 @@ def main():
         stop_worker()
         offline = build('offline', expected, timeout='1s')
         assert offline['remote_import_skipped'], offline
-        assert offline['imported_publications'] == 0, offline
+        assert offline['discovered_publications'] == 0, offline
         shutdown('offline')
         report['passed'] = True
     except BaseException as error:

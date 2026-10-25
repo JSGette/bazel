@@ -30,12 +30,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /** One publication, bounded mutable segments, and compact indexes opened only when used. */
 final class SegmentedFingerprintValueStore implements FingerprintValueStore, AutoCloseable {
+  /** Authenticated immutable files; lifetime and downloaded-byte retention belong to the caller. */
+  interface FileSource {
+    /** Returns the immutable logical length without downloading file contents. */
+    long size(String name) throws IOException;
+
+    /** Reads the complete file, rejecting lengths exceeding the supplied allocation bound. */
+    byte[] read(String name, long maxBytes) throws IOException;
+
+    /** Fills the target's remaining bytes from this offset, or throws on an incomplete read. */
+    void read(String name, ByteBuffer target, long offset) throws IOException;
+  }
+
   private static final int MAGIC = 0x53475331;
   private static final int BUCKETS = 16;
   private static final int MAX_SEGMENTS = 4096;
@@ -76,6 +89,7 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
   }
 
   private final Path directory;
+  private final FileSource source;
   private final Bucket[] buckets = new Bucket[BUCKETS];
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
   private final AtomicLong entries = new AtomicLong();
@@ -87,7 +101,13 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
   private boolean closed;
 
   private SegmentedFingerprintValueStore(Path directory, int segmentEntries, long segmentBytes) {
+    this(directory, null, segmentEntries, segmentBytes);
+  }
+
+  private SegmentedFingerprintValueStore(
+      Path directory, FileSource source, int segmentEntries, long segmentBytes) {
     this.directory = directory;
+    this.source = source;
     this.segmentEntries = segmentEntries;
     this.segmentBytes = segmentBytes;
     for (int i = 0; i < BUCKETS; i++) {
@@ -124,12 +144,7 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
     byte[] bytes;
     try (var channel = FileChannel.open(directory.resolve("index"), READ, NOFOLLOW_LINKS)) {
       long length = channel.size();
-      if (length < 40 || length > MAX_ROOT_BYTES) {
-        throw new IOException("segmented index directory outside bounds");
-      }
-      if (length > budget) {
-        throw new BudgetExceededException();
-      }
+      checkRootLength(length, budget);
       bytes = new byte[(int) length];
       ByteBuffer target = ByteBuffer.wrap(bytes);
       while (target.hasRemaining()) {
@@ -138,12 +153,39 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
         }
       }
     }
+    return openRoot(bytes, directory, null, budget);
+  }
+
+  /** Opens root metadata eagerly, deferring segment indexes and record ranges until lookup. */
+  static SegmentedFingerprintValueStore open(FileSource source, long metadataBudget)
+      throws IOException {
+    long length = source.size("index");
+    checkRootLength(length, metadataBudget);
+    byte[] bytes = source.read("index", Math.min(metadataBudget, MAX_ROOT_BYTES)).clone();
+    if (bytes.length != length) {
+      throw new IOException("segmented index directory length mismatch");
+    }
+    return openRoot(bytes, null, source, metadataBudget);
+  }
+
+  private static void checkRootLength(long length, long budget) throws IOException {
+    if (length < 40 || length > MAX_ROOT_BYTES) {
+      throw new IOException("segmented index directory outside bounds");
+    }
+    if (length > budget) {
+      throw new BudgetExceededException();
+    }
+  }
+
+  private static SegmentedFingerprintValueStore openRoot(
+      byte[] bytes, Path directory, FileSource source, long budget) throws IOException {
     byte[] payload = Arrays.copyOf(bytes, bytes.length - 32);
     if (!MessageDigest.isEqual(
         hash(payload), Arrays.copyOfRange(bytes, payload.length, bytes.length))) {
       throw new IOException("segmented index directory checksum mismatch");
     }
-    var result = new SegmentedFingerprintValueStore(directory, SEGMENT_ENTRIES, SEGMENT_BYTES);
+    var result =
+        new SegmentedFingerprintValueStore(directory, source, SEGMENT_ENTRIES, SEGMENT_BYTES);
     result.metadataBytes = bytes.length;
     try (var in = new DataInputStream(new ByteArrayInputStream(payload))) {
       if (in.readInt() != MAGIC) {
@@ -173,8 +215,8 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
         if (segment.indexBytes > budget - result.metadataBytes) {
           throw new BudgetExceededException();
         }
-        if (Files.size(directory.resolve(segment.prefix() + ".index")) != segment.indexBytes
-            || Files.size(directory.resolve(segment.prefix() + ".pack")) != segment.dataBytes) {
+        if (result.fileSize(segment.prefix() + ".index") != segment.indexBytes
+            || result.fileSize(segment.prefix() + ".pack") != segment.dataBytes) {
           throw new IOException("segment file length mismatch");
         }
         result.metadataBytes += segment.indexBytes;
@@ -186,6 +228,12 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
     }
     result.sealed = true;
     return result;
+  }
+
+  private long fileSize(String name) throws IOException {
+    return source == null
+        ? Files.size(Objects.requireNonNull(directory).resolve(name))
+        : source.size(name);
   }
 
   long indexBytes() {
@@ -221,7 +269,9 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       throw new IOException("segment count exceeds limit");
     }
     var segment = new Segment(nextSegment++, bucket, null);
-    segment.store = PackedFingerprintValueStore.createSegment(directory, segment.prefix());
+    segment.store =
+        PackedFingerprintValueStore.createSegment(
+            Objects.requireNonNull(directory), segment.prefix());
     return segment;
   }
 
@@ -232,7 +282,11 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
   private PackedFingerprintValueStore store(Segment segment) throws IOException {
     if (segment.store == null) {
       var opened =
-          PackedFingerprintValueStore.openSegment(directory, segment.prefix(), segment.indexBytes);
+          source == null
+              ? PackedFingerprintValueStore.openSegment(
+                  Objects.requireNonNull(directory), segment.prefix(), segment.indexBytes)
+              : PackedFingerprintValueStore.openSegment(
+                  source, segment.prefix(), segment.indexBytes);
       if (!MessageDigest.isEqual(opened.indexDigest(), segment.indexDigest)) {
         opened.close();
         throw new IOException("segment index differs from publication descriptor");
@@ -361,7 +415,8 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       }
       byte[] payload = bytes.toByteArray();
       bytes.write(hash(payload));
-      Path temporary = Files.createTempFile(directory, ".pending-", ".index");
+      Path localDirectory = Objects.requireNonNull(directory);
+      Path temporary = Files.createTempFile(localDirectory, ".pending-", ".index");
       try {
         try (var channel = FileChannel.open(temporary, WRITE, NOFOLLOW_LINKS)) {
           ByteBuffer buffer = ByteBuffer.wrap(bytes.toByteArray());
@@ -370,8 +425,8 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
           }
           channel.force(true);
         }
-        Files.createLink(directory.resolve("index"), temporary);
-        sync(directory);
+        Files.createLink(localDirectory.resolve("index"), temporary);
+        sync(localDirectory);
       } finally {
         Files.deleteIfExists(temporary);
       }

@@ -147,9 +147,9 @@ public final class LocalSkycacheModule extends SerializationModule {
         try {
           remoteSkyCache = new RemoteSkyCache(root, inputs.cacheNamespace(), options);
           if (options.getMaxPublications() > 0 && options.getMaxMetadataMb() > 0) {
-            int imported = remoteSkyCache.hydrate();
+            int imported = remoteSkyCache.prepare();
             env.getReporter()
-                .handle(Event.info("Remote SkyCache: imported " + imported + " publications"));
+                .handle(Event.info("Remote SkyCache: discovered " + imported + " publications"));
           }
         } catch (IOException | IllegalArgumentException e) {
           env.getReporter().handle(Event.warn("Remote SkyCache import skipped: " + e.getMessage()));
@@ -162,6 +162,7 @@ public final class LocalSkycacheModule extends SerializationModule {
               System::nanoTime,
               new LocalCacheSession.ReadLimits(
                   options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
+      services.session.setRemote(remoteSkyCache);
       var remote = env.getOptions().getOptions(RemoteOptions.class);
       services.executionValues =
           remote != null
@@ -283,6 +284,9 @@ public final class LocalSkycacheModule extends SerializationModule {
                 .handle(Event.warn("Remote SkyCache publication skipped: " + e.getMessage()));
           }
         }
+      } else if (session.importedRemoteAnalysis()) {
+        // An older local publication cannot back newly retained remote analysis roots.
+        retainedPublication = null;
       } else if (importedPublication != null) {
         retainedPublication = importedPublication;
       }
@@ -328,6 +332,17 @@ public final class LocalSkycacheModule extends SerializationModule {
     }
     environment = null;
     if (remoteSkyCache != null) {
+      if (env != null) {
+        String statistics = remoteSkyCache.statisticsJson();
+        env.getReporter().handle(Event.info("Remote SkyCache transfers: " + statistics));
+        try {
+          Files.writeString(
+              Path.of(env.getOutputBase().getPathString()).resolve("remote-skycache.json"),
+              statistics);
+        } catch (IOException e) {
+          env.getReporter().handle(Event.warn("Could not write remote SkyCache statistics"));
+        }
+      }
       remoteSkyCache.close();
       remoteSkyCache = null;
     }
