@@ -325,6 +325,22 @@ public final class RemoteActionFileSystemTest extends RemoteActionFileSystemTest
   }
 
   @Test
+  public void symlinkToRemoteInputWithMissingParentsDoesNotMaterializeTarget() throws Exception {
+    Artifact target = ActionsTestUtil.createArtifact(outputRoot, "missing/nested/target");
+    var metadata = FileArtifactValue.createForRemoteFile(new byte[] {1, 2, 3}, 23, 1);
+    var inputs = new ActionInputMap(1);
+    inputs.put(target, metadata);
+    FileSystem actionFs = createActionFileSystem(inputs);
+    Path link = actionFs.getPath(getOutputPath("link"));
+    link.createSymbolicLink(target.getPath().asFragment());
+
+    assertThat(link.stat().isFile()).isTrue();
+    assertThat(link.stat().getSize()).isEqualTo(23);
+    assertThat(fs.getPath(getOutputPath("missing")).exists()).isFalse();
+    verify(inputFetcher, never()).prefetchFiles(any(), any(), any(), any(), any(), any());
+  }
+
+  @Test
   public void statAndExists_danglingSymlink_notFound() throws Exception {
     RemoteActionFileSystem actionFs = (RemoteActionFileSystem) createActionFileSystem();
     PathFragment path = getOutputPath("sym");
