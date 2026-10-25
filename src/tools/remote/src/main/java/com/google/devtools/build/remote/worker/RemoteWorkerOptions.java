@@ -55,6 +55,14 @@ public abstract class RemoteWorkerOptions extends OptionsBase {
   public abstract int getListenPort();
 
   @Option(
+      name = "listen_address",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNCATEGORIZED,
+      effectTags = {OptionEffectTag.UNKNOWN},
+      help = "gRPC bind address; empty listens on all interfaces. Use 127.0.0.1 for local tests.")
+  public abstract String getListenAddress();
+
+  @Option(
       name = "work_path",
       defaultValue = "null",
       converter = PathFragmentConverter.class,

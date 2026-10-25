@@ -3817,4 +3817,44 @@ function test_concurrent_modification_during_upload_same_length() {
   do_test_concurrent_modification_during_upload "same length"
 }
 
+function assert_worker_loopback_binding() {
+  python3 - "${worker_port}" "$1" >> "$TEST_log" 2>&1 <<'PY' \
+      || fail "Worker listener did not match the requested bind address"
+import errno
+import socket
+import sys
+
+port = int(sys.argv[1])
+with socket.create_connection(("127.0.0.1", port), timeout=5):
+    pass
+
+# Linux routes the entire 127/8 range to loopback. A wildcard listener accepts
+# both addresses, whereas a listener bound to 127.0.0.1 must refuse 127.0.0.2.
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+    connection.settimeout(5)
+    status = connection.connect_ex(("127.0.0.2", port))
+expected = 0 if sys.argv[2] == "all" else errno.ECONNREFUSED
+assert status == expected, ("127.0.0.2", port, status, expected)
+PY
+}
+
+function test_worker_default_listen_address_all_interfaces() {
+  if ! is_linux; then
+    echo "Skipping alternate-loopback bind check on non-Linux hosts."
+    return
+  fi
+  # set_up started the actual worker without a listen_address option.
+  assert_worker_loopback_binding all
+}
+
+function test_worker_explicit_listen_address_loopback() {
+  if ! is_linux; then
+    echo "Skipping alternate-loopback bind check on non-Linux hosts."
+    return
+  fi
+  stop_worker
+  start_worker --listen_address=127.0.0.1
+  assert_worker_loopback_binding loopback
+}
+
 run_suite "Remote execution and remote cache tests"
