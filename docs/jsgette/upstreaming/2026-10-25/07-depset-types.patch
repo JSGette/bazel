@@ -1,0 +1,261 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/packages/BUILD b/src/main/java/com/google/devtools/build/lib/packages/BUILD
+index a682c272b063ca5b6932f23feca1c9a04e5f4f5b..3d72a654dbe2cd2e01e45a143bb73941d105eaea 100644
+--- a/src/main/java/com/google/devtools/build/lib/packages/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/packages/BUILD
+@@ -265,6 +265,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/events",
+         "//src/main/java/com/google/devtools/build/lib/skyframe:bzl_load_value",
+         "//src/main/java/com/google/devtools/build/lib/skyframe:starlark_builtins_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:abstract-exported-starlark-symbol-codec",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:visible-for-serialization",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/autocodec",
+@@ -280,6 +281,7 @@ java_library(
+         "//third_party/java/guava:base",
+         "//third_party/java/guava:collect",
+         "//third_party/java/jsr305_annotations",
++        "//third_party/java/protobuf:protobuf_lite",
+     ],
+ )
+ 
+diff --git a/src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java b/src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java
+index 6c85d934a2b516d759ab8ac20e762e0fd4a84db8..76ce3d9013cfa8a39f46244657fb43419e806ee0 100644
+--- a/src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java
++++ b/src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java
+@@ -18,13 +18,21 @@ import com.google.common.base.Joiner;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
++import com.google.common.collect.ImmutableSet;
+ import com.google.common.collect.Interner;
+ import com.google.devtools.build.lib.collect.nestedset.Depset;
+ import com.google.devtools.build.lib.collect.nestedset.NestedSet;
+ import com.google.devtools.build.lib.concurrent.BlazeInterners;
++import com.google.devtools.build.lib.skyframe.serialization.AsyncDeserializationContext;
++import com.google.devtools.build.lib.skyframe.serialization.DeferredObjectCodec;
++import com.google.devtools.build.lib.skyframe.serialization.SerializationContext;
++import com.google.devtools.build.lib.skyframe.serialization.SerializationException;
+ import com.google.devtools.build.lib.skyframe.serialization.VisibleForSerialization;
+ import com.google.devtools.build.lib.util.HashCodes;
+ import com.google.errorprone.annotations.ForOverride;
++import com.google.protobuf.CodedInputStream;
++import com.google.protobuf.CodedOutputStream;
++import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.List;
+@@ -89,11 +97,15 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {
+   abstract void setValueAt(int i, Object val);
+ 
+   @VisibleForSerialization
+-  Object[] getValuesForSerialization() {
++  final Object[] getValuesForSerialization() {
+     int n = provider.getFields().size();
+     Object[] table = new Object[n];
+     for (int i = 0; i < n; i++) {
+-      table[i] = getValueAt(i);
++      Object value = getValueAt(i);
++      // The provider is resolved in the receiving server, whose type predictor can be empty or
++      // have learned a different type. Never send a bare NestedSet without its element class.
++      table[i] =
++          value instanceof NestedSet<?> nestedSet ? provider.rewrapDepset(i, nestedSet) : value;
+     }
+     return table;
+   }
+@@ -111,6 +123,66 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {
+     };
+   }
+ 
++  @SuppressWarnings("unused") // Discovered by CodecScanner.
++  private static final class StarlarkInfoWithSchemaCodec
++      extends DeferredObjectCodec<StarlarkInfoWithSchema> {
++    @Override
++    public Class<StarlarkInfoWithSchema> getEncodedClass() {
++      return StarlarkInfoWithSchema.class;
++    }
++
++    @Override
++    public ImmutableSet<Class<? extends StarlarkInfoWithSchema>> additionalEncodedClasses() {
++      return ImmutableSet.of(
++          Schema0.class,
++          Schema1.class,
++          Schema2.class,
++          Schema3.class,
++          Schema4.class,
++          Schema5.class,
++          SchemaN.class);
++    }
++
++    @Override
++    public void serialize(
++        SerializationContext context, StarlarkInfoWithSchema value, CodedOutputStream codedOut)
++        throws SerializationException, IOException {
++      context.serialize(value.provider, codedOut);
++      context.serialize(value.getValuesForSerialization(), codedOut);
++    }
++
++    @Override
++    public DeferredValue<StarlarkInfoWithSchema> deserializeDeferred(
++        AsyncDeserializationContext context, CodedInputStream codedIn)
++        throws SerializationException, IOException {
++      var builder = new DeserializationBuilder();
++      context.deserialize(
++          codedIn, builder, (target, value) -> target.provider = (StarlarkProvider) value);
++      context.deserialize(codedIn, builder, (target, value) -> target.values = (Object[]) value);
++      return builder;
++    }
++
++    private static final class DeserializationBuilder
++        implements DeferredValue<StarlarkInfoWithSchema> {
++      private StarlarkProvider provider;
++      private Object[] values;
++
++      @Override
++      public StarlarkInfoWithSchema call() {
++        Preconditions.checkState(
++            values.length == provider.getFields().size(), "schema size mismatch");
++        for (int i = 0; i < values.length; i++) {
++          if (values[i] instanceof Depset depset) {
++            // Reapply the receiver's optimization. If it predicts another type, keep this value
++            // wrapped instead of changing the meaning of existing provider instances.
++            values[i] = provider.maybeUnwrapDepset(i, depset);
++          }
++        }
++        return create(provider, values);
++      }
++    }
++  }
++
+   static StarlarkProvider.StarlarkInfoFactory newStarlarkInfoFactory(
+       StarlarkProvider provider, StarlarkThread thread) {
+     return new StarlarkInfoFactory(provider, thread);
+@@ -641,11 +713,6 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {
+       vs[i] = val;
+     }
+ 
+-    @Override
+-    Object[] getValuesForSerialization() {
+-      return vs;
+-    }
+-
+     @Override
+     public int hashCode() {
+       return 31 * getProvider().hashCode() + Arrays.hashCode(vs);
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD
+index 8d4e08c7c8ebb8c38c12ee343d7117cf1ce36376..eff4a63cf51cf0979a512673b00ccad81debcafe 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD
+@@ -152,6 +152,7 @@ java_test(
+     srcs = ["StarlarkInfoCodecTest.java"],
+     deps = [
+         "//src/main/java/com/google/devtools/build/lib/cmdline",
++        "//src/main/java/com/google/devtools/build/lib/collect/nestedset",
+         "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
+         "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+         "//src/main/java/com/google/devtools/build/lib/packages:provider",
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java
+index a8fc15932ed3c5906110160a4ee7198686ca650d..a39445598ad1e56df4e627011b803b12f5c7195f 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java
+@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
+ import com.google.common.util.concurrent.ListenableFuture;
+ import com.google.devtools.build.lib.analysis.util.BuildViewTestCase;
+ import com.google.devtools.build.lib.cmdline.Label;
++import com.google.devtools.build.lib.collect.nestedset.Depset;
+ import com.google.devtools.build.lib.compress.CompressionService;
+ import com.google.devtools.build.lib.compress.CompressionServiceImpl;
+ import com.google.devtools.build.lib.packages.StarlarkInfo;
+@@ -33,6 +34,7 @@ import com.google.devtools.build.skyframe.state.EnvironmentForUtilities;
+ import com.google.protobuf.ByteString;
+ import java.io.IOException;
+ import java.util.concurrent.ExecutionException;
++import net.starlark.java.eval.Starlark;
+ import net.starlark.java.eval.StarlarkInt;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
+@@ -43,7 +45,8 @@ import org.junit.runners.JUnit4;
+ public final class StarlarkInfoCodecTest extends BuildViewTestCase {
+   private static final CompressionService COMPRESSION_SERVICE = new CompressionServiceImpl();
+ 
+-  private final ObjectCodecs objectCodecs = new ObjectCodecs();
++  private final ObjectCodecs objectCodecs =
++      new ObjectCodecs(AutoRegistry.get().getBuilder().addReferenceConstant(Starlark.NONE).build());
+   private final FingerprintValueService fingerprintValueService =
+       FingerprintValueService.createForTesting();
+ 
+@@ -58,6 +61,75 @@ public final class StarlarkInfoCodecTest extends BuildViewTestCase {
+                 "a", StarlarkInt.of(1), "b", StarlarkInt.of(2), "c", StarlarkInt.of(3))));
+   }
+ 
++  @Test
++  public void schemafulDepsetsWithFreshReaderProvider() throws Exception {
++    verifySchemafulDepsets(/* primeReaderWithDifferentType= */ false);
++  }
++
++  @Test
++  public void schemafulDepsetsWithDifferentReaderPrediction() throws Exception {
++    verifySchemafulDepsets(/* primeReaderWithDifferentType= */ true);
++  }
++
++  private void verifySchemafulDepsets(boolean primeReaderWithDifferentType) throws Exception {
++    // Covers every compact Schema0..5 subclass and the array-backed SchemaN.
++    for (int count = 0; count <= 7; count++) {
++      String path = "schema" + count;
++      scratch.file(path + "/BUILD");
++      String definition =
++          "fields = ['f' + str(i) for i in range("
++              + count
++              + ")]\n"
++              + "MyTestInfo = provider(fields = fields)\n";
++      scratch.file(
++          path + "/lib.bzl", definition + "value = MyTestInfo(**{f: depset([f]) for f in fields})");
++      BzlLoadValue.Key key =
++          BzlLoadValue.keyForBuild(Label.parseCanonicalUnchecked("//" + path + ":lib.bzl"));
++      StarlarkInfo original = (StarlarkInfo) getBzlLoadValue(key).getModule().getGlobal("value");
++      ByteString serialized = objectCodecs.serializeMemoized(original);
++
++      scratch.overwriteFile(
++          path + "/lib.bzl",
++          definition
++              + (primeReaderWithDifferentType
++                  ? "other = MyTestInfo(**{f: depset([123]) for f in fields})"
++                  : "# A fresh reader has not created any provider instances."));
++      invalidatePackages(/* alsoConfigs= */ false);
++      StarlarkProvider reader =
++          (StarlarkProvider) getBzlLoadValue(key).getModule().getGlobal("MyTestInfo");
++      assertThat(reader).isNotSameInstanceAs(original.getProvider());
++      StarlarkInfo restored = deserializeWithSkyframe(serialized);
++      assertThat(restored.getProvider()).isSameInstanceAs(reader);
++      assertThat(restored.getFieldNames()).containsExactlyElementsIn(original.getFieldNames());
++      for (String field : original.getFieldNames()) {
++        Depset depset = (Depset) restored.getValue(field);
++        assertThat(depset.getElementClass()).isEqualTo(String.class);
++        assertThat(depset.toList(String.class)).containsExactly(field);
++      }
++    }
++  }
++
++  @Test
++  public void schemafulAbsentScalarAndEmptyDepsetFields() throws Exception {
++    scratch.file("schema/BUILD");
++    String definition = "MyTestInfo = provider(fields = ['absent', 'empty', 'none', 'scalar'])";
++    scratch.file(
++        "schema/lib.bzl",
++        definition,
++        "value = MyTestInfo(empty = depset(), none = None, scalar = 'plain')");
++    BzlLoadValue.Key key =
++        BzlLoadValue.keyForBuild(Label.parseCanonicalUnchecked("//schema:lib.bzl"));
++    StarlarkInfo original = (StarlarkInfo) getBzlLoadValue(key).getModule().getGlobal("value");
++    ByteString serialized = objectCodecs.serializeMemoized(original);
++    scratch.overwriteFile("schema/lib.bzl", definition);
++    invalidatePackages(/* alsoConfigs= */ false);
++    StarlarkInfo restored = deserializeWithSkyframe(serialized);
++    assertThat(restored.getValue("absent")).isNull();
++    assertThat(((Depset) restored.getValue("empty")).isEmpty()).isTrue();
++    assertThat(restored.getValue("none")).isSameInstanceAs(Starlark.NONE);
++    assertThat(restored.getValue("scalar")).isEqualTo("plain");
++  }
++
+   private void verifyRoundTripWithSkyframe(StarlarkInfo original) throws Exception {
+     ByteString serialized = objectCodecs.serializeMemoized(original);
+     StarlarkInfo deserialized = deserializeWithSkyframe(serialized);

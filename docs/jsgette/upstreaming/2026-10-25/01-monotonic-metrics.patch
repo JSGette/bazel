@@ -1,0 +1,157 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java
+index 1b1a8531473bb8f356062a398183146d9c47f3ea..ae021dbc71f1e4e8119814fd619b575205635a1c 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java
+@@ -28,11 +28,10 @@ import com.google.devtools.build.lib.util.DecimalBucketer;
+ import com.google.devtools.build.skyframe.SkyKey;
+ import com.google.protobuf.ByteString;
+ import java.io.IOException;
+-import java.time.Duration;
+-import java.time.Instant;
+ import java.util.concurrent.ExecutionException;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.TimeUnit;
++import java.util.function.LongSupplier;
+ import javax.annotation.Nullable;
+ 
+ /**
+@@ -65,6 +64,7 @@ public final class FingerprintValueService implements KeyValueWriter {
+   private final SafeExecutor executor;
+   private final FingerprintValueStore store;
+   private final FingerprintValueCache cache;
++  private final LongSupplier nanoTime;
+ 
+   /**
+    * The function used to generate fingerprints.
+@@ -118,10 +118,21 @@ public final class FingerprintValueService implements KeyValueWriter {
+       FingerprintValueStore store,
+       FingerprintValueCache cache,
+       Fingerprinter fingerprinter) {
++    this(executor, store, cache, fingerprinter, System::nanoTime);
++  }
++
++  @VisibleForTesting
++  FingerprintValueService(
++      SafeExecutor executor,
++      FingerprintValueStore store,
++      FingerprintValueCache cache,
++      Fingerprinter fingerprinter,
++      LongSupplier nanoTime) {
+     this.executor = executor;
+     this.store = store;
+     this.cache = cache;
+     this.fingerprinter = fingerprinter;
++    this.nanoTime = nanoTime;
+ 
+     this.fingerprintPlaceholder = fingerprint(new byte[] {});
+     this.fingerprintLength = fingerprintPlaceholder.toBytes().length;
+@@ -171,12 +182,10 @@ public final class FingerprintValueService implements KeyValueWriter {
+   /** Delegates to {@link FingerprintValueStore#put}. */
+   @Override
+   public WriteStatus put(KeyBytesProvider fingerprint, byte[] serializedBytes) {
+-    Instant before = Instant.now();
++    long before = nanoTime.getAsLong();
+     WriteStatus status = store.put(fingerprint, serializedBytes);
+     status.addListener(
+-        () ->
+-            setLatencyMicros.add(
+-                TimeUnit.NANOSECONDS.toMicros(Duration.between(before, Instant.now()).toNanos())),
++        () -> setLatencyMicros.add(TimeUnit.NANOSECONDS.toMicros(nanoTime.getAsLong() - before)),
+         directExecutor());
+     return status;
+   }
+@@ -200,12 +209,10 @@ public final class FingerprintValueService implements KeyValueWriter {
+ 
+   /** Delegates to {@link FingerprintValueStore#get}. */
+   public ListenableFuture<byte[]> get(KeyBytesProvider fingerprint) throws IOException {
+-    Instant before = Instant.now();
++    long before = nanoTime.getAsLong();
+     ListenableFuture<byte[]> result = store.get(fingerprint);
+     result.addListener(
+-        () ->
+-            getLatencyMicros.add(
+-                TimeUnit.NANOSECONDS.toMicros(Duration.between(before, Instant.now()).toNanos())),
++        () -> getLatencyMicros.add(TimeUnit.NANOSECONDS.toMicros(nanoTime.getAsLong() - before)),
+         directExecutor());
+     return result;
+   }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD
+index 0b558fbebfaea4c630ebbb8f8e2dee6911e5a29e..8d4e08c7c8ebb8c38c12ee343d7117cf1ce36376 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD
+@@ -490,6 +490,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/testutils:fake_directories",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/testutils:fake_invalidation_data_helper",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/testutils:round-tripping",
++        "//src/main/java/com/google/devtools/build/lib/util:bucket",
+         "//src/main/java/com/google/devtools/build/lib/vfs",
+         "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
+         "//src/main/java/com/google/devtools/build/skyframe",
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java
+index 5a297a4330f9106c325535423a593f9984d6843a..5fe69db4e6fc8a38bce871df97db74836db10e80 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java
+@@ -14,17 +14,63 @@
+ package com.google.devtools.build.lib.skyframe.serialization;
+ 
+ import static com.google.common.truth.Truth.assertThat;
++import static com.google.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+ import static java.util.concurrent.Executors.newSingleThreadExecutor;
+ 
+ import com.google.common.util.concurrent.ListenableFuture;
++import com.google.common.util.concurrent.SettableFuture;
+ import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
+ import com.google.devtools.build.lib.skyframe.serialization.WriteStatuses.SettableWriteStatus;
++import java.util.concurrent.atomic.AtomicLong;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
+ import org.junit.runners.JUnit4;
+ 
+ @RunWith(JUnit4.class)
+ public final class FingerprintValueServiceTest {
++  @Test
++  public void latencyUsesElapsedNanosThroughAsynchronousCompletionAndSignedWrap() throws Exception {
++    var now = new AtomicLong(Long.MAX_VALUE - 5_000);
++    var write = new SettableWriteStatus();
++    var read = SettableFuture.<byte[]>create();
++    FingerprintValueStore store =
++        new FingerprintValueStore() {
++          @Override
++          public WriteStatus put(KeyBytesProvider key, byte[] bytes) {
++            return write;
++          }
++
++          @Override
++          public ListenableFuture<byte[]> get(KeyBytesProvider key) {
++            return read;
++          }
++        };
++    var service =
++        new FingerprintValueService(
++            new SafeExecutorOwner(newDirectExecutorService()),
++            store,
++            new FingerprintValueCache(),
++            FingerprintValueService.NONPROD_FINGERPRINTER,
++            now::get);
++    byte[] value = {1, 2};
++    var key = service.fingerprint(value);
++    var putResult = service.put(key, value);
++    var getResult = service.get(key);
++    assertThat(service.getStats().setLatencyMicros()).isEmpty();
++    assertThat(service.getStats().getLatencyMicros()).isEmpty();
++    now.addAndGet(10_000); // Signed nanoTime values wrap, while elapsed time remains positive.
++    write.markSuccess();
++    read.set(value);
++    assertThat(putResult.get()).isTrue();
++    assertThat(getResult.get()).isEqualTo(value);
++    var putBucket = service.getStats().setLatencyMicros().get(0);
++    var getBucket = service.getStats().getLatencyMicros().get(0);
++    assertThat(putBucket.minInclusive()).isEqualTo(10);
++    assertThat(getBucket.minInclusive()).isEqualTo(10);
++    assertThat(putBucket.count()).isEqualTo(1);
++    assertThat(getBucket.count()).isEqualTo(1);
++  }
++
+   @Test
+   public void fingerprint_isConsistent() {
+     FingerprintValueService service =

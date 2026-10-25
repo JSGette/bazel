@@ -1,0 +1,517 @@
+{
+  "additional_checks": [
+    {
+      "commit": "9f3aff359f26d36f04d7d8d750f2fff6d7252aa3",
+      "exit_code": 0,
+      "name": "ordered cleanup whole-commit application",
+      "passed": true,
+      "stderr": ""
+    },
+    {
+      "commit": "4bfb5a1c8cb8a0a432da406553458518fd83b492",
+      "exit_code": 0,
+      "name": "ordered cleanup whole-commit application",
+      "passed": true,
+      "stderr": ""
+    },
+    {
+      "commit": "4bfb5a1c8cb8a0a432da406553458518fd83b492",
+      "exit_code": 1,
+      "name": "second cleanup alone",
+      "passed": false,
+      "stderr": "error: patch failed: src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java:945\nerror: src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java: patch does not apply\n"
+    },
+    {
+      "commit": "36a73d8fb4f13c315002d74f2c73532a2db67cdd",
+      "exit_code": 1,
+      "name": "whole array/lookup prototype",
+      "passed": false,
+      "stderr": "error: src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java: does not exist in index\nerror: src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java: does not exist in index\n"
+    }
+  ],
+  "audited_head": "0f8d49f6c611e1e0735c4c19f85f10c36dacc9ee",
+  "created_at_utc": "2026-10-25T19:21:36.016944+01:00",
+  "patch_directory": ".",
+  "patches": [
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "478adf722d2b50151177cf974ccf00563b2c2d7d"
+      ],
+      "extraction": {
+        "from": "389c0570d7a8bf0ac0e089fac27a1f1c20515d1f",
+        "to": "478adf722d2b50151177cf974ccf00563b2c2d7d"
+      },
+      "hunks": [
+        {
+          "header": "@@ -28,11 +28,10 @@ import com.google.devtools.build.lib.util.DecimalBucketer;",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java"
+        },
+        {
+          "header": "@@ -65,6 +64,7 @@ public final class FingerprintValueService implements KeyValueWriter {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java"
+        },
+        {
+          "header": "@@ -118,10 +118,21 @@ public final class FingerprintValueService implements KeyValueWriter {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java"
+        },
+        {
+          "header": "@@ -171,12 +182,10 @@ public final class FingerprintValueService implements KeyValueWriter {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java"
+        },
+        {
+          "header": "@@ -200,12 +209,10 @@ public final class FingerprintValueService implements KeyValueWriter {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java"
+        },
+        {
+          "header": "@@ -490,6 +490,7 @@ java_library(",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD"
+        },
+        {
+          "header": "@@ -14,17 +14,63 @@",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java"
+        }
+      ],
+      "id": "01-monotonic-metrics",
+      "kind": "whole_commit",
+      "patch": "01-monotonic-metrics.patch",
+      "patch_bytes": 7749,
+      "patch_file": "01-monotonic-metrics.patch",
+      "patch_sha256": "bd04c56a74926aba2d1d07306a581847ad1247c099a40dbfd60a391416ed59aa",
+      "paths": [
+        "src/main/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueService.java",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java"
+      ],
+      "readiness": "Independent unchanged candidate; upstream runtime validation pending.",
+      "risks": [],
+      "tests": [
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/FingerprintValueServiceTest.java:32"
+      ]
+    },
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "9f3aff359f26d36f04d7d8d750f2fff6d7252aa3",
+        "4bfb5a1c8cb8a0a432da406553458518fd83b492"
+      ],
+      "extraction": {
+        "from": "ef5e03b7d60f372004ef2b0aae8c65b57e60f4c1",
+        "ordered_commits": [
+          "9f3aff359f26d36f04d7d8d750f2fff6d7252aa3",
+          "4bfb5a1c8cb8a0a432da406553458518fd83b492"
+        ],
+        "paths": [
+          "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java",
+          "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java"
+        ],
+        "to": "4bfb5a1c8cb8a0a432da406553458518fd83b492"
+      },
+      "hunks": [
+        {
+          "header": "@@ -14,6 +14,7 @@",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java"
+        },
+        {
+          "header": "@@ -95,12 +96,35 @@ public final class SkyValueRetriever {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java"
+        },
+        {
+          "header": "@@ -131,17 +155,24 @@ public final class SkyValueRetriever {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java"
+        },
+        {
+          "header": "@@ -201,7 +232,7 @@ public final class SkyValueRetriever {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java"
+        },
+        {
+          "header": "@@ -455,7 +486,22 @@ public final class SkyValueRetriever {",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java"
+        },
+        {
+          "header": "@@ -44,6 +44,7 @@ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.Re",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java"
+        },
+        {
+          "header": "@@ -917,6 +918,81 @@ public final class SkyValueRetrieverTest {",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java"
+        }
+      ],
+      "id": "02-retrieval-cleanup",
+      "kind": "ordered_commits_combined_net_diff",
+      "patch": "02-retrieval-cleanup.patch",
+      "patch_bytes": 9254,
+      "patch_file": "02-retrieval-cleanup.patch",
+      "patch_sha256": "7e3b966f0a1a17027d0ae941266397f06106a44298be4f698be19de81dcd0579",
+      "paths": [
+        "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java"
+      ],
+      "readiness": "Independent unchanged pair; second commit requires first.",
+      "risks": [],
+      "tests": [
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java:922",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java:949",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java:984"
+      ]
+    },
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "71521fabb3420707c39d73329fa9aa9622e8c382"
+      ],
+      "extraction": {
+        "from": "303a149a195bbd6ad770584bd34138ea749c3e9a",
+        "paths": [
+          "src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java",
+          "src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java"
+        ],
+        "to": "71521fabb3420707c39d73329fa9aa9622e8c382"
+      },
+      "hunks": [
+        {
+          "header": "@@ -618,6 +618,18 @@ public class RemoteActionFileSystem extends FileSystem {",
+          "path": "src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java"
+        },
+        {
+          "header": "@@ -324,6 +324,22 @@ public final class RemoteActionFileSystemTest extends RemoteActionFileSystemTest",
+          "path": "src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java"
+        }
+      ],
+      "id": "03-remote-input-symlink",
+      "kind": "unchanged_file_extraction",
+      "patch": "03-remote-input-symlink.patch",
+      "patch_bytes": 3114,
+      "patch_file": "03-remote-input-symlink.patch",
+      "patch_sha256": "1693fa0ce9840070fdaccb3424c3a5af32d0b9cf0abd6f0b88ab2ddc621d001e",
+      "paths": [
+        "src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java",
+        "src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java"
+      ],
+      "readiness": "Independent unchanged source and regression test; whole commit requires SkyCache foundation.",
+      "risks": [],
+      "tests": [
+        "src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java:328"
+      ]
+    },
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "36a73d8fb4f13c315002d74f2c73532a2db67cdd"
+      ],
+      "extraction": {
+        "from": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+        "paths": [
+          "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java"
+        ],
+        "to": "36a73d8fb4f13c315002d74f2c73532a2db67cdd"
+      },
+      "hunks": [
+        {
+          "header": "@@ -35,7 +35,6 @@ import com.google.devtools.build.lib.skyframe.serialization.analysis.proto.MissR",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java"
+        },
+        {
+          "header": "@@ -463,6 +462,16 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java"
+        },
+        {
+          "header": "@@ -484,17 +493,16 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ",
+          "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java"
+        }
+      ],
+      "id": "04-array-decoder",
+      "kind": "unchanged_file_extraction",
+      "patch": "04-array-decoder.patch",
+      "patch_bytes": 2888,
+      "patch_file": "04-array-decoder.patch",
+      "patch_sha256": "d3fd029453c25b09b87eb7906cceaf28909d8537b783b5d508d2ac1dc0b5a5c1",
+      "paths": [
+        "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java"
+      ],
+      "readiness": "Independent implementation candidate, but focused regression and allocation evidence still required. Whole commit contains fork-only packed-store changes.",
+      "risks": [
+        "The extraction changes CodedInputStream construction only; getFreshContext(childFingerprint), codec.deserializeDeferred, lookup notifications, deferred setter and future completion remain shared.",
+        "No changed ArrayCodec or registerInitialValue call; preserve memoized identity/backreference behavior with nested/deferred aliases and cycle regression cases.",
+        "Exercise empty/truncated marker-zero payloads, protobuf length/size/recursion limits, codec/setter exceptions and future termination; existing commit adds no new test.",
+        "Compressed and chunked values retain InputStream paths; verify their existing tests and failure propagation on upstream.",
+        "No standalone performance/allocations run performed for this artifact."
+      ],
+      "tests": [
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java:72",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java:143",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java:186",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java:502"
+      ]
+    },
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "afff0b2bf4dacb421f1d4abe2f5a7f9c7d68b30e"
+      ],
+      "extraction": {
+        "from": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+        "hunk_selectors": [
+          {
+            "contains": "actualToken.orElse",
+            "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java"
+          }
+        ],
+        "to": "afff0b2bf4dacb421f1d4abe2f5a7f9c7d68b30e"
+      },
+      "hunks": [
+        {
+          "header": "@@ -152,7 +154,7 @@ public final class RemoteWorker {",
+          "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java"
+        }
+      ],
+      "id": "05-worker-missing-token",
+      "kind": "unchanged_hunk_extraction",
+      "patch": "05-worker-missing-token.patch",
+      "patch_bytes": 995,
+      "patch_file": "05-worker-missing-token.patch",
+      "patch_sha256": "5025e0168e37d31d422ec7a6a7636e834df7e243ec29dcd476e1f2b71f4ee58a",
+      "paths": [
+        "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java"
+      ],
+      "readiness": "Independent one-hunk correction; dedicated missing/malformed/valid token test not found.",
+      "risks": [
+        "Whole commit introduces remote SkyCache and is not an independent upstream patch."
+      ],
+      "tests": []
+    },
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "afff0b2bf4dacb421f1d4abe2f5a7f9c7d68b30e"
+      ],
+      "extraction": {
+        "from": "1aac2aa2ec6fe31af2e979558f06a3b6971c601b",
+        "hunk_selectors": [
+          {
+            "contains": "getListenAddress",
+            "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java"
+          },
+          {
+            "contains": "getListenAddress",
+            "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java"
+          }
+        ],
+        "to": "afff0b2bf4dacb421f1d4abe2f5a7f9c7d68b30e"
+      },
+      "hunks": [
+        {
+          "header": "@@ -283,7 +301,11 @@ public final class RemoteWorker {",
+          "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java"
+        },
+        {
+          "header": "@@ -54,6 +72,14 @@ public abstract class RemoteWorkerOptions extends OptionsBase {",
+          "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java"
+        }
+      ],
+      "id": "06-worker-bind-address",
+      "kind": "unchanged_hunk_extraction",
+      "patch": "06-worker-bind-address.patch",
+      "patch_bytes": 2280,
+      "patch_file": "06-worker-bind-address.patch",
+      "patch_sha256": "7d68bb85b3da3f3db588f7e52e123340fe5596d3443301212ef26c6ddc7ebfef",
+      "paths": [
+        "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java",
+        "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java"
+      ],
+      "readiness": "Independent optional feature; dedicated bind/default-address test not found.",
+      "risks": [
+        "Whole commit introduces remote SkyCache and is not an independent upstream patch."
+      ],
+      "tests": []
+    },
+    {
+      "apply_check": {
+        "base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+        "command": [
+          "git",
+          "apply",
+          "--cached",
+          "--check",
+          "-"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "stderr": ""
+      },
+      "commits": [
+        "ef40333376148e398f3c8f756e8487192ee06c3f"
+      ],
+      "extraction": {
+        "from": "e41a096844c916d9bee7222f3c74d5816a22c911",
+        "paths": [
+          "src/main/java/com/google/devtools/build/lib/packages/BUILD",
+          "src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java",
+          "src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD",
+          "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java"
+        ],
+        "to": "ef40333376148e398f3c8f756e8487192ee06c3f"
+      },
+      "hunks": [
+        {
+          "header": "@@ -265,6 +265,7 @@ java_library(",
+          "path": "src/main/java/com/google/devtools/build/lib/packages/BUILD"
+        },
+        {
+          "header": "@@ -280,6 +281,7 @@ java_library(",
+          "path": "src/main/java/com/google/devtools/build/lib/packages/BUILD"
+        },
+        {
+          "header": "@@ -18,13 +18,21 @@ import com.google.common.base.Joiner;",
+          "path": "src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java"
+        },
+        {
+          "header": "@@ -89,11 +97,15 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {",
+          "path": "src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java"
+        },
+        {
+          "header": "@@ -111,6 +123,66 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {",
+          "path": "src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java"
+        },
+        {
+          "header": "@@ -641,11 +713,6 @@ public abstract sealed class StarlarkInfoWithSchema extends StarlarkInfo {",
+          "path": "src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java"
+        },
+        {
+          "header": "@@ -152,6 +152,7 @@ java_test(",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD"
+        },
+        {
+          "header": "@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java"
+        },
+        {
+          "header": "@@ -33,6 +34,7 @@ import com.google.devtools.build.skyframe.state.EnvironmentForUtilities;",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java"
+        },
+        {
+          "header": "@@ -43,7 +45,8 @@ import org.junit.runners.JUnit4;",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java"
+        },
+        {
+          "header": "@@ -58,6 +61,75 @@ public final class StarlarkInfoCodecTest extends BuildViewTestCase {",
+          "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java"
+        }
+      ],
+      "id": "07-depset-types",
+      "kind": "unchanged_file_extraction",
+      "patch": "07-depset-types.patch",
+      "patch_bytes": 13274,
+      "patch_file": "07-depset-types.patch",
+      "patch_sha256": "2e3c7b2e25f9337bc9e43600a29a54c6a260f044b4af9b283e5d6614b072e0be",
+      "paths": [
+        "src/main/java/com/google/devtools/build/lib/packages/BUILD",
+        "src/main/java/com/google/devtools/build/lib/packages/StarlarkInfoWithSchema.java",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/BUILD",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java"
+      ],
+      "readiness": "Independent correctness candidate, pending explicit codec and cache compatibility review; excludes fork-only Datadog probe.",
+      "risks": [
+        "Introduces globally registered codec for compact schema subclasses and changes encoded depset fields; not asserted mixed-reader compatible.",
+        "Existing binary install checksum normally isolates analysis cache, but that alone is not proof for every serializer consumer or checksum override."
+      ],
+      "tests": [
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java:65",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java:70",
+        "src/test/java/com/google/devtools/build/lib/skyframe/serialization/StarlarkInfoCodecTest.java:113"
+      ]
+    }
+  ],
+  "purpose": "Review-only unchanged upstream extraction proof",
+  "recommended_first_submissions": [
+    "01-monotonic-metrics",
+    "02-retrieval-cleanup",
+    "03-remote-input-symlink"
+  ],
+  "repository": "/home/jgett/REPOS/bazel-skycache-remote-mvp",
+  "schema_version": 1,
+  "upstream_base": "a5c50fcb65841b505ec72840d83381a704e70afa",
+  "upstream_base_source": "Caller supplied already-fetched and API-verified upstream master; this task does not independently re-fetch.",
+  "validation": {
+    "benchmarks_run": false,
+    "compiled_on_upstream": false,
+    "method": "Temporary GIT_INDEX_FILE populated by git read-tree. Apply checks and ordered cleanup application affect only the temporary index, deleted afterward.",
+    "project_files_edited": false,
+    "runtime_tests_on_upstream": false,
+    "statement": "Clean application does not prove compilation, runtime behavior, serialization compatibility, performance, or upstream acceptance.",
+    "working_tree_status": "?? docs/jsgette/skycache-remote-cache-protocol-2026-10-25.md\n"
+  },
+  "publication_note": "Artifact copied from the read-only investigator audit. Only patch location fields were made relative for publication; patch bytes and recorded results are unchanged."
+}
