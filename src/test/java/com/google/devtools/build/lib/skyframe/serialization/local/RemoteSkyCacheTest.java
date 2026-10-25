@@ -48,6 +48,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -255,6 +256,174 @@ public final class RemoteSkyCacheTest {
       assertNoPublications(destination);
       assertThat(backend.requestedDigests)
           .containsNoneIn(pack.getChunksList().subList(1, pack.getChunksCount()));
+    }
+  }
+
+  @Test
+  public void repeatedSmallRangesReadOnlyCoveringBlocksAndHandleBoundaries() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(128, 17);
+      backend.requestedDigests.clear();
+      long before = statistic(reader, "cached_read_bytes");
+      for (int i = 0; i < 100; i++) {
+        fixture.assertRead(128 + i, 17);
+      }
+      assertThat(statistic(reader, "cached_read_bytes") - before).isEqualTo(100L * 4096);
+      assertThat(backend.requestedDigests).isEmpty();
+
+      for (int offset : List.of(4093, SkyCacheProtocol.CHUNK_BYTES - 3)) {
+        fixture.assertRead(offset, 8);
+        backend.requestedDigests.clear();
+        before = statistic(reader, "cached_read_bytes");
+        fixture.assertRead(offset, 8);
+        assertThat(statistic(reader, "cached_read_bytes") - before).isEqualTo(2L * 4096);
+        assertThat(backend.requestedDigests).isEmpty();
+      }
+      int last = fixture.bytes().length - 7;
+      fixture.assertRead(last, 7);
+      backend.requestedDigests.clear();
+      before = statistic(reader, "cached_read_bytes");
+      fixture.assertRead(last, 7);
+      assertThat(statistic(reader, "cached_read_bytes") - before)
+          .isEqualTo(fixture.bytes().length % 4096);
+      assertThat(backend.requestedDigests).isEmpty();
+    }
+  }
+
+  @Test
+  public void forgedRecordChecksumCannotAuthenticateChangedCoveredBlock() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 1);
+      byte[] forged = fixture.bytes().clone();
+      int valueOffset = 44 + new Key("entry").toBytes().length;
+      forged[valueOffset] ^= 1;
+      byte[] checksum =
+          MessageDigest.getInstance("SHA-256")
+              .digest(Arrays.copyOfRange(forged, valueOffset, forged.length));
+      System.arraycopy(checksum, 0, forged, 12, checksum.length);
+      Files.write(
+          cachedChunk(destination, fixture.pack().getChunks(0)),
+          Arrays.copyOf(forged, SkyCacheProtocol.CHUNK_BYTES));
+      backend.requestedDigests.clear();
+      var target = ByteBuffer.allocate(1);
+      var failure =
+          assertThrows(
+              IOException.class,
+              () -> fixture.source().readCached(fixture.pack().getName(), target, valueOffset));
+      assertThat(failure).hasMessageThat().contains("block checksum mismatch");
+      assertThat(target.position()).isEqualTo(0);
+      assertThat(backend.requestedDigests).isEmpty();
+    }
+  }
+
+  @Test
+  public void corruptedUnreadBlockIsRejectedOnlyWhenRequested() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 1);
+      Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
+      byte[] damaged = Files.readAllBytes(cached);
+      damaged[8192] ^= 1;
+      Files.write(cached, damaged);
+      backend.requestedDigests.clear();
+      fixture.assertRead(0, 1);
+      var target = ByteBuffer.allocate(1);
+      assertThrows(
+          IOException.class, () -> fixture.source().read(fixture.pack().getName(), target, 8192));
+      assertThat(target.position()).isEqualTo(0);
+      assertThat(backend.requestedDigests).isEmpty();
+    }
+  }
+
+  @Test
+  public void missingTruncatedOrSymlinkedScratchNeverDownloadsDuringCachedRead() throws Exception {
+    for (String damage : List.of("missing", "truncated", "symlink")) {
+      Path source = temporary.newFolder("source-" + damage).toPath();
+      Path destination = temporary.newFolder(damage).toPath();
+      try (var backend = new MemoryRemote();
+          var reader = remote(destination, backend)) {
+        var fixture = prepareRanges(source, backend, reader);
+        fixture.assertRead(0, 1);
+        Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
+        byte[] original = Files.readAllBytes(cached);
+        if (damage.equals("truncated")) {
+          Files.write(cached, Arrays.copyOf(original, original.length - 1));
+        } else {
+          Files.delete(cached);
+          if (damage.equals("symlink")) {
+            Path replacement = temporary.newFolder().toPath().resolve("replacement");
+            Files.write(replacement, original);
+            Files.createSymbolicLink(cached, replacement);
+          }
+        }
+        backend.requestedDigests.clear();
+        assertThat(fixture.source().isCached(fixture.pack().getName(), 0, 1)).isFalse();
+        var target = ByteBuffer.allocate(1);
+        assertThrows(
+            IOException.class,
+            () -> fixture.source().readCached(fixture.pack().getName(), target, 0));
+        assertThat(target.position()).isEqualTo(0);
+        assertThat(backend.requestedDigests).isEmpty();
+      }
+    }
+  }
+
+  @Test
+  public void authenticationEvictionReverifiesWholeChunkBeforeReturningRange() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    try (var backend = new MemoryRemote();
+        var reader =
+            new RemoteSkyCache(
+                destination,
+                namespace,
+                32L * 1024 * 1024,
+                "instance",
+                new SkyCacheTransport(backend.endpoint(), "instance", "", Duration.ofSeconds(15)),
+                8320)) {
+      var fixture = prepareRanges(source, backend, reader);
+      assertThat(fixture.pack().getChunks(0)).isNotEqualTo(fixture.pack().getChunks(1));
+      fixture.assertRead(0, 1);
+      long evictions = statistic(reader, "authentication_cache_evictions");
+      fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES, 1);
+      assertThat(statistic(reader, "authentication_cache_evictions")).isGreaterThan(evictions);
+      assertThat(statistic(reader, "authentication_cache_bytes")).isAtMost(8320);
+      long rebuildBefore = statistic(reader, "cached_read_bytes");
+      fixture.assertRead(0, 1);
+      assertThat(statistic(reader, "cached_read_bytes") - rebuildBefore)
+          .isEqualTo(SkyCacheProtocol.CHUNK_BYTES);
+      rebuildBefore = statistic(reader, "cached_read_bytes");
+      fixture.assertRead(0, 1);
+      assertThat(statistic(reader, "cached_read_bytes") - rebuildBefore).isEqualTo(4096);
+      fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES, 1);
+      Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
+      byte[] damaged = Files.readAllBytes(cached);
+      damaged[8192] ^=
+          1; // Outside the requested block; eviction requires whole-chunk verification.
+      Files.write(cached, damaged);
+      backend.requestedDigests.clear();
+      long before = statistic(reader, "cached_read_bytes");
+      var target = ByteBuffer.allocate(1);
+      var failure =
+          assertThrows(
+              IOException.class,
+              () -> fixture.source().readCached(fixture.pack().getName(), target, 0));
+      assertThat(failure).hasMessageThat().contains("chunk checksum mismatch");
+      assertThat(target.position()).isEqualTo(0);
+      assertThat(statistic(reader, "cached_read_bytes") - before)
+          .isEqualTo(SkyCacheProtocol.CHUNK_BYTES);
+      assertThat(backend.requestedDigests).isEmpty();
     }
   }
 
@@ -909,6 +1078,38 @@ public final class RemoteSkyCacheTest {
       }
       assertNoPublications(destination);
     }
+  }
+
+  private RangeFixture prepareRanges(Path source, MemoryRemote backend, RemoteSkyCache reader)
+      throws Exception {
+    byte[] value = new byte[2 * SkyCacheProtocol.CHUNK_BYTES + 117];
+    new Random(90210).nextBytes(value);
+    try (var writer = remote(source, backend)) {
+      writer.publish(publishLocal(source, new Key("entry"), value));
+    }
+    PublicationFile pack = onlyFile(backend.bundle(), ".pack");
+    var bytes = new ByteArrayOutputStream();
+    for (Digest chunk : pack.getChunksList()) {
+      bytes.write(backend.blobs.get(chunk));
+    }
+    assertThat(reader.prepare()).isEqualTo(1);
+    return new RangeFixture(pack, bytes.toByteArray(), reader.candidates().get(0).source());
+  }
+
+  private record RangeFixture(
+      PublicationFile pack, byte[] bytes, SegmentedFingerprintValueStore.FileSource source) {
+    void assertRead(int offset, int length) throws IOException {
+      var target = ByteBuffer.allocate(length);
+      source.read(pack.getName(), target, offset);
+      assertThat(target.hasRemaining()).isFalse();
+      assertThat(target.array()).isEqualTo(Arrays.copyOfRange(bytes, offset, offset + length));
+    }
+  }
+
+  private static long statistic(RemoteSkyCache reader, String name) {
+    var match = Pattern.compile("\"" + name + "\":(\\d+)").matcher(reader.statisticsJson());
+    assertThat(match.find()).isTrue();
+    return Long.parseLong(match.group(1));
   }
 
   private static Path cachedChunk(Path cache, Digest digest) throws IOException {

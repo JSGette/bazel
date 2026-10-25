@@ -22,7 +22,10 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,6 +38,16 @@ import java.util.Set;
  * publications enter the durable local catalog; admission remains the local validator's job.
  */
 final class RemoteSkyCache implements AutoCloseable {
+  // These are invocation-local authentication blocks, not wire chunks. Keep only their hashes;
+  // caching whole chunks would require retaining much of a multi-GiB publication for random reads.
+  static final int AUTHENTICATION_BLOCK_BYTES = 4096;
+  private static final int AUTHENTICATION_CACHE_BYTES = 32 * 1024 * 1024;
+  private static final int AUTHENTICATION_ENTRY_OVERHEAD = 128;
+  private final Map<Digest, byte[]> authenticatedBlocks = new LinkedHashMap<>(16, 0.75f, true);
+  private final int authenticationBudget;
+  private int authenticationBytes;
+  private long authenticationEvictions;
+  private long cachedReadBytes;
   private final Path managed;
   private final Path objects;
   private final Path publications;
@@ -136,10 +149,9 @@ final class RemoteSkyCache implements AutoCloseable {
         }
         long end = start + chunk.getSizeBytes();
         if (offset < end) {
-          byte[] bytes = cacheOnly ? readCachedChunk(chunk) : download(chunk);
           int within = (int) (offset - start);
-          int count = Math.min(target.remaining(), bytes.length - within);
-          target.put(bytes, within, count);
+          int count = (int) Math.min(target.remaining(), chunk.getSizeBytes() - within);
+          readChunk(chunk, target, within, count, cacheOnly);
           offset += count;
         }
         start = end;
@@ -159,14 +171,102 @@ final class RemoteSkyCache implements AutoCloseable {
   }
 
   private synchronized byte[] readCachedChunk(Digest digest) throws IOException {
-    if (!cached(digest)) {
-      throw new SegmentedFingerprintValueStore.NotCachedException();
-    }
-    byte[] bytes = Files.readAllBytes(chunks.resolve(digest.getHash()));
+    byte[] bytes = readCachedBytes(digest, 0, (int) digest.getSizeBytes());
     if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
       throw new IOException("cached remote chunk checksum mismatch");
     }
+    rememberAuthentication(digest, bytes);
     return bytes;
+  }
+
+  private byte[] readCachedBytes(Digest digest, int offset, int length) throws IOException {
+    if (!cached(digest)) {
+      throw new SegmentedFingerprintValueStore.NotCachedException();
+    }
+    var buffer = ByteBuffer.allocate(length);
+    try (var channel = FileChannel.open(chunks.resolve(digest.getHash()), READ, NOFOLLOW_LINKS)) {
+      if (channel.size() != digest.getSizeBytes()) {
+        throw new IOException("cached remote chunk size changed");
+      }
+      while (buffer.hasRemaining()) {
+        int count = channel.read(buffer, offset + buffer.position());
+        if (count < 0) {
+          throw new IOException("truncated cached remote chunk");
+        }
+        cachedReadBytes += count;
+      }
+      if (channel.size() != digest.getSizeBytes()) {
+        throw new IOException("cached remote chunk size changed");
+      }
+    }
+    return buffer.array();
+  }
+
+  private synchronized void readChunk(
+      Digest digest, ByteBuffer target, int offset, int length, boolean cacheOnly)
+      throws IOException {
+    if (!cacheOnly
+        && (chunks == null || !Files.exists(chunks.resolve(digest.getHash()), NOFOLLOW_LINKS))) {
+      target.put(download(digest), offset, length);
+      return;
+    }
+    byte[] hashes = authenticatedBlocks.get(digest);
+    if (hashes == null) {
+      // Eviction never makes scratch bytes trusted: authenticate the full CAS chunk again.
+      target.put(readCachedChunk(digest), offset, length);
+      return;
+    }
+    int first = offset / AUTHENTICATION_BLOCK_BYTES;
+    int end =
+        Math.min(
+            (int) digest.getSizeBytes(),
+            ((offset + length - 1) / AUTHENTICATION_BLOCK_BYTES + 1) * AUTHENTICATION_BLOCK_BYTES);
+    int start = first * AUTHENTICATION_BLOCK_BYTES;
+    byte[] bytes = readCachedBytes(digest, start, end - start);
+    for (int at = 0; at < bytes.length; at += AUTHENTICATION_BLOCK_BYTES) {
+      byte[] actual = blockDigest(bytes, at);
+      int expected = (first + at / AUTHENTICATION_BLOCK_BYTES) * 32;
+      if (!Arrays.equals(hashes, expected, expected + 32, actual, 0, actual.length)) {
+        throw new IOException("cached remote chunk block checksum mismatch");
+      }
+    }
+    // Every returned byte is authenticated against hashes derived from a verified CAS response.
+    // Unread blocks are checked when requested; no mutable scratch bytes become trust anchors.
+    target.put(bytes, offset - start, length);
+  }
+
+  private void rememberAuthentication(Digest digest, byte[] bytes) {
+    if (authenticatedBlocks.containsKey(digest)) {
+      return;
+    }
+    int blocks = (bytes.length + AUTHENTICATION_BLOCK_BYTES - 1) / AUTHENTICATION_BLOCK_BYTES;
+    int weight = blocks * 32 + AUTHENTICATION_ENTRY_OVERHEAD;
+    if (weight > authenticationBudget) {
+      return;
+    }
+    while (authenticationBytes > authenticationBudget - weight) {
+      var oldest = authenticatedBlocks.entrySet().iterator();
+      authenticationBytes -= oldest.next().getValue().length + AUTHENTICATION_ENTRY_OVERHEAD;
+      oldest.remove();
+      authenticationEvictions++;
+    }
+    byte[] hashes = new byte[blocks * 32];
+    for (int at = 0; at < bytes.length; at += AUTHENTICATION_BLOCK_BYTES) {
+      byte[] hash = blockDigest(bytes, at);
+      System.arraycopy(hash, 0, hashes, at / AUTHENTICATION_BLOCK_BYTES * 32, hash.length);
+    }
+    authenticatedBlocks.put(digest, hashes);
+    authenticationBytes += weight;
+  }
+
+  private static byte[] blockDigest(byte[] bytes, int offset) {
+    try {
+      var digest = MessageDigest.getInstance("SHA-256");
+      digest.update(bytes, offset, Math.min(AUTHENTICATION_BLOCK_BYTES, bytes.length - offset));
+      return digest.digest();
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    }
   }
 
   private synchronized byte[] download(Digest digest) throws IOException {
@@ -179,6 +279,7 @@ final class RemoteSkyCache implements AutoCloseable {
     }
     byte[] bytes = transport.download(digest);
     Files.write(path, bytes, CREATE_NEW, WRITE, NOFOLLOW_LINKS);
+    rememberAuthentication(digest, bytes);
     downloadedBytes += bytes.length;
     downloadedChunks++;
     return bytes;
@@ -203,6 +304,12 @@ final class RemoteSkyCache implements AutoCloseable {
         + downloadedBytes
         + ",\"downloaded_chunks\":"
         + downloadedChunks
+        + ",\"cached_read_bytes\":"
+        + cachedReadBytes
+        + ",\"authentication_cache_bytes\":"
+        + authenticationBytes
+        + ",\"authentication_cache_evictions\":"
+        + authenticationEvictions
         + ",\"discovered_publications\":"
         + candidates.size()
         + ",\"materialized_publications\":"
@@ -233,12 +340,27 @@ final class RemoteSkyCache implements AutoCloseable {
       String instance,
       SkyCacheTransport transport)
       throws IOException {
+    this(root, namespace, metadataBudget, instance, transport, AUTHENTICATION_CACHE_BYTES);
+  }
+
+  RemoteSkyCache(
+      Path root,
+      String namespace,
+      long metadataBudget,
+      String instance,
+      SkyCacheTransport transport,
+      int authenticationBudget)
+      throws IOException {
     try {
       this.scope = Scope.newBuilder().setInstanceName(instance).setNamespaceId(namespace).build();
       SkyCacheProtocol.validateScope(scope);
       if (metadataBudget < 0) {
         throw new IOException("negative local metadata budget");
       }
+      if (authenticationBudget < 0 || authenticationBudget > AUTHENTICATION_CACHE_BYTES) {
+        throw new IOException("invalid remote authentication cache budget");
+      }
+      this.authenticationBudget = authenticationBudget;
       this.managed = LocalCacheSession.durableDirectory(root.resolve("leased-v2"));
       this.objects = LocalCacheSession.durableDirectory(managed.resolve("objects/segmented-v1"));
       this.publications =
@@ -730,6 +852,8 @@ final class RemoteSkyCache implements AutoCloseable {
     } finally {
       transport.close();
       candidates.clear();
+      authenticatedBlocks.clear();
+      authenticationBytes = 0;
       for (Path stage : stages) {
         try {
           removeStage(stage);
