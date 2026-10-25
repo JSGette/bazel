@@ -219,8 +219,13 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
   }
 
   private byte[] find(Bucket bucket, KeyBytesProvider key) throws IOException {
+    byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+    return find(bucket, bytes, hash(bytes));
+  }
+
+  private byte[] find(Bucket bucket, byte[] key, byte[] digest) throws IOException {
     for (int i = bucket.segments.size() - 1; i >= 0; i--) {
-      byte[] value = store(bucket.segments.get(i)).getIfPresent(key);
+      byte[] value = store(bucket.segments.get(i)).getIfPresent(key, digest);
       if (value != null) {
         return value;
       }
@@ -283,9 +288,11 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       if (closed) {
         throw new IOException("segmented store closed");
       }
-      Bucket bucket = buckets[bucket(key)];
+      byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+      byte[] digest = hash(bytes);
+      Bucket bucket = buckets[digest[0] & (BUCKETS - 1)];
       synchronized (bucket) {
-        byte[] value = find(bucket, key);
+        byte[] value = find(bucket, bytes, digest);
         if (value == null) {
           throw new IOException("segmented cache key is absent");
         }
