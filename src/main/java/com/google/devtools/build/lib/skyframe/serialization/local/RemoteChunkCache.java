@@ -68,7 +68,9 @@ final class RemoteChunkCache {
     }
   }
 
-  /** A size-only hint. Does not create directories, touch timestamps, or trust the file contents. */
+  /**
+   * A size-only hint. Does not create directories, touch timestamps, or trust the file contents.
+   */
   boolean contains(Digest digest) throws IOException {
     Path path = entry(digest);
     var attributes = maxBytes == 0 ? null : attributes(path);
@@ -110,7 +112,8 @@ final class RemoteChunkCache {
     if (maxBytes == 0) {
       return;
     }
-    var attributes = Files.readAttributes(verifiedPrivate, BasicFileAttributes.class, NOFOLLOW_LINKS);
+    var attributes =
+        Files.readAttributes(verifiedPrivate, BasicFileAttributes.class, NOFOLLOW_LINKS);
     if (!attributes.isRegularFile() || attributes.size() != digest.getSizeBytes()) {
       throw new IOException("verified remote chunk is not a regular file of the declared size");
     }
@@ -208,10 +211,7 @@ final class RemoteChunkCache {
           }
           entries.add(
               new Entry(
-                  path,
-                  attributes.size(),
-                  attributes.lastModifiedTime(),
-                  attributes.fileKey()));
+                  path, attributes.size(), attributes.lastModifiedTime(), attributes.fileKey()));
           bytes = Math.addExact(bytes, attributes.size());
         }
       } catch (NoSuchFileException e) {

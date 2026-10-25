@@ -104,7 +104,8 @@ public final class RemoteChunkCacheTest {
   }
 
   @Test
-  public void duplicatePublicationNeverReplacesOriginalInodeOrExistingPendingPath() throws Exception {
+  public void duplicatePublicationNeverReplacesOriginalInodeOrExistingPendingPath()
+      throws Exception {
     Path managed = temporary.newFolder().toPath();
     var cache = new RemoteChunkCache(managed, 100);
     Digest digest = digest("data");
@@ -175,7 +176,9 @@ public final class RemoteChunkCacheTest {
     cache.store(digest, bytes("good"));
     assertThat(cache.link(digest, pin)).isTrue();
     assertThat(Files.readString(pin)).isEqualTo("good");
-    assertThrows(IOException.class, () -> cache.touch(Files.createSymbolicLink(pin.resolveSibling("symlink"), outside)));
+    assertThrows(
+        IOException.class,
+        () -> cache.touch(Files.createSymbolicLink(pin.resolveSibling("symlink"), outside)));
   }
 
   @Test
@@ -188,13 +191,18 @@ public final class RemoteChunkCacheTest {
     Path nested = Files.createDirectory(prefix.resolve("nested"));
     Path nestedFile = Files.writeString(nested.resolve("keep"), "nested");
     Path outside = bytes("outside");
-    Digest symbolic = Digest.newBuilder().setHash(owned.getHash().substring(0, 2) + "0".repeat(62)).setSizeBytes(7).build();
+    Digest symbolic =
+        Digest.newBuilder()
+            .setHash(owned.getHash().substring(0, 2) + "0".repeat(62))
+            .setSizeBytes(7)
+            .build();
     Path symbolicEntry = Files.createSymbolicLink(entry(managed, symbolic), outside);
     Path foreign = Files.createDirectory(managed.resolve("remote-chunks-v1/sha256/foreign"));
     Path foreignFile = Files.writeString(foreign.resolve(owned.getHash() + "-5"), "foreign");
     Path outsideDirectory = temporary.newFolder().toPath();
     Digest escaped = Digest.newBuilder().setHash("ff" + "1".repeat(62)).setSizeBytes(7).build();
-    Path outsideEntry = Files.writeString(outsideDirectory.resolve(escaped.getHash() + "-7"), "outside");
+    Path outsideEntry =
+        Files.writeString(outsideDirectory.resolve(escaped.getHash() + "-7"), "outside");
     Files.createSymbolicLink(entry(managed, escaped).getParent(), outsideDirectory);
 
     cache.prune();

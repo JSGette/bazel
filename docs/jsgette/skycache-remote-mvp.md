@@ -71,8 +71,25 @@ conversion, but publications above the older bound become cache misses.
 The client prepares manifests, global witness blocks and root indexes in private scratch
 storage. Segment indexes are fetched only when their hash bucket is searched; pack reads
 fetch only the chunks intersecting a requested record. Chunk hashes, index checksums,
-record keys and value checksums are all verified. Verified chunks are reused for the rest
-of the invocation, including records spanning unequal chunk lengths.
+record keys and value checksums are all verified. Downloaded chunks are retained beneath the
+local SkyCache directory at `leased-v2/remote-chunks-v1`, including across fresh JVMs. The
+default soft disk limit is 5 GiB; `--experimental_remote_skycache_local_cache_size=0` disables
+retention, and other nonnegative byte sizes change the limit. Collection after command close
+also targets at most 65,536 entries, evicting the oldest last-use times first. Concurrent
+publication and active or abandoned scratch hardlinks can retain bytes above these soft limits.
+
+A new invocation pins a retained file privately and verifies its complete SHA-256 digest and
+length before exposing it to readers. Later range reads retain the existing block authentication
+and record validation. Damaged entries are discarded and downloaded again; local-cache I/O
+failures fall back to ordinary remote reads. Retention saves blob downloads, but catalog
+discovery and publication still use the server. Cached-only deduplication can use retained
+chunks without initiating an RPC or waiting for another caller's index/chunk download.
+
+Sealed publication reads no longer hold a bucket monitor during index or pack I/O. Each segment
+coalesces lazy index initialization independently, then releases that lock before record reads.
+The lifecycle lock keeps opened stores alive until reads finish; mutable writes and sealing
+retain their existing synchronization. Downloads and local chunk activation/range reads retain
+their separate concurrency bounds of 100 by default.
 
 Remote candidates remain separate from the durable local catalog. The ordinary local
 dependency validator performs source/configuration admission and per-entry checks through
@@ -820,6 +837,135 @@ directories and signing keys are excluded from the archive.
 [verification/provenance](measurements/skycache-concurrent-downloads-agent-2026-10-25/verification.json),
 and [logs, profiles and test XML](measurements/skycache-concurrent-downloads-agent-2026-10-25/logs-profiles-tests.tar.gz).
 
+### Agent repository measurements with retained remote chunks
+
+Product commit `b368beb0ddde51434ce20c063546047ecccb2a88` was built from tested tree
+`fb408c67222a97c8aba78486416811debc374e40`; all **612 test cases** passed.
+These measurements include shorter locks for sealed bucket reads and a persistent
+cache for verified remote chunks, with the default **5 GiB** soft retained-file limit
+and concurrency **100** for cached reads and downloads.
+The comparison uses the same six Datadog targets, revision, output base, embedded tools,
+output digests and pinned vanilla binary as the preceding concurrent-download matrix.
+That historical baseline remains unchanged and has no retained-cache warm arm.
+
+The new matrix completed **24 measured builds**, three samples for each of four arms
+and two output policies. One deliberate cross-binary prime, two stabilization passes
+and two retained-cache warmups are excluded from these samples. The prime succeeded
+with zero old-seed hits and a committed new publication; the final stabilization wrote
+zero records. Every measured cache reader restored **17 configured-target and
+11 execution entries**, with clean graph/action state and no cache failures, transfer
+skips or scan/read-limit failures. All six binary digests match the pinned vanilla
+outputs in BEP; toplevel downloads also match by actual SHA-256.
+
+| Output policy | Current arm | Historical arm | Previous median (range) | Current median (range) | Previous / current |
+| --- | --- | --- | ---: | ---: | ---: |
+| minimal | vanilla | vanilla | 13.22 s (13.07–13.48 s) | 13.32 s (13.01–13.43 s) | 0.99x |
+| minimal | local SkyCache | local | 14.47 s (14.28–14.47 s) | 14.27 s (13.67–15.62 s) | 1.01x |
+| minimal | remote, empty retained cache | remote | 56.78 s (56.33–59.28 s) | 45.97 s (42.78–48.33 s) | 1.23x |
+| minimal | remote, warm retained cache | remote | 56.78 s (56.33–59.28 s) | 26.17 s (26.07–26.97 s) | 2.17x |
+| toplevel | vanilla | vanilla | 25.57 s (24.47–25.88 s) | 25.63 s (25.12–25.88 s) | 1.00x |
+| toplevel | local SkyCache | local | 23.77 s (23.57–24.00 s) | 25.22 s (24.17–25.32 s) | 0.94x |
+| toplevel | remote, empty retained cache | remote | 68.08 s (62.93–68.88 s) | 54.43 s (48.33–55.73 s) | 1.25x |
+| toplevel | remote, warm retained cache | remote | 68.08 s (62.93–68.88 s) | 33.78 s (33.17–34.22 s) | 2.02x |
+
+The warm retained arm uses the previous **cold remote** result as its historical
+comparison; there is no previous warm result. Ratios above 1 indicate lower current
+wall time. These three-sample cells describe this run and do not establish statistical
+significance. The comparison within the current matrix uses the same candidate binary:
+
+| Output policy | Local median | Cold remote median | Warm remote median | Local / warm | Cold / warm |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| minimal | 14.27 s | 45.97 s | 26.17 s | 0.55x | 1.76x |
+| toplevel | 25.22 s | 54.43 s | 33.78 s | 0.75x | 1.61x |
+
+Each binary has its own prepared publication seed because installation identity
+versions analysis keys. Within this matrix, local and both remote arms use the same
+frozen publication metadata. Cold remote samples begin with an empty client cache.
+For warm remote samples, two excluded fresh-JVM reads, one per output policy, each
+populate an empty private cache against the frozen catalog. Their verified chunk sets
+are combined into a separate retained-chunk seed. Its
+**1,604 files / 1,462,361,840 B** are copied
+into a new cache for each warm sample. Only the chunk subtree is copied: local publication
+objects, leases and lockfiles are excluded. Source seed contents and catalog receipts
+remain unchanged. Each warm read still verifies the length and SHA-256 of its private
+chunk pin before use; persistent bytes are not implicitly trusted.
+
+Arm order rotates and policy order alternates. Every sample has a fresh JVM and a clean
+graph/action cache. Startup, clean, retained-seed copying and one backend warmup round
+are excluded from build wall time; publication work is included. The metadata backend
+is loopback with warmed CAS and OS caches. Thus the warm arm measures retained-byte
+reuse under these conditions, not cold storage or a production network. Ordinary
+action-cache connections retain the common override of 16 requests per connection.
+
+Cold remote samples downloaded **1,462,361,840–1,462,361,840 B** of blob payload.
+All six warm samples downloaded **zero blobs and zero blob bytes**, with
+**1,604–1,604** retained-cache hits and
+**1,462,361,840–1,462,361,840 B** reused per sample. This does not mean zero
+network traffic: catalog discovery, protocol overhead and publication uploads remain.
+The warm samples recorded **5,551–5,633 B** received and
+**10,258,254–10,259,080 B** sent through the metadata proxy. Those wire counters
+are separate from ordinary action-cache traffic. No persistent-cache errors were recorded.
+
+The timing counters accumulate operation durations and are **not exclusive wall-time
+components**. Parallel download calls contribute overlapping durations; cached reads
+can overlap one another and downloads. Neither counter nor their sum is a wall-time
+breakdown or CPU time. The RPC counter covers transport download calls, including
+transport admission delay, after acquiring the client download permit; it excludes
+waiting for that permit and does not cover all metadata RPCs. Local retained-chunk
+verification is included in cached-read duration; it is not a separate exclusive timing category.
+
+| Remote sample | Build wall | Cached-read accumulated duration | Download-RPC accumulated duration | Peak cached readers | Peak chunk downloads |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| r1-minimal-remote | 45.97 s | 14.56 s | 51.04 s | 32 | 31 |
+| r1-minimal-remote-warm | 26.17 s | 9.40 s | 0.00 s | 32 | 0 |
+| r1-toplevel-remote | 54.43 s | 12.62 s | 51.88 s | 32 | 32 |
+| r1-toplevel-remote-warm | 33.17 s | 9.63 s | 0.00 s | 34 | 0 |
+| r2-toplevel-remote | 48.33 s | 7.29 s | 50.65 s | 31 | 32 |
+| r2-toplevel-remote-warm | 34.22 s | 9.18 s | 0.00 s | 32 | 0 |
+| r2-minimal-remote | 48.33 s | 12.49 s | 50.04 s | 31 | 31 |
+| r2-minimal-remote-warm | 26.07 s | 9.49 s | 0.00 s | 29 | 0 |
+| r3-minimal-remote | 42.78 s | 7.19 s | 47.25 s | 31 | 31 |
+| r3-minimal-remote-warm | 26.97 s | 9.01 s | 0.00 s | 27 | 0 |
+| r3-toplevel-remote | 55.73 s | 18.69 s | 49.18 s | 33 | 29 |
+| r3-toplevel-remote-warm | 33.78 s | 9.53 s | 0.00 s | 32 | 0 |
+
+Observed cached-reader peaks span **27–34**. Cold chunk-download peaks
+span **29–32**, within 100; warm download peaks are
+zero. Authentication-cache weight reaches **11,636,640 B**, within 32 MiB, with
+**0–0** evictions per remote sample. Remote writes span
+**5–16**; **12 of 12** remote samples report a
+publication commit. Materialized-publication counts span 0–0
+and reused-publication counts span 2–2. These observed counts
+are recorded without a fixed payload or write-count assumption.
+
+| Output policy | Arm | Median client peak PSS | Median worker peak PSS | Median process rchar |
+| --- | --- | ---: | ---: | ---: |
+| minimal | remote, empty retained cache | 2.54 GiB | 0.94 GiB | 20,171,583,819 B |
+| minimal | remote, warm retained cache | 3.20 GiB | 0.35 GiB | 21,692,170,947 B |
+| toplevel | remote, empty retained cache | 2.57 GiB | 1.27 GiB | 20,212,303,905 B |
+| toplevel | remote, warm retained cache | 3.25 GiB | 0.34 GiB | 21,670,083,896 B |
+
+PSS is sampled process-tree memory; worker peaks are separate and filesystem page cache
+is excluded. Process `rchar` is cumulative fresh-JVM read-like I/O including startup and
+clean, not physical disk bytes or network traffic. The persistent limit is soft and
+targets retained files and 65,536 entries; active private hardlink pins and
+invocation scratch can retain additional bytes. Eviction under pressure and concurrent
+process sharing were not exercised by this benchmark. Remaining costs include reading
+and authenticating retained bytes, first-use downloads, and repeated uploads when a
+new publication is exported. Results do not evaluate smaller chunks, CDC, upload
+deduplication or production-network behavior.
+
+All source, seed, CAS, catalog, binary/runtime preservation and cleanup checks passed.
+Exact raw reports, prior report hashes, runtime JAR provenance, harnesses, build scripts,
+legacy helpers, logs/profiles and test XML are frozen with SHA-256 checksums. Catalog
+directories and signing keys are excluded from the archive.
+
+[Eight-cell and per-sample comparison](measurements/skycache-retained-chunks-agent-2026-10-25/comparison.json),
+[successful prime](measurements/skycache-retained-chunks-agent-2026-10-25/prime.json),
+[raw matrix](measurements/skycache-retained-chunks-agent-2026-10-25/matrix.json),
+[verification/provenance](measurements/skycache-retained-chunks-agent-2026-10-25/verification.json),
+and [logs, profiles and test XML](measurements/skycache-retained-chunks-agent-2026-10-25/logs-profiles-tests.tar.gz).
+
 ## Content-defined chunking
 
 CDC is compatible with the current ordered, variable-length chunk descriptors; no proto change
@@ -864,10 +1010,11 @@ algorithm translation. No CDC production code or wire-format change was introduc
 
 ## Remaining limitations and next implementation choices
 
-1. **Serialized downloads and uncached/local uploads still do avoidable work.** Authenticated
-   block reads now remove repeated whole-chunk reads/hashes while preserving returned-byte
-   integrity. Cached range reads can overlap, but the transport still issues one RPC at a time
-   and retains 1 MiB wire chunks.
+1. **Chunk amplification and uncached/local uploads still do avoidable work.** Authenticated
+   block reads remove repeated whole-chunk reads/hashes while preserving returned-byte
+   integrity. Downloads and reads can overlap; retained chunks remove repeat downloads across
+   commands. Cold demand reads still fetch 1 MiB wire chunks, and warm reads still perform
+   filesystem operations, block authentication and record checks.
    Remote-parent descriptor reuse removes repeated parent transfer, but new local files
    still use singleton BatchUpdateBlobs calls.
    Batch FindMissingBlobs and skip existing chunks before considering CDC; measure RPC overhead
@@ -891,7 +1038,7 @@ algorithm translation. No CDC production code or wire-format change was introduc
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Use the optimization sequence above to measure concurrent reads, upload deduplication and smaller chunks.
+Next measure upload deduplication, smaller chunks and the remaining warm-read overhead.
 Further size increases and independent-clone portability need separate compatibility work
 that preserves the existing per-entry validator. The development server is sufficient for these
 correctness and controlled bandwidth/latency experiments; production catalog retention and
