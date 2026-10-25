@@ -59,7 +59,7 @@ public final class SkyCacheTransport implements AutoCloseable {
   private boolean readSession;
   private long remainingRpcNanos;
   private long transferredBytes;
-  private boolean closed;
+  private volatile boolean closed;
 
   public SkyCacheTransport(String endpoint, String instanceName, String tokenFile, Duration timeout)
       throws IOException {
@@ -432,7 +432,9 @@ public final class SkyCacheTransport implements AutoCloseable {
   }
 
   @Override
-  public synchronized void close() {
+  public void close() {
+    // RPC methods hold this instance's monitor while blocking. Cancellation must not wait for
+    // that monitor, otherwise close can hang until the entire transfer deadline expires.
     if (!closed) {
       closed = true;
       channel.shutdownNow();

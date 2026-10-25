@@ -45,9 +45,14 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import org.junit.Before;
 import org.junit.Rule;
@@ -424,6 +429,209 @@ public final class RemoteSkyCacheTest {
       assertThat(statistic(reader, "cached_read_bytes") - before)
           .isEqualTo(SkyCacheProtocol.CHUNK_BYTES);
       assertThat(backend.requestedDigests).isEmpty();
+    }
+  }
+
+  @Test
+  public void blockedDownloadAllowsCachedReadsButDoesNotExposeInflightChunk() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    var pool = Executors.newFixedThreadPool(3);
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 1);
+      var gate = new ReadGate(fixture.pack().getChunks(1));
+      backend.beforeRead = gate::beforeRead;
+      backend.requestedDigests.clear();
+      try {
+        var download =
+            pool.submit(
+                () -> {
+                  fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES, 31);
+                  return null;
+                });
+        assertThat(gate.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        pool.submit(
+                () -> {
+                  fixture.assertRead(128, 31);
+                  return null;
+                })
+            .get(5, TimeUnit.SECONDS);
+        pool.submit(
+                () -> {
+                  assertThat(
+                          fixture
+                              .source()
+                              .isCached(fixture.pack().getName(), SkyCacheProtocol.CHUNK_BYTES, 1))
+                      .isFalse();
+                  var target = ByteBuffer.allocate(1);
+                  assertThrows(
+                      SegmentedFingerprintValueStore.NotCachedException.class,
+                      () ->
+                          fixture
+                              .source()
+                              .readCached(
+                                  fixture.pack().getName(), target, SkyCacheProtocol.CHUNK_BYTES));
+                  assertThat(target.position()).isEqualTo(0);
+                  return null;
+                })
+            .get(5, TimeUnit.SECONDS);
+        assertThat(backend.requestedDigests).containsExactly(gate.digest);
+        gate.release.countDown();
+        download.get(5, TimeUnit.SECONDS);
+      } finally {
+        gate.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void simultaneousReadersCoalesceOneMissingChunkDownload() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    var pool = Executors.newFixedThreadPool(4);
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      var gate = new ReadGate(fixture.pack().getChunks(1));
+      backend.beforeRead = gate::beforeRead;
+      backend.requestedDigests.clear();
+      var ready = new CountDownLatch(4);
+      var start = new CountDownLatch(1);
+      var reads = new ArrayList<Future<?>>();
+      try {
+        for (int i = 0; i < 4; i++) {
+          int offset = SkyCacheProtocol.CHUNK_BYTES + i * 17;
+          reads.add(
+              pool.submit(
+                  () -> {
+                    ready.countDown();
+                    assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+                    fixture.assertRead(offset, 31);
+                    return null;
+                  }));
+        }
+        assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+        assertThat(gate.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        gate.release.countDown();
+        for (var read : reads) {
+          read.get(5, TimeUnit.SECONDS);
+        }
+        assertThat(backend.requestedDigests).containsExactly(gate.digest);
+      } finally {
+        start.countDown();
+        gate.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void closeCancelsBlockedDownloadAndWaitingReadersBeforeCleaningScratch() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    var pool = Executors.newFixedThreadPool(3);
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 1);
+      var gate = new ReadGate(fixture.pack().getChunks(1));
+      backend.beforeRead = gate::beforeRead;
+      backend.requestedDigests.clear();
+      try {
+        var download =
+            pool.submit(
+                () -> {
+                  fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES, 1);
+                  return null;
+                });
+        assertThat(gate.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        var waitingStarted = new CountDownLatch(1);
+        var waiting =
+            pool.submit(
+                () -> {
+                  waitingStarted.countDown();
+                  fixture.assertRead(2 * SkyCacheProtocol.CHUNK_BYTES, 1);
+                  return null;
+                });
+        assertThat(waitingStarted.await(5, TimeUnit.SECONDS)).isTrue();
+        pool.submit(reader::close).get(5, TimeUnit.SECONDS);
+        assertThat(assertThrows(ExecutionException.class, () -> download.get(5, TimeUnit.SECONDS)))
+            .hasCauseThat()
+            .isInstanceOf(IOException.class);
+        assertThat(assertThrows(ExecutionException.class, () -> waiting.get(5, TimeUnit.SECONDS)))
+            .hasCauseThat()
+            .isInstanceOf(IOException.class);
+        try (var paths = Files.list(destination.resolve("leased-v2"))) {
+          assertThat(paths.anyMatch(p -> p.getFileName().toString().startsWith(".remote-")))
+              .isFalse();
+        }
+        var target = ByteBuffer.allocate(1);
+        assertThrows(
+            IOException.class,
+            () -> fixture.source().readCached(fixture.pack().getName(), target, 0));
+        assertThat(target.position()).isEqualTo(0);
+        assertThat(backend.requestedDigests).containsExactly(gate.digest);
+      } finally {
+        gate.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void interruptedDownloadWaiterPreservesInterruptWithoutAnotherRpc() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    var pool = Executors.newFixedThreadPool(2);
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      var gate = new ReadGate(fixture.pack().getChunks(1));
+      backend.beforeRead = gate::beforeRead;
+      backend.requestedDigests.clear();
+      try {
+        var download =
+            pool.submit(
+                () -> {
+                  fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES, 1);
+                  return null;
+                });
+        assertThat(gate.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        var started = new CountDownLatch(1);
+        var thread = new AtomicReference<Thread>();
+        var interrupted = new AtomicBoolean();
+        var waiting =
+            pool.submit(
+                () -> {
+                  thread.set(Thread.currentThread());
+                  started.countDown();
+                  try {
+                    fixture.assertRead(2 * SkyCacheProtocol.CHUNK_BYTES, 1);
+                    return null;
+                  } catch (IOException e) {
+                    interrupted.set(Thread.currentThread().isInterrupted());
+                    return e;
+                  }
+                });
+        assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+        thread.get().interrupt();
+        assertThat(waiting.get(5, TimeUnit.SECONDS)).isInstanceOf(IOException.class);
+        assertThat(interrupted.get()).isTrue();
+        assertThat(backend.requestedDigests).containsExactly(gate.digest);
+        gate.release.countDown();
+        download.get(5, TimeUnit.SECONDS);
+      } finally {
+        gate.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
     }
   }
 
@@ -1080,6 +1288,31 @@ public final class RemoteSkyCacheTest {
     }
   }
 
+  private static final class ReadGate {
+    final Digest digest;
+    final CountDownLatch entered = new CountDownLatch(1);
+    final CountDownLatch release = new CountDownLatch(1);
+
+    ReadGate(Digest digest) {
+      this.digest = digest;
+    }
+
+    void beforeRead(Digest requested) throws IOException {
+      if (!digest.equals(requested)) {
+        return;
+      }
+      entered.countDown();
+      try {
+        if (!release.await(30, TimeUnit.SECONDS)) {
+          throw new IOException("test read gate was not released");
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("test read gate interrupted", e);
+      }
+    }
+  }
+
   private RangeFixture prepareRanges(Path source, MemoryRemote backend, RemoteSkyCache reader)
       throws Exception {
     byte[] value = new byte[2 * SkyCacheProtocol.CHUNK_BYTES + 117];
@@ -1296,11 +1529,17 @@ public final class RemoteSkyCacheTest {
     volatile List<PublicationRef> discoveryCandidates;
     volatile Digest advertised;
     volatile CommitObserver beforeCommit;
+    volatile ReadObserver beforeRead;
     private final Server server;
 
     @FunctionalInterface
     private interface CommitObserver {
       void run() throws IOException;
+    }
+
+    @FunctionalInterface
+    private interface ReadObserver {
+      void run(Digest digest) throws IOException;
     }
 
     MemoryRemote() throws IOException {
@@ -1340,6 +1579,15 @@ public final class RemoteSkyCacheTest {
                               .setSizeBytes(Long.parseLong(path[path.length - 1]))
                               .build();
                       requestedDigests.add(digest);
+                      try {
+                        if (beforeRead != null) {
+                          beforeRead.run(digest);
+                        }
+                      } catch (IOException e) {
+                        observer.onError(
+                            Status.CANCELLED.withDescription(e.getMessage()).asRuntimeException());
+                        return;
+                      }
                       byte[] bytes = blobs.get(digest);
                       if (bytes == null) {
                         observer.onError(Status.NOT_FOUND.asRuntimeException());

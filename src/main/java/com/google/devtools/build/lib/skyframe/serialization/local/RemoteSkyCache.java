@@ -32,6 +32,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Invocation-owned remote candidates with authenticated, demand-driven pack reads. Only complete
@@ -43,11 +48,20 @@ final class RemoteSkyCache implements AutoCloseable {
   static final int AUTHENTICATION_BLOCK_BYTES = 4096;
   private static final int AUTHENTICATION_CACHE_BYTES = 32 * 1024 * 1024;
   private static final int AUTHENTICATION_ENTRY_OVERHEAD = 128;
+  // Bound temporary range/rehashing buffers independently of the retained hash-cache budget.
+  private final Semaphore cachedReaders = new Semaphore(8);
+  private final ReentrantLock downloadLock = new ReentrantLock();
+  private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
+  private final AtomicLong cachedReadBytes = new AtomicLong();
+  private final AtomicInteger activeCachedReads = new AtomicInteger();
+  private final AtomicInteger peakCachedReads = new AtomicInteger();
+  private final AtomicLong cachedReadNanos = new AtomicLong();
+  private final AtomicLong downloadRpcNanos = new AtomicLong();
+  private volatile boolean closed;
   private final Map<Digest, byte[]> authenticatedBlocks = new LinkedHashMap<>(16, 0.75f, true);
   private final int authenticationBudget;
   private int authenticationBytes;
   private long authenticationEvictions;
-  private long cachedReadBytes;
   private final Path managed;
   private final Path objects;
   private final Path publications;
@@ -58,10 +72,10 @@ final class RemoteSkyCache implements AutoCloseable {
   private final List<Path> stages = new ArrayList<>();
   private final Set<String> materialized = new HashSet<>();
   private LocalCacheLeaseManager importLeases;
-  private Path chunks;
+  private volatile Path chunks;
   private boolean prepared;
-  private long downloadedBytes;
-  private long downloadedChunks;
+  private final AtomicLong downloadedBytes = new AtomicLong();
+  private final AtomicLong downloadedChunks = new AtomicLong();
   private long attemptedMaterializationBytes;
   private int reusedPublications;
 
@@ -162,7 +176,8 @@ final class RemoteSkyCache implements AutoCloseable {
     }
   }
 
-  private synchronized boolean cached(Digest digest) throws IOException {
+  private boolean cached(Digest digest) throws IOException {
+    checkOpen();
     if (chunks == null) {
       return false;
     }
@@ -170,7 +185,7 @@ final class RemoteSkyCache implements AutoCloseable {
     return Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == digest.getSizeBytes();
   }
 
-  private synchronized byte[] readCachedChunk(Digest digest) throws IOException {
+  private byte[] readCachedChunk(Digest digest) throws IOException {
     byte[] bytes = readCachedBytes(digest, 0, (int) digest.getSizeBytes());
     if (!SkyCacheProtocol.digest(bytes).equals(digest)) {
       throw new IOException("cached remote chunk checksum mismatch");
@@ -193,7 +208,7 @@ final class RemoteSkyCache implements AutoCloseable {
         if (count < 0) {
           throw new IOException("truncated cached remote chunk");
         }
-        cachedReadBytes += count;
+        cachedReadBytes.addAndGet(count);
       }
       if (channel.size() != digest.getSizeBytes()) {
         throw new IOException("cached remote chunk size changed");
@@ -202,15 +217,34 @@ final class RemoteSkyCache implements AutoCloseable {
     return buffer.array();
   }
 
-  private synchronized void readChunk(
+  private void readChunk(
       Digest digest, ByteBuffer target, int offset, int length, boolean cacheOnly)
       throws IOException {
-    if (!cacheOnly
-        && (chunks == null || !Files.exists(chunks.resolve(digest.getHash()), NOFOLLOW_LINKS))) {
-      target.put(download(digest), offset, length);
-      return;
+    lifecycle.readLock().lock();
+    try {
+      checkOpen();
+      if (!cacheOnly
+          && (chunks == null || !Files.exists(chunks.resolve(digest.getHash()), NOFOLLOW_LINKS))) {
+        target.put(download(digest), offset, length);
+        return;
+      }
+      long started = beginCachedRead();
+      try {
+        readCachedRange(digest, target, offset, length);
+      } finally {
+        endCachedRead(started);
+      }
+    } finally {
+      lifecycle.readLock().unlock();
     }
-    byte[] hashes = authenticatedBlocks.get(digest);
+  }
+
+  private void readCachedRange(Digest digest, ByteBuffer target, int offset, int length)
+      throws IOException {
+    byte[] hashes;
+    synchronized (authenticatedBlocks) {
+      hashes = authenticatedBlocks.get(digest);
+    }
     if (hashes == null) {
       // Eviction never makes scratch bytes trusted: authenticate the full CAS chunk again.
       target.put(readCachedChunk(digest), offset, length);
@@ -236,27 +270,34 @@ final class RemoteSkyCache implements AutoCloseable {
   }
 
   private void rememberAuthentication(Digest digest, byte[] bytes) {
-    if (authenticatedBlocks.containsKey(digest)) {
-      return;
-    }
     int blocks = (bytes.length + AUTHENTICATION_BLOCK_BYTES - 1) / AUTHENTICATION_BLOCK_BYTES;
     int weight = blocks * 32 + AUTHENTICATION_ENTRY_OVERHEAD;
     if (weight > authenticationBudget) {
       return;
     }
-    while (authenticationBytes > authenticationBudget - weight) {
-      var oldest = authenticatedBlocks.entrySet().iterator();
-      authenticationBytes -= oldest.next().getValue().length + AUTHENTICATION_ENTRY_OVERHEAD;
-      oldest.remove();
-      authenticationEvictions++;
+    synchronized (authenticatedBlocks) {
+      if (authenticatedBlocks.containsKey(digest)) {
+        return;
+      }
     }
     byte[] hashes = new byte[blocks * 32];
     for (int at = 0; at < bytes.length; at += AUTHENTICATION_BLOCK_BYTES) {
       byte[] hash = blockDigest(bytes, at);
       System.arraycopy(hash, 0, hashes, at / AUTHENTICATION_BLOCK_BYTES * 32, hash.length);
     }
-    authenticatedBlocks.put(digest, hashes);
-    authenticationBytes += weight;
+    synchronized (authenticatedBlocks) {
+      if (authenticatedBlocks.containsKey(digest)) {
+        return;
+      }
+      while (authenticationBytes > authenticationBudget - weight) {
+        var oldest = authenticatedBlocks.entrySet().iterator();
+        authenticationBytes -= oldest.next().getValue().length + AUTHENTICATION_ENTRY_OVERHEAD;
+        oldest.remove();
+        authenticationEvictions++;
+      }
+      authenticatedBlocks.put(digest, hashes);
+      authenticationBytes += weight;
+    }
   }
 
   private static byte[] blockDigest(byte[] bytes, int offset) {
@@ -269,20 +310,82 @@ final class RemoteSkyCache implements AutoCloseable {
     }
   }
 
-  private synchronized byte[] download(Digest digest) throws IOException {
+  private byte[] download(Digest digest) throws IOException {
+    lifecycle.readLock().lock();
+    try {
+      try {
+        downloadLock.lockInterruptibly();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("interrupted waiting for remote chunk", e);
+      }
+      try {
+        checkOpen();
+        return downloadLocked(digest);
+      } finally {
+        downloadLock.unlock();
+      }
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
+  private byte[] downloadLocked(Digest digest) throws IOException {
     if (chunks == null) {
       chunks = newStage();
     }
     Path path = chunks.resolve(digest.getHash());
     if (Files.exists(path, NOFOLLOW_LINKS)) {
-      return readCachedChunk(digest);
+      long started = beginCachedRead();
+      try {
+        return readCachedChunk(digest);
+      } finally {
+        endCachedRead(started);
+      }
     }
-    byte[] bytes = transport.download(digest);
-    Files.write(path, bytes, CREATE_NEW, WRITE, NOFOLLOW_LINKS);
+    byte[] bytes;
+    long started = System.nanoTime();
+    try {
+      bytes = transport.download(digest);
+    } finally {
+      downloadRpcNanos.addAndGet(System.nanoTime() - started);
+    }
+    // Cached-only readers must never observe a partly written file. A hard link atomically
+    // exposes complete bytes and, unlike a replacing rename, cannot overwrite an existing path.
+    Path pending = Files.createTempFile(chunks, ".pending-", "");
+    try {
+      Files.write(pending, bytes, WRITE, NOFOLLOW_LINKS);
+      Files.createLink(path, pending);
+    } finally {
+      Files.deleteIfExists(pending);
+    }
     rememberAuthentication(digest, bytes);
-    downloadedBytes += bytes.length;
-    downloadedChunks++;
+    downloadedBytes.addAndGet(bytes.length);
+    downloadedChunks.incrementAndGet();
     return bytes;
+  }
+
+  private long beginCachedRead() throws IOException {
+    try {
+      cachedReaders.acquire();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted waiting for cached remote read", e);
+    }
+    peakCachedReads.accumulateAndGet(activeCachedReads.incrementAndGet(), Math::max);
+    return System.nanoTime();
+  }
+
+  private void endCachedRead(long started) {
+    cachedReadNanos.addAndGet(System.nanoTime() - started);
+    activeCachedReads.decrementAndGet();
+    cachedReaders.release();
+  }
+
+  private void checkOpen() throws IOException {
+    if (closed) {
+      throw new IOException("remote SkyCache is closed");
+    }
   }
 
   private Path newStage() throws IOException {
@@ -296,27 +399,45 @@ final class RemoteSkyCache implements AutoCloseable {
   }
 
   List<Candidate> candidates() {
-    return List.copyOf(candidates.values());
+    lifecycle.readLock().lock();
+    try {
+      return List.copyOf(candidates.values());
+    } finally {
+      lifecycle.readLock().unlock();
+    }
   }
 
   String statisticsJson() {
-    return "{\"downloaded_bytes\":"
-        + downloadedBytes
-        + ",\"downloaded_chunks\":"
-        + downloadedChunks
-        + ",\"cached_read_bytes\":"
-        + cachedReadBytes
-        + ",\"authentication_cache_bytes\":"
-        + authenticationBytes
-        + ",\"authentication_cache_evictions\":"
-        + authenticationEvictions
-        + ",\"discovered_publications\":"
-        + candidates.size()
-        + ",\"materialized_publications\":"
-        + materialized.size()
-        + ",\"reused_publications\":"
-        + reusedPublications
-        + "}";
+    lifecycle.readLock().lock();
+    try {
+      synchronized (authenticatedBlocks) {
+        return "{\"downloaded_bytes\":"
+            + downloadedBytes.get()
+            + ",\"downloaded_chunks\":"
+            + downloadedChunks.get()
+            + ",\"cached_read_bytes\":"
+            + cachedReadBytes.get()
+            + ",\"peak_cached_reads\":"
+            + peakCachedReads.get()
+            + ",\"cached_read_nanos\":"
+            + cachedReadNanos.get()
+            + ",\"download_rpc_nanos\":"
+            + downloadRpcNanos.get()
+            + ",\"authentication_cache_bytes\":"
+            + authenticationBytes
+            + ",\"authentication_cache_evictions\":"
+            + authenticationEvictions
+            + ",\"discovered_publications\":"
+            + candidates.size()
+            + ",\"materialized_publications\":"
+            + materialized.size()
+            + ",\"reused_publications\":"
+            + reusedPublications
+            + "}";
+      }
+    } finally {
+      lifecycle.readLock().unlock();
+    }
   }
 
   RemoteSkyCache(Path root, String namespace, LocalSkycacheOptions options) throws IOException {
@@ -375,6 +496,16 @@ final class RemoteSkyCache implements AutoCloseable {
 
   /** Fetches admission metadata for a bounded discovery page, leaving segment data in CAS. */
   int prepare() throws IOException {
+    lifecycle.writeLock().lock();
+    try {
+      checkOpen();
+      return prepareExclusive();
+    } finally {
+      lifecycle.writeLock().unlock();
+    }
+  }
+
+  private int prepareExclusive() throws IOException {
     if (prepared) {
       return candidates.size();
     }
@@ -467,12 +598,32 @@ final class RemoteSkyCache implements AutoCloseable {
 
   /** Explicit complete import for callers requiring durable local backing. */
   int hydrate() throws IOException {
+    lifecycle.writeLock().lock();
+    try {
+      checkOpen();
+      return hydrateExclusive();
+    } finally {
+      lifecycle.writeLock().unlock();
+    }
+  }
+
+  private int hydrateExclusive() throws IOException {
     prepare();
     materialize(candidates.keySet());
     return candidates.size();
   }
 
   void materialize(Set<String> used) throws IOException {
+    lifecycle.writeLock().lock();
+    try {
+      checkOpen();
+      materializeExclusive(used);
+    } finally {
+      lifecycle.writeLock().unlock();
+    }
+  }
+
+  private void materializeExclusive(Set<String> used) throws IOException {
     var required = new LinkedHashMap<String, Candidate>();
     for (String id : used) {
       collectRemote(id, required);
@@ -540,6 +691,16 @@ final class RemoteSkyCache implements AutoCloseable {
   }
 
   void publish(Path manifest) throws IOException {
+    lifecycle.writeLock().lock();
+    try {
+      checkOpen();
+      publishExclusive(manifest);
+    } finally {
+      lifecycle.writeLock().unlock();
+    }
+  }
+
+  private void publishExclusive(Path manifest) throws IOException {
     transport.beginTransfer();
     String id = manifest.getFileName().toString().replaceFirst("\\.manifest$", "");
     try (var leases = LocalCacheLeaseManager.open(managed)) {
@@ -567,6 +728,18 @@ final class RemoteSkyCache implements AutoCloseable {
    * never discoverable by local readers or the collector.
    */
   void publishPending(
+      String id, byte[] manifest, Set<String> localParents, Set<String> remoteParents)
+      throws IOException {
+    lifecycle.writeLock().lock();
+    try {
+      checkOpen();
+      publishPendingExclusive(id, manifest, localParents, remoteParents);
+    } finally {
+      lifecycle.writeLock().unlock();
+    }
+  }
+
+  private void publishPendingExclusive(
       String id, byte[] manifest, Set<String> localParents, Set<String> remoteParents)
       throws IOException {
     transport.beginTransfer();
@@ -843,25 +1016,35 @@ final class RemoteSkyCache implements AutoCloseable {
 
   @Override
   public void close() {
+    closed = true;
+    // Cancel a blocked RPC before waiting for readers. No scratch file may be removed until
+    // every reader has released its lifecycle lock; later readers fail before allocating buffers.
+    transport.close();
+    lifecycle.writeLock().lock();
     try {
-      if (importLeases != null) {
-        importLeases.close();
-      }
-    } catch (IOException ignored) {
-      // Closing the manager releases all pins, including when one individual release fails.
-    } finally {
-      transport.close();
-      candidates.clear();
-      authenticatedBlocks.clear();
-      authenticationBytes = 0;
-      for (Path stage : stages) {
-        try {
-          removeStage(stage);
-        } catch (IOException ignored) {
-          // Private scratch data is never discoverable as a local publication.
+      try {
+        if (importLeases != null) {
+          importLeases.close();
         }
+      } catch (IOException ignored) {
+        // Closing the manager releases all pins, including when one individual release fails.
+      } finally {
+        candidates.clear();
+        synchronized (authenticatedBlocks) {
+          authenticatedBlocks.clear();
+          authenticationBytes = 0;
+        }
+        for (Path stage : stages) {
+          try {
+            removeStage(stage);
+          } catch (IOException ignored) {
+            // Private scratch data is never discoverable as a local publication.
+          }
+        }
+        stages.clear();
       }
-      stages.clear();
+    } finally {
+      lifecycle.writeLock().unlock();
     }
   }
 }
