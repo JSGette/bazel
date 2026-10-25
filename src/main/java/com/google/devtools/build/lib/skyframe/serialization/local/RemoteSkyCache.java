@@ -49,14 +49,19 @@ final class RemoteSkyCache implements AutoCloseable {
   private static final int AUTHENTICATION_CACHE_BYTES = 32 * 1024 * 1024;
   private static final int AUTHENTICATION_ENTRY_OVERHEAD = 128;
   // Bound temporary range/rehashing buffers independently of the retained hash-cache budget.
-  private final Semaphore cachedReaders = new Semaphore(8);
-  private final ReentrantLock downloadLock = new ReentrantLock();
+  private final int maxConcurrency;
+  private final Semaphore cachedReaders;
+  private final Semaphore downloadSlots;
+  // Fixed stripes bound coalescing state without retaining an entry for every fetched digest.
+  private final ReentrantLock[] downloadLocks = new ReentrantLock[1024];
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
   private final AtomicLong cachedReadBytes = new AtomicLong();
   private final AtomicInteger activeCachedReads = new AtomicInteger();
   private final AtomicInteger peakCachedReads = new AtomicInteger();
   private final AtomicLong cachedReadNanos = new AtomicLong();
   private final AtomicLong downloadRpcNanos = new AtomicLong();
+  private final AtomicInteger activeDownloads = new AtomicInteger();
+  private final AtomicInteger peakDownloads = new AtomicInteger();
   private volatile boolean closed;
   private final Map<Digest, byte[]> authenticatedBlocks = new LinkedHashMap<>(16, 0.75f, true);
   private final int authenticationBudget;
@@ -313,6 +318,8 @@ final class RemoteSkyCache implements AutoCloseable {
   private byte[] download(Digest digest) throws IOException {
     lifecycle.readLock().lock();
     try {
+      ReentrantLock downloadLock =
+          downloadLocks[digest.getHash().hashCode() & (downloadLocks.length - 1)];
       try {
         downloadLock.lockInterruptibly();
       } catch (InterruptedException e) {
@@ -331,8 +338,10 @@ final class RemoteSkyCache implements AutoCloseable {
   }
 
   private byte[] downloadLocked(Digest digest) throws IOException {
-    if (chunks == null) {
-      chunks = newStage();
+    synchronized (downloadLocks) {
+      if (chunks == null) {
+        chunks = newStage();
+      }
     }
     Path path = chunks.resolve(digest.getHash());
     if (Files.exists(path, NOFOLLOW_LINKS)) {
@@ -343,26 +352,39 @@ final class RemoteSkyCache implements AutoCloseable {
         endCachedRead(started);
       }
     }
-    byte[] bytes;
-    long started = System.nanoTime();
     try {
-      bytes = transport.download(digest);
-    } finally {
-      downloadRpcNanos.addAndGet(System.nanoTime() - started);
+      downloadSlots.acquire();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted waiting for remote download slot", e);
     }
-    // Cached-only readers must never observe a partly written file. A hard link atomically
-    // exposes complete bytes and, unlike a replacing rename, cannot overwrite an existing path.
-    Path pending = Files.createTempFile(chunks, ".pending-", "");
+    peakDownloads.accumulateAndGet(activeDownloads.incrementAndGet(), Math::max);
     try {
-      Files.write(pending, bytes, WRITE, NOFOLLOW_LINKS);
-      Files.createLink(path, pending);
+      checkOpen();
+      byte[] bytes;
+      long started = System.nanoTime();
+      try {
+        bytes = transport.download(digest);
+      } finally {
+        downloadRpcNanos.addAndGet(System.nanoTime() - started);
+      }
+      // Cached-only readers must never observe a partly written file. A hard link atomically
+      // exposes complete bytes and, unlike a replacing rename, cannot overwrite an existing path.
+      Path pending = Files.createTempFile(chunks, ".pending-", "");
+      try {
+        Files.write(pending, bytes, WRITE, NOFOLLOW_LINKS);
+        Files.createLink(path, pending);
+      } finally {
+        Files.deleteIfExists(pending);
+      }
+      rememberAuthentication(digest, bytes);
+      downloadedBytes.addAndGet(bytes.length);
+      downloadedChunks.incrementAndGet();
+      return bytes;
     } finally {
-      Files.deleteIfExists(pending);
+      activeDownloads.decrementAndGet();
+      downloadSlots.release();
     }
-    rememberAuthentication(digest, bytes);
-    downloadedBytes.addAndGet(bytes.length);
-    downloadedChunks.incrementAndGet();
-    return bytes;
   }
 
   private long beginCachedRead() throws IOException {
@@ -423,6 +445,10 @@ final class RemoteSkyCache implements AutoCloseable {
             + cachedReadNanos.get()
             + ",\"download_rpc_nanos\":"
             + downloadRpcNanos.get()
+            + ",\"peak_chunk_downloads\":"
+            + peakDownloads.get()
+            + ",\"max_concurrency\":"
+            + maxConcurrency
             + ",\"authentication_cache_bytes\":"
             + authenticationBytes
             + ",\"authentication_cache_evictions\":"
@@ -451,7 +477,10 @@ final class RemoteSkyCache implements AutoCloseable {
             options.getRemoteInstanceName(),
             options.getRemoteTokenFile(),
             options.getRemoteTimeout(),
-            options.getRemoteMaxTransferSize()));
+            options.getRemoteMaxTransferSize(),
+            options.getRemoteMaxConcurrency()),
+        AUTHENTICATION_CACHE_BYTES,
+        options.getRemoteMaxConcurrency());
   }
 
   RemoteSkyCache(
@@ -472,6 +501,18 @@ final class RemoteSkyCache implements AutoCloseable {
       SkyCacheTransport transport,
       int authenticationBudget)
       throws IOException {
+    this(root, namespace, metadataBudget, instance, transport, authenticationBudget, 100);
+  }
+
+  RemoteSkyCache(
+      Path root,
+      String namespace,
+      long metadataBudget,
+      String instance,
+      SkyCacheTransport transport,
+      int authenticationBudget,
+      int maxConcurrency)
+      throws IOException {
     try {
       this.scope = Scope.newBuilder().setInstanceName(instance).setNamespaceId(namespace).build();
       SkyCacheProtocol.validateScope(scope);
@@ -481,7 +522,14 @@ final class RemoteSkyCache implements AutoCloseable {
       if (authenticationBudget < 0 || authenticationBudget > AUTHENTICATION_CACHE_BYTES) {
         throw new IOException("invalid remote authentication cache budget");
       }
+      if (maxConcurrency < 1 || maxConcurrency > 1000) {
+        throw new IOException("remote SkyCache concurrency must be between 1 and 1000");
+      }
       this.authenticationBudget = authenticationBudget;
+      this.maxConcurrency = maxConcurrency;
+      this.cachedReaders = new Semaphore(maxConcurrency);
+      this.downloadSlots = new Semaphore(maxConcurrency);
+      Arrays.setAll(downloadLocks, unused -> new ReentrantLock());
       this.managed = LocalCacheSession.durableDirectory(root.resolve("leased-v2"));
       this.objects = LocalCacheSession.durableDirectory(managed.resolve("objects/segmented-v1"));
       this.publications =

@@ -4,6 +4,7 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
 
 import com.google.devtools.common.options.Converters.ByteSizeConverter;
 import com.google.devtools.common.options.Converters.DurationConverter;
+import com.google.devtools.common.options.Converters.RangeConverter;
 import com.google.devtools.common.options.Option;
 import com.google.devtools.common.options.OptionDocumentationCategory;
 import com.google.devtools.common.options.OptionEffectTag;
@@ -62,6 +63,24 @@ public abstract class LocalSkycacheOptions extends OptionsBase {
               + " publication bound, 1 MiB chunk bound and local metadata admission budget."
               + " Failed reads consume this budget; exhaustion is a cache miss.")
   public abstract long getRemoteMaxTransferSize();
+
+  public static final class RemoteConcurrencyConverter extends RangeConverter {
+    public RemoteConcurrencyConverter() {
+      super(1, 1000);
+    }
+  }
+
+  @Option(
+      name = "experimental_remote_skycache_max_concurrency",
+      defaultValue = "100",
+      converter = RemoteConcurrencyConverter.class,
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.HOST_MACHINE_RESOURCE_OPTIMIZATIONS},
+      help =
+          "Maximum concurrent SkyCache chunk downloads and, separately, cached range reads."
+              + " Must be between 1 and 1000. RPCs still share the configured cumulative time"
+              + " and attempted-byte budgets. Higher concurrency uses more temporary buffers.")
+  public abstract int getRemoteMaxConcurrency();
 
   /** IdleTaskManager schedules in whole seconds; do not silently truncate a positive timeout. */
   public static final class IdleRetentionConverter extends DurationConverter {

@@ -36,11 +36,20 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -295,6 +304,340 @@ public final class SkyCacheTransportTest {
   }
 
   @Test
+  public void configuredAndDefaultRpcSlotsAreSharedAcrossServicesAndResetsRejectQueuedCallers()
+      throws Exception {
+    for (int concurrency : new int[] {4, 100}) {
+      var clock = new ObservedClock();
+      var pool = Executors.newFixedThreadPool(concurrency + 1);
+      try (Backend backend = new Backend();
+          SkyCacheTransport transport =
+              concurrency == 100
+                  ? new SkyCacheTransport(
+                      backend.endpoint(), INSTANCE, "", Duration.ofSeconds(60), clock)
+                  : new SkyCacheTransport(
+                      backend.endpoint(),
+                      INSTANCE,
+                      "",
+                      Duration.ofSeconds(60),
+                      concurrency,
+                      clock)) {
+        transport.beginReadSession();
+        backend.readMode = "held";
+        var downloads = new ArrayList<Future<byte[]>>();
+        var held = new ArrayList<HeldRead>();
+        for (int i = 0; i < concurrency; i++) {
+          downloads.add(pool.submit(() -> transport.download(DIGEST)));
+          held.add(backend.takeRead());
+        }
+        var upload =
+            pool.submit(
+                () -> {
+                  clock.watchCurrentThread();
+                  return transport.upload(CONTENT);
+                });
+        assertThat(clock.observed.await(5, TimeUnit.SECONDS)).isTrue();
+        // The clock callback runs under the admission monitor. These calls can acquire it only
+        // after the extra caller has entered the queue, while every download reply is still held.
+        assertThat(assertThrows(IOException.class, transport::beginReadSession))
+            .hasMessageThat()
+            .contains("active or queued");
+        assertThat(assertThrows(IOException.class, transport::beginTransfer))
+            .hasMessageThat()
+            .contains("active or queued");
+        assertThat(backend.uploadCalls.get()).isEqualTo(0);
+        assertThat(backend.readCalls.get()).isEqualTo(concurrency);
+        held.get(0).reply();
+        assertThat(upload.get(5, TimeUnit.SECONDS)).isEqualTo(DIGEST);
+        for (int i = 1; i < concurrency; i++) {
+          held.get(i).reply();
+        }
+        for (var download : downloads) {
+          assertThat(download.get(5, TimeUnit.SECONDS)).isEqualTo(CONTENT);
+        }
+        transport.beginTransfer();
+        transport.beginReadSession();
+      } finally {
+        pool.shutdownNow();
+      }
+    }
+  }
+
+  @Test
+  public void concurrentRpcBudgetCountsEachActiveCallAndFailuresButNotQueuedTime()
+      throws Exception {
+    var clock = new ObservedClock();
+    var pool = Executors.newFixedThreadPool(5);
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(10), 4, clock)) {
+      transport.beginReadSession();
+      backend.readMode = "held";
+      var downloads = new ArrayList<Future<byte[]>>();
+      var held = new ArrayList<HeldRead>();
+      for (int i = 0; i < 4; i++) {
+        downloads.add(pool.submit(() -> transport.download(DIGEST)));
+        held.add(backend.takeRead());
+      }
+      downloads.add(
+          pool.submit(
+              () -> {
+                clock.watchCurrentThread();
+                return transport.download(DIGEST);
+              }));
+      assertThat(clock.observed.await(5, TimeUnit.SECONDS)).isTrue();
+      assertThrows(IOException.class, transport::beginReadSession);
+      clock.now.addAndGet(Duration.ofSeconds(1).toNanos());
+      held.get(0).observer.onError(Status.NOT_FOUND.asRuntimeException());
+      backend.takeRead();
+      // Four active calls consumed four seconds; the fifth call's queue time consumed nothing.
+      assertThat(backend.observedReadDeadlines.get(4))
+          .isGreaterThan(Duration.ofSeconds(5).toNanos());
+      assertThat(backend.observedReadDeadlines.get(4)).isAtMost(Duration.ofSeconds(6).toNanos());
+      clock.now.addAndGet(Duration.ofMillis(1500).toNanos());
+      // Another four concurrent calls consume the remaining six seconds. This admission observes
+      // the fake clock and wakes the budget timer, which must cancel already-running RPCs too.
+      assertThat(assertThrows(IOException.class, () -> transport.discover(SCOPE, ByteString.EMPTY)))
+          .hasMessageThat()
+          .contains("DEADLINE_EXCEEDED");
+      int notFound = 0;
+      for (var download : downloads) {
+        IOException failure = failedDownload(download);
+        if (failure.getMessage().contains("NOT_FOUND")) {
+          notFound++;
+        } else {
+          assertThat(failure).hasMessageThat().contains("DEADLINE_EXCEEDED");
+        }
+      }
+      assertThat(notFound).isEqualTo(1);
+      assertThat(backend.readCalls.get()).isEqualTo(5);
+      assertThat(backend.lastDiscovery).isNull();
+      transport.beginReadSession();
+      backend.readMode = "normal";
+      assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void successfulReplyCannotBeatAggregateBudgetEnforcementAtCompletion() throws Exception {
+    var clock = new ObservedClock();
+    var pool = Executors.newFixedThreadPool(4);
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(10), 4, clock)) {
+      transport.beginReadSession();
+      backend.readMode = "held";
+      var downloads = new ArrayList<Future<byte[]>>();
+      var held = new ArrayList<HeldRead>();
+      for (int i = 0; i < 4; i++) {
+        downloads.add(pool.submit(() -> transport.download(DIGEST)));
+        held.add(backend.takeRead());
+      }
+      // Twelve aggregate seconds have elapsed. There is no new admission to notice exhaustion:
+      // returning one valid reply must reject that completion and cancel the other three calls.
+      clock.now.addAndGet(Duration.ofSeconds(3).toNanos());
+      held.get(0).reply();
+      for (var download : downloads) {
+        assertThat(failedDownload(download)).hasMessageThat().contains("DEADLINE_EXCEEDED");
+      }
+      for (int i = 1; i < held.size(); i++) {
+        assertThat(held.get(i).cancelled.await(5, TimeUnit.SECONDS)).isTrue();
+      }
+      assertThat(backend.readCalls.get()).isEqualTo(4);
+      transport.beginReadSession();
+      backend.readMode = "normal";
+      assertThat(transport.download(DIGEST)).isEqualTo(CONTENT);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void budgetTimerCancelsConcurrentCallsBeforeTheirIndividualDeadlines() throws Exception {
+    var pool = Executors.newFixedThreadPool(4);
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(8), 4, System::nanoTime)) {
+      transport.beginReadSession();
+      backend.readMode = "held";
+      var downloads = new ArrayList<Future<byte[]>>();
+      var held = new ArrayList<HeldRead>();
+      for (int i = 0; i < 4; i++) {
+        downloads.add(pool.submit(() -> transport.download(DIGEST)));
+        held.add(backend.takeRead());
+      }
+      for (var download : downloads) {
+        assertThat(failedDownload(download)).hasMessageThat().contains("DEADLINE_EXCEEDED");
+      }
+      for (var read : held) {
+        assertThat(read.cancelled.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(read.nanosRemainingAtCancellation).isGreaterThan(0L);
+      }
+      assertThat(backend.readCalls.get()).isEqualTo(4);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void interruptedQueuedCallPreservesInterruptAndDoesNotAttemptRpc() throws Exception {
+    var clock = new ObservedClock();
+    var pool = Executors.newFixedThreadPool(5);
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(30), 4, clock)) {
+      transport.beginReadSession();
+      backend.readMode = "held";
+      var downloads = new ArrayList<Future<byte[]>>();
+      var held = new ArrayList<HeldRead>();
+      for (int i = 0; i < 4; i++) {
+        downloads.add(pool.submit(() -> transport.download(DIGEST)));
+        held.add(backend.takeRead());
+      }
+      var interrupted = new AtomicBoolean();
+      var queued =
+          pool.submit(
+              () -> {
+                clock.watchCurrentThread();
+                try {
+                  return transport.upload(CONTENT);
+                } finally {
+                  interrupted.set(Thread.currentThread().isInterrupted());
+                }
+              });
+      assertThat(clock.observed.await(5, TimeUnit.SECONDS)).isTrue();
+      clock.watched.interrupt();
+      assertThat(assertThrows(ExecutionException.class, () -> queued.get(5, TimeUnit.SECONDS)))
+          .hasCauseThat()
+          .hasMessageThat()
+          .contains("Interrupted waiting");
+      assertThat(interrupted.get()).isTrue();
+      assertThat(backend.uploadCalls.get()).isEqualTo(0);
+      for (var read : held) {
+        read.reply();
+      }
+      for (var download : downloads) {
+        assertThat(download.get(5, TimeUnit.SECONDS)).isEqualTo(CONTENT);
+      }
+      transport.beginReadSession();
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void closeCancelsActiveCallsAndReleasesQueuedCallersWithoutRpc() throws Exception {
+    var clock = new ObservedClock();
+    var pool = Executors.newFixedThreadPool(5);
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(30), 4, clock)) {
+      transport.beginReadSession();
+      backend.readMode = "held";
+      var downloads = new ArrayList<Future<byte[]>>();
+      var held = new ArrayList<HeldRead>();
+      for (int i = 0; i < 4; i++) {
+        downloads.add(pool.submit(() -> transport.download(DIGEST)));
+        held.add(backend.takeRead());
+      }
+      downloads.add(
+          pool.submit(
+              () -> {
+                clock.watchCurrentThread();
+                return transport.download(DIGEST);
+              }));
+      assertThat(clock.observed.await(5, TimeUnit.SECONDS)).isTrue();
+      transport.close();
+      for (var download : downloads) {
+        failedDownload(download);
+      }
+      for (var read : held) {
+        assertThat(read.cancelled.await(5, TimeUnit.SECONDS)).isTrue();
+      }
+      assertThat(backend.readCalls.get()).isEqualTo(4);
+      assertThat(assertThrows(IOException.class, () -> transport.download(DIGEST)))
+          .hasMessageThat()
+          .contains("closed");
+      assertThrows(IOException.class, transport::beginTransfer);
+      assertThrows(IOException.class, transport::beginReadSession);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void concurrentAttemptsChargeOneAtomicByteBudgetEvenWhenTheyFail() throws Exception {
+    var pool = Executors.newFixedThreadPool(4);
+    try (Backend backend = new Backend();
+        SkyCacheTransport transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(30), 2L * CONTENT.length)) {
+      transport.beginReadSession();
+      backend.readMode = "held";
+      var downloads = new ArrayList<Future<byte[]>>();
+      for (int i = 0; i < 4; i++) {
+        downloads.add(pool.submit(() -> transport.download(DIGEST)));
+      }
+      backend.takeRead().observer.onError(Status.NOT_FOUND.asRuntimeException());
+      backend.takeRead().observer.onError(Status.NOT_FOUND.asRuntimeException());
+      int rejected = 0;
+      for (var download : downloads) {
+        IOException failure = failedDownload(download);
+        if (failure.getMessage().contains("byte budget")) {
+          rejected++;
+        } else {
+          assertThat(failure).hasMessageThat().contains("NOT_FOUND");
+        }
+      }
+      assertThat(rejected).isEqualTo(2);
+      assertThat(backend.readCalls.get()).isEqualTo(2);
+      assertThat(assertThrows(IOException.class, () -> transport.upload(CONTENT)))
+          .hasMessageThat()
+          .contains("byte budget");
+      assertThat(backend.uploadCalls.get()).isEqualTo(0);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void configuredConcurrencyRejectsOutOfBoundsAndAcceptsBothEndpoints() throws Exception {
+    try (Backend backend = new Backend()) {
+      for (int limit : new int[] {-1, 0, 1001, Integer.MAX_VALUE}) {
+        assertThat(
+                assertThrows(
+                    IOException.class,
+                    () ->
+                        new SkyCacheTransport(
+                            backend.endpoint(),
+                            INSTANCE,
+                            "",
+                            Duration.ofSeconds(5),
+                            CONTENT.length,
+                            limit)))
+            .hasMessageThat()
+            .contains("between 1 and 1000");
+      }
+      assertThat(backend.uploadCalls.get()).isEqualTo(0);
+      for (int limit : new int[] {1, 1000}) {
+        try (var transport =
+            new SkyCacheTransport(
+                backend.endpoint(), INSTANCE, "", Duration.ofSeconds(5), CONTENT.length, limit)) {
+          transport.beginTransfer();
+          assertThat(transport.upload(CONTENT)).isEqualTo(DIGEST);
+        }
+      }
+      assertThat(backend.uploadCalls.get()).isEqualTo(2);
+    }
+  }
+
+  @Test
   public void explicitByteBudgetIsCumulativeAcrossUploadsAndDownloadsAndResets() throws Exception {
     for (boolean readSession : new boolean[] {false, true}) {
       try (Backend backend = new Backend();
@@ -490,6 +833,55 @@ public final class SkyCacheTransportTest {
         .build();
   }
 
+  private static IOException failedDownload(Future<byte[]> download) throws Exception {
+    var failure = assertThrows(ExecutionException.class, () -> download.get(10, TimeUnit.SECONDS));
+    assertThat(failure.getCause()).isInstanceOf(IOException.class);
+    return (IOException) failure.getCause();
+  }
+
+  /**
+   * The observed callback is inside admission, so tests need no sleeps to identify a queued call.
+   */
+  private static final class ObservedClock implements LongSupplier {
+    final AtomicLong now = new AtomicLong();
+    final CountDownLatch observed = new CountDownLatch(1);
+    volatile Thread watched;
+
+    void watchCurrentThread() {
+      watched = Thread.currentThread();
+    }
+
+    @Override
+    public long getAsLong() {
+      if (Thread.currentThread() == watched) {
+        observed.countDown();
+      }
+      return now.get();
+    }
+  }
+
+  private static final class HeldRead {
+    final StreamObserver<ReadResponse> observer;
+    final CountDownLatch cancelled = new CountDownLatch(1);
+    volatile long nanosRemainingAtCancellation;
+
+    HeldRead(StreamObserver<ReadResponse> observer) {
+      this.observer = observer;
+      Context context = Context.current();
+      context.addListener(
+          ignored -> {
+            nanosRemainingAtCancellation =
+                context.getDeadline().timeRemaining(TimeUnit.NANOSECONDS);
+            cancelled.countDown();
+          },
+          Runnable::run);
+    }
+
+    void reply() {
+      Backend.reply(observer, CONTENT);
+    }
+  }
+
   /** Real loopback gRPC server: only service replies are scripted. */
   private static final class Backend implements AutoCloseable {
     private final Server server;
@@ -505,6 +897,7 @@ public final class SkyCacheTransportTest {
     private final AtomicInteger uploadCalls = new AtomicInteger();
     private final AtomicInteger readCalls = new AtomicInteger();
     private final AtomicInteger unavailableCommits = new AtomicInteger();
+    private final BlockingQueue<HeldRead> heldReads = new LinkedBlockingQueue<>();
     private final List<CommitRequest> commits = new CopyOnWriteArrayList<>();
     private final List<String> authorization = new CopyOnWriteArrayList<>();
     private final List<RequestMetadata> requestMetadata = new CopyOnWriteArrayList<>();
@@ -572,6 +965,7 @@ public final class SkyCacheTransportTest {
                           Context.current().getDeadline().timeRemaining(TimeUnit.NANOSECONDS));
                       readCalls.incrementAndGet();
                       switch (readMode) {
+                        case "held" -> heldReads.add(new HeldRead(observer));
                         case "missing" ->
                             observer.onError(
                                 Status.NOT_FOUND
@@ -643,6 +1037,12 @@ public final class SkyCacheTransportTest {
 
     private String endpoint() {
       return "grpc://127.0.0.1:" + server.getPort();
+    }
+
+    private HeldRead takeRead() throws InterruptedException {
+      HeldRead read = heldReads.poll(5, TimeUnit.SECONDS);
+      assertThat(read).isNotNull();
+      return read;
     }
 
     private SkyCacheTransport transport(Duration timeout) throws IOException {

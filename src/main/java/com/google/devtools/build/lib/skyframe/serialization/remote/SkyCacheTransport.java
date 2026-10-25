@@ -33,12 +33,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 /**
- * Bounded blocking transport for one SkyCache transfer at a time. {@link #beginTransfer} gives an
+ * Bounded blocking transport with 100 concurrent RPCs by default. {@link #beginTransfer} gives an
  * export one absolute deadline. {@link #beginReadSession} charges a demand-driven reader only for
  * cumulative RPC time, excluding computation between requests. Both modes share a configured byte
  * budget. {@code grpc://} sends plaintext and is intended for trusted local development; {@code
@@ -47,30 +52,72 @@ import java.util.function.LongSupplier;
 public final class SkyCacheTransport implements AutoCloseable {
   private static final int MAX_PAGE_TOKEN_BYTES = 16 * 1024;
   private static final long DEFAULT_TRANSFER_BUDGET = 257L * 1024 * 1024;
+  private static final int DEFAULT_MAX_CONCURRENT_RPCS = 100;
   private final String instanceName;
   private final long timeoutNanos;
   private final long transferBudget;
+  private final int maxConcurrentRpcs;
   private final LongSupplier nanoTime;
   private final ManagedChannel channel;
   private final SkyCacheCatalogGrpc.SkyCacheCatalogBlockingStub catalog;
   private final ContentAddressableStorageGrpc.ContentAddressableStorageBlockingStub cas;
   private final ByteStreamGrpc.ByteStreamBlockingStub byteStream;
+  private final ScheduledThreadPoolExecutor budgetTimer;
+  private final Set<RpcBudget> activeRpcs = new HashSet<>();
+  private ScheduledFuture<?> budgetTask;
+  private long timerGeneration;
+  private long accountedAt;
+  private int queuedRequests;
   private Deadline deadline;
   private boolean readSession;
   private long remainingRpcNanos;
+  private boolean rpcBudgetExceeded;
   private long transferredBytes;
   private volatile boolean closed;
 
   public SkyCacheTransport(String endpoint, String instanceName, String tokenFile, Duration timeout)
       throws IOException {
-    this(endpoint, instanceName, tokenFile, timeout, DEFAULT_TRANSFER_BUDGET, System::nanoTime);
+    this(
+        endpoint,
+        instanceName,
+        tokenFile,
+        timeout,
+        DEFAULT_TRANSFER_BUDGET,
+        DEFAULT_MAX_CONCURRENT_RPCS,
+        System::nanoTime);
   }
 
   /** Configures attempted blob bytes independently of the logical publication size. */
   public SkyCacheTransport(
       String endpoint, String instanceName, String tokenFile, Duration timeout, long transferBudget)
       throws IOException {
-    this(endpoint, instanceName, tokenFile, timeout, transferBudget, System::nanoTime);
+    this(
+        endpoint,
+        instanceName,
+        tokenFile,
+        timeout,
+        transferBudget,
+        DEFAULT_MAX_CONCURRENT_RPCS,
+        System::nanoTime);
+  }
+
+  /** Configures a shared limit of 1 through 1000 concurrent metadata and blob RPCs. */
+  public SkyCacheTransport(
+      String endpoint,
+      String instanceName,
+      String tokenFile,
+      Duration timeout,
+      long transferBudget,
+      int maxConcurrentRpcs)
+      throws IOException {
+    this(
+        endpoint,
+        instanceName,
+        tokenFile,
+        timeout,
+        transferBudget,
+        maxConcurrentRpcs,
+        System::nanoTime);
   }
 
   // A monotonic elapsed-time seam keeps cumulative-budget tests independent of scheduler timing.
@@ -81,7 +128,32 @@ public final class SkyCacheTransport implements AutoCloseable {
       Duration timeout,
       LongSupplier nanoTime)
       throws IOException {
-    this(endpoint, instanceName, tokenFile, timeout, DEFAULT_TRANSFER_BUDGET, nanoTime);
+    this(
+        endpoint,
+        instanceName,
+        tokenFile,
+        timeout,
+        DEFAULT_TRANSFER_BUDGET,
+        DEFAULT_MAX_CONCURRENT_RPCS,
+        nanoTime);
+  }
+
+  SkyCacheTransport(
+      String endpoint,
+      String instanceName,
+      String tokenFile,
+      Duration timeout,
+      int maxConcurrentRpcs,
+      LongSupplier nanoTime)
+      throws IOException {
+    this(
+        endpoint,
+        instanceName,
+        tokenFile,
+        timeout,
+        DEFAULT_TRANSFER_BUDGET,
+        maxConcurrentRpcs,
+        nanoTime);
   }
 
   private SkyCacheTransport(
@@ -90,9 +162,14 @@ public final class SkyCacheTransport implements AutoCloseable {
       String tokenFile,
       Duration timeout,
       long transferBudget,
+      int maxConcurrentRpcs,
       LongSupplier nanoTime)
       throws IOException {
     this.nanoTime = java.util.Objects.requireNonNull(nanoTime);
+    if (maxConcurrentRpcs < 1 || maxConcurrentRpcs > 1000) {
+      throw new IOException("SkyCache maximum concurrency must be between 1 and 1000");
+    }
+    this.maxConcurrentRpcs = maxConcurrentRpcs;
     if (transferBudget <= 0
         || transferBudget
             > SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES) {
@@ -144,11 +221,20 @@ public final class SkyCacheTransport implements AutoCloseable {
     catalog = SkyCacheCatalogGrpc.newBlockingStub(authenticated);
     cas = ContentAddressableStorageGrpc.newBlockingStub(authenticated);
     byteStream = ByteStreamGrpc.newBlockingStub(authenticated);
+    budgetTimer =
+        new ScheduledThreadPoolExecutor(
+            1,
+            task -> {
+              var thread = new Thread(task, "skycache-rpc-budget");
+              thread.setDaemon(true);
+              return thread;
+            });
+    budgetTimer.setRemoveOnCancelPolicy(true);
   }
 
-  /** Starts a new transfer; this does not extend deadlines of RPCs already in progress. */
+  /** Starts an export; resetting while any caller is active or queued is forbidden. */
   public synchronized void beginTransfer() throws IOException {
-    checkOpen();
+    checkResetAllowed();
     readSession = false;
     deadline = Deadline.after(timeoutNanos, TimeUnit.NANOSECONDS);
     transferredBytes = 0;
@@ -156,20 +242,21 @@ public final class SkyCacheTransport implements AutoCloseable {
 
   /** Starts demand-driven reads with one cumulative RPC-time budget and one byte budget. */
   public synchronized void beginReadSession() throws IOException {
-    checkOpen();
+    checkResetAllowed();
     readSession = true;
     deadline = null;
     remainingRpcNanos = timeoutNanos;
+    rpcBudgetExceeded = false;
     transferredBytes = 0;
+    accountedAt = nanoTime.getAsLong();
   }
 
-  public synchronized DiscoverResponse discover(Scope scope, ByteString pageToken)
-      throws IOException {
-    try (RpcBudget rpc = startRpc()) {
-      validateScope(scope);
-      if (pageToken.size() > MAX_PAGE_TOKEN_BYTES) {
-        throw new IOException("SkyCache page token is too large");
-      }
+  public DiscoverResponse discover(Scope scope, ByteString pageToken) throws IOException {
+    validateScope(scope);
+    if (pageToken.size() > MAX_PAGE_TOKEN_BYTES) {
+      throw new IOException("SkyCache page token is too large");
+    }
+    try (RpcBudget rpc = startRpc(0)) {
       try {
         DiscoverResponse result =
             catalog
@@ -196,7 +283,7 @@ public final class SkyCacheTransport implements AutoCloseable {
         }
         return result;
       } catch (StatusRuntimeException e) {
-        throw rpcFailure(e);
+        throw rpc.failure(e);
       }
     }
   }
@@ -204,13 +291,13 @@ public final class SkyCacheTransport implements AutoCloseable {
   /**
    * Retries an uncertain UNAVAILABLE result once with the identical idempotency key and deadline.
    */
-  public synchronized PublicationRef commit(CommitRequest request) throws IOException {
-    try (RpcBudget rpc = startRpc()) {
-      validateScope(request.getScope());
-      SkyCacheProtocol.validateDigest(request.getManifest(), SkyCacheProtocol.MAX_BUNDLE_BYTES);
-      if (request.getIdempotencyKey().isEmpty() || request.getIdempotencyKey().length() > 4096) {
-        throw new IOException("Invalid SkyCache idempotency key");
-      }
+  public PublicationRef commit(CommitRequest request) throws IOException {
+    validateScope(request.getScope());
+    SkyCacheProtocol.validateDigest(request.getManifest(), SkyCacheProtocol.MAX_BUNDLE_BYTES);
+    if (request.getIdempotencyKey().isEmpty() || request.getIdempotencyKey().length() > 4096) {
+      throw new IOException("Invalid SkyCache idempotency key");
+    }
+    try (RpcBudget rpc = startRpc(0)) {
       Deadline transferDeadline = rpc.deadline;
       for (int attempt = 0; ; attempt++) {
         try {
@@ -224,22 +311,23 @@ public final class SkyCacheTransport implements AutoCloseable {
         } catch (StatusRuntimeException e) {
           if (attempt == 0
               && e.getStatus().getCode() == Status.Code.UNAVAILABLE
+              && !rpc.exhausted
+              && !closed
               && !transferDeadline.isExpired()) {
             continue;
           }
-          throw rpcFailure(e);
+          throw rpc.failure(e);
         }
       }
     }
   }
 
-  public synchronized Digest upload(byte[] bytes) throws IOException {
-    try (RpcBudget rpc = startRpc()) {
-      if (bytes.length > SkyCacheProtocol.CHUNK_BYTES) {
-        throw new IOException("SkyCache blob exceeds chunk size");
-      }
+  public Digest upload(byte[] bytes) throws IOException {
+    if (bytes.length > SkyCacheProtocol.CHUNK_BYTES) {
+      throw new IOException("SkyCache blob exceeds chunk size");
+    }
+    try (RpcBudget rpc = startRpc(bytes.length)) {
       Deadline transferDeadline = rpc.deadline;
-      charge(bytes.length);
       Digest digest = SkyCacheProtocol.digest(bytes);
       try {
         var response =
@@ -268,16 +356,15 @@ public final class SkyCacheTransport implements AutoCloseable {
         }
         return digest;
       } catch (StatusRuntimeException e) {
-        throw rpcFailure(e);
+        throw rpc.failure(e);
       }
     }
   }
 
-  public synchronized byte[] download(Digest digest) throws IOException {
-    try (RpcBudget rpc = startRpc()) {
-      SkyCacheProtocol.validateDigest(digest, SkyCacheProtocol.CHUNK_BYTES);
+  public byte[] download(Digest digest) throws IOException {
+    SkyCacheProtocol.validateDigest(digest, SkyCacheProtocol.CHUNK_BYTES);
+    try (RpcBudget rpc = startRpc(digest.getSizeBytes())) {
       Deadline transferDeadline = rpc.deadline;
-      charge(digest.getSizeBytes());
       String resourceName =
           (instanceName.isEmpty() ? "" : instanceName + "/")
               + "blobs/"
@@ -285,26 +372,21 @@ public final class SkyCacheTransport implements AutoCloseable {
               + "/"
               + digest.getSizeBytes();
       ByteArrayOutputStream bytes = new ByteArrayOutputStream((int) digest.getSizeBytes());
-      try (Context.CancellableContext cancellation = Context.current().withCancellation()) {
-        Context previous = cancellation.attach();
-        try {
-          var responses =
-              byteStream
-                  .withDeadline(transferDeadline)
-                  .read(ReadRequest.newBuilder().setResourceName(resourceName).build());
-          while (responses.hasNext()) {
-            ByteString chunk = responses.next().getData();
-            if (chunk.size() > digest.getSizeBytes() - bytes.size()) {
-              cancellation.cancel(null);
-              throw new IOException("SkyCache download exceeds its declared size");
-            }
-            chunk.writeTo(bytes);
+      try {
+        var responses =
+            byteStream
+                .withDeadline(transferDeadline)
+                .read(ReadRequest.newBuilder().setResourceName(resourceName).build());
+        while (responses.hasNext()) {
+          ByteString chunk = responses.next().getData();
+          if (chunk.size() > digest.getSizeBytes() - bytes.size()) {
+            rpc.cancellation.cancel(null);
+            throw new IOException("SkyCache download exceeds its declared size");
           }
-        } catch (StatusRuntimeException e) {
-          throw rpcFailure(e);
-        } finally {
-          cancellation.detach(previous);
+          chunk.writeTo(bytes);
         }
+      } catch (StatusRuntimeException e) {
+        throw rpc.failure(e);
       }
       byte[] result = bytes.toByteArray();
       if (!sameDigest(digest, SkyCacheProtocol.digest(result))) {
@@ -332,7 +414,7 @@ public final class SkyCacheTransport implements AutoCloseable {
     checkOpen();
     if (readSession) {
       if (remainingRpcNanos <= 0) {
-        throw new IOException("SkyCache remote RPC failed: DEADLINE_EXCEEDED");
+        throw deadlineExceeded();
       }
       return Deadline.after(remainingRpcNanos, TimeUnit.NANOSECONDS);
     }
@@ -340,32 +422,155 @@ public final class SkyCacheTransport implements AutoCloseable {
       throw new IOException("SkyCache transfer has not started");
     }
     if (deadline.isExpired()) {
-      throw new IOException("SkyCache remote RPC failed: DEADLINE_EXCEEDED");
+      throw deadlineExceeded();
     }
     return deadline;
   }
 
-  private RpcBudget startRpc() throws IOException {
-    long started = nanoTime.getAsLong();
-    return new RpcBudget(activeDeadline(), started, readSession);
+  private synchronized RpcBudget startRpc(long bytes) throws IOException {
+    checkOpen();
+    queuedRequests++;
+    try {
+      while (true) {
+        accountElapsed();
+        Deadline nextDeadline = activeDeadline();
+        if (activeRpcs.size() < maxConcurrentRpcs) {
+          charge(bytes);
+          var rpc = new RpcBudget(nextDeadline);
+          activeRpcs.add(rpc);
+          return rpc;
+        }
+        try {
+          if (readSession) {
+            wait();
+          } else {
+            TimeUnit.NANOSECONDS.timedWait(
+                this, Math.max(1, nextDeadline.timeRemaining(TimeUnit.NANOSECONDS)));
+          }
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IOException("Interrupted waiting for SkyCache RPC");
+        }
+      }
+    } finally {
+      queuedRequests--;
+      // A fake elapsed-time clock may exhaust the budget while a new caller is being admitted.
+      scheduleBudgetCheck();
+      notifyAll();
+    }
+  }
+
+  private void checkResetAllowed() throws IOException {
+    checkOpen();
+    if (!activeRpcs.isEmpty() || queuedRequests != 0) {
+      throw new IOException("Cannot reset SkyCache transfer while requests are active or queued");
+    }
+    cancelBudgetCheck();
+  }
+
+  /**
+   * All accounting runs under this monitor; multiplication cannot overflow the remaining budget.
+   */
+  private void accountElapsed() {
+    long now = nanoTime.getAsLong();
+    long elapsed = Math.max(0, now - accountedAt);
+    int count = activeRpcs.size();
+    if (readSession && count != 0) {
+      if (elapsed > remainingRpcNanos / count) {
+        // Preserve strict overspend even if another caller accounts for it before completion.
+        rpcBudgetExceeded = true;
+        remainingRpcNanos = 0;
+      } else {
+        remainingRpcNanos -= elapsed * count;
+      }
+    }
+    accountedAt = now;
+  }
+
+  private void cancelBudgetCheck() {
+    timerGeneration++;
+    if (budgetTask != null) {
+      budgetTask.cancel(false);
+      budgetTask = null;
+    }
+  }
+
+  private void scheduleBudgetCheck() {
+    cancelBudgetCheck();
+    if (closed
+        || !readSession
+        || activeRpcs.isEmpty()
+        || (remainingRpcNanos == 0 && activeRpcs.stream().allMatch(rpc -> rpc.exhausted))) {
+      return;
+    }
+    int count = activeRpcs.size();
+    long delay = remainingRpcNanos / count + (remainingRpcNanos % count == 0 ? 0 : 1);
+    long generation = timerGeneration;
+    budgetTask = budgetTimer.schedule(() -> checkBudget(generation), delay, TimeUnit.NANOSECONDS);
+  }
+
+  private void checkBudget(long generation) {
+    List<RpcBudget> exhausted;
+    synchronized (this) {
+      if (closed || generation != timerGeneration) {
+        return;
+      }
+      accountElapsed();
+      if (remainingRpcNanos != 0) {
+        scheduleBudgetCheck();
+        return;
+      }
+      exhausted = List.copyOf(activeRpcs);
+      exhausted.forEach(rpc -> rpc.exhausted = true);
+      budgetTask = null;
+      notifyAll();
+    }
+    // Cancellation invokes gRPC listeners: never hold the accounting monitor here.
+    exhausted.forEach(rpc -> rpc.cancellation.cancel(null));
+  }
+
+  private static IOException deadlineExceeded() {
+    return new IOException("SkyCache remote RPC failed: DEADLINE_EXCEEDED");
   }
 
   private final class RpcBudget implements AutoCloseable {
     private final Deadline deadline;
-    private final long started;
-    private final boolean cumulative;
+    private final Context.CancellableContext cancellation;
+    private final Context previous;
+    private volatile boolean exhausted;
 
-    private RpcBudget(Deadline deadline, long started, boolean cumulative) {
+    private RpcBudget(Deadline deadline) {
       this.deadline = deadline;
-      this.started = started;
-      this.cumulative = cumulative;
+      cancellation = Context.current().withCancellation();
+      previous = cancellation.attach();
+    }
+
+    private IOException failure(StatusRuntimeException failure) {
+      return exhausted ? deadlineExceeded() : rpcFailure(failure);
     }
 
     @Override
-    public void close() {
-      if (cumulative) {
-        long elapsed = Math.max(0, nanoTime.getAsLong() - started);
-        remainingRpcNanos = Math.max(0, remainingRpcNanos - elapsed);
+    public void close() throws IOException {
+      cancellation.detach(previous);
+      cancellation.close();
+      List<RpcBudget> pending = List.of();
+      boolean rejectCompletion;
+      synchronized (SkyCacheTransport.this) {
+        accountElapsed();
+        rejectCompletion = exhausted || (readSession && rpcBudgetExceeded);
+        activeRpcs.remove(this);
+        if (readSession && remainingRpcNanos == 0) {
+          pending = List.copyOf(activeRpcs);
+          pending.forEach(rpc -> rpc.exhausted = true);
+        }
+        scheduleBudgetCheck();
+        SkyCacheTransport.this.notifyAll();
+      }
+      pending.forEach(rpc -> rpc.cancellation.cancel(null));
+      // A reply may beat the timer. Only exact-boundary completion may consume the last budget;
+      // strict aggregate overspend and a previously timer-cancelled RPC cannot return success.
+      if (rejectCompletion) {
+        throw deadlineExceeded();
       }
     }
   }
@@ -433,16 +638,23 @@ public final class SkyCacheTransport implements AutoCloseable {
 
   @Override
   public void close() {
-    // RPC methods hold this instance's monitor while blocking. Cancellation must not wait for
-    // that monitor, otherwise close can hang until the entire transfer deadline expires.
-    if (!closed) {
-      closed = true;
-      channel.shutdownNow();
-      try {
-        channel.awaitTermination(5, TimeUnit.SECONDS);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+    List<RpcBudget> pending;
+    synchronized (this) {
+      if (closed) {
+        return;
       }
+      closed = true;
+      cancelBudgetCheck();
+      pending = List.copyOf(activeRpcs);
+      notifyAll();
+    }
+    pending.forEach(rpc -> rpc.cancellation.cancel(null));
+    budgetTimer.shutdownNow();
+    channel.shutdownNow();
+    try {
+      channel.awaitTermination(5, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 }

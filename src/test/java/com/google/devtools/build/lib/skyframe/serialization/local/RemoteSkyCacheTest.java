@@ -23,6 +23,8 @@ import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.PublicationRef;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProtocol;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheTransport;
+import com.google.devtools.common.options.OptionsParser;
+import com.google.devtools.common.options.OptionsParsingException;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
 import io.grpc.Server;
@@ -489,6 +491,70 @@ public final class RemoteSkyCacheTest {
   }
 
   @Test
+  public void concurrencyOptionDefaultsToHundredAndValidatesOverrides() throws Exception {
+    try (var backend = new MemoryRemote()) {
+      var parser = OptionsParser.builder().optionsClasses(LocalSkycacheOptions.class).build();
+      parser.parse("--experimental_remote_skycache=" + backend.endpoint());
+      var defaults = parser.getOptions(LocalSkycacheOptions.class);
+      assertThat(defaults.getRemoteMaxConcurrency()).isEqualTo(100);
+      try (var reader =
+          new RemoteSkyCache(temporary.newFolder("default-reader").toPath(), namespace, defaults)) {
+        assertThat(statistic(reader, "max_concurrency")).isEqualTo(100);
+      }
+      parser.parse("--experimental_remote_skycache_max_concurrency=7");
+      try (var reader =
+          new RemoteSkyCache(
+              temporary.newFolder("configured-reader").toPath(),
+              namespace,
+              parser.getOptions(LocalSkycacheOptions.class))) {
+        assertThat(statistic(reader, "max_concurrency")).isEqualTo(7);
+      }
+      for (String invalid : List.of("0", "-1", "1001")) {
+        assertThrows(
+            OptionsParsingException.class,
+            () -> parser.parse("--experimental_remote_skycache_max_concurrency=" + invalid));
+      }
+    }
+  }
+
+  @Test
+  public void distinctChunksDownloadWhileAnotherIsBlocked() throws Exception {
+    Path source = temporary.newFolder("source").toPath();
+    Path destination = temporary.newFolder("destination").toPath();
+    var pool = Executors.newFixedThreadPool(2);
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      var gate = new ReadGate(fixture.pack().getChunks(1));
+      backend.beforeRead = gate::beforeRead;
+      backend.requestedDigests.clear();
+      try {
+        var blocked =
+            pool.submit(
+                () -> {
+                  fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES, 31);
+                  return null;
+                });
+        assertThat(gate.entered.await(5, TimeUnit.SECONDS)).isTrue();
+        pool.submit(
+                () -> {
+                  fixture.assertRead(0, 31);
+                  return null;
+                })
+            .get(5, TimeUnit.SECONDS);
+        assertThat(backend.requestedDigests)
+            .containsExactly(gate.digest, fixture.pack().getChunks(0));
+        gate.release.countDown();
+        blocked.get(5, TimeUnit.SECONDS);
+      } finally {
+        gate.release.countDown();
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
   public void simultaneousReadersCoalesceOneMissingChunkDownload() throws Exception {
     Path source = temporary.newFolder("source").toPath();
     Path destination = temporary.newFolder("destination").toPath();
@@ -556,7 +622,7 @@ public final class RemoteSkyCacheTest {
             pool.submit(
                 () -> {
                   waitingStarted.countDown();
-                  fixture.assertRead(2 * SkyCacheProtocol.CHUNK_BYTES, 1);
+                  fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES + 1, 1);
                   return null;
                 });
         assertThat(waitingStarted.await(5, TimeUnit.SECONDS)).isTrue();
@@ -613,7 +679,7 @@ public final class RemoteSkyCacheTest {
                   thread.set(Thread.currentThread());
                   started.countDown();
                   try {
-                    fixture.assertRead(2 * SkyCacheProtocol.CHUNK_BYTES, 1);
+                    fixture.assertRead(SkyCacheProtocol.CHUNK_BYTES + 1, 1);
                     return null;
                   } catch (IOException e) {
                     interrupted.set(Thread.currentThread().isInterrupted());
