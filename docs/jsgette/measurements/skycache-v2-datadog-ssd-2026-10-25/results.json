@@ -1,0 +1,1277 @@
+{
+  "started_at": "2026-10-25T04:17:30.874764+00:00",
+  "status": "failed",
+  "target": "//cmd/cluster-agent:cluster-agent",
+  "datadog_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "skycache_commit": "303a149a195bbd6ad770584bd34138ea749c3e9a",
+  "vanilla_commit": "4cfc05f77ba91900a2e3c6ab135861498cb2a0bf",
+  "binary_sha256": {
+    "skycache": "28026d467ef10667c0fcfb1741495fbefe4fee9dfed43d3d2d9733726b5cb159",
+    "vanilla": "1ef0d6ff94b24c787d539f63672f93f0da9bd96d49750d729489cbffc80aa588"
+  },
+  "workspace": "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-mapping-eviction-review/a",
+  "workspace_diff_before": "diff --git a/MODULE.bazel.lock b/MODULE.bazel.lock\nindex 81c8e4ba..96c5b091 100644\n--- a/MODULE.bazel.lock\n+++ b/MODULE.bazel.lock\n@@ -15,11 +15,12 @@\n     \"https://bcr.bazel.build/modules/apple_support/1.15.1/MODULE.bazel\": \"a0556fefca0b1bb2de8567b8827518f94db6a6e7e7d632b4c48dc5f865bc7c85\",\n     \"https://bcr.bazel.build/modules/apple_support/1.23.0/MODULE.bazel\": \"317d47e3f65b580e7fb4221c160797fda48e32f07d2dfff63d754ef2316dcd25\",\n     \"https://bcr.bazel.build/modules/apple_support/1.24.1/MODULE.bazel\": \"f46e8ddad60aef170ee92b2f3d00ef66c147ceafea68b6877cb45bd91737f5f8\",\n+    \"https://bcr.bazel.build/modules/apple_support/1.24.2/MODULE.bazel\": \"0e62471818affb9f0b26f128831d5c40b074d32e6dda5a0d3852847215a41ca4\",\n     \"https://bcr.bazel.build/modules/apple_support/2.10.1/MODULE.bazel\": \"5c100fe4a69707da09fd1c91976506d9302d186830ea0e82f045b3537a978f83\",\n     \"https://bcr.bazel.build/modules/apple_support/2.10.1/source.json\": \"69100c3281052a77bb8e4b185bb8252bb00aaa167c900cf88aa0702bfc6dbf0c\",\n     \"https://bcr.bazel.build/modules/apple_support/2.3.0/MODULE.bazel\": \"d48f824ae8eeea5f837eb3038cef3615075d996d3e82eb9187192c2820605a81\",\n-    \"https://bcr.bazel.build/modules/apple_support/2.5.2/MODULE.bazel\": \"bb1b7081e390a8d3885f642cb0073dfcf8e7a36525e079fa8f5835af7079c0fe\",\n     \"https://bcr.bazel.build/modules/apple_support/2.8.0/MODULE.bazel\": \"c45f5176057092afba0be6c48a9ea02101666802f8be536947e099e94757f8ed\",\n+    \"https://bcr.bazel.build/modules/apple_support/2.8.4/MODULE.bazel\": \"83ae0682db2a4ea86d20416a9b3bdba7f6c2a81e136b4d210e5986e30436585e\",\n     \"https://bcr.bazel.build/modules/apple_support/2.9.1/MODULE.bazel\": \"fb209b83ed172af587419acb3340389cfe3260669e5f1c05e1ac3974aca614e0\",\n     \"https://bcr.bazel.build/modules/aspect_bazel_lib/2.14.0/MODULE.bazel\": \"2b31ffcc9bdc8295b2167e07a757dbbc9ac8906e7028e5170a3708cecaac119f\",\n     \"https://bcr.bazel.build/modules/aspect_bazel_lib/2.19.3/MODULE.bazel\": \"253d739ba126f62a5767d832765b12b59e9f8d2bc88cc1572f4a73e46eb298ca\",\n@@ -47,10 +48,10 @@\n     \"https://bcr.bazel.build/modules/bazel_features/1.38.0/MODULE.bazel\": \"f9b8a9c890ebd216b4049fd12a31d3c2602e3403c7af636b04fbbd7453edc9c9\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.39.0/MODULE.bazel\": \"28739425c1fc283c91931619749c832b555e60bcd1010b40d8441ce0a5cf726d\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.4.1/MODULE.bazel\": \"e45b6bb2350aff3e442ae1111c555e27eac1d915e77775f6fdc4b351b758b5d7\",\n-    \"https://bcr.bazel.build/modules/bazel_features/1.42.1/MODULE.bazel\": \"275a59b5406ff18c01739860aa70ad7ccb3cfb474579411decca11c93b951080\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.43.0/MODULE.bazel\": \"defa2226f06ba20550d6548c3a2ea2a7929634437a52973869c20c225450eb91\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.46.0/MODULE.bazel\": \"3371af60ed64c67aa05401c08005e6b0418433b2a18712994e17300f0a610b2a\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.47.1/MODULE.bazel\": \"e6be691539341681678a68c2076771f6a73fcdc9823c5b6bf280d2e916d1ad80\",\n+    \"https://bcr.bazel.build/modules/bazel_features/1.48.1/MODULE.bazel\": \"8f43b2b90bd70402825ab07a85bf26079935271e2662a1df37fe0de969aa3ecf\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.50.0/MODULE.bazel\": \"2083ef9c7a469f520890483ccf8e0189d6e71e2117e7752e15e6554433d5ae3e\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.52.0/MODULE.bazel\": \"8620725a18328936c38914a54c90b042ca8b0391abb9a751b9a58f13fce1f3c0\",\n     \"https://bcr.bazel.build/modules/bazel_features/1.52.0/source.json\": \"d03f68822370a0f40ca6e5a7445b8b2916163382c1a97ec021cbbdb6cb3f1461\",\n@@ -79,14 +80,16 @@\n     \"https://bcr.bazel.build/modules/bazel_skylib/1.9.0/MODULE.bazel\": \"72997b29dfd95c3fa0d0c48322d05590418edef451f8db8db5509c57875fb4b7\",\n     \"https://bcr.bazel.build/modules/bazel_skylib/1.9.2/MODULE.bazel\": \"8c51259b0f4481475586dbfede7591e57b75702e637f840f6138eec80c34b270\",\n     \"https://bcr.bazel.build/modules/bazel_skylib/1.9.2/source.json\": \"41cbde7546542dee2f26e3f10bf1c4ac57909943194b7ac48cc5238a01893aa8\",\n+    \"https://bcr.bazel.build/modules/bazel_worker_api/0.0.11/MODULE.bazel\": \"fe09a8d3fb25c95414249f72cb0936201bf7e3c3f0e302175b2fc81e68bc6069\",\n+    \"https://bcr.bazel.build/modules/bazel_worker_api/0.0.11/source.json\": \"7867c70965fccd202c57796de69fcbdf0555da34e3b09a14b06d74afb0f2f26d\",\n     \"https://bcr.bazel.build/modules/bazel_worker_api/0.0.8/MODULE.bazel\": \"396c1ef53835aafe3d42ce6619080531ee770648303731f16cfaa33fa056bf0c\",\n-    \"https://bcr.bazel.build/modules/bazel_worker_api/0.0.8/source.json\": \"abaf8ac9d2ab2f47bda9af4c0c080ff7907378888e1f4bc62a0539dd13ba61e8\",\n+    \"https://bcr.bazel.build/modules/bazel_worker_java/0.0.11/MODULE.bazel\": \"1ee9e4c28ce455dbacdff8e007e133ea209e6f673a9e97cf20e99b161bc17548\",\n+    \"https://bcr.bazel.build/modules/bazel_worker_java/0.0.11/source.json\": \"48b9b9c55f69cc360a54a712f47b889dd3d367ce2d45c3ccec242e9af86fe9cd\",\n     \"https://bcr.bazel.build/modules/bazel_worker_java/0.0.8/MODULE.bazel\": \"e76479eae70bd4e8f5f4c2dfc5d03ab971cfb18750246c7b3f3454c5c2ee6629\",\n-    \"https://bcr.bazel.build/modules/bazel_worker_java/0.0.8/source.json\": \"9395c4679444bc47bf7e51a710366a4480aa371c6f6bed01868e2fabcf11acec\",\n     \"https://bcr.bazel.build/modules/buildifier_prebuilt/7.3.1/MODULE.bazel\": \"537faf0ad9f5892910074b8e43b4c91c96f1d5d86b6ed04bdbe40cf68aa48b68\",\n     \"https://bcr.bazel.build/modules/buildifier_prebuilt/7.3.1/source.json\": \"55153a5e6ca9c8a7e266c4b46b951e8a010d25ec6062bc35d5d4f89925796bad\",\n-    \"https://bcr.bazel.build/modules/buildozer/8.5.1/MODULE.bazel\": \"a35d9561b3fc5b18797c330793e99e3b834a473d5fbd3d7d7634aafc9bdb6f8f\",\n-    \"https://bcr.bazel.build/modules/buildozer/8.5.1/source.json\": \"e3386e6ff4529f2442800dee47ad28d3e6487f36a1f75ae39ae56c70f0cd2fbd\",\n+    \"https://bcr.bazel.build/modules/buildozer/10.1.0.bcr.1/MODULE.bazel\": \"637733ba15c237d790e3504cabe910c87523dc4a56cdc2177a4eee30cfa1869b\",\n+    \"https://bcr.bazel.build/modules/buildozer/10.1.0.bcr.1/source.json\": \"2d10423740f536f02ff9e4dbebbbae2d9134a46960a5e4a6c5224d0b43671c4a\",\n     \"https://bcr.bazel.build/modules/bzip2/1.0.8.bcr.3/MODULE.bazel\": \"29ecf4babfd3c762be00d7573c288c083672ab60e79c833ff7f49ee662e54471\",\n     \"https://bcr.bazel.build/modules/bzip2/1.0.8.bcr.3/source.json\": \"8be4a3ef2599693f759e5c0990a4cc5a246ac08db4c900a38f852ba25b5c39be\",\n     \"https://bcr.bazel.build/modules/gawk/5.3.2.bcr.1/MODULE.bazel\": \"cdf8cbe5ee750db04b78878c9633cc76e80dcf4416cbe982ac3a9222f80713c8\",\n@@ -113,6 +116,8 @@\n     \"https://bcr.bazel.build/modules/libarchive/3.8.1.bcr.3/MODULE.bazel\": \"5a470d07e6c39853197dbd6473775a6430c3d0162a859a4dd110b66b62ddcb39\",\n     \"https://bcr.bazel.build/modules/libarchive/3.8.1.bcr.3/source.json\": \"ba21825ce75d52e0a10fdda8a9613a585289eb5305a30f7ddf40c9dd2d974b18\",\n     \"https://bcr.bazel.build/modules/libpfm/4.11.0/MODULE.bazel\": \"45061ff025b301940f1e30d2c16bea596c25b176c8b6b3087e92615adbd52902\",\n+    \"https://bcr.bazel.build/modules/libxml2/2.15.3/MODULE.bazel\": \"a6bffafd8aa8b0c13eaa4bf25d55be188ec8548549395f03e98c39bab264adaa\",\n+    \"https://bcr.bazel.build/modules/libxml2/2.15.3/source.json\": \"fd7c420cb14981416c9fadd0db555bd1e249355e0e5b63b2ce15b92996b5fbfb\",\n     \"https://bcr.bazel.build/modules/lz4/1.9.4/MODULE.bazel\": \"e3d307b1d354d70f6c809167eafecf5d622c3f27e3971ab7273410f429c7f83a\",\n     \"https://bcr.bazel.build/modules/lz4/1.9.4/source.json\": \"233f0bdfc21f254e3dda14683ddc487ca68c6a3a83b7d5db904c503f85bd089b\",\n     \"https://bcr.bazel.build/modules/m4/1.4.21.bcr.4/MODULE.bazel\": \"40fef4b9091aea8e97b76a5706b3490b8d731ba008b02a883751ee2abf84daf4\",\n@@ -151,16 +156,19 @@\n     \"https://bcr.bazel.build/modules/protobuf/35.1/source.json\": \"5e256f85483431bd96fc9a6ae468e420326673e9d9f250d313725875597bf1ba\",\n     \"https://bcr.bazel.build/modules/pybind11_bazel/2.11.1/MODULE.bazel\": \"88af1c246226d87e65be78ed49ecd1e6f5e98648558c14ce99176da041dc378e\",\n     \"https://bcr.bazel.build/modules/pybind11_bazel/2.12.0/MODULE.bazel\": \"e6f4c20442eaa7c90d7190d8dc539d0ab422f95c65a57cc59562170c58ae3d34\",\n-    \"https://bcr.bazel.build/modules/pybind11_bazel/2.12.0/source.json\": \"6900fdc8a9e95866b8c0d4ad4aba4d4236317b5c1cd04c502df3f0d33afed680\",\n+    \"https://bcr.bazel.build/modules/pybind11_bazel/3.0.0/MODULE.bazel\": \"a2bfa6020ed603a00d944161c63173c7f109774e99bee0c2cd8dbf24159f8134\",\n+    \"https://bcr.bazel.build/modules/pybind11_bazel/3.0.0/source.json\": \"d8f5104d4c21d272bf327ebe44366fb0b4c036cdaa1f5cceb21a408ca4ef2ef8\",\n     \"https://bcr.bazel.build/modules/re.bzl/0.4.1/MODULE.bazel\": \"32510382ecccd70ab2311545e5ff4a445da592350ac51d055be571991f0280e7\",\n     \"https://bcr.bazel.build/modules/re.bzl/0.4.1/source.json\": \"434c8f30b5ae480f558a1eef775272988356a5d5fec878994b2b6ac2e93b838d\",\n     \"https://bcr.bazel.build/modules/re2/2023-09-01/MODULE.bazel\": \"cb3d511531b16cfc78a225a9e2136007a48cf8a677e4264baeab57fe78a80206\",\n     \"https://bcr.bazel.build/modules/re2/2024-07-02.bcr.1/MODULE.bazel\": \"b4963dda9b31080be1905ef085ecd7dd6cd47c05c79b9cdf83ade83ab2ab271a\",\n-    \"https://bcr.bazel.build/modules/re2/2024-07-02.bcr.1/source.json\": \"2ff292be6ef3340325ce8a045ecc326e92cbfab47c7cbab4bd85d28971b97ac4\",\n     \"https://bcr.bazel.build/modules/re2/2024-07-02/MODULE.bazel\": \"0eadc4395959969297cbcf31a249ff457f2f1d456228c67719480205aa306daa\",\n+    \"https://bcr.bazel.build/modules/re2/2025-11-05.bcr.1/MODULE.bazel\": \"3d9d4995833fc0334fc5c88b56a05288dd25d651544cd7b2233bbd6357bbeba0\",\n+    \"https://bcr.bazel.build/modules/re2/2025-11-05.bcr.1/source.json\": \"7df1394aabda1c9bc188a302f5d54b1c657924edd04ebc57d2be29dbd7efd141\",\n     \"https://bcr.bazel.build/modules/rules_android/0.1.1/MODULE.bazel\": \"48809ab0091b07ad0182defb787c4c5328bd3a278938415c00a7b69b50c4d3a8\",\n     \"https://bcr.bazel.build/modules/rules_android/0.7.1/MODULE.bazel\": \"a806fc382a774252f228a40e3b11b9fcc6276f8778c7fb33e9f72937c6258363\",\n-    \"https://bcr.bazel.build/modules/rules_android/0.7.1/source.json\": \"151440aed3f0f73a00d4ed5cec5d31f63a6fef9b95d8fab1eb1810150fa525f2\",\n+    \"https://bcr.bazel.build/modules/rules_android/0.8.0/MODULE.bazel\": \"92961a7a1218694a31fa748eba164db2721f5c42f2d7ed3325c52b19d00ae2f5\",\n+    \"https://bcr.bazel.build/modules/rules_android/0.8.0/source.json\": \"efec84c34a78d0b6a23b7a07d51e810942428a5b980857284806d0a59762591f\",\n     \"https://bcr.bazel.build/modules/rules_cc/0.0.1/MODULE.bazel\": \"cb2aa0747f84c6c3a78dad4e2049c154f08ab9d166b1273835a8174940365647\",\n     \"https://bcr.bazel.build/modules/rules_cc/0.0.10/MODULE.bazel\": \"ec1705118f7eaedd6e118508d3d26deba2a4e76476ada7e0e3965211be012002\",\n     \"https://bcr.bazel.build/modules/rules_cc/0.0.15/MODULE.bazel\": \"6704c35f7b4a72502ee81f61bf88706b54f06b3cbe5558ac17e2e14666cd5dcc\",\n@@ -185,6 +193,7 @@\n     \"https://bcr.bazel.build/modules/rules_cc/0.2.26/source.json\": \"bf9ff315da6055c1e374d627012cc51947a05b3560674af7d69fbedbb4fde6ef\",\n     \"https://bcr.bazel.build/modules/rules_cc/0.2.4/MODULE.bazel\": \"1ff1223dfd24f3ecf8f028446d4a27608aa43c3f41e346d22838a4223980b8cc\",\n     \"https://bcr.bazel.build/modules/rules_cc/0.2.8/MODULE.bazel\": \"f1df20f0bf22c28192a794f29b501ee2018fa37a3862a1a2132ae2940a23a642\",\n+    \"https://bcr.bazel.build/modules/rules_cc/0.2.9/MODULE.bazel\": \"34263f1dca62ea664265438cef714d7db124c03e1ed55ebb4f1dc860164308d1\",\n     \"https://bcr.bazel.build/modules/rules_cc_autoconf/0.13.2/MODULE.bazel\": \"3ec13b93183a28b7088563e0fef1a51835dde06c272a1dabc5900e8bc26b2188\",\n     \"https://bcr.bazel.build/modules/rules_cc_autoconf/0.24.0/MODULE.bazel\": \"332e2a2972ef5d5a537b2dbc23bea7a0d5d97fc5fa82cebe032b1b8d509b06a1\",\n     \"https://bcr.bazel.build/modules/rules_cc_autoconf/0.26.0/MODULE.bazel\": \"bbde86042066b179c51ff1e2bfb4e3de0690cd17dba8642c705a07a283dd0e28\",\n@@ -213,9 +222,9 @@\n     \"https://bcr.bazel.build/modules/rules_java/8.6.0/MODULE.bazel\": \"9c064c434606d75a086f15ade5edb514308cccd1544c2b2a89bbac4310e41c71\",\n     \"https://bcr.bazel.build/modules/rules_java/8.6.1/MODULE.bazel\": \"f4808e2ab5b0197f094cabce9f4b006a27766beb6a9975931da07099560ca9c2\",\n     \"https://bcr.bazel.build/modules/rules_java/8.9.0/MODULE.bazel\": \"e17c876cb53dcd817b7b7f0d2985b710610169729e8c371b2221cacdcd3dce4a\",\n-    \"https://bcr.bazel.build/modules/rules_java/9.1.0/MODULE.bazel\": \"ee63f27e36a3fada80342869361182f120a9819c74320e8e65b1e04ba0cd7a9d\",\n     \"https://bcr.bazel.build/modules/rules_java/9.3.0/MODULE.bazel\": \"f657c72d65ac449caae9abf2e68e66c0d36f9416848c4c4903d0b3234229e7f2\",\n-    \"https://bcr.bazel.build/modules/rules_java/9.3.0/source.json\": \"59ae7e662c3c7042b88bbb42ad12483523e234c65ebe4c51611baa43e85cb248\",\n+    \"https://bcr.bazel.build/modules/rules_java/9.9.0/MODULE.bazel\": \"6b2092957b4849ffcbb84d5c7fe0d5a4582f5e3062bc84d607122ac4ef832e55\",\n+    \"https://bcr.bazel.build/modules/rules_java/9.9.0/source.json\": \"9c4e694db18812d19b5c1e279ba9dffc1adc3fcac163896829f374a7c426fe12\",\n     \"https://bcr.bazel.build/modules/rules_jvm_external/5.2/MODULE.bazel\": \"d9351ba35217ad0de03816ef3ed63f89d411349353077348a45348b096615036\",\n     \"https://bcr.bazel.build/modules/rules_jvm_external/6.2/MODULE.bazel\": \"36a6e52487a855f33cb960724eb56547fa87e2c98a0474c3acad94339d7f8e99\",\n     \"https://bcr.bazel.build/modules/rules_jvm_external/6.3/MODULE.bazel\": \"c998e060b85f71e00de5ec552019347c8bca255062c990ac02d051bb80a38df0\",\n@@ -246,8 +255,10 @@\n     \"https://bcr.bazel.build/modules/rules_python/0.33.2/MODULE.bazel\": \"3e036c4ad8d804a4dad897d333d8dce200d943df4827cb849840055be8d2e937\",\n     \"https://bcr.bazel.build/modules/rules_python/0.37.2/MODULE.bazel\": \"b5ffde91410745750b6c13be1c5dc4555ef5bc50562af4a89fd77807fdde626a\",\n     \"https://bcr.bazel.build/modules/rules_python/1.6.0/MODULE.bazel\": \"7e04ad8f8d5bea40451cf80b1bd8262552aa73f841415d20db96b7241bd027d8\",\n+    \"https://bcr.bazel.build/modules/rules_python/1.6.3/MODULE.bazel\": \"a7b80c42cb3de5ee2a5fa1abc119684593704fcd2fec83165ebe615dec76574f\",\n     \"https://bcr.bazel.build/modules/rules_python/1.7.0/MODULE.bazel\": \"d01f995ecd137abf30238ad9ce97f8fc3ac57289c8b24bd0bf53324d937a14f8\",\n     \"https://bcr.bazel.build/modules/rules_python/1.9.0/MODULE.bazel\": \"afc3a05f29f09f2d3ee95ad99a145250dab41a2b2d8d6f82cc91936b3213282c\",\n+    \"https://bcr.bazel.build/modules/rules_python/1.9.2/MODULE.bazel\": \"56a0ef1201bc49e1b0fe5018ddf919bb6423037fb8d35ab8434bcdd76c667bbe\",\n     \"https://bcr.bazel.build/modules/rules_python/2.4.2/MODULE.bazel\": \"fde4307b6765b6f261c40a2c08140a5d10e3aa9b6c12e23bb57d31b7ce124c29\",\n     \"https://bcr.bazel.build/modules/rules_python/2.4.2/source.json\": \"225828a44c27fa97ba8a594e6fd3b752061779f052d40c4bb5d6b45f2ded567b\",\n     \"https://bcr.bazel.build/modules/rules_robolectric/4.14.1.2/MODULE.bazel\": \"d44fec647d0aeb67b9f3b980cf68ba634976f3ae7ccd6c07d790b59b87a4f251\",\n@@ -299,7 +310,7 @@\n     \"//bazel/toolchains/llvm_bpf:llvm_bpf_configure.bzl%llvm_bpf_extension\": {\n       \"general\": {\n         \"bzlTransitiveDigest\": \"eOYXODssdQNOf4X8CCImpZYvyFCF/VqCz/43DBjJieA=\",\n-        \"usagesDigest\": \"lBRxCKYy9X03c4jyF/C6hWEAf+24zs/m6M/bS7BVXQU=\",\n+        \"usagesDigest\": \"fsueFiNzKf3IcxcbpFoF/P0wdlWYwym57zRmVh9oV0U=\",\n         \"recordedInputs\": [],\n         \"generatedRepoSpecs\": {\n           \"llvm_bpf\": {\n@@ -345,8 +356,8 @@\n     },\n     \"@@buildifier_prebuilt+//:defs.bzl%buildifier_prebuilt_deps_extension\": {\n       \"general\": {\n-        \"bzlTransitiveDigest\": \"ji6iKsh7yjl6MSM1w9QOsvLX5118dGDkoEt1pfoFq6k=\",\n-        \"usagesDigest\": \"eWMDBEn8E8CrwAPXrlrjIap2pseSMhxDyDdrntHBOOE=\",\n+        \"bzlTransitiveDigest\": \"REHWBjJ8+4qWZkHWT+72LGBqmFPbUWvWxcjuw2Egojg=\",\n+        \"usagesDigest\": \"O4BrZmasDjXK3KinHG/a7Otyp/ZyhOJ/Jr+21egNjoU=\",\n         \"recordedInputs\": [\n           \"REPO_MAPPING:buildifier_prebuilt+,bazel_skylib bazel_skylib+\",\n           \"REPO_MAPPING:buildifier_prebuilt+,bazel_tools bazel_tools\"\n@@ -586,23 +597,10 @@\n         }\n       }\n     },\n-    \"@@rules_android+//rules/android_sdk_repository:rule.bzl%android_sdk_repository_extension\": {\n-      \"general\": {\n-        \"bzlTransitiveDigest\": \"+rMrzIrv7sImYmkbXJYv+gFpTJQ79X3MpwwMLI2A+oA=\",\n-        \"usagesDigest\": \"iEGI2aNDMkHt9LXCdViLNUUOslpiVj2DrevWWXZEFnU=\",\n-        \"recordedInputs\": [],\n-        \"generatedRepoSpecs\": {\n-          \"androidsdk\": {\n-            \"repoRuleId\": \"@@rules_android+//rules/android_sdk_repository:rule.bzl%_android_sdk_repository\",\n-            \"attributes\": {}\n-          }\n-        }\n-      }\n-    },\n     \"@@rules_flex+//flex/internal:default_toolchain_ext.bzl%default_toolchain_ext\": {\n       \"general\": {\n         \"bzlTransitiveDigest\": \"N7zM4XDqpIYBtt0DhdgpWMpP91wlndN5XOpIUU0IiUc=\",\n-        \"usagesDigest\": \"ZZBq14MWGSERijKxcHRMJGU9sR8XcxkhS79OZB2Bz6k=\",\n+        \"usagesDigest\": \"6rrMviC58gwe2gd4s89MvATf1isOG12CMtldFS+VxGA=\",\n         \"recordedInputs\": [],\n         \"generatedRepoSpecs\": {\n           \"flex_v2.6.4\": {\n@@ -631,7 +629,7 @@\n     \"@@rules_m4+//m4/internal:default_toolchain_ext.bzl%default_toolchain_ext\": {\n       \"general\": {\n         \"bzlTransitiveDigest\": \"f9QX0T4bok6chCgsab761GzOe+jiOgtDXkPKcF8kSgc=\",\n-        \"usagesDigest\": \"mAPTbsLqgPwbTIUSgrD4eVzTGI+BCmgG19qxyiT7qNY=\",\n+        \"usagesDigest\": \"P2AqPLJsHeO2kPBIOtBpPYZH/FtnOqEB6JtuAlEVDkw=\",\n         \"recordedInputs\": [],\n         \"generatedRepoSpecs\": {\n           \"m4_v1.4.18\": {\n@@ -660,7 +658,7 @@\n     \"@@rules_pkg+//toolchains/rpm:rpmbuild_configure.bzl%find_system_rpmbuild_bzlmod\": {\n       \"general\": {\n         \"bzlTransitiveDigest\": \"9i8d6YWW9vv8HwpV05xhHVyBSc1zAHOxu1/S88axbug=\",\n-        \"usagesDigest\": \"/KxCvOG4ymMxLBcldn54pcMSEjOygkYUMlHj/fabSNE=\",\n+        \"usagesDigest\": \"+G3wc/box2RnnP1n0D7olRcmNStQTSYknSGSYNhVrC0=\",\n         \"recordedInputs\": [],\n         \"generatedRepoSpecs\": {\n           \"rules_pkg_rpmbuild\": {\n@@ -672,8 +670,8 @@\n     },\n     \"@@rules_python+//python/uv:uv.bzl%uv\": {\n       \"general\": {\n-        \"bzlTransitiveDigest\": \"+9d3Xk+XLM+3cS8xVHR6XRn3dYpPmBavXbfU8v/qtnc=\",\n-        \"usagesDigest\": \"mM5nr0rInol5uct6JfVpNViqAYYCaAo3qdfPr4gsFGQ=\",\n+        \"bzlTransitiveDigest\": \"nNLi7ZqAz3o3E0D9lW0dtYMrV45UJNwn+FzJNBJUN4w=\",\n+        \"usagesDigest\": \"lHk0bkJ3in6X46hp01Yjx5Nypue6hxJ0ICjjD+criEg=\",\n         \"recordedInputs\": [\n           \"REPO_MAPPING:rules_python+,bazel_tools bazel_tools\",\n           \"REPO_MAPPING:rules_python+,platforms platforms\"\n@@ -806,7 +804,7 @@\n     \"@@toolchains_llvm+//toolchain/extensions:distributions.bzl%llvm_distributions\": {\n       \"general\": {\n         \"bzlTransitiveDigest\": \"RfYsFLwRh0rVY8ReiYgbOEyr84zuBs7mbcHq3dPY3jI=\",\n-        \"usagesDigest\": \"iNUgtvOL6OSJFHS2TVczU6k42DdU1giRPmdNbCYXTOw=\",\n+        \"usagesDigest\": \"eBgKQKwZmXfQcVu2T2mVRCl68cckVTmVfyX32nZCOPc=\",\n         \"recordedInputs\": [],\n         \"generatedRepoSpecs\": {\n           \"llvm_distributions_data\": {\n@@ -826,7 +824,7 @@\n     \"@@toolchains_msvc+//:extensions.bzl%toolchain\": {\n       \"general\": {\n         \"bzlTransitiveDigest\": \"+QP/UpRjiVuOX5ytBDv5/iGOjdHBo+6V9CZrORq0hc0=\",\n-        \"usagesDigest\": \"rQ5JelGlBEEO9mtDwwXu7F62svHOfgjJMqsjzBzagCk=\",\n+        \"usagesDigest\": \"noy1W4oz3Ed9rMHbiT50oundxiBXYrts8MjNVz0s+mo=\",\n         \"recordedInputs\": [\n           \"ENV:BAZEL_TOOLCHAINS_MSVC_ACCEPT_MICROSOFT_VISUAL_STUDIO_BUILDTOOLS_EULA 1\",\n           \"ENV:BAZEL_TOOLCHAINS_MSVC_HOSTS \\\\0\",",
+  "lock_sha256": "7f32675fc29a9cb837256a760cfca19dfab2bf040492cfa0c9bb40444b8d9290",
+  "jdk": "/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+  "filesystem": {
+    "filesystems": [
+      {
+        "source": "/dev/sdd",
+        "fstype": "ext4",
+        "target": "/"
+      }
+    ]
+  },
+  "initial_storage": {
+    "minimum_free_bytes": 16106127360,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25",
+        "free_bytes": 292050194432,
+        "host_backing": {
+          "kind": "wsl_distro",
+          "path": "E:\\WSL\\Ubuntu",
+          "free_bytes": 28489699328
+        }
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 28489699328,
+      "system_drive": "C:\\",
+      "system_free_bytes": 81053528064,
+      "windows_drives": {
+        "C:\\": 81053528064,
+        "D:\\": 999685435392,
+        "E:\\": 28489699328
+      },
+      "observation_source": "wsl_interop",
+      "observed_unix": null
+    }
+  },
+  "kernel": "Linux JGETTE 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux\n",
+  "limits": {
+    "jobs": 16,
+    "jvm_heap_gib": 6,
+    "action_memory_mib": 6144,
+    "host_reserve_gib": 15
+  },
+  "remote_cache": "grpc://10.55.0.1:8080",
+  "disk_action_cache": false,
+  "runs": [
+    {
+      "variant": "vanilla",
+      "label": "prepare-vanilla",
+      "role": "preparation",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-mapping-eviction-review/a/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/out-vanilla",
+        "--output_user_root=/home/jgett/.cache/bazel",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx6g",
+        "--max_idle_secs=600",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--jobs=16",
+        "--local_resources=memory=6144",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--remote_instance_name=",
+        "--remote_timeout=120",
+        "--remote_retries=1",
+        "--noremote_local_fallback",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--remote_download_outputs=all",
+        "--bes_backend=",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--symlink_prefix=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/links/bazel-vanilla-",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/prepare-vanilla.bep.json",
+        "--profile=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/prepare-vanilla.profile.gz"
+      ],
+      "started_at": "2026-10-25T04:17:31.507157+00:00",
+      "storage_before": {
+        "minimum_free_bytes": 16106127360,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25",
+            "free_bytes": 292050169856,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 28489699328
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 28489699328,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81053532160,
+          "windows_drives": {
+            "C:\\": 81053532160,
+            "D:\\": 999685435392,
+            "E:\\": 28489699328
+          },
+          "observation_source": "wsl_interop",
+          "observed_unix": null
+        }
+      },
+      "before": null,
+      "exit_code": 8,
+      "seconds": 113.52585664599997,
+      "after": {
+        "pid": 1283,
+        "tree_rss_kib": 1857464,
+        "tree_pss_kib": 1854667
+      },
+      "guard_errors": [
+        "Cannot check WSL host storage after 3 attempts: <3>WSL (21908 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110"
+      ],
+      "peak_tree_rss_kib": 2403460,
+      "peak_tree_pss_kib": 2137742,
+      "analysis_hits": 0,
+      "cache_disabled": false,
+      "publication_failures": [],
+      "finished": {
+        "finishTimeMillis": "1792901962606",
+        "exitCode": {
+          "name": "INTERRUPTED",
+          "code": 8
+        },
+        "finishTime": "2026-10-25T04:19:22.606Z",
+        "failureDetail": {
+          "message": "build interrupted",
+          "interrupted": {
+            "code": "INTERRUPTED"
+          }
+        }
+      },
+      "build_metrics": {
+        "actionSummary": {
+          "actionsExecuted": "1",
+          "actionData": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792901879984",
+              "lastEndedMs": "1792901880009"
+            }
+          ],
+          "runnerCount": [
+            {
+              "name": "total",
+              "count": 1
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ]
+        },
+        "memoryMetrics": {
+          "garbageMetrics": [
+            {
+              "type": "CodeHeap 'non-profiled nmethods'",
+              "garbageCollected": "7625728"
+            },
+            {
+              "type": "CodeHeap 'profiled nmethods'",
+              "garbageCollected": "25297664"
+            },
+            {
+              "type": "Compressed Class Space",
+              "garbageCollected": "152064"
+            },
+            {
+              "type": "G1 Eden Space",
+              "garbageCollected": "11718885376"
+            },
+            {
+              "type": "G1 Old Gen",
+              "garbageCollected": "499697344"
+            },
+            {
+              "type": "G1 Survivor Space",
+              "garbageCollected": "185822320"
+            },
+            {
+              "type": "Metaspace",
+              "garbageCollected": "565800"
+            }
+          ]
+        },
+        "targetMetrics": {},
+        "packageMetrics": {},
+        "timingMetrics": {
+          "cpuTimeInMs": "233070",
+          "wallTimeInMs": "113429",
+          "analysisPhaseTimeInMs": "82617",
+          "criticalPathTime": "0.022998370s"
+        },
+        "cumulativeMetrics": {
+          "numAnalyses": 1,
+          "instanceId": "edbfcb53-539b-48d4-afcb-390a05ba4256"
+        },
+        "artifactMetrics": {
+          "sourceArtifactsRead": {},
+          "outputArtifactsSeen": {
+            "sizeInBytes": "121",
+            "count": 2
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {}
+        },
+        "buildGraphMetrics": {
+          "postInvocationSkyframeNodeCount": 173462,
+          "builtValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "6210"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "609"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "609"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "136"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "32"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "5472"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "42"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "609"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1302"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "611"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "13475"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "248"
+            },
+            {
+              "skyfunctionName": "YANKED_VERSIONS",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "34546"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "1952"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "581"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "434"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "41183"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "1831"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "4883"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "57350"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "610"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "28"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "9"
+            }
+          ],
+          "evaluatedValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "11093"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "1827"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "1308"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "445"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "43"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "135"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "12684"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "83"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "2278"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1302"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "10"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "659"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "37490"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "295"
+            },
+            {
+              "skyfunctionName": "YANKED_VERSIONS",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "34546"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "48"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "675"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "4627"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "16"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "1120"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "2137"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "90968"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "4416"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "4883"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "75770"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "720"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "38"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "18"
+            }
+          ]
+        },
+        "networkMetrics": {
+          "systemNetworkStats": {
+            "bytesSent": "24066092",
+            "bytesRecv": "2060158446",
+            "packetsSent": "358453",
+            "packetsRecv": "1447489",
+            "peakBytesSentPerSec": "620314",
+            "peakBytesRecvPerSec": "31694998",
+            "peakPacketsSentPerSec": "7568",
+            "peakPacketsRecvPerSec": "22247"
+          }
+        },
+        "workerPoolMetrics": {},
+        "dynamicExecutionMetrics": {},
+        "remoteAnalysisCacheStatistics": {
+          "valueStoreReadLatencyMicros": {},
+          "valueStoreReadBatchLatencyMicros": {},
+          "valueStoreWriteLatencyMicros": {},
+          "valueStoreWriteBatchLatencyMicros": {},
+          "analysisCacheReadLatencyMicros": {},
+          "analysisCacheReadBatchLatencyMicros": {}
+        },
+        "bzlMetrics": {}
+      },
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 1
+        },
+        {
+          "name": "internal",
+          "count": 1
+        }
+      ],
+      "action_cache_statistics": {}
+    },
+    {
+      "variant": "vanilla",
+      "label": "prepare-vanilla-retry1",
+      "role": "preparation",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-concurrent/datadog-crossrevision-mapping-eviction-review/a/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/out-vanilla",
+        "--output_user_root=/home/jgett/.cache/bazel",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx6g",
+        "--max_idle_secs=600",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--jobs=16",
+        "--local_resources=memory=6144",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--remote_instance_name=",
+        "--remote_timeout=120",
+        "--remote_retries=1",
+        "--noremote_local_fallback",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--remote_download_outputs=all",
+        "--bes_backend=",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--symlink_prefix=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/links/bazel-vanilla-",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/prepare-vanilla-retry1.bep.json",
+        "--profile=/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25/prepare-vanilla-retry1.profile.gz"
+      ],
+      "started_at": "2026-10-25T04:20:16.751901+00:00",
+      "storage_before": {
+        "minimum_free_bytes": 16106127360,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-v2-datadog-ssd-2026-10-25",
+            "free_bytes": 284781342720,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 21845921792
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 21845921792,
+          "system_drive": "C:\\",
+          "system_free_bytes": 81053396992,
+          "windows_drives": {
+            "C:\\": 81053396992,
+            "D:\\": 999685435392,
+            "E:\\": 21845921792
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792902015.992
+        }
+      },
+      "before": null,
+      "exit_code": 8,
+      "seconds": 121.98556370799997,
+      "after": {
+        "pid": 22074,
+        "tree_rss_kib": 2062568,
+        "tree_pss_kib": 2058972
+      },
+      "guard_errors": [
+        "WSL backing volume at E:\\WSL\\Ubuntu has 14.3 GiB free; probe requires 15.0 GiB"
+      ],
+      "peak_tree_rss_kib": 2086120,
+      "peak_tree_pss_kib": 2079019,
+      "analysis_hits": 0,
+      "cache_disabled": false,
+      "publication_failures": [],
+      "finished": {
+        "finishTimeMillis": "1792902136592",
+        "exitCode": {
+          "name": "INTERRUPTED",
+          "code": 8
+        },
+        "finishTime": "2026-10-25T04:22:16.592Z",
+        "failureDetail": {
+          "message": "build interrupted",
+          "interrupted": {
+            "code": "INTERRUPTED"
+          }
+        }
+      },
+      "build_metrics": {
+        "actionSummary": {
+          "actionsExecuted": "1",
+          "actionData": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792902027074",
+              "lastEndedMs": "1792902027106"
+            }
+          ],
+          "runnerCount": [
+            {
+              "name": "total",
+              "count": 1
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ]
+        },
+        "memoryMetrics": {
+          "garbageMetrics": [
+            {
+              "type": "CodeHeap 'non-profiled nmethods'",
+              "garbageCollected": "4187264"
+            },
+            {
+              "type": "CodeHeap 'profiled nmethods'",
+              "garbageCollected": "17467648"
+            },
+            {
+              "type": "Compressed Class Space",
+              "garbageCollected": "54912"
+            },
+            {
+              "type": "G1 Eden Space",
+              "garbageCollected": "7553941496"
+            },
+            {
+              "type": "G1 Old Gen",
+              "garbageCollected": "1073632216"
+            },
+            {
+              "type": "G1 Survivor Space",
+              "garbageCollected": "140430048"
+            },
+            {
+              "type": "Metaspace",
+              "garbageCollected": "198144"
+            }
+          ]
+        },
+        "targetMetrics": {},
+        "packageMetrics": {},
+        "timingMetrics": {
+          "cpuTimeInMs": "188800",
+          "wallTimeInMs": "121899",
+          "analysisPhaseTimeInMs": "109520",
+          "criticalPathTime": "0.030701374s"
+        },
+        "cumulativeMetrics": {
+          "numAnalyses": 1,
+          "instanceId": "26397de9-22ea-462a-b22b-74b78c373dd8"
+        },
+        "artifactMetrics": {
+          "sourceArtifactsRead": {},
+          "outputArtifactsSeen": {
+            "sizeInBytes": "121",
+            "count": 2
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {}
+        },
+        "buildGraphMetrics": {
+          "postInvocationSkyframeNodeCount": 173371,
+          "builtValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "6210"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "608"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "608"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "136"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "32"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "5472"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "42"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "609"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1298"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "611"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "13415"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "248"
+            },
+            {
+              "skyfunctionName": "YANKED_VERSIONS",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "34533"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "1952"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "581"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "434"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "41170"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "1831"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "4883"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "57350"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "610"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "28"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "9"
+            }
+          ],
+          "evaluatedValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "11093"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "1824"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "1305"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "444"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "51"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "135"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "12513"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "80"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "2072"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1298"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "10"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "659"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "37037"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "8"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "295"
+            },
+            {
+              "skyfunctionName": "YANKED_VERSIONS",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "34536"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "47"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "676"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "4626"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "16"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "1131"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "2107"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "90763"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "4361"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "4883"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "74348"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "720"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "38"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "18"
+            }
+          ]
+        },
+        "networkMetrics": {
+          "systemNetworkStats": {
+            "bytesSent": "18794050",
+            "bytesRecv": "1778006178",
+            "packetsSent": "281947",
+            "packetsRecv": "1248905",
+            "peakBytesSentPerSec": "375476",
+            "peakBytesRecvPerSec": "32497181",
+            "peakPacketsSentPerSec": "5689",
+            "peakPacketsRecvPerSec": "22768"
+          }
+        },
+        "workerPoolMetrics": {},
+        "dynamicExecutionMetrics": {},
+        "remoteAnalysisCacheStatistics": {
+          "valueStoreReadLatencyMicros": {},
+          "valueStoreReadBatchLatencyMicros": {},
+          "valueStoreWriteLatencyMicros": {},
+          "valueStoreWriteBatchLatencyMicros": {},
+          "analysisCacheReadLatencyMicros": {},
+          "analysisCacheReadBatchLatencyMicros": {}
+        },
+        "bzlMetrics": {}
+      },
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 1
+        },
+        {
+          "name": "internal",
+          "count": 1
+        }
+      ],
+      "action_cache_statistics": {}
+    }
+  ],
+  "cycles": [],
+  "limitations": [
+    "Warm OS page cache; no machine-wide cache drop.",
+    "Sampled guest process tree RSS/PSS excludes Windows/WSL overhead and filesystem page cache.",
+    "Vanilla is the source-built pre-SkyCache fork baseline; not the 9.3.0 release binary.",
+    "Idle eviction includes explicit GC; idle recovery is a memory/latency tradeoff.",
+    "Preparation populates action state; repeated measurements use existing local outputs and Cache & Carry remains enabled."
+  ],
+  "failure": "AssertionError('prepare-vanilla-retry1')",
+  "workspace_unchanged": true,
+  "updated_at": "2026-10-25T04:22:17.259278+00:00",
+  "setup_retry_reason": "WSL interop storage checks failed; use a fresh Windows-side snapshot watcher."
+}
