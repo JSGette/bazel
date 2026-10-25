@@ -34,12 +34,22 @@ import java.util.regex.Pattern;
 final class LocalDependencyValidator {
   private static final Pattern LEAF_KEY_PATTERN = Pattern.compile("local-input-v1/[0-9a-f]{32}");
 
-  record Limits(int records, long bytes, int depth, int references, int nodeBytes) {
+  record Limits(
+      int records, long bytes, int depth, int references, int nodeBytes, int memoEntries) {
     static final Limits DEFAULT =
-        new Limits(250_000, 128L * 1024 * 1024, 4096, 100_000, 8 * 1024 * 1024);
+        new Limits(250_000, 128L * 1024 * 1024, 4096, 100_000, 8 * 1024 * 1024, 1_000_000);
+
+    Limits(int records, long bytes, int depth, int references, int nodeBytes) {
+      this(records, bytes, depth, references, nodeBytes, records);
+    }
 
     Limits {
-      if (records < 1 || bytes < 1 || depth < 1 || references < 1 || nodeBytes < 1) {
+      if (records < 1
+          || bytes < 1
+          || depth < 1
+          || references < 1
+          || nodeBytes < 1
+          || memoEntries < 1) {
         throw new IllegalArgumentException("invalid dependency validation limits");
       }
     }
@@ -165,7 +175,7 @@ final class LocalDependencyValidator {
             // This memo is an optimization, not evidence required for a successful traversal.
             // Once full, later lookups must repeat validation. Traversal and in-flight limits
             // still fail closed, and every successful witness remains registered with inputs.
-            if (validated.size() < limits.records()) {
+            if (validated.size() < limits.memoEntries()) {
               validated.add(frame.key());
             } else {
               memoCapacitySkips.increment();
@@ -204,7 +214,7 @@ final class LocalDependencyValidator {
       }
     }
     synchronized (memoInsertion) {
-      if (validatedWitnesses.size() < limits.records()) {
+      if (validatedWitnesses.size() < limits.memoEntries()) {
         validatedWitnesses.add(witness);
       }
     }

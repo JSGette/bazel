@@ -893,6 +893,27 @@ public final class LocalDependencyValidatorTest {
   }
 
   @Test
+  public void successMemoCapacityDoesNotRaisePerLookupTraversalBudget() throws Exception {
+    var first = root(leaf(file, false, List.of()));
+    var second =
+        root(leaf(Files.writeString(workspace.resolve("second"), "two"), false, List.of()));
+    var validator =
+        new LocalDependencyValidator(
+            store,
+            snapshot(),
+            NONPROD_FINGERPRINTER,
+            compression,
+            new LocalDependencyValidator.Limits(2, 1024 * 1024, 100, 100, 1024, 10));
+    assertThat(validator.validate(first)).isTrue();
+    assertThat(validator.validate(second)).isTrue();
+    assertThat(validator.statisticsJson()).contains("\"memo_entries\":4");
+    var fresh =
+        root(leaf(Files.writeString(workspace.resolve("third"), "three"), false, List.of()));
+    var tooDeep = put(bytes(List.of(fresh), List.of(), List.of(), null));
+    assertThat(validator.validate(tooDeep)).isFalse();
+  }
+
+  @Test
   public void fullSuccessMemoKeepsValidationAndFinalEvidenceWithoutGrowing() throws Exception {
     var files = new java.util.ArrayList<Path>();
     for (int i = 0; i < 8; i++) {
