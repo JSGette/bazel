@@ -1,0 +1,38 @@
+INFO: Invocation ID: 25c0a4b8-fe56-4852-803b-d02f878c9ca8
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+WARNING: No active directories were found. Falling back on full serialization.
+Analyzing: target //:final (5 packages loaded, 6 targets configured)
+Analyzing: target //:final (5 packages loaded, 6 targets configured)
+
+INFO: Analyzed target //:final (5 packages loaded, 7 targets configured (1 remote cache hits)).
+FATAL: bazel crashed due to an internal error. Printing stack trace:
+java.lang.RuntimeException: Unrecoverable error while evaluating node 'ActionLookupData{actionLookupKey=ConfiguredTargetKey{label=//:final, config=BuildConfigurationKey[7193924d8f7312fbc5341a593badd4f1cf2ab73a4b8fc8b9a27dd69d3b70e7e8]}, actionIndex=0}' (requested by nodes 'TargetCompletionKey{topLevelArtifactContext=TopLevelArtifactContext[runTestsExclusively=false, outputGroups=[_hidden_top_level_INTERNAL_, _validation, default, temp_files_INTERNAL_], failOnUnknownOutputGroups=false, forRunCommand=false], actionLookupKey=ConfiguredTargetKey{label=//:final, config=BuildConfigurationKey[7193924d8f7312fbc5341a593badd4f1cf2ab73a4b8fc8b9a27dd69d3b70e7e8]}, willTest=false}')
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:555)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: java.lang.NullPointerException: File:[[<execution_root>]bazel-out/k8-fastbuild/bin]middle.txt
+	at com.google.common.base.Preconditions.checkNotNull(Preconditions.java:975)
+	at com.google.devtools.build.lib.remote.RemoteRewoundActionSynchronizer.lockKeysFor(RemoteRewoundActionSynchronizer.java:417)
+	at com.google.devtools.build.lib.remote.RemoteRewoundActionSynchronizer.lambda$inputKeysFor$0(RemoteRewoundActionSynchronizer.java:395)
+	at com.google.common.collect.Iterators$6.transform(Iterators.java:830)
+	at com.google.common.collect.TransformedIterator.next(TransformedIterator.java:51)
+	at com.google.common.collect.TransformedIterator.next(TransformedIterator.java:51)
+	at com.google.common.collect.Iterators$ConcatenatedIterator.hasNext(Iterators.java:1421)
+	at com.github.benmanes.caffeine.cache.LocalLoadingCache.loadSequentially(LocalLoadingCache.java:72)
+	at com.github.benmanes.caffeine.cache.LocalLoadingCache.getAll(LocalLoadingCache.java:65)
+	at com.google.devtools.build.lib.remote.RemoteRewoundActionSynchronizer.lockArtifactsForConsumption(RemoteRewoundActionSynchronizer.java:369)
+	at com.google.devtools.build.lib.remote.RemoteRewoundActionSynchronizer.enterActionExecution(RemoteRewoundActionSynchronizer.java:279)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1232)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:717)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:847)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more

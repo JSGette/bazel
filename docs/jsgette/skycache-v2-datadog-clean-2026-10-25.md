@@ -102,3 +102,7 @@ The requested optimization needs a stronger cache hit:
 | Invalid result or unavailable outputs | Fall back to the normal cache/execution path. |
 
 Implementing the stronger hit requires action/input/environment/toolchain invalidation, complete output metadata, digest validation, output materialization and a missing/evicted-blob fallback. Merely treating an analysis hit as completed execution, or flipping the execution-value capability booleans, does not establish those guarantees. This follow-up records the observed behavior and implementation boundary; it changes no product code and reruns no builds.
+
+## Follow-up: execution metadata reuse
+
+The subsequent [execution-metadata implementation and clean-build comparison](skycache-execution-metadata-2026-10-25.md) removes intermediate action-result lookups. Its minimal mode makes zero CAS reads, and controlled missing-blob tests verify rewind recovery. The analysis-only measurements above remain the historical baseline.

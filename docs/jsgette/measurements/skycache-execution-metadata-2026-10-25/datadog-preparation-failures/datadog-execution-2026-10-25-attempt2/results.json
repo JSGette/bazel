@@ -1,0 +1,5145 @@
+{
+  "status": "failed",
+  "started_at": "2026-10-25T06:36:01.893733+00:00",
+  "target": "//cmd/cluster-agent:cluster-agent",
+  "binary_sha256": {
+    "candidate": "ea236fae3262e129e5cdb3041c09dbe32bc7d4b3b5f2e2c9976111b7c77009a2",
+    "vanilla": "1ef0d6ff94b24c787d539f63672f93f0da9bd96d49750d729489cbffc80aa588"
+  },
+  "source_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "module_lock_sha256": "1988ae97ea0d31e99aa8683a9849a448049fe4d12f16c644b931d31553c77ee8",
+  "expected_output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+  "remote_cache": "grpc://10.55.0.1:8080",
+  "boot_id": "30d3e99f-559f-4a90-95f3-061497b9eb26",
+  "method": "Two preparation runs, then three rotated repetitions of candidate-on, candidate-off, preserved vanilla per minimal/toplevel mode. Same output base, remote cache, JVM/resources. Shutdown and synchronous clean, verify graph zero and absent outputs/action cache before every build. One uninterrupted WSL process. RPC log, output inventory, sampled memory on every build.",
+  "source_patch_sha256": "686ba73eb1960979e2548c40efc000ae9065374941fd6db521aa5e8af1b67cdb",
+  "runs": [
+    {
+      "label": "prepare-minimal",
+      "mode": "minimal",
+      "variant": "on",
+      "preparation": true,
+      "started_at": "2026-10-25T06:36:02.083002+00:00",
+      "shutdown_before": null,
+      "clean": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "clean",
+          "--noasync",
+          "--noexpunge",
+          "--color=no",
+          "--curses=no",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/analysis-cache",
+          "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-"
+        ],
+        "seconds": 2.9502445749999424,
+        "exit_code": 0
+      },
+      "publications_preserved": true,
+      "execroot_entries_after_clean": [],
+      "action_cache_exists_after_clean": false,
+      "graph_dump": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "dump",
+          "--skyframe=summary"
+        ],
+        "seconds": 0.11483599899997898,
+        "exit_code": 0
+      },
+      "graph_nodes_after_clean": 0,
+      "argv": [
+        "/home/jgett/REPOS/datadog-agent/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+        "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx6g",
+        "--max_idle_secs=600",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--jobs=16",
+        "--local_resources=memory=6144",
+        "--lockfile_mode=error",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--remote_instance_name=",
+        "--remote_timeout=600",
+        "--remote_retries=1",
+        "--noremote_local_fallback",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--remote_download_outputs=minimal",
+        "--bes_backend=",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-",
+        "--build_event_json_file=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/prepare-minimal.bep.json",
+        "--profile=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/prepare-minimal.profile.gz",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/analysis-cache",
+        "--experimental_active_directories=cmd/cluster-agent",
+        "--experimental_local_skycache_gc_max_size=0",
+        "--experimental_local_skycache_gc_max_age=0",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/prepare-minimal.grpc.bin"
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2",
+            "free_bytes": 986440253440,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 905359519744
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 905359519744,
+          "system_drive": "C:\\",
+          "system_free_bytes": 147539349504,
+          "windows_drives": {
+            "C:\\": 147539349504,
+            "D:\\": 993411448832,
+            "E:\\": 905359519744
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792910162.431
+        }
+      },
+      "exit_code": 0,
+      "seconds": 15.169929768999964,
+      "peak_pss_kib": 3322958,
+      "peak_rss_kib": 3330252,
+      "server_pid_before_build": 32594,
+      "server_pid_after_build": 32594,
+      "guard_errors": [],
+      "analysis_hits": 0,
+      "remote_warnings": [],
+      "publication_failures": [],
+      "cache_disabled": false,
+      "local-skycache.json": {
+        "writes": 449222,
+        "reads": 64425,
+        "shared_reads": 0,
+        "rejected_publications": 0,
+        "deduplicated_writes": 0,
+        "published": true,
+        "failed": false,
+        "read_limit_skips": 0,
+        "scan_limit_hits": 0,
+        "peak_candidate_count": 0,
+        "peak_candidate_metadata_bytes": 0,
+        "cas_put_requests": 460075,
+        "cas_accepted_puts": 460075,
+        "cas_put_key_bytes": 10132321,
+        "cas_put_value_bytes": 381619036,
+        "cas_get_requests": 0,
+        "cas_get_hits": 0,
+        "cas_get_misses": 0,
+        "cas_received_value_bytes": 0,
+        "catalog_busy_skips": 0
+      },
+      "local-skycache-validation.json": {
+        "records_read": 0,
+        "memo_hits": 0,
+        "witnesses_checked": 0,
+        "rejected_roots": 0,
+        "memo_entries": 0,
+        "witness_memo_hits": 0,
+        "witness_memo_entries": 0,
+        "admission_witness_memo_hits": 0,
+        "subtree_waits": 0
+      },
+      "build_metrics": {
+        "actionSummary": {
+          "actionsCreated": "13812",
+          "actionsExecuted": "6789",
+          "actionsCreatedNotIncludingAspects": "13811",
+          "actionData": [
+            {
+              "mnemonic": "GoCompilePkg",
+              "actionsExecuted": "3845",
+              "firstStartedMs": "1792910173462",
+              "lastEndedMs": "1792910176212",
+              "actionsCreated": "3862"
+            },
+            {
+              "mnemonic": "CppCompile",
+              "actionsExecuted": "1596",
+              "firstStartedMs": "1792910173197",
+              "lastEndedMs": "1792910175552",
+              "actionsCreated": "1815"
+            },
+            {
+              "mnemonic": "FileWrite",
+              "actionsExecuted": "575",
+              "firstStartedMs": "1792910173065",
+              "lastEndedMs": "1792910173603",
+              "actionsCreated": "4843"
+            },
+            {
+              "mnemonic": "Symlink",
+              "actionsExecuted": "415",
+              "firstStartedMs": "1792910173071",
+              "lastEndedMs": "1792910175401",
+              "actionsCreated": "472"
+            },
+            {
+              "mnemonic": "CcAutoconfCheck",
+              "actionsExecuted": "95",
+              "firstStartedMs": "1792910173641",
+              "lastEndedMs": "1792910174238",
+              "actionsCreated": "2287"
+            },
+            {
+              "mnemonic": "CppArchive",
+              "actionsExecuted": "55",
+              "firstStartedMs": "1792910173293",
+              "lastEndedMs": "1792910175558",
+              "actionsCreated": "68"
+            },
+            {
+              "mnemonic": "CppLink",
+              "actionsExecuted": "42",
+              "firstStartedMs": "1792910173298",
+              "lastEndedMs": "1792910175563",
+              "actionsCreated": "96"
+            },
+            {
+              "mnemonic": "TemplateExpand",
+              "actionsExecuted": "19",
+              "firstStartedMs": "1792910173067",
+              "lastEndedMs": "1792910173580",
+              "actionsCreated": "24"
+            },
+            {
+              "mnemonic": "CopyFile",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910173067",
+              "lastEndedMs": "1792910174054",
+              "actionsCreated": "16"
+            },
+            {
+              "mnemonic": "RepoMappingManifest",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910173063",
+              "lastEndedMs": "1792910173521",
+              "actionsCreated": "43"
+            },
+            {
+              "mnemonic": "SymlinkTree",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910173069",
+              "lastEndedMs": "1792910173878",
+              "actionsCreated": "40"
+            },
+            {
+              "mnemonic": "SourceSymlinkManifest",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910173064",
+              "lastEndedMs": "1792910173521",
+              "actionsCreated": "40"
+            },
+            {
+              "mnemonic": "RunfilesTree",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910173308",
+              "lastEndedMs": "1792910176301",
+              "actionsCreated": "40"
+            },
+            {
+              "mnemonic": "Genrule",
+              "actionsExecuted": "15",
+              "firstStartedMs": "1792910173161",
+              "lastEndedMs": "1792910174771",
+              "actionsCreated": "15"
+            },
+            {
+              "mnemonic": "GenProtoDescriptorSet",
+              "actionsExecuted": "10",
+              "firstStartedMs": "1792910173297",
+              "lastEndedMs": "1792910173465",
+              "actionsCreated": "10"
+            },
+            {
+              "mnemonic": "GoProtocGen",
+              "actionsExecuted": "8",
+              "firstStartedMs": "1792910173751",
+              "lastEndedMs": "1792910173860",
+              "actionsCreated": "8"
+            },
+            {
+              "mnemonic": "ExecutableSymlink",
+              "actionsExecuted": "8",
+              "firstStartedMs": "1792910173333",
+              "lastEndedMs": "1792910173818",
+              "actionsCreated": "11"
+            },
+            {
+              "mnemonic": "RunBinary",
+              "actionsExecuted": "6",
+              "firstStartedMs": "1792910173694",
+              "lastEndedMs": "1792910173915",
+              "actionsCreated": "6"
+            },
+            {
+              "mnemonic": "GoLink",
+              "actionsExecuted": "4",
+              "firstStartedMs": "1792910173667",
+              "lastEndedMs": "1792910176270",
+              "actionsCreated": "4"
+            },
+            {
+              "mnemonic": "UnresolvedSymlink",
+              "actionsExecuted": "3",
+              "firstStartedMs": "1792910173146",
+              "lastEndedMs": "1792910173424",
+              "actionsCreated": "3"
+            }
+          ],
+          "runnerCount": [
+            {
+              "name": "total",
+              "count": 6789
+            },
+            {
+              "name": "remote cache hit",
+              "count": 5704,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1085
+            }
+          ],
+          "actionCacheStatistics": {
+            "sizeInBytes": "3407059",
+            "saveTimeInMs": "10",
+            "misses": 6789,
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 6788
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "loadTimeInMs": "1"
+          }
+        },
+        "memoryMetrics": {
+          "garbageMetrics": [
+            {
+              "type": "CodeHeap 'non-profiled nmethods'",
+              "garbageCollected": "2499584"
+            },
+            {
+              "type": "CodeHeap 'profiled nmethods'",
+              "garbageCollected": "9320960"
+            },
+            {
+              "type": "Compressed Class Space",
+              "garbageCollected": "38016"
+            },
+            {
+              "type": "G1 Eden Space",
+              "garbageCollected": "24498929664"
+            },
+            {
+              "type": "G1 Old Gen",
+              "garbageCollected": "254507800"
+            },
+            {
+              "type": "G1 Survivor Space",
+              "garbageCollected": "272086776"
+            },
+            {
+              "type": "Metaspace",
+              "garbageCollected": "139184"
+            }
+          ]
+        },
+        "targetMetrics": {
+          "targetsConfigured": "57369",
+          "targetsConfiguredNotIncludingAspects": "57308"
+        },
+        "packageMetrics": {
+          "packagesLoaded": "5473"
+        },
+        "timingMetrics": {
+          "cpuTimeInMs": "219880",
+          "wallTimeInMs": "11866",
+          "analysisPhaseTimeInMs": "5814",
+          "executionPhaseTimeInMs": "3341",
+          "actionsExecutionStartInMs": "7893",
+          "criticalPathTime": "0.731441798s"
+        },
+        "cumulativeMetrics": {
+          "numAnalyses": 1,
+          "numBuilds": 1,
+          "instanceId": "0ff1352b-627d-4b22-9cb1-448b6ea12172"
+        },
+        "artifactMetrics": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1441455966",
+            "count": 40604
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "4521461364",
+            "count": 19200
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "241506502",
+            "count": 11
+          }
+        },
+        "buildGraphMetrics": {
+          "actionLookupValueCount": 49081,
+          "actionCount": 13809,
+          "outputArtifactCount": 23410,
+          "postInvocationSkyframeNodeCount": 318112,
+          "actionLookupValueCountNotIncludingAspects": 49020,
+          "actionCountNotIncludingAspects": 13808,
+          "inputFileConfiguredTargetCount": 40736,
+          "outputFileConfiguredTargetCount": 10,
+          "otherConfiguredTargetCount": 124,
+          "builtValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "6786"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "608"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "608"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "136"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "32"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "5473"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "42"
+            },
+            {
+              "skyfunctionName": "ARTIFACT_NESTED_SET",
+              "count": "11162"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "610"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1221"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "612"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "13915"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ARTIFACT",
+              "count": "40609"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "248"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "76715"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "6789"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "1955"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "582"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "435"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "83615"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "1832"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "5459"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "57578"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "610"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "TARGET_COMPLETION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "60"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "9"
+            }
+          ],
+          "evaluatedValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "12245"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "1824"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "1305"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "444"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "135"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "12668"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "82"
+            },
+            {
+              "skyfunctionName": "ARTIFACT_NESTED_SET",
+              "count": "22260"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "2102"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1221"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "10"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "660"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "38543"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "ARTIFACT",
+              "count": "40614"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "297"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "76719"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "47"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "109"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "12596"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "4631"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "15"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "1125"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "2012"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "177015"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "4385"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "5459"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "114283"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "720"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "TARGET_COMPLETION",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "83"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "18"
+            }
+          ]
+        },
+        "networkMetrics": {
+          "systemNetworkStats": {
+            "bytesSent": "4283675",
+            "bytesRecv": "20617245",
+            "packetsSent": "9467",
+            "packetsRecv": "16881",
+            "peakBytesSentPerSec": "2110640",
+            "peakBytesRecvPerSec": "13179218",
+            "peakPacketsSentPerSec": "4689",
+            "peakPacketsRecvPerSec": "9942"
+          }
+        },
+        "workerPoolMetrics": {},
+        "dynamicExecutionMetrics": {},
+        "remoteAnalysisCacheStatistics": {
+          "cacheMisses": "64425",
+          "valueStoreValueBytesSent": "381619036",
+          "valueStoreKeyBytesSent": "10132321",
+          "valueStoreWriteOps": "460075",
+          "valueStoreWriteBatches": "460075",
+          "analysisCacheKeyBytesSent": "1030800",
+          "analysisCacheOps": "64425",
+          "analysisCacheBatches": "64425",
+          "valueStoreReadLatencyMicros": {},
+          "valueStoreReadBatchLatencyMicros": {},
+          "valueStoreWriteLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "1",
+                "max": "2",
+                "count": "13436"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "42067"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "45366"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "44411"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "34188"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "27882"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "25812"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "25174"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "24020"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "112456"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "21191"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "8368"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "6030"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "5783"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "3956"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "2396"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "1559"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "1149"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "4260"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "1390"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "675"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "541"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "370"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "294"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "219"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "177"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "129"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "775"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "544"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "445"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "437"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "293"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "297"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "229"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "294"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "277"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "1408"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "851"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "469"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "195"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "94"
+              },
+              {
+                "min": "60000",
+                "max": "70000",
+                "count": "70"
+              },
+              {
+                "min": "70000",
+                "max": "80000",
+                "count": "45"
+              },
+              {
+                "min": "80000",
+                "max": "90000",
+                "count": "23"
+              },
+              {
+                "min": "90000",
+                "max": "100000",
+                "count": "16"
+              },
+              {
+                "min": "100000",
+                "max": "200000",
+                "count": "14"
+              }
+            ]
+          },
+          "valueStoreWriteBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "max": "1",
+                "count": "2"
+              },
+              {
+                "min": "1",
+                "max": "2",
+                "count": "18517"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "45916"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "50173"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "42587"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "32550"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "27678"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "25785"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "25432"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "23500"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "105869"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "19175"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "7974"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "5988"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "5675"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "3813"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "2354"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "1529"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "1102"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "4172"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "1345"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "656"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "526"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "369"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "291"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "215"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "175"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "122"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "747"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "519"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "412"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "404"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "280"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "290"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "224"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "287"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "270"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "1384"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "850"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "462"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "194"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "94"
+              },
+              {
+                "min": "60000",
+                "max": "70000",
+                "count": "70"
+              },
+              {
+                "min": "70000",
+                "max": "80000",
+                "count": "45"
+              },
+              {
+                "min": "80000",
+                "max": "90000",
+                "count": "23"
+              },
+              {
+                "min": "90000",
+                "max": "100000",
+                "count": "16"
+              },
+              {
+                "min": "100000",
+                "max": "200000",
+                "count": "14"
+              }
+            ]
+          },
+          "analysisCacheReadLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "1",
+                "max": "2",
+                "count": "23"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "260"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "947"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "2053"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "2575"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "2842"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "3369"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "4509"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "5359"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "33160"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "5619"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "1659"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "412"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "417"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "317"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "217"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "121"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "56"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "210"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "35"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "24"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "21"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "11"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "13"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "9"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "7"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "4"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "34"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "20"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "19"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "15"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "7"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "8"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "7"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "4"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "4"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "26"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "12"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "11"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "4"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "5"
+              }
+            ]
+          },
+          "analysisCacheReadBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "1",
+                "max": "2",
+                "count": "23"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "260"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "947"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "2053"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "2575"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "2842"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "3369"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "4509"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "5359"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "33160"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "5619"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "1659"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "412"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "417"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "317"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "217"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "121"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "56"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "210"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "35"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "24"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "21"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "11"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "13"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "9"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "7"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "4"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "34"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "20"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "19"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "15"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "7"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "8"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "7"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "4"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "4"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "26"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "12"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "11"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "4"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "5"
+              }
+            ]
+          },
+          "cacheMissesByReason": [
+            {
+              "key": "MISS_REASON_UNSPECIFIED",
+              "value": "64425"
+            }
+          ],
+          "cacheMissesBySkyfunction": [
+            {
+              "key": "CONFIGURED_TARGET",
+              "value": "57572"
+            },
+            {
+              "key": "ACTION_EXECUTION",
+              "value": "6788"
+            },
+            {
+              "key": "ARTIFACT",
+              "value": "5"
+            },
+            {
+              "key": "ASPECT",
+              "value": "60"
+            }
+          ],
+          "latencyBySkyfunction": [
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "1"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "4"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "17"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "50"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "114"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "198"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "8299"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "11541"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "10105"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "7885"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "4959"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "2895"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "2001"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "1586"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "1207"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "3983"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "480"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "133"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "85"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "62"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "65"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "53"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "41"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "30"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "179"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "121"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "97"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "91"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "78"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "75"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "74"
+                  },
+                  {
+                    "min": "8000",
+                    "max": "9000",
+                    "count": "61"
+                  },
+                  {
+                    "min": "9000",
+                    "max": "10000",
+                    "count": "66"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "415"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "290"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "146"
+                  },
+                  {
+                    "min": "40000",
+                    "max": "50000",
+                    "count": "48"
+                  },
+                  {
+                    "min": "50000",
+                    "max": "60000",
+                    "count": "21"
+                  },
+                  {
+                    "min": "60000",
+                    "max": "70000",
+                    "count": "5"
+                  },
+                  {
+                    "min": "70000",
+                    "max": "80000",
+                    "count": "6"
+                  },
+                  {
+                    "min": "80000",
+                    "max": "90000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "90000",
+                    "max": "100000",
+                    "count": "3"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6778"
+                  },
+                  {
+                    "min": "1",
+                    "max": "2",
+                    "count": "4"
+                  },
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "2"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "1"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "1"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "60"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "57572"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6788"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6788"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "60"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "4"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "57572"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "57572"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "13"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "88"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "148"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "379"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "536"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "456"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "432"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "267"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "3271"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "693"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "224"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "104"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "87"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "61"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "5"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "9"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "1"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "12"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "11"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "79"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "122"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "341"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "504"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "453"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "460"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "287"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "3151"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "855"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "222"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "121"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "86"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "65"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "3"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "12"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "14"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "60"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "35381"
+                  },
+                  {
+                    "min": "1",
+                    "max": "2",
+                    "count": "13054"
+                  },
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "5411"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "980"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "1021"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "1067"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "304"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "98"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "31"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "27"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "84"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "33"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "8"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "12"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "6"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "9"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "8"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "3"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "3"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "11"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "3"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "1"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "3"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "2"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "5"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "1"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "3"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "6"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "7"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "9"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "5"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "4"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "13"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "1"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "2"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "3"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "1"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "3"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "4"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "9"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "9"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "5"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "4"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "13"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "1"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "2"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "1"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "7"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "15"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "58"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "126"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "206"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "8700"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "12120"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "10175"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "8051"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "4530"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "2645"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "1878"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "1510"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "1157"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "3784"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "396"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "128"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "79"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "63"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "64"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "51"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "42"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "26"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "175"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "117"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "94"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "88"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "78"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "76"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "73"
+                  },
+                  {
+                    "min": "8000",
+                    "max": "9000",
+                    "count": "60"
+                  },
+                  {
+                    "min": "9000",
+                    "max": "10000",
+                    "count": "66"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "413"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "290"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "145"
+                  },
+                  {
+                    "min": "40000",
+                    "max": "50000",
+                    "count": "48"
+                  },
+                  {
+                    "min": "50000",
+                    "max": "60000",
+                    "count": "21"
+                  },
+                  {
+                    "min": "60000",
+                    "max": "70000",
+                    "count": "5"
+                  },
+                  {
+                    "min": "70000",
+                    "max": "80000",
+                    "count": "6"
+                  },
+                  {
+                    "min": "80000",
+                    "max": "90000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "90000",
+                    "max": "100000",
+                    "count": "3"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "55"
+                  },
+                  {
+                    "min": "1",
+                    "max": "2",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6788"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            }
+          ]
+        },
+        "bzlMetrics": {}
+      },
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 6789
+        },
+        {
+          "name": "remote cache hit",
+          "count": 5704,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 1085
+        }
+      ],
+      "target_bep_files": [
+        {
+          "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+          "uri": "file:///home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+          "pathPrefix": [
+            "bazel-out",
+            "k8-fastbuild-ST-646df0be3f72",
+            "bin"
+          ],
+          "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "length": "119596056"
+        }
+      ],
+      "output_inventory": {
+        "regular_files": 767,
+        "regular_file_bytes": 4886498,
+        "a_files": 0,
+        "x_files": 0,
+        "target_files": []
+      },
+      "grpc": {
+        "method_attempt_counts": {
+          "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1,
+          "build.bazel.remote.execution.v2.ActionCache/GetActionResult": 5704,
+          "google.bytestream.ByteStream/Read": 1641
+        },
+        "status_counts": {
+          "0": 7346
+        },
+        "logical_rpc_count": 7346,
+        "bytestream_read_calls": 1641,
+        "bytestream_read_bytes": 15304814,
+        "target_blob_reads": [],
+        "log_bytes": 7714414
+      },
+      "binary_sha256": "ea236fae3262e129e5cdb3041c09dbe32bc7d4b3b5f2e2c9976111b7c77009a2",
+      "execution_hits": 0
+    },
+    {
+      "label": "prepare-toplevel",
+      "mode": "toplevel",
+      "variant": "on",
+      "preparation": true,
+      "started_at": "2026-10-25T06:36:20.556689+00:00",
+      "shutdown_before": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "shutdown"
+        ],
+        "seconds": 0.5147465500001545,
+        "exit_code": 0
+      },
+      "clean": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "clean",
+          "--noasync",
+          "--noexpunge",
+          "--color=no",
+          "--curses=no",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/analysis-cache",
+          "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-"
+        ],
+        "seconds": 1.3667460389999633,
+        "exit_code": 0
+      },
+      "publications_preserved": true,
+      "execroot_entries_after_clean": [],
+      "action_cache_exists_after_clean": false,
+      "graph_dump": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "dump",
+          "--skyframe=summary"
+        ],
+        "seconds": 0.11407372999997278,
+        "exit_code": 0
+      },
+      "graph_nodes_after_clean": 0,
+      "argv": [
+        "/home/jgett/REPOS/datadog-agent/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+        "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx6g",
+        "--max_idle_secs=600",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--jobs=16",
+        "--local_resources=memory=6144",
+        "--lockfile_mode=error",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--remote_instance_name=",
+        "--remote_timeout=600",
+        "--remote_retries=1",
+        "--noremote_local_fallback",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--remote_download_outputs=toplevel",
+        "--bes_backend=",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-",
+        "--build_event_json_file=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/prepare-toplevel.bep.json",
+        "--profile=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/prepare-toplevel.profile.gz",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/analysis-cache",
+        "--experimental_active_directories=cmd/cluster-agent",
+        "--experimental_local_skycache_gc_max_size=0",
+        "--experimental_local_skycache_gc_max_age=0",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2/prepare-toplevel.grpc.bin"
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-execution-2026-10-25-attempt2",
+            "free_bytes": 985971699712,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 904487104512
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 904487104512,
+          "system_drive": "C:\\",
+          "system_free_bytes": 147510861824,
+          "windows_drives": {
+            "C:\\": 147510861824,
+            "D:\\": 993411448832,
+            "E:\\": 904487104512
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792910180.495
+        }
+      },
+      "exit_code": 1,
+      "seconds": 10.823759082999914,
+      "peak_pss_kib": 1795496,
+      "peak_rss_kib": 1802804,
+      "server_pid_before_build": 34081,
+      "server_pid_after_build": 34081,
+      "guard_errors": [],
+      "analysis_hits": 9,
+      "remote_warnings": [],
+      "publication_failures": [],
+      "cache_disabled": false,
+      "local-skycache.json": {
+        "writes": 0,
+        "reads": 255349,
+        "shared_reads": 255338,
+        "rejected_publications": 0,
+        "deduplicated_writes": 20,
+        "published": false,
+        "failed": false,
+        "read_limit_skips": 0,
+        "scan_limit_hits": 0,
+        "peak_candidate_count": 1,
+        "peak_candidate_metadata_bytes": 48669062,
+        "cas_put_requests": 20,
+        "cas_accepted_puts": 20,
+        "cas_put_key_bytes": 320,
+        "cas_put_value_bytes": 995,
+        "cas_get_requests": 255323,
+        "cas_get_hits": 255323,
+        "cas_get_misses": 0,
+        "cas_received_value_bytes": 87585196,
+        "catalog_busy_skips": 0
+      },
+      "local-skycache-validation.json": {
+        "records_read": 163219,
+        "memo_hits": 367976,
+        "witnesses_checked": 7722,
+        "rejected_roots": 0,
+        "memo_entries": 163219,
+        "witness_memo_hits": 76401,
+        "witness_memo_entries": 149969,
+        "admission_witness_memo_hits": 142247,
+        "subtree_waits": 15
+      },
+      "build_metrics": {
+        "actionSummary": {
+          "actionsCreated": "7",
+          "actionsExecuted": "5",
+          "actionsCreatedNotIncludingAspects": "6",
+          "actionData": [
+            {
+              "mnemonic": "SymlinkTree",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792910189523",
+              "lastEndedMs": "1792910189532",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "Symlink",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792910189537",
+              "lastEndedMs": "1792910189543"
+            },
+            {
+              "mnemonic": "RepoMappingManifest",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792910189514",
+              "lastEndedMs": "1792910189566",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "SourceSymlinkManifest",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792910189515",
+              "lastEndedMs": "1792910189520",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1792910184505",
+              "lastEndedMs": "1792910184524",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "GoCompilePkg",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "GoLink",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "RunfilesTree",
+              "actionsCreated": "1"
+            }
+          ],
+          "runnerCount": [
+            {
+              "name": "total",
+              "count": 5
+            },
+            {
+              "name": "internal",
+              "count": 5
+            }
+          ],
+          "actionCacheStatistics": {
+            "sizeInBytes": "665",
+            "misses": 6,
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 5
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "loadTimeInMs": "1"
+          }
+        },
+        "memoryMetrics": {
+          "garbageMetrics": [
+            {
+              "type": "CodeHeap 'non-profiled nmethods'",
+              "garbageCollected": "1860096"
+            },
+            {
+              "type": "CodeHeap 'profiled nmethods'",
+              "garbageCollected": "6992896"
+            },
+            {
+              "type": "Compressed Class Space",
+              "garbageCollected": "36432"
+            },
+            {
+              "type": "G1 Eden Space",
+              "garbageCollected": "3770679296"
+            },
+            {
+              "type": "G1 Old Gen",
+              "garbageCollected": "32811040"
+            },
+            {
+              "type": "G1 Survivor Space",
+              "garbageCollected": "84121000"
+            },
+            {
+              "type": "Metaspace",
+              "garbageCollected": "119120"
+            }
+          ]
+        },
+        "targetMetrics": {
+          "targetsConfigured": "14",
+          "targetsConfiguredNotIncludingAspects": "13"
+        },
+        "packageMetrics": {
+          "packagesLoaded": "3816"
+        },
+        "timingMetrics": {
+          "cpuTimeInMs": "52730",
+          "wallTimeInMs": "10708",
+          "analysisPhaseTimeInMs": "4988",
+          "executionPhaseTimeInMs": "3780",
+          "actionsExecutionStartInMs": "6906",
+          "criticalPathTime": "0.052278737s"
+        },
+        "cumulativeMetrics": {
+          "numAnalyses": 1,
+          "numBuilds": 1,
+          "instanceId": "6e05d442-d903-42dc-a6b1-dad5c1c4ef32"
+        },
+        "artifactMetrics": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1220",
+            "count": 2
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "46854",
+            "count": 5
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {}
+        },
+        "buildGraphMetrics": {
+          "actionLookupValueCount": 13,
+          "actionCount": 6,
+          "outputArtifactCount": 8,
+          "postInvocationSkyframeNodeCount": 76660,
+          "actionLookupValueCountNotIncludingAspects": 13,
+          "actionCountNotIncludingAspects": 6,
+          "otherConfiguredTargetCount": 3,
+          "builtValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "3328"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "13"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "460"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "11"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "1397"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "460"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "13"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "3817"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "432"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "348"
+            },
+            {
+              "skyfunctionName": "ARTIFACT_NESTED_SET",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "26404"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "945"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "3327"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "464"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "21"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "464"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1205"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "464"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "8333"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ARTIFACT",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "26"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "248"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "24276"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "13"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "13"
+            }
+          ],
+          "evaluatedValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "6655"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "42"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "1380"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "16"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "3416"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "922"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "15"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "15"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "39"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "9241"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "857"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "1791"
+            },
+            {
+              "skyfunctionName": "ARTIFACT_NESTED_SET",
+              "count": "28"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "60626"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "2330"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "3327"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "1972"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "55"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "486"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1205"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "479"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "25946"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "ARTIFACT",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "26"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "297"
+            },
+            {
+              "skyfunctionName": "TARGET_COMPLETION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "24279"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "13"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "18"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "15"
+            }
+          ]
+        },
+        "networkMetrics": {
+          "systemNetworkStats": {
+            "bytesSent": "2274174",
+            "bytesRecv": "125144030",
+            "packetsSent": "34311",
+            "packetsRecv": "82675",
+            "peakBytesSentPerSec": "653483",
+            "peakBytesRecvPerSec": "35712478",
+            "peakPacketsSentPerSec": "9880",
+            "peakPacketsRecvPerSec": "23592"
+          }
+        },
+        "workerPoolMetrics": {},
+        "dynamicExecutionMetrics": {},
+        "remoteAnalysisCacheStatistics": {
+          "cacheHits": "15",
+          "cacheMisses": "11",
+          "valueStoreValueBytesReceived": "87585196",
+          "valueStoreValueBytesSent": "995",
+          "valueStoreKeyBytesSent": "320",
+          "valueStoreWriteOps": "20",
+          "valueStoreReadOpsSuccessful": "255323",
+          "valueStoreReadBatches": "255323",
+          "valueStoreWriteBatches": "20",
+          "analysisCacheBytesReceived": "2775",
+          "analysisCacheKeyBytesSent": "416",
+          "analysisCacheOps": "26",
+          "analysisCacheBatches": "26",
+          "valueStoreReadLatencyMicros": {
+            "histogramBucket": [
+              {
+                "max": "1",
+                "count": "1"
+              },
+              {
+                "min": "1",
+                "max": "2",
+                "count": "7730"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "18268"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "14416"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "13611"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "7621"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "4216"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "5865"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "6705"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "4493"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "7363"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "584"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "304"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "194"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "94"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "73"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "111"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "66"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "62"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "193"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "37"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "14"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "5"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "6"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "5"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "2"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "4"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "1"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "16"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "10"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "11"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "8"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "2"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "2"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "5"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "6"
+              }
+            ]
+          },
+          "valueStoreReadBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "max": "1",
+                "count": "8978"
+              },
+              {
+                "min": "1",
+                "max": "2",
+                "count": "143493"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "34021"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "16922"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "14737"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "7113"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "4113"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "7647"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "6317"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "3412"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "5999"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "1298"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "365"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "193"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "87"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "72"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "123"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "57"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "67"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "197"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "38"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "11"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "8"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "5"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "5"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "2"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "4"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "10"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "6"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "10"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "3"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "1"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "2"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "1"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "6"
+              }
+            ]
+          },
+          "valueStoreWriteLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "10",
+                "max": "20",
+                "count": "1"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "1"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "4"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "5"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "2"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "2"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "2"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "1"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "1"
+              },
+              {
+                "min": "2000000",
+                "max": "3000000",
+                "count": "1"
+              }
+            ]
+          },
+          "valueStoreWriteBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "10",
+                "max": "20",
+                "count": "1"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "2"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "5"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "3"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "2"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "2"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "2"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "1"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "1"
+              },
+              {
+                "min": "2000000",
+                "max": "3000000",
+                "count": "1"
+              }
+            ]
+          },
+          "analysisCacheReadLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "10",
+                "max": "20",
+                "count": "2"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "4"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "4"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "2"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "1"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "4"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "1"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "1"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "4"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "2"
+              },
+              {
+                "min": "700000",
+                "max": "800000",
+                "count": "1"
+              }
+            ]
+          },
+          "analysisCacheReadBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "10",
+                "max": "20",
+                "count": "2"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "4"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "4"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "2"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "1"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "4"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "1"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "1"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "4"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "2"
+              },
+              {
+                "min": "700000",
+                "max": "800000",
+                "count": "1"
+              }
+            ]
+          },
+          "cacheMissesByReason": [
+            {
+              "key": "MISS_REASON_UNSPECIFIED",
+              "value": "11"
+            }
+          ],
+          "cacheMissesBySkyfunction": [
+            {
+              "key": "CONFIGURED_TARGET",
+              "value": "6"
+            },
+            {
+              "key": "ACTION_EXECUTION",
+              "value": "5"
+            }
+          ],
+          "cacheHitsBySkyfunction": [
+            {
+              "key": "CONFIGURED_TARGET",
+              "value": "9"
+            },
+            {
+              "key": "ACTION_EXECUTION",
+              "value": "6"
+            }
+          ],
+          "latencyBySkyfunction": [
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "1"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "2"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "1"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "1"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "3"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "1"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "1"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "1"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "1"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "50000",
+                    "max": "60000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "700000",
+                    "max": "800000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "2"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "1"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "1"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "1"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "1"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "2"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "1"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "1"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "1"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700000",
+                    "max": "800000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "40000",
+                    "max": "50000",
+                    "count": "3"
+                  },
+                  {
+                    "min": "50000",
+                    "max": "60000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "2000000",
+                    "max": "3000000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "2"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "1"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "1"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "2"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "1"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "HIT",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "3"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "900000",
+                    "max": "1000000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "2"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "2"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "1"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "1"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "1"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "2"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  },
+                  {
+                    "min": "2000000",
+                    "max": "3000000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "1"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "2"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "2"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "2"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  },
+                  {
+                    "min": "2000000",
+                    "max": "3000000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "1"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "2"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "1"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "2"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            }
+          ]
+        },
+        "bzlMetrics": {}
+      },
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 5
+        },
+        {
+          "name": "internal",
+          "count": 5
+        }
+      ],
+      "target_bep_files": [
+        {
+          "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+          "uri": "file:///home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+          "pathPrefix": [
+            "bazel-out",
+            "k8-fastbuild-ST-646df0be3f72",
+            "bin"
+          ],
+          "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "length": "119596056"
+        }
+      ],
+      "output_inventory": {
+        "regular_files": 5,
+        "regular_file_bytes": 119641242,
+        "a_files": 0,
+        "x_files": 0,
+        "target_files": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+            "size": 119596056,
+            "sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664"
+          }
+        ]
+      },
+      "grpc": {
+        "method_attempt_counts": {
+          "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1,
+          "google.bytestream.ByteStream/Read": 1
+        },
+        "status_counts": {
+          "0": 2
+        },
+        "logical_rpc_count": 2,
+        "bytestream_read_calls": 1,
+        "bytestream_read_bytes": 119596056,
+        "target_blob_reads": [
+          {
+            "resource": "blobs/7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664/119596056",
+            "bytes": 119596056
+          }
+        ],
+        "log_bytes": 701
+      }
+    }
+  ],
+  "failure": "AssertionError()",
+  "final_shutdown": {
+    "argv": [
+      "/home/jgett/REPOS/datadog-agent/tools/bazel",
+      "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+      "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+      "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+      "--host_jvm_args=-Xmx6g",
+      "--max_idle_secs=600",
+      "shutdown"
+    ],
+    "seconds": 0.5183662849999564,
+    "exit_code": 0
+  },
+  "workspace_unchanged": true,
+  "finished_at": "2026-10-25T06:36:34.004234+00:00"
+}

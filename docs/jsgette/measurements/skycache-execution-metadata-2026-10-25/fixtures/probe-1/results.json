@@ -1,0 +1,90 @@
+{
+  "status": "failed",
+  "binary": "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+  "binary_sha256": "b3e3e58ad02576dd6c16a8af934c864821664e6331cf52761e836b58bf014b44",
+  "remote_cache": "http://127.0.0.1:38268",
+  "runs": [
+    {
+      "label": "populate-remote-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-1/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 2.832426078000026,
+      "exit_code": 0
+    },
+    {
+      "label": "populate-remote-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-1/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.11424814700001207,
+      "exit_code": 0
+    },
+    {
+      "label": "populate-remote",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-1/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:38268",
+        "--remote_retries=0",
+        "--remote_download_outputs=minimal",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-1/populate-remote.bep.json"
+      ],
+      "seconds": 7.678373288999978,
+      "exit_code": 1
+    },
+    {
+      "label": "shutdown",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-1/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "shutdown"
+      ],
+      "seconds": 0.5146255810000184,
+      "exit_code": 0
+    }
+  ],
+  "failure": "AssertionError('populate-remote')"
+}

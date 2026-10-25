@@ -1,0 +1,3269 @@
+{
+  "status": "failed",
+  "started_at": "2026-10-25T06:33:50.276740+00:00",
+  "target": "//cmd/cluster-agent:cluster-agent",
+  "binary_sha256": {
+    "candidate": "00fd2a2c3e0fe3aa7ef56152752d76f2f930dbc674aa2073b5df001fbf571fc0",
+    "vanilla": "1ef0d6ff94b24c787d539f63672f93f0da9bd96d49750d729489cbffc80aa588"
+  },
+  "source_revision": "0cde96beb70963d0838119c308b9d0422ee66be0",
+  "module_lock_sha256": "1988ae97ea0d31e99aa8683a9849a448049fe4d12f16c644b931d31553c77ee8",
+  "expected_output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+  "remote_cache": "grpc://10.55.0.1:8080",
+  "boot_id": "30d3e99f-559f-4a90-95f3-061497b9eb26",
+  "method": "Two preparation runs, then three rotated repetitions of candidate-on, candidate-off, preserved vanilla per minimal/toplevel mode. Same output base, remote cache, JVM/resources. Shutdown and synchronous clean, verify graph zero and absent outputs/action cache before every build. One uninterrupted WSL process. RPC log, output inventory, sampled memory on every build.",
+  "source_patch_sha256": "686ba73eb1960979e2548c40efc000ae9065374941fd6db521aa5e8af1b67cdb",
+  "runs": [
+    {
+      "label": "prepare-minimal",
+      "mode": "minimal",
+      "variant": "on",
+      "preparation": true,
+      "started_at": "2026-10-25T06:33:50.497670+00:00",
+      "shutdown_before": null,
+      "clean": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "clean",
+          "--noasync",
+          "--noexpunge",
+          "--color=no",
+          "--curses=no",
+          "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-execution-2026-10-25/analysis-cache",
+          "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-"
+        ],
+        "seconds": 2.7795707010000115,
+        "exit_code": 0
+      },
+      "publications_preserved": true,
+      "execroot_entries_after_clean": [],
+      "action_cache_exists_after_clean": false,
+      "graph_dump": {
+        "argv": [
+          "/home/jgett/REPOS/datadog-agent/tools/bazel",
+          "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+          "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+          "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+          "--host_jvm_args=-Xmx6g",
+          "--max_idle_secs=600",
+          "dump",
+          "--skyframe=summary"
+        ],
+        "seconds": 0.11409974699995473,
+        "exit_code": 0
+      },
+      "graph_nodes_after_clean": 0,
+      "argv": [
+        "/home/jgett/REPOS/datadog-agent/tools/bazel",
+        "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+        "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx6g",
+        "--max_idle_secs=600",
+        "build",
+        "//cmd/cluster-agent:cluster-agent",
+        "--jobs=16",
+        "--local_resources=memory=6144",
+        "--lockfile_mode=error",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--remote_instance_name=",
+        "--remote_timeout=600",
+        "--remote_retries=1",
+        "--noremote_local_fallback",
+        "--remote_upload_local_results",
+        "--remote_accept_cached",
+        "--remote_download_outputs=minimal",
+        "--bes_backend=",
+        "--repo_env=JAVA_HOME=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--symlink_prefix=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/links/bazel-skycache-",
+        "--build_event_json_file=/home/jgett/REPOS/.work/datadog-execution-2026-10-25/prepare-minimal.bep.json",
+        "--profile=/home/jgett/REPOS/.work/datadog-execution-2026-10-25/prepare-minimal.profile.gz",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/datadog-execution-2026-10-25/analysis-cache",
+        "--experimental_active_directories=cmd/cluster-agent",
+        "--experimental_local_skycache_gc_max_size=0",
+        "--experimental_local_skycache_gc_max_age=0",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--remote_grpc_log=/home/jgett/REPOS/.work/datadog-execution-2026-10-25/prepare-minimal.grpc.bin"
+      ],
+      "storage_before": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/datadog-execution-2026-10-25",
+            "free_bytes": 987298230272,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 905762172928
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 905762172928,
+          "system_drive": "C:\\",
+          "system_free_bytes": 147989852160,
+          "windows_drives": {
+            "C:\\": 147989852160,
+            "D:\\": 993411448832,
+            "E:\\": 905762172928
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792910033.008
+        }
+      },
+      "exit_code": 0,
+      "seconds": 17.87101817100006,
+      "peak_pss_kib": 3386306,
+      "peak_rss_kib": 3393536,
+      "server_pid_before_build": 29113,
+      "server_pid_after_build": 29113,
+      "guard_errors": [],
+      "analysis_hits": 0,
+      "remote_warnings": [],
+      "publication_failures": [
+        "Skycache upload failed: /home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache/execroot/_main/bazel-out/k8-fastbuild/bin/external/+http_archive+pcre2/src/pcre2.h is not under any package roots: [/home/jgett/REPOS/datadog-agent]"
+      ],
+      "cache_disabled": false,
+      "local-skycache.json": {
+        "writes": 443550,
+        "reads": 64425,
+        "shared_reads": 0,
+        "rejected_publications": 0,
+        "deduplicated_writes": 0,
+        "published": false,
+        "failed": true,
+        "read_limit_skips": 0,
+        "scan_limit_hits": 0,
+        "peak_candidate_count": 0,
+        "peak_candidate_metadata_bytes": 0,
+        "cas_put_requests": 454404,
+        "cas_accepted_puts": 454404,
+        "cas_put_key_bytes": 10041585,
+        "cas_put_value_bytes": 380250648,
+        "cas_get_requests": 0,
+        "cas_get_hits": 0,
+        "cas_get_misses": 0,
+        "cas_received_value_bytes": 0,
+        "catalog_busy_skips": 0
+      },
+      "local-skycache-validation.json": {
+        "records_read": 0,
+        "memo_hits": 0,
+        "witnesses_checked": 0,
+        "rejected_roots": 0,
+        "memo_entries": 0,
+        "witness_memo_hits": 0,
+        "witness_memo_entries": 0,
+        "admission_witness_memo_hits": 0,
+        "subtree_waits": 0
+      },
+      "build_metrics": {
+        "actionSummary": {
+          "actionsCreated": "13812",
+          "actionsExecuted": "6789",
+          "actionsCreatedNotIncludingAspects": "13811",
+          "actionData": [
+            {
+              "mnemonic": "GoCompilePkg",
+              "actionsExecuted": "3845",
+              "firstStartedMs": "1792910046784",
+              "lastEndedMs": "1792910049176",
+              "actionsCreated": "3862"
+            },
+            {
+              "mnemonic": "CppCompile",
+              "actionsExecuted": "1596",
+              "firstStartedMs": "1792910045831",
+              "lastEndedMs": "1792910048576",
+              "actionsCreated": "1815"
+            },
+            {
+              "mnemonic": "FileWrite",
+              "actionsExecuted": "575",
+              "firstStartedMs": "1792910045629",
+              "lastEndedMs": "1792910047450",
+              "actionsCreated": "4843"
+            },
+            {
+              "mnemonic": "Symlink",
+              "actionsExecuted": "415",
+              "firstStartedMs": "1792910045704",
+              "lastEndedMs": "1792910048444",
+              "actionsCreated": "472"
+            },
+            {
+              "mnemonic": "CcAutoconfCheck",
+              "actionsExecuted": "95",
+              "firstStartedMs": "1792910046510",
+              "lastEndedMs": "1792910047457",
+              "actionsCreated": "2287"
+            },
+            {
+              "mnemonic": "CppArchive",
+              "actionsExecuted": "55",
+              "firstStartedMs": "1792910046053",
+              "lastEndedMs": "1792910048582",
+              "actionsCreated": "68"
+            },
+            {
+              "mnemonic": "CppLink",
+              "actionsExecuted": "42",
+              "firstStartedMs": "1792910046241",
+              "lastEndedMs": "1792910048587",
+              "actionsCreated": "96"
+            },
+            {
+              "mnemonic": "TemplateExpand",
+              "actionsExecuted": "19",
+              "firstStartedMs": "1792910045660",
+              "lastEndedMs": "1792910047333",
+              "actionsCreated": "24"
+            },
+            {
+              "mnemonic": "CopyFile",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910045640",
+              "lastEndedMs": "1792910047117",
+              "actionsCreated": "16"
+            },
+            {
+              "mnemonic": "RepoMappingManifest",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910045619",
+              "lastEndedMs": "1792910047174",
+              "actionsCreated": "43"
+            },
+            {
+              "mnemonic": "SymlinkTree",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910045647",
+              "lastEndedMs": "1792910047177",
+              "actionsCreated": "40"
+            },
+            {
+              "mnemonic": "SourceSymlinkManifest",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910045627",
+              "lastEndedMs": "1792910047175",
+              "actionsCreated": "40"
+            },
+            {
+              "mnemonic": "RunfilesTree",
+              "actionsExecuted": "16",
+              "firstStartedMs": "1792910046466",
+              "lastEndedMs": "1792910049268",
+              "actionsCreated": "40"
+            },
+            {
+              "mnemonic": "Genrule",
+              "actionsExecuted": "15",
+              "firstStartedMs": "1792910045956",
+              "lastEndedMs": "1792910047724",
+              "actionsCreated": "15"
+            },
+            {
+              "mnemonic": "GenProtoDescriptorSet",
+              "actionsExecuted": "10",
+              "firstStartedMs": "1792910046082",
+              "lastEndedMs": "1792910046402",
+              "actionsCreated": "10"
+            },
+            {
+              "mnemonic": "GoProtocGen",
+              "actionsExecuted": "8",
+              "firstStartedMs": "1792910047062",
+              "lastEndedMs": "1792910047113",
+              "actionsCreated": "8"
+            },
+            {
+              "mnemonic": "ExecutableSymlink",
+              "actionsExecuted": "8",
+              "firstStartedMs": "1792910046670",
+              "lastEndedMs": "1792910047062",
+              "actionsCreated": "11"
+            },
+            {
+              "mnemonic": "RunBinary",
+              "actionsExecuted": "6",
+              "firstStartedMs": "1792910046579",
+              "lastEndedMs": "1792910046966",
+              "actionsCreated": "6"
+            },
+            {
+              "mnemonic": "GoLink",
+              "actionsExecuted": "4",
+              "firstStartedMs": "1792910047019",
+              "lastEndedMs": "1792910049239",
+              "actionsCreated": "4"
+            },
+            {
+              "mnemonic": "UnresolvedSymlink",
+              "actionsExecuted": "3",
+              "firstStartedMs": "1792910045753",
+              "lastEndedMs": "1792910046508",
+              "actionsCreated": "3"
+            }
+          ],
+          "runnerCount": [
+            {
+              "name": "total",
+              "count": 6789
+            },
+            {
+              "name": "remote cache hit",
+              "count": 5704,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1085
+            }
+          ],
+          "actionCacheStatistics": {
+            "sizeInBytes": "3407492",
+            "saveTimeInMs": "9",
+            "misses": 6789,
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 6788
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "loadTimeInMs": "1"
+          }
+        },
+        "memoryMetrics": {
+          "garbageMetrics": [
+            {
+              "type": "CodeHeap 'non-profiled nmethods'",
+              "garbageCollected": "2675072"
+            },
+            {
+              "type": "CodeHeap 'profiled nmethods'",
+              "garbageCollected": "9043200"
+            },
+            {
+              "type": "Compressed Class Space",
+              "garbageCollected": "43824"
+            },
+            {
+              "type": "G1 Eden Space",
+              "garbageCollected": "25522339816"
+            },
+            {
+              "type": "G1 Old Gen",
+              "garbageCollected": "200959632"
+            },
+            {
+              "type": "G1 Survivor Space",
+              "garbageCollected": "291103720"
+            },
+            {
+              "type": "Metaspace",
+              "garbageCollected": "156968"
+            }
+          ]
+        },
+        "targetMetrics": {
+          "targetsConfigured": "57369",
+          "targetsConfiguredNotIncludingAspects": "57308"
+        },
+        "packageMetrics": {
+          "packagesLoaded": "5473"
+        },
+        "timingMetrics": {
+          "cpuTimeInMs": "247850",
+          "wallTimeInMs": "17773",
+          "analysisPhaseTimeInMs": "6002",
+          "executionPhaseTimeInMs": "3975",
+          "actionsExecutionStartInMs": "12199",
+          "criticalPathTime": "0.850286848s"
+        },
+        "cumulativeMetrics": {
+          "numAnalyses": 1,
+          "numBuilds": 1,
+          "instanceId": "f47b1f9e-0fa3-4eb9-8f09-72816c2bb082"
+        },
+        "artifactMetrics": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1441455966",
+            "count": 40604
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "4521461364",
+            "count": 19200
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "241506502",
+            "count": 11
+          }
+        },
+        "buildGraphMetrics": {
+          "actionLookupValueCount": 49081,
+          "actionCount": 13809,
+          "outputArtifactCount": 23410,
+          "postInvocationSkyframeNodeCount": 318113,
+          "actionLookupValueCountNotIncludingAspects": 49020,
+          "actionCountNotIncludingAspects": 13808,
+          "inputFileConfiguredTargetCount": 40736,
+          "outputFileConfiguredTargetCount": 10,
+          "otherConfiguredTargetCount": 124,
+          "builtValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "6786"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "608"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "6"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "608"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "136"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "32"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "5473"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "42"
+            },
+            {
+              "skyfunctionName": "ARTIFACT_NESTED_SET",
+              "count": "11163"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "610"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1221"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "612"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "13915"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ARTIFACT",
+              "count": "40609"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "248"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "76715"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "6789"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "1955"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "582"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "435"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "7"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "83615"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "1832"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "5459"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "57578"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "610"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "TARGET_COMPLETION",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "60"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "9"
+            }
+          ],
+          "evaluatedValues": [
+            {
+              "skyfunctionName": "DIRECTORY_LISTING",
+              "count": "12245"
+            },
+            {
+              "skyfunctionName": "IGNORED_SUBDIRECTORIES",
+              "count": "1824"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILTINS",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPO_FILE",
+              "count": "1305"
+            },
+            {
+              "skyfunctionName": "PLATFORM",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN",
+              "count": "444"
+            },
+            {
+              "skyfunctionName": "SINGLE_TOOLCHAIN_RESOLUTION",
+              "count": "51"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION",
+              "count": "135"
+            },
+            {
+              "skyfunctionName": "PACKAGE",
+              "count": "12687"
+            },
+            {
+              "skyfunctionName": "TOOLCHAIN_RESOLUTION",
+              "count": "82"
+            },
+            {
+              "skyfunctionName": "ARTIFACT_NESTED_SET",
+              "count": "22263"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_DIRECTORY",
+              "count": "2190"
+            },
+            {
+              "skyfunctionName": "LOCAL_REPOSITORY_LOOKUP",
+              "count": "1221"
+            },
+            {
+              "skyfunctionName": "REGISTERED_TOOLCHAINS",
+              "count": "10"
+            },
+            {
+              "skyfunctionName": "BAZEL_LOCK_FILE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_MAPPING",
+              "count": "663"
+            },
+            {
+              "skyfunctionName": "PACKAGE_LOOKUP",
+              "count": "38704"
+            },
+            {
+              "skyfunctionName": "STARLARK_BUILD_SETTINGS_DETAILS",
+              "count": "8"
+            },
+            {
+              "skyfunctionName": "BAZEL_DEP_GRAPH",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "ARTIFACT",
+              "count": "40614"
+            },
+            {
+              "skyfunctionName": "BASELINE_OPTIONS",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "MODULE_FILE",
+              "count": "297"
+            },
+            {
+              "skyfunctionName": "FILE_STATE",
+              "count": "76719"
+            },
+            {
+              "skyfunctionName": "MODULE_EXTENSION_REPO_MAPPING_ENTRIES",
+              "count": "45"
+            },
+            {
+              "skyfunctionName": "REGISTRY",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_USAGES",
+              "count": "47"
+            },
+            {
+              "skyfunctionName": "SINGLE_EXTENSION_EVAL",
+              "count": "109"
+            },
+            {
+              "skyfunctionName": "ACTION_EXECUTION",
+              "count": "12596"
+            },
+            {
+              "skyfunctionName": "CONTAINING_PACKAGE_LOOKUP",
+              "count": "4634"
+            },
+            {
+              "skyfunctionName": "BUILD_OPTIONS_SCOPE",
+              "count": "4"
+            },
+            {
+              "skyfunctionName": "BAZEL_MODULE_RESOLUTION",
+              "count": "15"
+            },
+            {
+              "skyfunctionName": "BUILD_DRIVER",
+              "count": "3"
+            },
+            {
+              "skyfunctionName": "REPO_SPEC",
+              "count": "62"
+            },
+            {
+              "skyfunctionName": "REPO_PACKAGE_ARGS",
+              "count": "1128"
+            },
+            {
+              "skyfunctionName": "GLOBS",
+              "count": "2058"
+            },
+            {
+              "skyfunctionName": "BUILD_CONFIGURATION_KEY",
+              "count": "9"
+            },
+            {
+              "skyfunctionName": "FILE",
+              "count": "177033"
+            },
+            {
+              "skyfunctionName": "BZL_LOAD",
+              "count": "4409"
+            },
+            {
+              "skyfunctionName": "DIRECTORY_LISTING_STATE",
+              "count": "5459"
+            },
+            {
+              "skyfunctionName": "CONFIGURED_TARGET",
+              "count": "114905"
+            },
+            {
+              "skyfunctionName": "BUILD_INFO",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "REPO_DEFINITION",
+              "count": "720"
+            },
+            {
+              "skyfunctionName": "REGISTERED_EXECUTION_PLATFORMS",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "CLIENT_ENVIRONMENT_VARIABLE",
+              "count": "1"
+            },
+            {
+              "skyfunctionName": "PLATFORM_MAPPING",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "REPOSITORY_ENVIRONMENT_VARIABLE",
+              "count": "56"
+            },
+            {
+              "skyfunctionName": "TARGET_COMPLETION",
+              "count": "2"
+            },
+            {
+              "skyfunctionName": "PROJECT_FILES_LOOKUP",
+              "count": "5"
+            },
+            {
+              "skyfunctionName": "ASPECT",
+              "count": "80"
+            },
+            {
+              "skyfunctionName": "TARGET_PATTERN_PHASE",
+              "count": "18"
+            }
+          ]
+        },
+        "networkMetrics": {
+          "systemNetworkStats": {
+            "bytesSent": "4278501",
+            "bytesRecv": "20635710",
+            "packetsSent": "9893",
+            "packetsRecv": "17091",
+            "peakBytesSentPerSec": "2127506",
+            "peakBytesRecvPerSec": "12921216",
+            "peakPacketsSentPerSec": "4986",
+            "peakPacketsRecvPerSec": "9824"
+          }
+        },
+        "workerPoolMetrics": {},
+        "dynamicExecutionMetrics": {},
+        "remoteAnalysisCacheStatistics": {
+          "cacheMisses": "64425",
+          "valueStoreValueBytesSent": "380250648",
+          "valueStoreKeyBytesSent": "10041585",
+          "valueStoreWriteOps": "454404",
+          "valueStoreWriteBatches": "454404",
+          "analysisCacheKeyBytesSent": "1030800",
+          "analysisCacheOps": "64425",
+          "analysisCacheBatches": "64425",
+          "valueStoreReadLatencyMicros": {},
+          "valueStoreReadBatchLatencyMicros": {},
+          "valueStoreWriteLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "1",
+                "max": "2",
+                "count": "14032"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "43958"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "41601"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "38318"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "29005"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "24712"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "25085"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "26210"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "24950"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "111559"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "22377"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "8823"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "6946"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "5869"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "3894"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "2670"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "1819"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "1382"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "5437"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "2221"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "1290"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "923"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "725"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "540"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "453"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "351"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "352"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "1945"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "1184"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "848"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "582"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "375"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "282"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "293"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "269"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "220"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "1308"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "892"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "393"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "159"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "76"
+              },
+              {
+                "min": "60000",
+                "max": "70000",
+                "count": "35"
+              },
+              {
+                "min": "70000",
+                "max": "80000",
+                "count": "12"
+              },
+              {
+                "min": "80000",
+                "max": "90000",
+                "count": "7"
+              },
+              {
+                "min": "90000",
+                "max": "100000",
+                "count": "6"
+              },
+              {
+                "min": "100000",
+                "max": "200000",
+                "count": "16"
+              }
+            ]
+          },
+          "valueStoreWriteBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "max": "1",
+                "count": "1"
+              },
+              {
+                "min": "1",
+                "max": "2",
+                "count": "19753"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "47063"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "45501"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "37220"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "27617"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "25189"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "26561"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "26983"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "23615"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "104071"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "19777"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "8347"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "6838"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "5693"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "3788"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "2562"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "1761"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "1348"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "5292"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "2166"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "1256"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "907"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "706"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "529"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "437"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "335"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "336"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "1893"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "1163"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "829"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "572"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "370"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "279"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "290"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "263"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "219"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "1297"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "880"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "391"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "154"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "76"
+              },
+              {
+                "min": "60000",
+                "max": "70000",
+                "count": "35"
+              },
+              {
+                "min": "70000",
+                "max": "80000",
+                "count": "13"
+              },
+              {
+                "min": "80000",
+                "max": "90000",
+                "count": "6"
+              },
+              {
+                "min": "90000",
+                "max": "100000",
+                "count": "6"
+              },
+              {
+                "min": "100000",
+                "max": "200000",
+                "count": "16"
+              }
+            ]
+          },
+          "analysisCacheReadLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "1",
+                "max": "2",
+                "count": "11"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "231"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "1566"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "3307"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "4104"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "4484"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "4485"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "4829"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "4812"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "27020"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "5641"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "1959"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "497"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "354"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "207"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "101"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "92"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "74"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "222"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "63"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "35"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "30"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "20"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "16"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "8"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "13"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "8"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "37"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "23"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "19"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "19"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "13"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "8"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "6"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "6"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "9"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "58"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "27"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "6"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "3"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "2"
+              }
+            ]
+          },
+          "analysisCacheReadBatchLatencyMicros": {
+            "histogramBucket": [
+              {
+                "min": "1",
+                "max": "2",
+                "count": "11"
+              },
+              {
+                "min": "2",
+                "max": "3",
+                "count": "231"
+              },
+              {
+                "min": "3",
+                "max": "4",
+                "count": "1566"
+              },
+              {
+                "min": "4",
+                "max": "5",
+                "count": "3307"
+              },
+              {
+                "min": "5",
+                "max": "6",
+                "count": "4104"
+              },
+              {
+                "min": "6",
+                "max": "7",
+                "count": "4484"
+              },
+              {
+                "min": "7",
+                "max": "8",
+                "count": "4485"
+              },
+              {
+                "min": "8",
+                "max": "9",
+                "count": "4829"
+              },
+              {
+                "min": "9",
+                "max": "10",
+                "count": "4812"
+              },
+              {
+                "min": "10",
+                "max": "20",
+                "count": "27020"
+              },
+              {
+                "min": "20",
+                "max": "30",
+                "count": "5641"
+              },
+              {
+                "min": "30",
+                "max": "40",
+                "count": "1959"
+              },
+              {
+                "min": "40",
+                "max": "50",
+                "count": "497"
+              },
+              {
+                "min": "50",
+                "max": "60",
+                "count": "354"
+              },
+              {
+                "min": "60",
+                "max": "70",
+                "count": "207"
+              },
+              {
+                "min": "70",
+                "max": "80",
+                "count": "101"
+              },
+              {
+                "min": "80",
+                "max": "90",
+                "count": "92"
+              },
+              {
+                "min": "90",
+                "max": "100",
+                "count": "74"
+              },
+              {
+                "min": "100",
+                "max": "200",
+                "count": "222"
+              },
+              {
+                "min": "200",
+                "max": "300",
+                "count": "63"
+              },
+              {
+                "min": "300",
+                "max": "400",
+                "count": "35"
+              },
+              {
+                "min": "400",
+                "max": "500",
+                "count": "30"
+              },
+              {
+                "min": "500",
+                "max": "600",
+                "count": "20"
+              },
+              {
+                "min": "600",
+                "max": "700",
+                "count": "16"
+              },
+              {
+                "min": "700",
+                "max": "800",
+                "count": "8"
+              },
+              {
+                "min": "800",
+                "max": "900",
+                "count": "13"
+              },
+              {
+                "min": "900",
+                "max": "1000",
+                "count": "8"
+              },
+              {
+                "min": "1000",
+                "max": "2000",
+                "count": "37"
+              },
+              {
+                "min": "2000",
+                "max": "3000",
+                "count": "23"
+              },
+              {
+                "min": "3000",
+                "max": "4000",
+                "count": "19"
+              },
+              {
+                "min": "4000",
+                "max": "5000",
+                "count": "19"
+              },
+              {
+                "min": "5000",
+                "max": "6000",
+                "count": "13"
+              },
+              {
+                "min": "6000",
+                "max": "7000",
+                "count": "8"
+              },
+              {
+                "min": "7000",
+                "max": "8000",
+                "count": "6"
+              },
+              {
+                "min": "8000",
+                "max": "9000",
+                "count": "6"
+              },
+              {
+                "min": "9000",
+                "max": "10000",
+                "count": "9"
+              },
+              {
+                "min": "10000",
+                "max": "20000",
+                "count": "58"
+              },
+              {
+                "min": "20000",
+                "max": "30000",
+                "count": "27"
+              },
+              {
+                "min": "30000",
+                "max": "40000",
+                "count": "6"
+              },
+              {
+                "min": "40000",
+                "max": "50000",
+                "count": "3"
+              },
+              {
+                "min": "50000",
+                "max": "60000",
+                "count": "2"
+              }
+            ]
+          },
+          "cacheMissesByReason": [
+            {
+              "key": "MISS_REASON_UNSPECIFIED",
+              "value": "64425"
+            }
+          ],
+          "cacheMissesBySkyfunction": [
+            {
+              "key": "CONFIGURED_TARGET",
+              "value": "57572"
+            },
+            {
+              "key": "ACTION_EXECUTION",
+              "value": "6788"
+            },
+            {
+              "key": "ARTIFACT",
+              "value": "5"
+            },
+            {
+              "key": "ASPECT",
+              "value": "60"
+            }
+          ],
+          "latencyBySkyfunction": [
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "2"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "1"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "59"
+                  },
+                  {
+                    "min": "1",
+                    "max": "2",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "2"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "4"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "13"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "33"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "137"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "276"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "8650"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "11629"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "11108"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "6550"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "4992"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "2916"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "2012"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "1445"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "875"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "3798"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "459"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "222"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "155"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "128"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "91"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "96"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "53"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "49"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "286"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "228"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "151"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "116"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "73"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "50"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "53"
+                  },
+                  {
+                    "min": "8000",
+                    "max": "9000",
+                    "count": "51"
+                  },
+                  {
+                    "min": "9000",
+                    "max": "10000",
+                    "count": "48"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "355"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "268"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "115"
+                  },
+                  {
+                    "min": "40000",
+                    "max": "50000",
+                    "count": "30"
+                  },
+                  {
+                    "min": "50000",
+                    "max": "60000",
+                    "count": "24"
+                  },
+                  {
+                    "min": "60000",
+                    "max": "70000",
+                    "count": "8"
+                  },
+                  {
+                    "min": "70000",
+                    "max": "80000",
+                    "count": "6"
+                  },
+                  {
+                    "min": "80000",
+                    "max": "90000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "90000",
+                    "max": "100000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "100000",
+                    "max": "200000",
+                    "count": "9"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "3"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "60"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "202"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "324"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "358"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "331"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "265"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "223"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "2593"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1628"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "326"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "203"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "129"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "63"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "19"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "6"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "15"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "25"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "2"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "2"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "3"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6788"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "57572"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "34344"
+                  },
+                  {
+                    "min": "1",
+                    "max": "2",
+                    "count": "16734"
+                  },
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "3018"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "729"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "1055"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "1086"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "280"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "73"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "25"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "11"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "94"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "45"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "22"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "12"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "5"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "4"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "3"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "2"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "4"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "6"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "5"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "2"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "1"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "2"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "8000",
+                    "max": "9000",
+                    "count": "2"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "57572"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "57572"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "60"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6754"
+                  },
+                  {
+                    "min": "1",
+                    "max": "2",
+                    "count": "14"
+                  },
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "11"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "3"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "1"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "2"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "60"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "5"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_CACHE_SERVICE_RESPONSE"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "2"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "14"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "9"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "7"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "5"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "4"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "1"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "2"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "2"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "2"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "60"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "CONFIGURED_TARGET",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "2"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "7"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "12"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "42"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "172"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "323"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "9295"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "12371"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "10650"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "6627"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "4669"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "2713"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "1940"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "1237"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "828"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "3627"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "420"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "217"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "153"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "123"
+                  },
+                  {
+                    "min": "600",
+                    "max": "700",
+                    "count": "91"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "88"
+                  },
+                  {
+                    "min": "800",
+                    "max": "900",
+                    "count": "52"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "49"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "283"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "226"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "148"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "116"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "72"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "50"
+                  },
+                  {
+                    "min": "7000",
+                    "max": "8000",
+                    "count": "50"
+                  },
+                  {
+                    "min": "8000",
+                    "max": "9000",
+                    "count": "49"
+                  },
+                  {
+                    "min": "9000",
+                    "max": "10000",
+                    "count": "48"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "354"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "268"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "115"
+                  },
+                  {
+                    "min": "40000",
+                    "max": "50000",
+                    "count": "30"
+                  },
+                  {
+                    "min": "50000",
+                    "max": "60000",
+                    "count": "24"
+                  },
+                  {
+                    "min": "60000",
+                    "max": "70000",
+                    "count": "8"
+                  },
+                  {
+                    "min": "70000",
+                    "max": "80000",
+                    "count": "6"
+                  },
+                  {
+                    "min": "80000",
+                    "max": "90000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "90000",
+                    "max": "100000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "100000",
+                    "max": "200000",
+                    "count": "9"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ARTIFACT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "2"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "2"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ASPECT",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "2"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "14"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "11"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "6"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "4"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "4"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "1"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "2"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "2"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "2"
+                  },
+                  {
+                    "min": "500",
+                    "max": "600",
+                    "count": "1"
+                  },
+                  {
+                    "min": "900",
+                    "max": "1000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "2"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "10000",
+                    "max": "20000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "20000",
+                    "max": "30000",
+                    "count": "4"
+                  },
+                  {
+                    "min": "30000",
+                    "max": "40000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "INITIAL_QUERY"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6788"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_LOOKUP_CONTINUATION"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "min": "2",
+                    "max": "3",
+                    "count": "2"
+                  },
+                  {
+                    "min": "3",
+                    "max": "4",
+                    "count": "48"
+                  },
+                  {
+                    "min": "4",
+                    "max": "5",
+                    "count": "169"
+                  },
+                  {
+                    "min": "5",
+                    "max": "6",
+                    "count": "328"
+                  },
+                  {
+                    "min": "6",
+                    "max": "7",
+                    "count": "334"
+                  },
+                  {
+                    "min": "7",
+                    "max": "8",
+                    "count": "314"
+                  },
+                  {
+                    "min": "8",
+                    "max": "9",
+                    "count": "291"
+                  },
+                  {
+                    "min": "9",
+                    "max": "10",
+                    "count": "221"
+                  },
+                  {
+                    "min": "10",
+                    "max": "20",
+                    "count": "2448"
+                  },
+                  {
+                    "min": "20",
+                    "max": "30",
+                    "count": "1783"
+                  },
+                  {
+                    "min": "30",
+                    "max": "40",
+                    "count": "352"
+                  },
+                  {
+                    "min": "40",
+                    "max": "50",
+                    "count": "208"
+                  },
+                  {
+                    "min": "50",
+                    "max": "60",
+                    "count": "133"
+                  },
+                  {
+                    "min": "60",
+                    "max": "70",
+                    "count": "76"
+                  },
+                  {
+                    "min": "70",
+                    "max": "80",
+                    "count": "17"
+                  },
+                  {
+                    "min": "80",
+                    "max": "90",
+                    "count": "8"
+                  },
+                  {
+                    "min": "90",
+                    "max": "100",
+                    "count": "13"
+                  },
+                  {
+                    "min": "100",
+                    "max": "200",
+                    "count": "25"
+                  },
+                  {
+                    "min": "200",
+                    "max": "300",
+                    "count": "3"
+                  },
+                  {
+                    "min": "300",
+                    "max": "400",
+                    "count": "3"
+                  },
+                  {
+                    "min": "400",
+                    "max": "500",
+                    "count": "1"
+                  },
+                  {
+                    "min": "700",
+                    "max": "800",
+                    "count": "1"
+                  },
+                  {
+                    "min": "1000",
+                    "max": "2000",
+                    "count": "3"
+                  },
+                  {
+                    "min": "2000",
+                    "max": "3000",
+                    "count": "3"
+                  },
+                  {
+                    "min": "3000",
+                    "max": "4000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "4000",
+                    "max": "5000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "5000",
+                    "max": "6000",
+                    "count": "1"
+                  },
+                  {
+                    "min": "6000",
+                    "max": "7000",
+                    "count": "1"
+                  }
+                ]
+              },
+              "phase": "TOTAL"
+            },
+            {
+              "skyfunction": "ACTION_EXECUTION",
+              "outcome": "MISS",
+              "latency": {
+                "histogramBucket": [
+                  {
+                    "max": "1",
+                    "count": "6788"
+                  }
+                ]
+              },
+              "phase": "WAITING_FOR_FUTURE_RESULT"
+            }
+          ]
+        },
+        "bzlMetrics": {}
+      },
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 6789
+        },
+        {
+          "name": "remote cache hit",
+          "count": 5704,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 1085
+        }
+      ],
+      "target_bep_files": [
+        {
+          "name": "cmd/cluster-agent/cluster-agent_/cluster-agent",
+          "uri": "file:///home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache/execroot/_main/bazel-out/k8-fastbuild-ST-646df0be3f72/bin/cmd/cluster-agent/cluster-agent_/cluster-agent",
+          "pathPrefix": [
+            "bazel-out",
+            "k8-fastbuild-ST-646df0be3f72",
+            "bin"
+          ],
+          "digest": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+          "length": "119596056"
+        }
+      ],
+      "output_inventory": {
+        "regular_files": 767,
+        "regular_file_bytes": 4886498,
+        "a_files": 0,
+        "x_files": 0,
+        "target_files": []
+      },
+      "grpc": {
+        "method_attempt_counts": {
+          "build.bazel.remote.execution.v2.Capabilities/GetCapabilities": 1,
+          "build.bazel.remote.execution.v2.ActionCache/GetActionResult": 5704,
+          "google.bytestream.ByteStream/Read": 1641
+        },
+        "status_counts": {
+          "0": 7346
+        },
+        "logical_rpc_count": 7346,
+        "bytestream_read_calls": 1641,
+        "bytestream_read_bytes": 15304814,
+        "target_blob_reads": [],
+        "log_bytes": 7714629
+      }
+    }
+  ],
+  "failure": "AssertionError()",
+  "final_shutdown": {
+    "argv": [
+      "/home/jgett/REPOS/datadog-agent/tools/bazel",
+      "--output_base=/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-skycache",
+      "--output_user_root=/home/jgett/.cache/bazel/_bazel_jgett",
+      "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+      "--host_jvm_args=-Xmx6g",
+      "--max_idle_secs=600",
+      "shutdown"
+    ],
+    "seconds": 0.5147645909999028,
+    "exit_code": 0
+  },
+  "workspace_unchanged": true,
+  "finished_at": "2026-10-25T06:34:11.940585+00:00"
+}

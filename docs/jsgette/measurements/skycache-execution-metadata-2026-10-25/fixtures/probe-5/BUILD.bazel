@@ -1,0 +1,5 @@
+load(":rules.bzl", "copy", "write")
+copy(name="middle", src="source.txt")
+copy(name="final", src=":middle")
+copy(name="consumer", src=":middle", local=True)
+write(name="internal")

@@ -1,0 +1,628 @@
+{
+  "status": "failed",
+  "binary": "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+  "binary_sha256": "b3e3e58ad02576dd6c16a8af934c864821664e6331cf52761e836b58bf014b44",
+  "remote_cache": "http://127.0.0.1:37798",
+  "runs": [
+    {
+      "label": "populate-remote-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 1.1698561850000715,
+      "exit_code": 0
+    },
+    {
+      "label": "populate-remote-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.1137832909998906,
+      "exit_code": 0
+    },
+    {
+      "label": "populate-remote",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=minimal",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/populate-remote.bep.json"
+      ],
+      "seconds": 8.027668596000012,
+      "exit_code": 0,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/ac/5deebccc4dbeca5b171d587f0b92d0a8023793d6f977a7321689909f3d093d42",
+          "status": 404,
+          "bytes": 0
+        },
+        {
+          "method": "GET",
+          "path": "/ac/5110390eef49758539eb60a5f0a6a109d79fedb2dcd23bd462f28e45cde73198",
+          "status": 404,
+          "bytes": 0
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/5deebccc4dbeca5b171d587f0b92d0a8023793d6f977a7321689909f3d093d42",
+          "status": 200,
+          "bytes": 145
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/18075bfd7faa16bc7a203740e54554d4027dedbea4e5d27d9f7f09bad34e5408",
+          "status": 200,
+          "bytes": 151
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/a1bdc63105eb34b1effb49130887c8530067382ded75ad327a25b98f9ca34b02",
+          "status": 200,
+          "bytes": 17
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/ce0caa26a34e1685835bc1e8f30b0171f21277cae18733bee1339287dde855a5",
+          "status": 200,
+          "bytes": 175
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/27b4efa03c2252a164fc32394f1b689125340b460c82efc409aad553a169edf8",
+          "status": 200,
+          "bytes": 23
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/5110390eef49758539eb60a5f0a6a109d79fedb2dcd23bd462f28e45cde73198",
+          "status": 200,
+          "bytes": 145
+        },
+        {
+          "method": "PUT",
+          "path": "/ac/5deebccc4dbeca5b171d587f0b92d0a8023793d6f977a7321689909f3d093d42",
+          "status": 200,
+          "bytes": 307
+        },
+        {
+          "method": "PUT",
+          "path": "/ac/5110390eef49758539eb60a5f0a6a109d79fedb2dcd23bd462f28e45cde73198",
+          "status": 200,
+          "bytes": 306
+        }
+      ],
+      "action_cache_gets": 2,
+      "cas_gets": 0,
+      "missing_blob_reads": 0,
+      "output_exists": true,
+      "contents": "source-v1\nmiddle\nfinal\n"
+    },
+    {
+      "label": "prime-metadata-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 0.16401714299991,
+      "exit_code": 0
+    },
+    {
+      "label": "prime-metadata-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.11390151799992054,
+      "exit_code": 0
+    },
+    {
+      "label": "prime-metadata",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=minimal",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/skycache",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/prime-metadata.bep.json"
+      ],
+      "seconds": 0.5649395650000315,
+      "exit_code": 0,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/ac/5deebccc4dbeca5b171d587f0b92d0a8023793d6f977a7321689909f3d093d42",
+          "status": 200,
+          "bytes": 307
+        },
+        {
+          "method": "GET",
+          "path": "/ac/5110390eef49758539eb60a5f0a6a109d79fedb2dcd23bd462f28e45cde73198",
+          "status": 200,
+          "bytes": 306
+        }
+      ],
+      "action_cache_gets": 2,
+      "cas_gets": 0,
+      "missing_blob_reads": 0,
+      "output_exists": false,
+      "contents": null
+    },
+    {
+      "label": "minimal-hit-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 0.16404882500000895,
+      "exit_code": 0
+    },
+    {
+      "label": "minimal-hit-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.11396535100016081,
+      "exit_code": 0
+    },
+    {
+      "label": "minimal-hit",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=minimal",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/skycache",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/minimal-hit.bep.json"
+      ],
+      "seconds": 0.31432056300013755,
+      "exit_code": 0,
+      "requests": [],
+      "action_cache_gets": 0,
+      "cas_gets": 0,
+      "missing_blob_reads": 0,
+      "output_exists": false,
+      "contents": null
+    },
+    {
+      "label": "toplevel-hit-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 0.16400744599991413,
+      "exit_code": 0
+    },
+    {
+      "label": "toplevel-hit-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.113974829999961,
+      "exit_code": 0
+    },
+    {
+      "label": "toplevel-hit",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/skycache",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/toplevel-hit.bep.json"
+      ],
+      "seconds": 0.26424062299997786,
+      "exit_code": 0,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/cas/27b4efa03c2252a164fc32394f1b689125340b460c82efc409aad553a169edf8",
+          "status": 200,
+          "bytes": 23
+        }
+      ],
+      "action_cache_gets": 0,
+      "cas_gets": 1,
+      "missing_blob_reads": 0,
+      "output_exists": true,
+      "contents": "source-v1\nmiddle\nfinal\n"
+    },
+    {
+      "label": "unused-missing-intermediate-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 0.16411675700010164,
+      "exit_code": 0
+    },
+    {
+      "label": "unused-missing-intermediate-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.11393337699996664,
+      "exit_code": 0
+    },
+    {
+      "label": "unused-missing-intermediate",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=minimal",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/skycache",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/unused-missing-intermediate.bep.json"
+      ],
+      "seconds": 0.26438240999982554,
+      "exit_code": 0,
+      "requests": [],
+      "action_cache_gets": 0,
+      "cas_gets": 0,
+      "missing_blob_reads": 0,
+      "output_exists": false,
+      "contents": null
+    },
+    {
+      "label": "required-missing-intermediate-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 0.16412251200017636,
+      "exit_code": 0
+    },
+    {
+      "label": "required-missing-intermediate-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.11399575600012213,
+      "exit_code": 0
+    },
+    {
+      "label": "required-missing-intermediate",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:consumer",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/skycache",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/required-missing-intermediate.bep.json"
+      ],
+      "seconds": 0.3144756149999921,
+      "exit_code": 0,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/cas/a1bdc63105eb34b1effb49130887c8530067382ded75ad327a25b98f9ca34b02",
+          "status": 404,
+          "bytes": 0
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/5deebccc4dbeca5b171d587f0b92d0a8023793d6f977a7321689909f3d093d42",
+          "status": 200,
+          "bytes": 145
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/18075bfd7faa16bc7a203740e54554d4027dedbea4e5d27d9f7f09bad34e5408",
+          "status": 200,
+          "bytes": 151
+        },
+        {
+          "method": "PUT",
+          "path": "/cas/a1bdc63105eb34b1effb49130887c8530067382ded75ad327a25b98f9ca34b02",
+          "status": 200,
+          "bytes": 17
+        },
+        {
+          "method": "PUT",
+          "path": "/ac/5deebccc4dbeca5b171d587f0b92d0a8023793d6f977a7321689909f3d093d42",
+          "status": 200,
+          "bytes": 307
+        }
+      ],
+      "action_cache_gets": 0,
+      "cas_gets": 1,
+      "missing_blob_reads": 1,
+      "output_exists": true,
+      "contents": "source-v1\nmiddle\nconsumer\n"
+    },
+    {
+      "label": "missing-toplevel-clean",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "clean",
+        "--noasync",
+        "--noexpunge"
+      ],
+      "seconds": 0.16410841600009007,
+      "exit_code": 0
+    },
+    {
+      "label": "missing-toplevel-graph",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "dump",
+        "--skyframe=summary"
+      ],
+      "seconds": 0.11395857799993792,
+      "exit_code": 0
+    },
+    {
+      "label": "missing-toplevel",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "build",
+        "//:final",
+        "--jobs=4",
+        "--color=no",
+        "--curses=no",
+        "--disk_cache=",
+        "--remote_cache=http://127.0.0.1:37798",
+        "--remote_retries=0",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_accept_cached=true",
+        "--experimental_strict_repo_env",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/skycache",
+        "--experimental_analysis_cache_idle_retention=0",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/missing-toplevel.bep.json"
+      ],
+      "seconds": 0.6659079529999872,
+      "exit_code": 37
+    },
+    {
+      "label": "shutdown",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-execution-2026-10-25/bin/skycache",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--output_base=/home/jgett/REPOS/.work/skycache-execution-2026-10-25/probe-4/output",
+        "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+        "--host_jvm_args=-Xmx2g",
+        "--max_idle_secs=120",
+        "shutdown"
+      ],
+      "seconds": 0.01565089199993963,
+      "exit_code": 0
+    }
+  ],
+  "failure": "AssertionError('missing-toplevel')"
+}

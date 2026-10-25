@@ -1,0 +1,22 @@
+INFO: Invocation ID: 11acb7a9-4182-4185-a6b1-e976ee01dc50
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //src:bazel-dev (0 packages loaded, 0 targets configured)
+Analyzing: target //src:bazel-dev (0 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //src:bazel-dev (0 packages loaded, 0 targets configured).
+ERROR: /home/jgett/REPOS/bazel-skycache-v2/src/main/java/com/google/devtools/build/lib/skyframe/BUILD:3353:13: Building src/main/java/com/google/devtools/build/lib/skyframe/libaction_execution_function.jar (1 source file) failed: (Exit 1): java failed: error executing Javac command (from java_library rule target //src/main/java/com/google/devtools/build/lib/skyframe:action_execution_function) external/rules_java++toolchains+remotejdk25_linux/bin/java '--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED' '--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED' ... (remaining 19 arguments skipped)
+src/main/java/com/google/devtools/build/lib/skyframe/ActionExecutionFunction.java:902: error: [strict] Using type com.google.devtools.build.lib.skyframe.ActionTemplateExpansionValue from an indirect dependency (TOOL_INFO: "//src/main/java/com/google/devtools/build/lib/skyframe:action_template_expansion_value"). See command below **
+        env.getValue(ActionTemplateExpansionValue.key(key.getActionLookupKey(), key.getActionIndex()));
+                     ^
+ ** Please add the following dependencies: 
+  //src/main/java/com/google/devtools/build/lib/skyframe:action_template_expansion_value to //src/main/java/com/google/devtools/build/lib/skyframe:action_execution_function 
+ ** You can use the following buildozer command: 
+buildozer 'add deps //src/main/java/com/google/devtools/build/lib/skyframe:action_template_expansion_value' //src/main/java/com/google/devtools/build/lib/skyframe:action_execution_function 
+
+Target //src:bazel-dev failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 0.694s, Critical Path: 0.27s
+INFO: 3 processes: 156 action cache hit, 2 internal, 1 linux-sandbox.
+ERROR: Build did NOT complete successfully

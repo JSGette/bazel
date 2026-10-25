@@ -1,0 +1,766 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java b/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java
+index b7dd4e7..082c020 100644
+--- a/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java
++++ b/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java
+@@ -618,6 +618,18 @@ public class RemoteActionFileSystem extends FileSystem {
+       throws IOException {
+     linkPath = resolveSymbolicLinksForParent(linkPath);
+ 
++    // A Skycache hit may supply a remote input without creating its output directories. Make
++    // the target's parents visible to path canonicalization in memory; do not materialize bytes
++    // or directories on disk merely to validate a symlink to a known remote input.
++    PathFragment targetPath = linkPath.getParentDirectory().getRelative(targetFragment);
++    if (isOutput(targetPath)) {
++      var input = inputArtifactData.getInput(targetPath.relativeTo(execRoot));
++      var metadata = input != null ? inputArtifactData.getInputMetadata(input) : null;
++      if (metadata != null && metadata.isRemote()) {
++        remoteOutputTree.getPath(targetPath.getParentDirectory()).createDirectoryAndParents();
++      }
++    }
++
+     if (isOutput(linkPath)) {
+       remoteOutputTree.getPath(linkPath).createSymbolicLink(targetFragment, type);
+     }
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/ActionExecutionFunction.java b/src/main/java/com/google/devtools/build/lib/skyframe/ActionExecutionFunction.java
+index 39822e7..fbd5372 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/ActionExecutionFunction.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/ActionExecutionFunction.java
+@@ -790,6 +790,14 @@ public class ActionExecutionFunction implements SkyFunction {
+           outputMetadataStore, reconstructedRichArtifactData, action);
+     }
+ 
++    if (cachingDependenciesSupplier.get().retrievesExecutionValues()
++        && !ensureInputOwnersAvailable(
++            Iterables.concat(action.getInputs().toList(), action.getSchedulingDependencies().toList()),
++            state.compositeInputMetadataProvider,
++            env)) {
++      return null;
++    }
++
+     outputMetadataStore.prepareForActionExecution();
+ 
+     if (action.discoversInputs()) {
+@@ -832,6 +840,12 @@ public class ActionExecutionFunction implements SkyFunction {
+         return null;
+       }
+ 
++      if (cachingDependenciesSupplier.get().retrievesExecutionValues()
++          && !ensureInputOwnersAvailable(
++              state.discoveredInputs.toList(), state.compositeInputMetadataProvider, env)) {
++        return null;
++      }
++
+       // When discover inputs completes, post an event with the duration values.
+       env.getListener()
+           .post(
+@@ -857,6 +871,40 @@ public class ActionExecutionFunction implements SkyFunction {
+         previousOutputs);
+   }
+ 
++  /**
++   * Makes owners needed by the remote rewind locks available for inputs actually consumed here.
++   *
++   * <p>An execution metadata hit can prune its owner from Skyframe. The lock synchronizer needs
++   * that owner's primary output (and template expansion) to identify shared producers. Request
++   * these analysis values only on the execution fallback, never on the metadata-hit path. Do this
++   * even before the first rewind: a concurrent action can trigger the switch to fine-grained locks.
++   */
++  private static boolean ensureInputOwnersAvailable(
++      Iterable<Artifact> inputs, InputMetadataProvider metadataProvider, Environment env)
++      throws InterruptedException {
++    var pending = new java.util.ArrayDeque<Artifact>();
++    inputs.forEach(pending::add);
++    var visited = new java.util.HashSet<Artifact>();
++    while (!pending.isEmpty()) {
++      Artifact input = pending.removeFirst();
++      if (!(input instanceof Artifact.DerivedArtifact derived) || !visited.add(input)) {
++        continue;
++      }
++      if (input.isRunfilesTree()) {
++        metadataProvider.getRunfilesMetadata(input).getAllArtifacts().forEach(pending::add);
++        continue;
++      }
++      var dependencies =
++          ArtifactFunction.ArtifactDependencies.discoverDependencies(
++              derived, env, /* crashIfActionOwnerMissing= */ false);
++      if (dependencies != null && dependencies.isTemplateActionForTreeArtifact()) {
++        var key = derived.getGeneratingActionKey();
++        env.getValue(ActionTemplateExpansionValue.key(key.getActionLookupKey(), key.getActionIndex()));
++      }
++    }
++    return !env.valuesMissing();
++  }
++
+   /** Implementation of {@link ActionPostprocessing}. */
+   private final class ActionPostprocessingImpl implements ActionPostprocessing {
+     private final InputDiscoveryState state;
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/BUILD
+index 5c61155..9ed9e38 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/BUILD
+@@ -3354,6 +3354,7 @@ java_library(
+     name = "action_execution_function",
+     srcs = ["ActionExecutionFunction.java"],
+     deps = [
++        ":action_template_expansion_value",
+         ":action_execution_state",
+         ":action_execution_value",
+         ":action_input_collected_event",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/BUILD
+index 81bae7b..2f9cd28 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/BUILD
+@@ -592,6 +592,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:skycache_metadata_params",
+         "//src/main/java/com/google/devtools/build/lib/util:serialized_abrupt_exit_exception",
+         "//src/main/java/com/google/devtools/common/options",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
+         "//third_party/java/guava:concurrent",
+         "//third_party/java/jsr305_annotations",
+     ],
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java
+index fa01c99..76d7244 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java
+@@ -44,6 +44,7 @@ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.Re
+ import com.google.devtools.build.lib.versioning.LongVersionGetter;
+ import com.google.devtools.build.skyframe.InMemoryGraph;
+ import com.google.devtools.build.skyframe.SkyKey;
++import com.google.devtools.build.skyframe.SkyValue;
+ import java.util.Optional;
+ import java.util.concurrent.ExecutionException;
+ import java.util.concurrent.Future;
+@@ -73,7 +74,7 @@ public class RemoteAnalysisCacheDeps
+   private final FrontierNodeVersion frontierNodeVersion;
+   private final boolean skycacheAnalysisOnly;
+   private final boolean emitUploadedEvents;
+-  private final boolean uploadExecutionValues;
++  private final Predicate<SkyValue> uploadExecutionValues;
+   private final boolean retrieveExecutionValues;
+   private final Predicate<String> uploadFailureHandler;
+ 
+@@ -124,7 +125,7 @@ public class RemoteAnalysisCacheDeps
+     this.bailOutOnMissingFingerprint = bailOutOnMissingFingerprint;
+     this.skycacheAnalysisOnly = skycacheAnalysisOnly;
+     this.emitUploadedEvents = emitUploadedEvents;
+-    this.uploadExecutionValues = servicesSupplier.uploadsExecutionValues();
++    this.uploadExecutionValues = servicesSupplier::shouldUploadExecutionValue;
+     this.retrieveExecutionValues = servicesSupplier.retrievesExecutionValues();
+     this.uploadFailureHandler = servicesSupplier::discardFailedUpload;
+     this.minimizeMemory = minimizeMemory;
+@@ -170,7 +171,7 @@ public class RemoteAnalysisCacheDeps
+     this.minimizeMemory = false;
+     this.skycacheAnalysisOnly = false;
+     this.emitUploadedEvents = false;
+-    this.uploadExecutionValues = false;
++    this.uploadExecutionValues = value -> false;
+     this.retrieveExecutionValues = false;
+     this.uploadFailureHandler = reason -> false;
+     this.serializedFrontierProfile = "";
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCachingServicesSupplier.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCachingServicesSupplier.java
+index cb23666..3b327b7 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCachingServicesSupplier.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCachingServicesSupplier.java
+@@ -22,6 +22,7 @@ import com.google.devtools.build.lib.skybridge.SkybridgeInterface;
+ import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
+ import com.google.devtools.build.lib.skyframe.serialization.SkycacheMetadataParams;
+ import com.google.devtools.build.lib.util.SerializedAbruptExitException;
++import com.google.devtools.build.skyframe.SkyValue;
+ import com.google.devtools.common.options.OptionsProvider;
+ import java.util.Map;
+ import java.util.Objects;
+@@ -49,6 +50,11 @@ public interface RemoteAnalysisCachingServicesSupplier extends BlazeService {
+     return true;
+   }
+ 
++  /** Whether a completed execution value is portable to a later invocation. */
++  default boolean shouldUploadExecutionValue(SkyValue value) {
++    return uploadsExecutionValues();
++  }
++
+   /** Whether this backend can return execution values from analysis-cache lookups. */
+   default boolean retrievesExecutionValues() {
+     return true;
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SkycacheUploadClient.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SkycacheUploadClient.java
+index 7190a72..aa0d6e8 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SkycacheUploadClient.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SkycacheUploadClient.java
+@@ -51,7 +51,7 @@ public final class SkycacheUploadClient {
+ 
+   private final SelectedEntrySerializer selectedEntrySerializer;
+   private final SelectedEntrySerializer.SerializationStatus writeStatuses;
+-  private final boolean uploadExecutionValues;
++  private final Predicate<SkyValue> uploadExecutionValues;
+   private final Predicate<String> uploadFailureHandler;
+ 
+   public SkycacheUploadClient(
+@@ -64,7 +64,7 @@ public final class SkycacheUploadClient {
+       LongVersionGetter versionGetter,
+       boolean emitUploadedEvents,
+       FileOpNodeMemoizingLookup fileOpNodes,
+-      boolean uploadExecutionValues,
++      Predicate<SkyValue> uploadExecutionValues,
+       Predicate<String> uploadFailureHandler) {
+ 
+     this.uploadExecutionValues = uploadExecutionValues;
+@@ -101,7 +101,7 @@ public final class SkycacheUploadClient {
+ 
+   public void tryUpload(SkyKey key, SkyValue value, SkyFunction.Environment env)
+       throws InterruptedException {
+-    if (getLabel(key) == null || (!uploadExecutionValues && !(key instanceof ActionLookupKey))) {
++    if (getLabel(key) == null || (!(key instanceof ActionLookupKey) && !uploadExecutionValues.test(value))) {
+       return;
+     }
+     writeStatuses.selectedEntryStartingCapped();
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 449791f..9e6e96a 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -48,6 +48,7 @@ java_library(
+         "LocalDependencyEvidence.java",
+         "LocalDependencyValidator.java",
+         "LocalInputSnapshot.java",
++        "LocalExecutionValues.java",
+         "LocalPathCodec.java",
+         "LocalRepositoryMappingCodec.java",
+         "LocalRunfilesCodec.java",
+@@ -59,6 +60,7 @@ java_library(
+     deps = [
+         ":packed_store",
+         "//src/main/java/com/google/devtools/build/lib/actions:artifact_owner",
++        "//src/main/java/com/google/devtools/build/lib/actions:file_metadata",
+         "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
+         "//src/main/java/com/google/devtools/build/lib/analysis:aspect_value",
+         "//src/main/java/com/google/devtools/build/lib/analysis:blaze_directories",
+@@ -72,9 +74,12 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/events",
+         "//src/main/java/com/google/devtools/build/lib/packages",
+         "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_cluster",
++        "//src/main/java/com/google/devtools/build/lib/remote/options:options",
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+         "//src/main/java/com/google/devtools/build/lib/skyframe:package_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:action_execution_value",
+         "//src/main/java/com/google/devtools/build/lib/skyframe:rule_configured_target_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:tree_artifact_value",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+@@ -96,6 +101,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/vfs",
+         "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
+         "//src/main/java/com/google/devtools/common/options",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
+         "//third_party/java/flogger",
+         "//third_party/java/guava:collect",
+         "//third_party/java/guava:concurrent",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java
+index 0d7beb5..441d406 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java
+@@ -148,8 +148,11 @@ final class LocalAnalysisCacheClient implements RetainedAnalysisCacheClient.Sync
+         try {
+           byte[] bytes = candidate.value();
+           var input = CodedInputStream.newInstance(bytes);
+-          // DataType.DATA_TYPE_ANALYSIS_NODE. This module deliberately caches analysis only.
+-          if (input.readEnum() != 4) {
++          // Both envelopes carry the owner's dependency root, including source witnesses.
++          // Execution hits return metadata optimistically; missing CAS blobs are recovered by
++          // action rewinding when an output is actually needed.
++          int type = input.readEnum();
++          if (type != 4 && type != 5) {
+             continue;
+           }
+           var root = PackedFingerprint.readFrom(input);
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValues.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValues.java
+new file mode 100644
+index 0000000..9709053
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValues.java
+@@ -0,0 +1,40 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
++package com.google.devtools.build.lib.skyframe.serialization.local;
++
++import com.google.devtools.build.lib.actions.FileArtifactValue;
++import com.google.devtools.build.lib.skyframe.ActionExecutionValue;
++import com.google.devtools.build.lib.skyframe.TreeArtifactValue;
++import com.google.devtools.build.skyframe.SkyValue;
++
++/** Execution metadata that remains usable after the local output tree has been removed. */
++final class LocalExecutionValues {
++  static boolean isPortable(SkyValue value) {
++    return switch (value) {
++      case ActionExecutionValue action ->
++          action.getRichArtifactData() == null
++              && action.getAllFileValues().values().stream().allMatch(LocalExecutionValues::isRemoteFile)
++              && action.getAllTreeArtifactValues().values().stream()
++                  .allMatch(LocalExecutionValues::isRemoteTree);
++      case TreeArtifactValue tree -> isRemoteTree(tree);
++      default -> false;
++    };
++  }
++
++  private static boolean isRemoteTree(TreeArtifactValue tree) {
++    return tree != TreeArtifactValue.MISSING_TREE_ARTIFACT
++        && tree.isEntirelyRemote()
++        && tree.getResolvedPath().isEmpty()
++        && tree.getChildValues().values().stream().allMatch(LocalExecutionValues::isRemoteFile)
++        && tree.getArchivedRepresentation()
++            .map(a -> isRemoteFile(a.archivedFileValue())).orElse(true);
++  }
++
++  private static boolean isRemoteFile(FileArtifactValue file) {
++    // Resolved symlink metadata carries absolute output paths. The upstream codec only relocates
++    // paths under package roots, so leave these actions to normal evaluation after clean.
++    return file.isRemote() && file.getResolvedPath() == null;
++  }
++
++  private LocalExecutionValues() {}
++}
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
+index d5277ba..637f30a 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
+@@ -16,6 +16,7 @@ import com.google.devtools.build.lib.buildtool.buildevent.BuildCompleteEvent;
+ import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor;
+ import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
+ import com.google.devtools.build.lib.events.Event;
++import com.google.devtools.build.lib.remote.options.RemoteOptions;
+ import com.google.devtools.build.lib.runtime.BlazeRuntime;
+ import com.google.devtools.build.lib.runtime.CommandEnvironment;
+ import com.google.devtools.build.lib.skyframe.RemoteConfiguredTargetValue;
+@@ -29,6 +30,7 @@ import com.google.devtools.build.lib.skyframe.serialization.analysis.ClientId;
+ import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCacheClient;
+ import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingOptions;
+ import com.google.devtools.build.lib.skyframe.serialization.analysis.RemoteAnalysisCachingServicesSupplier;
++import com.google.devtools.build.skyframe.SkyValue;
+ import com.google.devtools.common.options.OptionPriority.PriorityCategory;
+ import com.google.devtools.common.options.OptionsBase;
+ import com.google.devtools.common.options.OptionsParser;
+@@ -104,6 +106,7 @@ public final class LocalSkycacheModule extends SerializationModule {
+     services.session = null;
+     services.client = null;
+     services.clientId = null;
++    services.executionValues = false;
+     var options = env.getOptions().getOptions(LocalSkycacheOptions.class);
+     if (options == null
+         || options.getDirectory().isEmpty()
+@@ -139,6 +142,11 @@ public final class LocalSkycacheModule extends SerializationModule {
+               System::nanoTime,
+               new LocalCacheSession.ReadLimits(
+                   options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
++      var remote = env.getOptions().getOptions(RemoteOptions.class);
++      services.executionValues =
++          remote != null
++              && remote.getRemoteAcceptCached()
++              && (remote.getRemoteCache() != null || remote.isRemoteExecutionEnabled());
+       RunfilesOrigin.setSharingEnabled(true);
+       if (!inputs.cacheNamespace().equals(services.retainedNamespace)
+           || (retainedPublication != null
+@@ -188,6 +196,15 @@ public final class LocalSkycacheModule extends SerializationModule {
+     if (allowedYankedVersions != null) {
+       inputs.put("bzlmod/BZLMOD_ALLOW_YANKED_VERSIONS", allowedYankedVersions);
+     }
++    // Remote output digests must be resolved against the same CAS namespace. Output download
++    // policy is deliberately excluded: minimal and toplevel share the same remote metadata.
++    var remote = env.getOptions().getOptions(RemoteOptions.class);
++    if (remote != null) {
++      inputs.put("execution/format", "remote-metadata-v1");
++      inputs.put("execution/cache", String.valueOf(remote.getRemoteCache()));
++      inputs.put("execution/executor", String.valueOf(remote.getRemoteExecutor()));
++      inputs.put("execution/instance", remote.getRemoteInstanceName());
++    }
+     return inputs;
+   }
+ 
+@@ -256,6 +273,7 @@ public final class LocalSkycacheModule extends SerializationModule {
+                   services.client = null;
+                   services.session = null;
+                   services.clientId = null;
++                  services.executionValues = false;
+                   // Keep the namespace/backing hint for repeated idle cycles with no new writes.
+                   // The next task reacquires a lease and rechecks existence before resetting.
+                 }));
+@@ -285,6 +303,7 @@ public final class LocalSkycacheModule extends SerializationModule {
+     @Nullable private LocalCacheSession session;
+     @Nullable private LocalAnalysisCacheClient client;
+     @Nullable private ClientId clientId;
++    private boolean executionValues;
+     private String retainedNamespace = "";
+     private Map<
+             com.google.protobuf.ByteString,
+@@ -298,13 +317,13 @@ public final class LocalSkycacheModule extends SerializationModule {
+     }
+ 
+     @Override
+-    public boolean uploadsExecutionValues() {
+-      return session == null;
++    public boolean shouldUploadExecutionValue(SkyValue value) {
++      return session == null || (executionValues && LocalExecutionValues.isPortable(value));
+     }
+ 
+     @Override
+     public boolean retrievesExecutionValues() {
+-      return session == null;
++      return session == null || executionValues;
+     }
+ 
+     @Override
+diff --git a/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java b/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java
+index 9dac38c..25a34d6 100644
+--- a/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java
++++ b/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java
+@@ -324,6 +324,22 @@ public final class RemoteActionFileSystemTest extends RemoteActionFileSystemTest
+         FileNotFoundException.class, () -> actionFs.stat(path, /* followSymlinks= */ true));
+   }
+ 
++  @Test
++  public void symlinkToRemoteInputWithMissingParentsDoesNotMaterializeTarget() throws Exception {
++    Artifact target = ActionsTestUtil.createArtifact(outputRoot, "missing/nested/target");
++    var metadata = FileArtifactValue.createForRemoteFile(new byte[] {1, 2, 3}, 23, 1);
++    var inputs = new ActionInputMap(1);
++    inputs.put(target, metadata);
++    FileSystem actionFs = createActionFileSystem(inputs);
++    Path link = actionFs.getPath(getOutputPath("link"));
++    link.createSymbolicLink(target.getPath().asFragment());
++
++    assertThat(link.stat().isFile()).isTrue();
++    assertThat(link.stat().getSize()).isEqualTo(23);
++    assertThat(fs.getPath(getOutputPath("missing")).exists()).isFalse();
++    verify(inputFetcher, never()).prefetchFiles(any(), any(), any(), any(), any(), any());
++  }
++
+   @Test
+   public void statAndExists_danglingSymlink_notFound() throws Exception {
+     RemoteActionFileSystem actionFs = (RemoteActionFileSystem) createActionFileSystem();
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 15fc807..612aab4 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -419,3 +419,23 @@ java_test(
+         "//third_party/java/truth",
+     ],
+ )
++
++java_test(
++    name = "LocalExecutionValuesTest",
++    size = "small",
++    srcs = ["LocalExecutionValuesTest.java"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
++        "//src/main/java/com/google/devtools/build/lib/actions:file_metadata",
++        "//src/main/java/com/google/devtools/build/lib/collect/nestedset",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:action_execution_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:tree_artifact_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
++        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
++        "//src/test/java/com/google/devtools/build/lib/actions/util",
++        "//src/test/java/com/google/devtools/build/lib/testutil",
++        "//third_party/java/guava:collect",
++        "//third_party/java/junit",
++        "//third_party/java/truth",
++    ],
++)
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
+index 99edbf2..0850400 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
+@@ -981,4 +981,34 @@ public final class LocalDependencyValidatorTest {
+       session.finish(false);
+     }
+   }
++  @Test
++  public void executionClientValidatesSourceWitnessesBeforeReturningMetadata() throws Exception {
++    var inputs = snapshot();
++    var session = new LocalCacheSession(temporary.newFolder("cache").toPath(), inputs);
++    try {
++      byte[] evidence = writer.captureDependency(file, false, List.of());
++      var leaf =
++          new StringKey("local-input-v1/" + NONPROD_FINGERPRINTER.fingerprint(evidence).toHex());
++      session.put(leaf, evidence).get();
++      // The source slot, separate from the analysis file/listing dependencies, is required.
++      byte[] node = bytes(List.of(), List.of(), List.of(), leaf);
++      var root = NONPROD_FINGERPRINTER.fingerprint(node);
++      session.put(root, node).get();
++      var buffer = new ByteArrayOutputStream();
++      var coded = CodedOutputStream.newInstance(buffer);
++      coded.writeEnumNoTag(5);
++      root.writeTo(coded);
++      coded.writeRawBytes(new byte[] {11, 12});
++      coded.flush();
++      var key = NONPROD_FINGERPRINTER.fingerprint(new byte[] {78});
++      session.put(key, buffer.toByteArray()).get();
++      assertThat(client(session, inputs).lookup(key.toBytes()).get().value())
++          .isEqualTo(new byte[] {11, 12});
++      Files.writeString(file, "changed source");
++      assertThat(client(session, snapshot()).lookup(key.toBytes()).get().value()).isEmpty();
++    } finally {
++      session.finish(false);
++    }
++  }
++
+ }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValuesTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValuesTest.java
+new file mode 100644
+index 0000000..5a0df81
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValuesTest.java
+@@ -0,0 +1,60 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
++package com.google.devtools.build.lib.skyframe.serialization.local;
++
++import static com.google.common.truth.Truth.assertThat;
++
++import com.google.common.collect.ImmutableMap;
++import com.google.devtools.build.lib.actions.Artifact;
++import com.google.devtools.build.lib.actions.ArtifactRoot;
++import com.google.devtools.build.lib.actions.FileArtifactValue;
++import com.google.devtools.build.lib.actions.util.ActionsTestUtil;
++import com.google.devtools.build.lib.collect.nestedset.NestedSetBuilder;
++import com.google.devtools.build.lib.collect.nestedset.Order;
++import com.google.devtools.build.lib.skyframe.ActionExecutionValue;
++import com.google.devtools.build.lib.skyframe.TreeArtifactValue;
++import com.google.devtools.build.lib.testutil.Scratch;
++import com.google.devtools.build.lib.vfs.PathFragment;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++@RunWith(JUnit4.class)
++public final class LocalExecutionValuesTest {
++  private static Artifact output(String name) {
++    var root = ArtifactRoot.asDerivedRoot(
++        new Scratch().resolve("/execroot"), ArtifactRoot.RootType.OUTPUT, "out");
++    return ActionsTestUtil.createArtifact(root, name);
++  }
++
++  private static ActionExecutionValue action(ImmutableMap<Artifact, FileArtifactValue> files) {
++    return ActionExecutionValue.create(
++        files, ImmutableMap.of(), null, NestedSetBuilder.emptySet(Order.STABLE_ORDER));
++  }
++
++  @Test
++  public void remoteMetadataSurvivesCleanButLocalOrMixedOutputsDoNot() {
++    var remote = FileArtifactValue.createForRemoteFile(new byte[] {1}, 1, 1);
++    var local = FileArtifactValue.createForNormalFile(new byte[] {1}, null, 1);
++    assertThat(LocalExecutionValues.isPortable(action(ImmutableMap.of(output("remote"), remote))))
++        .isTrue();
++    assertThat(LocalExecutionValues.isPortable(action(ImmutableMap.of(output("local"), local))))
++        .isFalse();
++    assertThat(LocalExecutionValues.isPortable(action(
++        ImmutableMap.of(output("remote"), remote, output("local"), local)))).isFalse();
++  }
++
++  @Test
++  public void missingTreeIsNeverAReusableExecutionResult() {
++    assertThat(LocalExecutionValues.isPortable(TreeArtifactValue.MISSING_TREE_ARTIFACT)).isFalse();
++  }
++
++  @Test
++  public void resolvedOutputSymlinkIsNotPortableAcrossOutputBases() {
++    var remote = FileArtifactValue.createForRemoteFile(new byte[] {1}, 1, 1);
++    var symlink = FileArtifactValue.createFromExistingWithResolvedPath(
++        remote, PathFragment.create("/old-output/execroot/main/bazel-out/bin/file"));
++    assertThat(LocalExecutionValues.isPortable(action(ImmutableMap.of(output("link"), symlink))))
++        .isFalse();
++  }
++}
+diff --git a/tools/skycache/local_execution_probe.py b/tools/skycache/local_execution_probe.py
+new file mode 100644
+index 0000000..68a0054
+--- /dev/null
++++ b/tools/skycache/local_execution_probe.py
+@@ -0,0 +1,192 @@
++#!/usr/bin/env python3
++"""Exercise clean-build metadata hits and lost-blob rewinding with a private HTTP cache."""
++import argparse
++import hashlib
++import http.server
++import json
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import threading
++import time
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--bazel', type=Path, required=True)
++    parser.add_argument('--jdk', type=Path, required=True)
++    parser.add_argument('--root', type=Path, required=True)
++    args = parser.parse_args()
++    root = args.root.resolve()
++    root.mkdir(parents=True, exist_ok=False)
++    ws = root / 'workspace'
++    ws.mkdir()
++    (root / 'tmp').mkdir()
++    out = root / 'output'
++    cache = root / 'skycache'
++    blobs, requests = {}, []
++
++    class Cache(http.server.BaseHTTPRequestHandler):
++        protocol_version = 'HTTP/1.1'
++
++        def log_message(self, *_):
++            pass
++
++        def reply(self, code, data=b''):
++            self.send_response(code)
++            self.send_header('Content-Length', str(len(data)))
++            self.end_headers()
++            self.wfile.write(data)
++
++        def do_PUT(self):
++            data = self.rfile.read(int(self.headers['Content-Length']))
++            blobs[self.path] = data
++            requests.append({'method': 'PUT', 'path': self.path, 'status': 200, 'bytes': len(data)})
++            self.reply(200)
++
++        def do_GET(self):
++            data = blobs.get(self.path)
++            code = 404 if data is None else 200
++            requests.append({'method': 'GET', 'path': self.path, 'status': code,
++                             'bytes': 0 if data is None else len(data)})
++            self.reply(code, data or b'')
++
++    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Cache)
++    threading.Thread(target=server.serve_forever, daemon=True).start()
++    endpoint = f'http://127.0.0.1:{server.server_port}'
++    (ws / 'MODULE.bazel').write_text('module(name="execution_probe")\n')
++    (ws / 'source.txt').write_text('source-v1\n')
++    (ws / 'rules.bzl').write_text(r'''def _copy(ctx):
++    out = ctx.actions.declare_file(("deep/nested/" if ctx.label.name == "middle" else "") + ctx.label.name + ".txt")
++    ctx.actions.run_shell(inputs = [ctx.file.src], outputs = [out],
++        command = 'cat "$1" > "$2"; echo "$3" >> "$2"',
++        arguments = [ctx.file.src.path, out.path, ctx.label.name],
++        execution_requirements = {"no-remote": "1"} if ctx.attr.local else {})
++    return [DefaultInfo(files = depset([out]))]
++copy = rule(implementation = _copy, attrs = {
++    "src": attr.label(allow_single_file = True), "local": attr.bool()})
++def _write(ctx):
++    out = ctx.actions.declare_file(ctx.label.name + ".txt")
++    ctx.actions.write(out, "internal-write\n")
++    return [DefaultInfo(files = depset([out]))]
++write = rule(implementation = _write)
++def _link(ctx):
++    out = ctx.actions.declare_file(ctx.label.name + ".txt")
++    ctx.actions.symlink(output=out, target_file=ctx.file.src)
++    return [DefaultInfo(files=depset([out]))]
++link = rule(implementation=_link, attrs={"src": attr.label(allow_single_file=True)})
++''')
++    (ws / 'BUILD.bazel').write_text('''load(":rules.bzl", "copy", "write", "link")
++copy(name="middle", src="source.txt")
++copy(name="final", src=":middle")
++copy(name="consumer", src=":middle", local=True)
++write(name="internal")
++link(name="alias", src=":middle")
++''')
++    # Keep the environment stable across all invocations and cache admissions.
++    env = dict(os.environ, TMPDIR=str(root / 'tmp'))
++    for key in ['PWD', 'OLDPWD', 'XDG_CACHE_HOME']:
++        env.pop(key, None)
++    startup = [str(args.bazel.resolve()), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
++               '--output_base=' + str(out), '--server_javabase=' + str(args.jdk.resolve()),
++               '--host_jvm_args=-Xmx2g', '--max_idle_secs=120']
++    protocol = {'status': 'running', 'binary': str(args.bazel),
++                'binary_sha256': hashlib.sha256(args.bazel.read_bytes()).hexdigest(),
++                'remote_cache': endpoint, 'runs': []}
++
++    def save():
++        (root / 'results.json').write_text(json.dumps(protocol, indent=2) + '\n')
++
++    def call(label, argv):
++        start = time.monotonic()
++        with (root / (label + '.log')).open('w') as log:
++            p = subprocess.run(startup + argv, cwd=ws, env=env, stdout=log,
++                               stderr=subprocess.STDOUT, timeout=180)
++        row = {'label': label, 'argv': startup + argv, 'seconds': time.monotonic()-start,
++               'exit_code': p.returncode}
++        protocol['runs'].append(row)
++        save()
++        assert p.returncode == 0, label
++        return row
++
++    def build(label, target='final', mode='minimal', enabled=True, accept=True):
++        call(label + '-clean', ['clean', '--noasync', '--noexpunge'])
++        assert not (out / 'action_cache').exists()
++        assert not (out / 'execroot').exists() or not list((out / 'execroot').iterdir())
++        call(label + '-graph', ['dump', '--skyframe=summary'])
++        assert 'Node count: 0' in (root / (label + '-graph.log')).read_text()
++        mark = len(requests)
++        row = call(label, ['build', '//:' + target, '--jobs=4', '--color=no', '--curses=no',
++                          '--disk_cache=', '--remote_cache=' + endpoint, '--remote_retries=0',
++                          '--remote_download_outputs=' + mode, '--remote_upload_local_results',
++                          '--remote_accept_cached=' + str(accept).lower(),
++                          '--experimental_strict_repo_env',
++                          '--experimental_local_skycache=' + (str(cache) if enabled else ''),
++                          '--experimental_analysis_cache_idle_retention=0',
++                          '--build_event_json_file=' + str(root / (label + '.bep.json'))])
++        row['requests'] = requests[mark:]
++        row['action_cache_gets'] = sum(r['method']=='GET' and '/ac/' in r['path'] for r in row['requests'])
++        row['cas_gets'] = sum(r['method']=='GET' and '/cas/' in r['path'] for r in row['requests'])
++        row['missing_blob_reads'] = sum(r['status']==404 and '/cas/' in r['path'] for r in row['requests'])
++        output = out / ('execroot/_main/bazel-out/k8-fastbuild/bin/' + target + '.txt')
++        row['output_exists'] = output.exists()
++        row['contents'] = output.read_text() if output.exists() else None
++        if enabled:
++            shutil.copy2(out / 'local-skycache.json', root / (label + '.skycache.json'))
++        print(json.dumps(row), flush=True)
++        save()
++        return row
++
++    try:
++        build('populate-remote', enabled=False)
++        prime = build('prime-metadata')
++        assert prime['action_cache_gets'] == 2
++        hit = build('minimal-hit')
++        assert hit['action_cache_gets'] == hit['cas_gets'] == 0, hit
++        assert not hit['output_exists']
++        top = build('toplevel-hit', mode='toplevel')
++        assert top['action_cache_gets'] == 0 and top['cas_gets'] == 1, top
++        assert top['contents'] == 'source-v1\nmiddle\nfinal\n'
++        link = build('symlink-to-unmaterialized-input', target='alias')
++        assert link['action_cache_gets'] == link['cas_gets'] == 0
++        middle_digest = hashlib.sha256(b'source-v1\nmiddle\n').hexdigest()
++        middle_key = '/cas/' + middle_digest
++        assert middle_key in blobs
++        del blobs[middle_key]
++        absent = build('unused-missing-intermediate')
++        assert absent['action_cache_gets'] == absent['cas_gets'] == 0
++        recovered = build('required-missing-intermediate', target='consumer', mode='toplevel')
++        assert recovered['missing_blob_reads'] >= 1, recovered
++        assert recovered['contents'] == 'source-v1\nmiddle\nconsumer\n'
++        assert middle_key in blobs, 'rewind did not restore the missing output'
++        final_key = '/cas/' + hashlib.sha256(b'source-v1\nmiddle\nfinal\n').hexdigest()
++        del blobs[final_key]
++        recovered_top = build('missing-toplevel', mode='toplevel')
++        assert recovered_top['missing_blob_reads'] >= 1
++        assert recovered_top['contents'] == 'source-v1\nmiddle\nfinal\n'
++        assert final_key in blobs
++        uncached = build('remote-cache-disabled', mode='minimal', accept=False)
++        assert uncached['action_cache_gets'] == 0
++        assert uncached['contents'] == 'source-v1\nmiddle\nfinal\n'
++        internal = build('internal-output', target='internal', mode='minimal')
++        assert internal['contents'] == 'internal-write\n'
++        internal = build('internal-after-clean', target='internal', mode='minimal')
++        assert internal['contents'] == 'internal-write\n'
++        (ws / 'source.txt').write_text('source-v2\n')
++        changed = build('changed-source', mode='toplevel')
++        assert changed['contents'] == 'source-v2\nmiddle\nfinal\n'
++        assert changed['action_cache_gets'] >= 1
++        protocol['status'] = 'passed'
++    except BaseException as error:
++        protocol['status'] = 'failed'
++        protocol['failure'] = repr(error)
++        raise
++    finally:
++        call('shutdown', ['shutdown'])
++        server.shutdown()
++        save()
++
++
++if __name__ == '__main__':
++    main()
