@@ -350,22 +350,23 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
   }
 
   byte[] getIfPresent(KeyBytesProvider fingerprint) throws IOException {
-    return getIfPresent(fingerprint, false);
+    byte[] key = checkedKey(fingerprint);
+    return getIfPresent(key, digest(key, key.length), false);
   }
 
   /** Returns an absent key as null, but distinguishes uncached data to preserve segment order. */
   byte[] getIfPresentCached(KeyBytesProvider fingerprint) throws IOException {
-    return getIfPresent(fingerprint, true);
+    byte[] key = checkedKey(fingerprint);
+    return getIfPresent(key, digest(key, key.length), true);
   }
 
-  private byte[] getIfPresent(KeyBytesProvider fingerprint, boolean cachedOnly) throws IOException {
+  // A segmented lookup computes and owns these bytes once, across all of its segment probes.
+  byte[] getIfPresent(byte[] key, byte[] hash, boolean cachedOnly) throws IOException {
     lifecycle.readLock().lock();
     try {
       if (closed) {
         throw new IOException("packed cache is closed");
       }
-      byte[] key = checkedKey(fingerprint);
-      byte[] hash = digest(key, key.length);
       Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
       return location == null ? null : readRecord(location, key, cachedOnly);
     } finally {
@@ -539,7 +540,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
     }
   }
 
-  private static byte[] checkedKey(KeyBytesProvider fingerprint) throws IOException {
+  static byte[] checkedKey(KeyBytesProvider fingerprint) throws IOException {
     byte[] key = fingerprint.toBytes();
     if (key.length == 0 || key.length > MAX_KEY_BYTES) {
       throw new IOException("packed cache key length outside bounds");

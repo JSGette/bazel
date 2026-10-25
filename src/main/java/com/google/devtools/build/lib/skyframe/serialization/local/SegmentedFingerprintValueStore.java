@@ -321,15 +321,17 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
   }
 
   private byte[] find(Bucket bucket, KeyBytesProvider key) throws IOException {
-    return find(bucket, key, false);
+    byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+    return find(bucket, bytes, hash(bytes), false);
   }
 
-  private byte[] find(Bucket bucket, KeyBytesProvider key, boolean cachedOnly) throws IOException {
+  private byte[] find(Bucket bucket, byte[] key, byte[] digest, boolean cachedOnly)
+      throws IOException {
     for (int i = bucket.segments.size() - 1; i >= 0; i--) {
       var store = store(bucket.segments.get(i), cachedOnly);
       // An unavailable newer index or matching record stops this search. Skipping it could
       // return a different older value than the ordinary lookup would return.
-      byte[] value = cachedOnly ? store.getIfPresentCached(key) : store.getIfPresent(key);
+      byte[] value = store.getIfPresent(key, digest, cachedOnly);
       if (value != null) {
         return value;
       }
@@ -392,9 +394,11 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       if (closed) {
         throw new IOException("segmented store closed");
       }
-      Bucket bucket = buckets[bucket(key)];
+      byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+      byte[] digest = hash(bytes);
+      Bucket bucket = buckets[digest[0] & (BUCKETS - 1)];
       synchronized (bucket) {
-        byte[] value = find(bucket, key);
+        byte[] value = find(bucket, bytes, digest, false);
         if (value == null) {
           throw new IOException("segmented cache key is absent");
         }
@@ -414,9 +418,11 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
       if (closed) {
         throw new IOException("segmented store closed");
       }
-      Bucket bucket = buckets[bucket(key)];
+      byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
+      byte[] digest = hash(bytes);
+      Bucket bucket = buckets[digest[0] & (BUCKETS - 1)];
       synchronized (bucket) {
-        return find(bucket, key, true);
+        return find(bucket, bytes, digest, true);
       }
     } catch (NotCachedException e) {
       return null;
