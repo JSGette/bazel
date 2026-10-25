@@ -44,13 +44,23 @@ Each file is an ordered list of at-most-1-MiB SHA-256 chunks. The bundle describ
 complete closure, but readers fetch pack contents selectively using that existing format.
 No REAPI or SkyCache protobuf changes are required for demand-driven reads.
 
-Bounds per bundle: 64 publications, 16,384 files, 32,768 chunk references, 256 MiB of file
-bytes, and a 1 MiB bundle manifest. Per read session/export, the client caps transferred blob
-bytes at 257 MiB. Reads share a cumulative RPC-time budget across discovery, candidates,
+Bounds per bundle: 64 publications, 16,384 files, 32,768 chunk references, 4 GiB of logical file
+bytes, and a 1 MiB bundle manifest. Per read session/export, the client caps attempted blob
+bytes at 257 MiB by default. Set `--experimental_remote_skycache_max_transfer_size=2G`, for
+example, to export a larger publication or allow a larger demand read. The setting must be
+positive and at most 4 GiB + 1 MiB; failed reads consume the budget too. Reads share a
+cumulative RPC-time budget across discovery, candidates,
 on-demand reads and any parent materialization; build computation between reads does not
 consume it. Export retains one absolute deadline across its RPCs.
-Existing local metadata/decoded-witness budgets apply independently. Larger publications
-are still skipped: selective reading has not yet raised the wire format's logical-size bound.
+Existing local metadata/decoded-witness budgets apply independently. Exports still stream
+1 MiB chunks; a larger logical publication does not allocate a correspondingly larger buffer.
+Explicit parent materialization also has a cumulative 4 GiB logical-write budget, charged
+before creating staged files even when an attempt fails.
+
+These bounds do not change the version-1 wire schema. Upgrade servers before clients that
+publish more than 256 MiB. Older servers reject those commits and older clients skip those
+publications safely; smaller existing publications remain readable. Rollback needs no data
+conversion, but publications above the older bound become cache misses.
 
 The client prepares manifests, global witness blocks and root indexes in private scratch
 storage. Segment indexes are fetched only when their hash bucket is searched; pack reads
@@ -387,11 +397,108 @@ expected outputs and cache hits. The narrow remote reader still downloads about 
 from a 19.4 MB primer, while changed-subtree uploads remain small. Backend startup alone
 does not explain the gap. Loopback, synthetic metadata, registry access and three samples
 limit generalization; no WAN, peak-memory or production-build speedup is established.
-The six-target Datadog publication exceeds the current remote size bound, so its separate
-local-only benchmark is not used as a remote comparison.
+At the time of this synthetic matrix, the six-target Datadog publication exceeded the remote
+size bound. Its separate local-only benchmark was not used as a remote comparison.
 
 [Full method, transfer/phase tables, raw samples, traces and provenance](measurements/skycache-local-remote-vanilla-2026-10-25/README.md)
 include reproducible vanilla/local/remote harness support and the optional server warm-up.
+
+## Larger publications: Datadog agent validation
+
+Implementation `b7cf340bf0815086cfa213f4a8bd85f05bd35654` separates the logical publication
+bound from attempted transfer bytes. The logical parent closure now permits **4 GiB**;
+the actual transfer default remains **257 MiB**, with an explicit configurable budget.
+Chunk, bundle, metadata and count limits remain independent. No protobuf schema change
+is required. Upgrade the server before publishing above the previous 256 MiB bound.
+
+All **573 cases across 21 test targets pass**. New coverage includes the exact 4 GiB
+logical boundary, overflow/over-limit rejection, missing CAS chunks, transfer exhaustion
+and reset, budgets above 2 GiB, and a 1.5 GiB logical publication read with less than
+4 MiB transferred. Explicit materialization rejects excessive cumulative logical writes
+before creating files, including repeated failed attempts.
+
+The real-worker test builds these Datadog targets at
+`0cde96beb70963d0838119c308b9d0422ee66be0`: `agent`, `cluster-agent`, `process-agent`,
+`trace-agent`, `security-agent` and `system-probe` under `//cmd`. A private linked worktree,
+resolved dependency lockfile and common embedded tools are shared by all arms. The original
+agent checkout and its existing lockfile are unchanged. Local/remote use the new client;
+vanilla uses upstream `a5c50fcb65841b505ec72840d83381a704e70afa`.
+
+The first empty-cache build successfully uploads and commits a roughly **1.51 GB** publication
+in **106.25 s including the build and publication**. Further preparation produces a frozen
+two-publication cache containing **1,530,554,980 B** of immutable objects/manifests. The runs use:
+
+```sh
+--experimental_remote_skycache_max_transfer_size=2G \
+--experimental_remote_skycache_timeout=600s
+```
+
+Each timed reader starts with a fresh JVM, synchronous clean, zero Skyframe nodes/edges,
+empty execroot and no local action cache. Local readers receive the identical frozen seed;
+remote readers start with empty scratch storage and the matching frozen remote catalog.
+All arms use the same Cache & Carry action cache/BES, no disk cache, 16 jobs and a 6 GiB heap.
+A restarted loopback backend receives one full read/idempotent-commit warmup outside each
+remote timer. Client startup/clean and backend warmup are excluded; command completion and
+publication are included. No WAN latency or bandwidth shaping is applied.
+
+**One controlled observation per cell, not medians.** The planned repeated matrix was
+shortened after the first-use remote read took 599.05 s. These measurements are exploratory;
+action-cache/network variability and fixed arm order limit precise ratio estimates.
+
+| Output policy | Vanilla Bazel | Local SkyCache | Remote SkyCache |
+| --- | ---: | ---: | ---: |
+| minimal | 13.37 s | 14.17 s | 457.71 s |
+| toplevel | 26.42 s | 30.42 s | 451.52 s |
+
+All six final binary digests match in every completed build. `toplevel` also verifies the
+six downloaded files against those digests; `minimal` leaves the binaries remote. Both
+SkyCache arms hit **17 configured targets and 11 execution entries**, perform no
+ActionCache/GetActionResult RPCs, and create no intermediate `.a`/`.x` files. Minimal
+SkyCache builds make no output ByteStream reads. There are no transfer-limit skips,
+cache failures or remote transport warnings. Local readers write zero entries.
+
+| Output policy | Remote metadata wire download | Remote metadata wire upload | Remote private writes |
+| --- | ---: | ---: | ---: |
+| minimal | 1,500,515,038 B | 10,514,799 B | 15 |
+| toplevel | 1,500,516,037 B | 10,514,842 B | 15 |
+
+The prepared minimal reader delivers **244,617,077 B of cached value bytes**, yet downloads
+nearly the entire 1.53 GB publication. Its fresh Bazel process records **827,313,019,557 B**
+of `rchar`, with **zero physical `read_bytes`**. These counters include startup/clean and
+all read-like I/O; they are neither physical disk traffic nor network payload. Source
+inspection shows that every cached range read rereads and SHA-256-checks the whole chunk
+under synchronization before returning a slice. This is strong evidence of repeated local
+read/hash amplification, not exclusive CPU attribution from a sampling profiler.
+
+The minimal profiles place **446.47 s** in the remote combined analysis/execution phase,
+versus **12.23 s** locally and **11.71 s** in vanilla. Remote setup before the command is
+only 2.05 s. Skymeld combines analysis and execution here; these are not exclusive analysis
+times and overlapping spans must not be added. Client/worker memory samples are preserved
+separately; independently sampled peaks must not be summed and exclude filesystem page cache.
+
+The initial one-publication, first-use minimal pilot was 13.77 / 35.64 / 599.05 s
+(vanilla/local/remote). It required a refresh publication and is kept separate from the
+prepared comparison. The prepared minimal harness then stopped on an overly strict
+zero-write assertion: the remote build and output checks passed, but it wrote 15 records.
+An offline checksum/key/value audit proves all 15 already exist byte-identically in the
+parent (568 value bytes total). This is consistent with cached-only put deduplication;
+exact chunk availability at put time was not retained. The toplevel continuation records
+remote writes without requiring zero. Its writes were not independently audited for duplication.
+Both earlier harness outcomes remain in the raw evidence rather than being rewritten as passes.
+
+The larger bound therefore removes the functional blocker, but **remote SkyCache is not
+competitive on this workload yet**. Prioritize avoiding repeated whole-chunk reads/hashes
+while retaining digest/record validation, then batch FindMissingBlobs to skip existing
+uploads. Smaller fixed chunks can address demand-read amplification; CDC does not by itself
+remove the repeated cached-read verification demonstrated here.
+
+[Comparison and phase/transfer counters](measurements/skycache-large-agent-2026-10-25/comparison.json),
+[verification and provenance](measurements/skycache-large-agent-2026-10-25/verification.json),
+[duplicate-record proof](measurements/skycache-large-agent-2026-10-25/agent_duplicate_records.json),
+and [logs, profiles and test XML](measurements/skycache-large-agent-2026-10-25/logs-profiles-tests.tar.gz)
+preserve the results. The evidence directory includes exact environment-specific harnesses,
+all raw run reports and SHA-256 checksums. Source, frozen local seeds, catalog receipts,
+original CAS and prior reports were checked after the continuation; all fixture services stopped.
 
 ## Content-defined chunking
 
@@ -437,16 +544,18 @@ algorithm translation. No CDC production code or wire-format change was introduc
 
 ## Remaining limitations and next implementation choices
 
-1. **Uncached/local uploads still send every chunk.** Remote-parent descriptor reuse removes
+1. **Cached reads and uncached/local uploads still do avoidable work.** The Datadog probe
+   exposes repeated whole-chunk reads/hashes from the filesystem page cache. Address that
+   path while preserving digest/record validation. Remote-parent descriptor reuse removes
    repeated parent transfer, but new local files still use singleton BatchUpdateBlobs calls.
    Batch FindMissingBlobs and skip existing chunks before considering CDC; measure RPC overhead
-   and use bounded batches. Compare smaller fixed chunks for demand-read amplification. Cached
-   remote chunks are reread/hashed from disk, so profile that path before adding a memory cache.
-2. **Logical size and transfer bounds remain coupled in version 1.** Separate a larger logical
-   closure bound from the actual downloaded-byte budget, then support bounded streamed export
-   and reuse existing CAS chunks. Keep independent metadata/count limits. Acceptance: a
-   publication larger than 256 MiB serves a small dependency closure below the read budget;
-   oversized metadata, actual byte exhaustion and malicious ranges still fail safely.
+   and use bounded batches. Compare smaller fixed chunks for demand-read amplification.
+2. **Larger publications still have independent limits.** Logical closure and transfer bounds
+   are now separate: 4 GiB logical, configurable actual transfer, unchanged metadata/count
+   limits. Tests admit a 1.5 GiB logical publication while fetching less than 4 MiB, preserve
+   the default transfer limit and reject over-limit materialization before staging files.
+   Increasing the logical bound further needs its own measurements; it must not implicitly
+   increase memory, request or metadata budgets.
 3. **Discovery is one bounded page.** Add lazy pagination on candidate exhaustion, bounded by
    invocation metadata/scan/network budgets, and order roots using target/configuration hints.
    Acceptance: a valid older candidate on the next page is found after newer candidates fail
@@ -460,8 +569,8 @@ algorithm translation. No CDC production code or wire-format change was introduc
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-The first item is the next transfer optimization to measure. Protocol size and
-independent-clone portability are separate compatibility changes, not reasons to weaken the
-existing per-entry validator. The development server is sufficient for these correctness and
-controlled bandwidth/latency experiments; production catalog retention and access control remain
-separate server work.
+Prioritize the cached-read work above, then measure upload deduplication and smaller chunks.
+Further size increases and independent-clone portability need separate compatibility work
+that preserves the existing per-entry validator. The development server is sufficient for these
+correctness and controlled bandwidth/latency experiments; production catalog retention and
+access control remain separate server work.
