@@ -1,0 +1,50 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java b/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java
+index b7dd4e7b1d09b57539c58685e425fae951257a0e..082c0206b278e8da5a82c19dd8e7769f08673dfe 100644
+--- a/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java
++++ b/src/main/java/com/google/devtools/build/lib/remote/RemoteActionFileSystem.java
+@@ -618,6 +618,18 @@ public class RemoteActionFileSystem extends FileSystem {
+       throws IOException {
+     linkPath = resolveSymbolicLinksForParent(linkPath);
+ 
++    // A Skycache hit may supply a remote input without creating its output directories. Make
++    // the target's parents visible to path canonicalization in memory; do not materialize bytes
++    // or directories on disk merely to validate a symlink to a known remote input.
++    PathFragment targetPath = linkPath.getParentDirectory().getRelative(targetFragment);
++    if (isOutput(targetPath)) {
++      var input = inputArtifactData.getInput(targetPath.relativeTo(execRoot));
++      var metadata = input != null ? inputArtifactData.getInputMetadata(input) : null;
++      if (metadata != null && metadata.isRemote()) {
++        remoteOutputTree.getPath(targetPath.getParentDirectory()).createDirectoryAndParents();
++      }
++    }
++
+     if (isOutput(linkPath)) {
+       remoteOutputTree.getPath(linkPath).createSymbolicLink(targetFragment, type);
+     }
+diff --git a/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java b/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java
+index 9dac38c5bf6889c68873973a94490e565d7995fe..25a34d60f29ce8115d61b28304bb314db53d965b 100644
+--- a/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java
++++ b/src/test/java/com/google/devtools/build/lib/remote/RemoteActionFileSystemTest.java
+@@ -324,6 +324,22 @@ public final class RemoteActionFileSystemTest extends RemoteActionFileSystemTest
+         FileNotFoundException.class, () -> actionFs.stat(path, /* followSymlinks= */ true));
+   }
+ 
++  @Test
++  public void symlinkToRemoteInputWithMissingParentsDoesNotMaterializeTarget() throws Exception {
++    Artifact target = ActionsTestUtil.createArtifact(outputRoot, "missing/nested/target");
++    var metadata = FileArtifactValue.createForRemoteFile(new byte[] {1, 2, 3}, 23, 1);
++    var inputs = new ActionInputMap(1);
++    inputs.put(target, metadata);
++    FileSystem actionFs = createActionFileSystem(inputs);
++    Path link = actionFs.getPath(getOutputPath("link"));
++    link.createSymbolicLink(target.getPath().asFragment());
++
++    assertThat(link.stat().isFile()).isTrue();
++    assertThat(link.stat().getSize()).isEqualTo(23);
++    assertThat(fs.getPath(getOutputPath("missing")).exists()).isFalse();
++    verify(inputFetcher, never()).prefetchFiles(any(), any(), any(), any(), any(), any());
++  }
++
+   @Test
+   public void statAndExists_danglingSymlink_notFound() throws Exception {
+     RemoteActionFileSystem actionFs = (RemoteActionFileSystem) createActionFileSystem();

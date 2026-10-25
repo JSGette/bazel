@@ -1,0 +1,36 @@
+diff --git a/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java b/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java
+index 83ac11c4cd17e4212e28c0c95b39e7c634ca8c4d..08e0cc5c39c4ea9298b9c32ea5b4769507658979 100644
+--- a/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java
++++ b/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorker.java
+@@ -283,7 +301,11 @@ public final class RemoteWorker {
+     }
+ 
+     NettyServerBuilder b =
+-        NettyServerBuilder.forPort(workerOptions.getListenPort())
++        (workerOptions.getListenAddress().isEmpty()
++                ? NettyServerBuilder.forPort(workerOptions.getListenPort())
++                : NettyServerBuilder.forAddress(
++                    new java.net.InetSocketAddress(
++                        workerOptions.getListenAddress(), workerOptions.getListenPort())))
+             // Support large messages such as the ActionResult of an action with many
+             // output files (https://github.com/bazelbuild/bazel/issues/29821).
+             .maxInboundMessageSize(Integer.MAX_VALUE)
+diff --git a/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java b/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java
+index 6a2ec9dabcbdb4dd295cada55aca528a16806011..1aa638493b50b88bb355db6b3a26aa8f00e63e13 100644
+--- a/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java
++++ b/src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/RemoteWorkerOptions.java
+@@ -54,6 +72,14 @@ public abstract class RemoteWorkerOptions extends OptionsBase {
+       help = "Listening port for the netty server.")
+   public abstract int getListenPort();
+ 
++  @Option(
++      name = "listen_address",
++      defaultValue = "",
++      documentationCategory = OptionDocumentationCategory.UNCATEGORIZED,
++      effectTags = {OptionEffectTag.UNKNOWN},
++      help = "gRPC bind address; empty listens on all interfaces. Use 127.0.0.1 for local tests.")
++  public abstract String getListenAddress();
++
+   @Option(
+       name = "work_path",
+       defaultValue = "null",

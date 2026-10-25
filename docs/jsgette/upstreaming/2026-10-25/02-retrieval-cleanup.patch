@@ -1,0 +1,211 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java
+index 91be37a7e50d96c00b054f84aa4194bcc95f802d..0f14edda2092662012bc2c2540c79315c3fd35a5 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java
+@@ -14,6 +14,7 @@
+ package com.google.devtools.build.lib.skyframe.serialization;
+ 
+ import static com.google.common.util.concurrent.Futures.getDone;
++import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+ 
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.base.Preconditions;
+@@ -95,12 +96,35 @@ public final class SkyValueRetriever {
+       lastTransitionTimestampNanos = 0;
+     }
+ 
+-    public SerializationState getState() {
++    // Eviction may race with an evaluator that is still creating its next serialization state.
++    private boolean closed;
++
++    public synchronized SerializationState getState() {
+       return state;
+     }
+ 
+     public void setState(SerializationState newState) {
+-      state = newState;
++      boolean cleanup;
++      synchronized (this) {
++        cleanup = closed && state != newState;
++        state = newState;
++      }
++      if (cleanup) {
++        newState.cleanupSerializationState();
++      }
++    }
++
++    private void close() {
++      SerializationState abandoned;
++      synchronized (this) {
++        if (closed) {
++          return;
++        }
++        closed = true;
++        abandoned = state;
++      }
++      // Cleanup can complete futures and run callbacks; do not hold the context lock across it.
++      abandoned.cleanupSerializationState();
+     }
+ 
+     public int getRestarts() {
+@@ -131,17 +155,24 @@ public final class SkyValueRetriever {
+ 
+     @CanIgnoreReturnValue
+     public SerializationState transitionTo(SerializationState nextState) {
+-      long now = System.nanoTime();
+-      if (lastTransitionTimestampNanos != 0) {
+-        RetrievalPhase currentPhase = getPhase(this.state);
+-        if (currentPhase != null) {
+-          long elapsed = now - lastTransitionTimestampNanos;
+-          Long old = phaseDurationNanos.put(currentPhase, elapsed);
+-          Preconditions.checkState(old == null);
++      boolean cleanup;
++      synchronized (this) {
++        long now = System.nanoTime();
++        if (lastTransitionTimestampNanos != 0) {
++          RetrievalPhase currentPhase = getPhase(this.state);
++          if (currentPhase != null) {
++            long elapsed = now - lastTransitionTimestampNanos;
++            Long old = phaseDurationNanos.put(currentPhase, elapsed);
++            Preconditions.checkState(old == null);
++          }
+         }
++        this.state = nextState;
++        this.lastTransitionTimestampNanos = now;
++        cleanup = closed;
++      }
++      if (cleanup) {
++        nextState.cleanupSerializationState();
+       }
+-      this.state = nextState;
+-      this.lastTransitionTimestampNanos = now;
+       return nextState;
+     }
+ 
+@@ -201,7 +232,7 @@ public final class SkyValueRetriever {
+       extends RetrievalContextProvider, SkyKeyComputeState {
+     @Override
+     default void close() {
+-      getRetrievalContext().getState().cleanupSerializationState();
++      getRetrievalContext().close();
+     }
+   }
+ 
+@@ -455,7 +486,22 @@ public final class SkyValueRetriever {
+   @VisibleForTesting
+   record WaitingForFutureLookupContinuation(
+       ListenableFuture<SkyframeLookupContinuation> futureContinuation)
+-      implements SerializationState {}
++      implements SerializationState {
++    @Override
++    public void cleanupSerializationState() {
++      // Eviction can precede completion of the shared fetches. Their lookups must still be
++      // abandoned once known, or other retrievals sharing those pending values can wait forever.
++      futureContinuation.addListener(
++          () -> {
++            try {
++              getDone(futureContinuation).abandon(new StateEvictedException());
++            } catch (ExecutionException | CancellationException e) {
++              // Failed fetches already abandon their owned lookups in the collector.
++            }
++          },
++          directExecutor());
++    }
++  }
+ 
+   @VisibleForTesting
+   record WaitingForLookupContinuation(SkyframeLookupContinuation continuation)
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java
+index 227cc76fb5c31c484cf5dddf84e1fe5a6fab9eaa..1db4e7c36470bae8856d72f48e32b39b2675e657 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java
+@@ -44,6 +44,7 @@ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.Re
+ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.RetrievalResult;
+ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.RetrievedValue;
+ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.WaitingForCacheServiceResponse;
++import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.WaitingForFutureLookupContinuation;
+ import com.google.devtools.build.lib.skyframe.serialization.SkyValueRetriever.WaitingForLookupContinuation;
+ import com.google.devtools.build.lib.skyframe.serialization.analysis.ClientId.SnapshotClientId;
+ import com.google.devtools.build.lib.skyframe.serialization.analysis.LookupResult;
+@@ -917,6 +918,81 @@ public final class SkyValueRetrieverTest {
+     assertThat(thrown).hasCauseThat().hasCauseThat().isInstanceOf(StateEvictedException.class);
+   }
+ 
++  @Test
++  public void cleanupFutureContinuation_abandonsOwnedLookups(
++      @TestParameter boolean alreadyAvailable) throws Exception {
++    var parent = new AtomicReference<Object>();
++    var lookup =
++        new SkyframeLookup<AtomicReference<Object>>(
++            new ExampleKey("pending"), parent, AtomicReference::set);
++    var lookups = new ArrayDeque<SkyframeLookup<?>>();
++    lookups.add(lookup);
++    var continuation = new SkyframeLookupContinuation(lookups, lookup);
++    var available = SettableFuture.<SkyframeLookupContinuation>create();
++    if (alreadyAvailable) {
++      available.set(continuation);
++    }
++    // Compute state can be evicted before the retrieval machine consumes the continuation.
++    new WaitingForFutureLookupContinuation(available).cleanupSerializationState();
++    if (!alreadyAvailable) {
++      assertThat(lookup.isDone()).isFalse();
++      available.set(continuation);
++    }
++    assertThat(lookup.isDone()).isTrue();
++    assertThat(assertThrows(ExecutionException.class, () -> getDone(lookup)))
++        .hasCauseThat()
++        .isInstanceOf(StateEvictedException.class);
++    assertThat(lookups).isEmpty();
++  }
++
++  @Test
++  public void cleanupFutureContinuation_createdAfterEviction(
++      @TestParameter boolean transition, @TestParameter boolean alreadyAvailable) throws Exception {
++    var context = new SkyValueRetriever.RetrievalContext();
++    SkyValueRetriever.SerializableSkyKeyComputeState computeState = () -> context;
++    // A memory-pressure eviction can run while this node's compute call is still active.
++    computeState.close();
++    var parent = new AtomicReference<Object>();
++    var lookup =
++        new SkyframeLookup<AtomicReference<Object>>(
++            new ExampleKey("created-after-eviction"), parent, AtomicReference::set);
++    var lookups = new ArrayDeque<SkyframeLookup<?>>();
++    lookups.add(lookup);
++    var continuation = new SkyframeLookupContinuation(lookups, lookup);
++    var available = SettableFuture.<SkyframeLookupContinuation>create();
++    if (alreadyAvailable) {
++      available.set(continuation);
++    }
++    var state = new WaitingForFutureLookupContinuation(available);
++    if (transition) {
++      context.transitionTo(state);
++    } else {
++      context.setState(state);
++    }
++    if (!alreadyAvailable) {
++      assertThat(lookup.isDone()).isFalse();
++      available.set(continuation);
++    }
++    assertThat(lookup.isDone()).isTrue();
++    assertThat(assertThrows(ExecutionException.class, () -> getDone(lookup)))
++        .hasCauseThat()
++        .isInstanceOf(StateEvictedException.class);
++    assertThat(lookups).isEmpty();
++  }
++
++  @Test
++  public void cleanupFutureContinuation_toleratesFailedOrCancelledFetch(
++      @TestParameter boolean cancelled) {
++    var available = SettableFuture.<SkyframeLookupContinuation>create();
++    new WaitingForFutureLookupContinuation(available).cleanupSerializationState();
++    if (cancelled) {
++      available.cancel(false);
++    } else {
++      available.setException(new IOException("optional cache fetch failed"));
++    }
++    assertThat(available.isDone()).isTrue();
++  }
++
+   @Test
+   public void abandon_concurrentWithDoLookup_synchronizesSafely() throws Exception {
+     var parent1 = new AtomicReference<Object>();

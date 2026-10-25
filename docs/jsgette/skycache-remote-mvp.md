@@ -5,6 +5,11 @@ a persistent catalog to Bazel's existing Java REAPI worker. It uses the worker's
 CAS and ByteStream implementations; a separate fork of bb-storage or bazel-remote is
 unnecessary for this MVP.
 
+The [finalized v1 protocol proposal](skycache-remote-cache-protocol-2026-10-25.md)
+specifies the implemented wire contract and its limits. The
+[upstream extraction plan](skycache-upstreaming-2026-10-25.md) identifies independent
+fixes that can be separated from this experimental subsystem.
+
 The implementation is based on the parallel upstream integration `1aac2aa2ec`, which
 merges Bazel `a5c50fcb65841b505ec72840d83381a704e70afa`. It includes the test-configuration
 key fix, upstream serialization changes, and the `local-project-v4` namespace isolation.
