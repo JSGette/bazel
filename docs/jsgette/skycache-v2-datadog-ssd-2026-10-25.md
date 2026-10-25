@@ -70,3 +70,7 @@ Historical experiment cache/output directories are the primary development clean
 Moving the four Qwen model files from `E:\QWEN` to D: would free about 148.51 GiB directly on E: without touching WSL, but model paths and loading performance would change. Steam library relocation is another option: Battlefield 6 is about 161.90 GiB and Baldur’s Gate 3 about 144.80 GiB. These are alternatives for user selection, not authorizations to move unrelated data.
 
 Raw protocol, corrected harness, samples, disk inventories and SHA-256 manifest: [skycache-v2-datadog-ssd-2026-10-25/](measurements/skycache-v2-datadog-ssd-2026-10-25/). Raw BEP files and profiles remain local because BEP can contain environment values; their hashes are recorded. No credentials, compiled binaries or cache payloads are committed.
+
+## Fresh WSL follow-up
+
+[Completed Datadog comparison on the E: SSD](skycache-v2-fresh-wsl-2026-10-25.md) records the authorized Ubuntu/Qwen purge, verified backups, fresh setup and 42 measured builds using Cache & Carry. The real Datadog target shows slower warm builds and higher foreground memory with SkyCache; the earlier synthetic gains do not generalize to this workload.

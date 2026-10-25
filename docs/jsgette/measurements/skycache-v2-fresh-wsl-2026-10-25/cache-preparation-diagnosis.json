@@ -1,0 +1,71 @@
+{
+  "reason": "Vanilla setup finished successfully but six remote-cache ByteStreamUploader RPCs exceeded the 120-second deadline. Both measured variants use a 600-second timeout and reject remote-cache warnings.",
+  "preparation_is_not_comparative_timing": true,
+  "skycache_first_publication": "Discarded because inputs changed during invocation. Fresh external-repository materialization is a hypothesis; no exact changed witness was emitted. Repeat with the existing outputs, freshly started servers and frozen MODULE lockfile. Keep the original attempt.",
+  "records": [
+    {
+      "label": "prepare-vanilla",
+      "exit_code": 0,
+      "seconds": 793.1501640639999,
+      "warnings": [
+        "io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 119.999999580s. Name resolution delay 0.000000000 seconds. [closed=[], committed=[buffered_nanos=30628, remote_addr=10.55.0.1/10.55.0.1:8080]]",
+        "io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 119.999999040s. Name resolution delay 0.000000000 seconds. [closed=[], committed=[buffered_nanos=24136, remote_addr=10.55.0.1/10.55.0.1:8080]]",
+        "io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 119.999999540s. Name resolution delay 0.000000000 seconds. [closed=[], committed=[buffered_nanos=14900, remote_addr=10.55.0.1/10.55.0.1:8080]]",
+        "io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 119.999999469s. Name resolution delay 0.000000000 seconds. [closed=[], committed=[buffered_nanos=16877, remote_addr=10.55.0.1/10.55.0.1:8080]]",
+        "io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 119.999999591s. Name resolution delay 0.000000000 seconds. [closed=[], committed=[buffered_nanos=38073, remote_addr=10.55.0.1/10.55.0.1:8080]]",
+        "io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: CallOptions deadline exceeded after 119.999999651s. Name resolution delay 0.000000000 seconds. [closed=[], committed=[buffered_nanos=25465, remote_addr=10.55.0.1/10.55.0.1:8080]]"
+      ],
+      "deadline_exception_count": 6,
+      "upload_stack_present": true,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 6789
+        },
+        {
+          "name": "internal",
+          "count": 1085
+        },
+        {
+          "name": "linux-sandbox",
+          "count": 5704,
+          "execKind": "Local"
+        }
+      ],
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+      "publication_failures": []
+    },
+    {
+      "label": "prepare-skycache",
+      "exit_code": 0,
+      "seconds": 204.66002283199987,
+      "warnings": [],
+      "deadline_exception_count": 0,
+      "upload_stack_present": false,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 6789
+        },
+        {
+          "name": "remote cache hit",
+          "count": 5697,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 1085
+        },
+        {
+          "name": "linux-sandbox",
+          "count": 7,
+          "execKind": "Local"
+        }
+      ],
+      "output_sha256": "7f6e2b951113f9e05bbe14709175f872b7222090bd8e694159f9f5aa5cf45664",
+      "publication_failures": [
+        "inputs changed during the invocation"
+      ]
+    }
+  ]
+}

@@ -183,3 +183,7 @@ Full fixture directories and profiles remain in `/mnt/skycache-v2-local`.
 Public evidence contains command/result logs, XML test reports and profile hashes;
 compiled binaries, generated repositories, packs and raw environment dumps are
 excluded. The original handoff preserves failed and interrupted cloud runs.
+
+## Fresh WSL follow-up
+
+[Completed Datadog comparison on the E: SSD](skycache-v2-fresh-wsl-2026-10-25.md) records the authorized Ubuntu/Qwen purge, verified backups, fresh setup and 42 measured builds using Cache & Carry. The real Datadog target shows slower warm builds and higher foreground memory with SkyCache; the earlier synthetic gains do not generalize to this workload.
