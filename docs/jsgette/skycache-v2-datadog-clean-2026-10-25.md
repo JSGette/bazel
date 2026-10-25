@@ -76,3 +76,29 @@ OS page cache and WSL runtime history were not controlled. The observed WSL boot
 - Process-tree PSS/RSS is sampled with a 100 ms wait between readings; actual timestamps are included. Memory excludes filesystem page cache and Windows/WSL host overhead. Existing external-repository downloads are retained; neither Cache & Carry nor the persisted analysis store is cleared. OS cache state, other Windows activity and network transfer variability are uncontrolled.
 
 Public [evidence and scripts](measurements/skycache-v2-datadog-clean-2026-10-25/) include cleanup proofs, filtered BEP metrics, memory samples and raw-file hashes. Complete logs, BEP and profiles remain at `/home/jgett/REPOS/.work/datadog-clean-2026-10-25` and in the verified private archive `/mnt/d/Codex/wsl-reset-2026-10-25/datadog-clean-benchmark.tar`. Raw BEP client environment values are not published.
+
+## Follow-up: remote action cache after a SkyCache hit
+
+The user asked whether a SkyCache hit should prevent remote-cache access and whether only actions absent from SkyCache should run. In this revision, an analysis hit still leads to normal action-cache checks. It does not prove that an action has executed or that its outputs exist.
+
+Source trace at the measured revision `303a149a195bbd6ad770584bd34138ea749c3e9a`:
+
+1. [LocalSkycacheModule.Services](https://github.com/JSGette/bazel/blob/303a149a195bbd6ad770584bd34138ea749c3e9a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java#L301) returns `session == null` from both `uploadsExecutionValues()` and `retrievesExecutionValues()`. An enabled local SkyCache session therefore excludes execution values.
+2. [SkyValueRetrieverUtils](https://github.com/JSGette/bazel/blob/303a149a195bbd6ad770584bd34138ea749c3e9a/src/main/java/com/google/devtools/build/lib/skyframe/SkyValueRetrieverUtils.java#L56) returns `MISS_REASON_NOT_ATTEMPTED` for keys other than `ActionLookupKey` when execution retrieval is disabled. Configured-target/aspect analysis can be reused; executed-action results cannot be restored through this backend.
+3. [ActionExecutionFunction.compute](https://github.com/JSGette/bazel/blob/303a149a195bbd6ad770584bd34138ea749c3e9a/src/main/java/com/google/devtools/build/lib/skyframe/ActionExecutionFunction.java#L175) continues to ordinary action processing when execution-value retrieval returns no cached data.
+4. [RemoteSpawnCache](https://github.com/JSGette/bazel/blob/303a149a195bbd6ad770584bd34138ea749c3e9a/src/main/java/com/google/devtools/build/lib/remote/RemoteSpawnCache.java#L154) looks up the remote action result, downloads required outputs, and returns a successful cache hit without running the compiler when a usable result exists.
+
+That explains the measured combination of 4,501 configured-target SkyCache hits and 5,704 remote action-cache hits. They count different kinds of objects and cannot be subtracted. The latter are cache-served actions, not 5,704 new compilations. The logs also contain replayed compiler output from cached actions. There were zero local spawn executions and 1,085 internal actions in each measured build.
+
+After `bazel clean`, all output files and the local action cache were removed. SkyCache restored analysis, but held no executed-action results or retained copy of the resulting object files and executable. Those bytes had to be obtained from Cache & Carry under the benchmark's `--remote_download_outputs=all` policy.
+
+The requested optimization needs a stronger cache hit:
+
+| Available validated state | Safe behavior |
+|---|---|
+| Analysis only | Reuse analysis; check ordinary action results and obtain required outputs. |
+| Executed-action result, including complete output digests | Potentially skip the remote action-result lookup; missing output bytes still require a CAS download or execution. |
+| Executed-action result plus matching output bytes available locally | Reuse/materialize locally without remote action-cache lookup or download. |
+| Invalid result or unavailable outputs | Fall back to the normal cache/execution path. |
+
+Implementing the stronger hit requires action/input/environment/toolchain invalidation, complete output metadata, digest validation, output materialization and a missing/evicted-blob fallback. Merely treating an analysis hit as completed execution, or flipping the execution-value capability booleans, does not establish those guarantees. This follow-up records the observed behavior and implementation boundary; it changes no product code and reruns no builds.
