@@ -1,5 +1,7 @@
 # Scaling SkyCache beyond the current publication limits
 
+**Implementation update:** Compact witness blocks, segmented packs and separated bounded validation memo retention are now implemented and measured. See the [implementation and benchmark report](skycache-large-tree-2026-10-25.md). Selective per-value repository-binding validation remains future work. The proposal below records the earlier design state.
+
 25 October 2026. Design proposal based on the existing implementation and retained Datadog evidence. No implementation changes, tests or benchmarks were run for this proposal. All task build/benchmark processes have been stopped at the user's request; Windows work is deferred.
 
 ## Recommendation

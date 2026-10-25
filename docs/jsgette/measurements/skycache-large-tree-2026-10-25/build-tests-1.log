@@ -1,0 +1,78 @@
+Starting local Bazel server (9.3.0) and connecting to it...
+INFO: Invocation ID: df48ad8d-a3f9-47a0-a412-887244c3aecc
+INFO: Streaming build results to: http://192.168.2.71:8088/invocation/df48ad8d-a3f9-47a0-a412-887244c3aecc
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+Analyzing: 31 targets (9 packages loaded, 6 targets configured)
+Analyzing: 31 targets (9 packages loaded, 6 targets configured)
+
+WARNING: /home/jgett/REPOS/bazel-skycache-v2/src/conditions/BUILD:205:15: in config_setting rule //src/conditions:windows_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+WARNING: /home/jgett/REPOS/bazel-skycache-v2/src/conditions/BUILD:196:15: in config_setting rule //src/conditions:windows_x64_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+WARNING: /home/jgett/REPOS/bazel-skycache-v2/src/conditions/BUILD:128:15: in config_setting rule //src/conditions:darwin_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+DEBUG: /home/jgett/REPOS/.work/skycache-execution-2026-10-25/build/external/grpc-java+/java_grpc_library.bzl:202:14: Multiple values in 'deps' is deprecated in build_bazel_remote_execution_v2_remote_execution_java_grpc
+Analyzing: 31 targets (521 packages loaded, 22204 targets configured)
+[1 / 1] no actions running
+INFO: Analyzed 31 targets (651 packages loaded, 27453 targets configured, 184 aspect applications).
+[155 / 3,236] Creating runfiles tree bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTaskTest.runfiles; 0s local ... (4 actions, 3 running)
+[839 / 3,340] Creating runfiles tree bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputAliasBenchmark.runfiles; 0s local ... (5 actions, 4 running)
+[2,593 / 5,688] Building src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/libpacked_store.jar (2 source files); 0s remote-cache
+[4,627 / 5,936] 1 / 15 tests; Building src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/libpacked_store.jar (2 source files); 1s remote-cache, multiplex-worker ... (5 actions running)
+[5,847 / 5,938] 3 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:PackedFingerprintValueStoreTest; 0s remote-cache, linux-sandbox ... (3 actions running)
+[5,870 / 5,938] 3 / 15 tests; Building src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.jar (1 source file); 0s remote-cache, multiplex-worker ... (6 actions, 5 running)
+[5,935 / 5,950] 3 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:AnalysisCacheIdleRetentionTaskTest; 0s remote-cache, linux-sandbox ... (6 actions, 5 running)
+[5,937 / 5,950] 5 / 15 tests; Building src/package_jdk_allmodules.zip; 1s remote-cache, linux-sandbox ... (6 actions, 5 running)
+[5,943 / 5,950] 9 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest; 3s remote-cache, linux-sandbox ... (5 actions, 4 running)
+[5,947 / 5,950] 13 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest; 4s remote-cache, linux-sandbox ... (3 actions running)
+FAIL: //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest (Exit 1) (see /home/jgett/REPOS/.work/skycache-execution-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest/test.log)
+INFO: From Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest:
+==================== Test output for //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest:
+JUnit4 Test Runner
+............E.....................................................
+Time: 3.136
+There was 1 failure:
+1) candidateCountLimitPreservesPrivateWrites(com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSessionTest)
+expected: 1
+but was : 0
+	at com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSessionTest.candidateCountLimitPreservesPrivateWrites(LocalCacheSessionTest.java:775)
+
+FAILURES!!!
+Tests run: 65,  Failures: 1
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-25 09:51:19 --
+
+================================================================================
+INFO: Found 16 targets and 15 test targets...
+INFO: Elapsed time: 15.326s, Critical Path: 6.42s
+INFO: 189 processes: 5761 action cache hit, 3 remote cache hit, 103 internal, 52 linux-sandbox, 31 worker.
+INFO: Build completed, 1 test FAILED, 189 total actions
+INFO: 
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:AnalysisCacheIdleRetentionTaskTest PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:ConcurrentFileFingerprintValueStoreTest PASSED in 0.9s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheGarbageCollectorIdleTaskTest PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheGarbageCollectorTest PASSED in 1.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheLeaseManagerTest PASSED in 1.2s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalContentHasherTest PASSED in 0.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest PASSED in 0.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalExecutionValuesTest PASSED in 0.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalPathCodecTest PASSED in 0.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalRepositoryMappingCodecTest PASSED in 1.0s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalRunfilesCodecTest PASSED in 1.0s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalWitnessTableTest PASSED in 0.8s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:PackedFingerprintValueStoreTest PASSED in 0.7s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:SegmentedFingerprintValueStoreTest PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest FAILED in 3.5s
+  /home/jgett/REPOS/.work/skycache-execution-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest/test.log
+
+Executed 15 out of 15 tests: 14 tests pass and 1 fails locally.
+There were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.
+INFO: 
+INFO: 
+INFO: 
+INFO: 
+INFO: Streaming build results to: http://192.168.2.71:8088/invocation/df48ad8d-a3f9-47a0-a412-887244c3aecc

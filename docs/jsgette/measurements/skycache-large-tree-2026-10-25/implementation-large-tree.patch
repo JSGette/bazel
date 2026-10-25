@@ -1,0 +1,1822 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTask.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTask.java
+index 840b062..cc5ee74 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTask.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTask.java
+@@ -48,7 +48,7 @@ final class AnalysisCacheIdleRetentionTask implements IdleTask {
+     if (Thread.interrupted()) {
+       throw new InterruptedException();
+     }
+-    // Publication layout: leased-v1/publications-v3/<namespace>/<id>.manifest.
++    // Publication layout: leased-v2/publications-v4/<namespace>/<id>.manifest.
+     if (!Files.isRegularFile(manifest, NOFOLLOW_LINKS)) {
+       logger.atInfo().log("SkyCache idle retention skipped: backing publication was collected");
+       return;
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 9e6e96a..9da7f0d 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -24,7 +24,10 @@ java_library(
+ 
+ java_library(
+     name = "packed_store",
+-    srcs = ["PackedFingerprintValueStore.java"],
++    srcs = [
++        "PackedFingerprintValueStore.java",
++        "SegmentedFingerprintValueStore.java",
++    ],
+     deps = [
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+@@ -52,6 +55,7 @@ java_library(
+         "LocalPathCodec.java",
+         "LocalRepositoryMappingCodec.java",
+         "LocalRunfilesCodec.java",
++        "LocalWitnessTable.java",
+         "LocalSkycacheModule.java",
+         "LocalSkycacheOptions.java",
+         "LocalSourceArtifactCodec.java",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollector.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollector.java
+index 2799da5..54475dc 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollector.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollector.java
+@@ -33,7 +33,7 @@ import java.util.function.LongSupplier;
+ 
+ /** Collects inactive publications without breaking live readers or publication parent closure. */
+ final class LocalCacheGarbageCollector {
+-  private static final int MANIFEST_MAGIC = 0x534b5333;
++  private static final int MANIFEST_MAGIC = 0x534b5334;
+   private static final long MAX_MANIFEST_BYTES = 64L * 1024 * 1024 + 32;
+   private static final long MAX_SCAN_BYTES = 2L * 1024 * 1024 * 1024;
+   private static final long MAX_RECONCILE_BYTES = 128L * 1024 * 1024;
+@@ -180,8 +180,8 @@ final class LocalCacheGarbageCollector {
+ 
+   LocalCacheGarbageCollector(Path root, Policy policy, LongSupplier clock, Observer observer) {
+     this.managed = root.toAbsolutePath().normalize().resolve(LocalCacheSession.MANAGED_DIRECTORY);
+-    this.publications = managed.resolve("publications-v3");
+-    this.objects = managed.resolve("objects/packed-v1");
++    this.publications = managed.resolve("publications-v4");
++    this.objects = managed.resolve("objects/segmented-v1");
+     this.policy = policy;
+     this.clock = clock;
+     this.observer = observer;
+@@ -352,16 +352,8 @@ final class LocalCacheGarbageCollector {
+         }
+         parents.add(parent);
+       }
+-      int witnesses = count(input);
+-      byte[] scratch = new byte[65536];
+-      for (int i = 0; i < witnesses; i++) {
+-        if ((i & 255) == 0) {
+-          interrupted();
+-        }
+-        skipUtf(input, scratch);
+-        input.readBoolean();
+-        skipUtf(input, scratch);
+-      }
++      LocalWitnessTable.readDescriptors(input);
++      byte[] scratch = new byte[32];
+       if (input.read() != -1
+           || raw.readNBytes(scratch, 0, 32) != 32
+           || !MessageDigest.isEqual(digest.digest(), java.util.Arrays.copyOf(scratch, 32))
+@@ -614,7 +606,11 @@ final class LocalCacheGarbageCollector {
+       for (Path file : entries) {
+         counters.entry();
+         String name = file.getFileName().toString();
+-        if (!name.equals("data.pack") && !name.equals("index") && !pending(name, ".index")) {
++        if (!name.equals("data.pack")
++            && !name.equals("index")
++            && !pending(name, ".index")
++            && !name.matches("segment-[0-9]{5}\\.(pack|index)")
++            && !name.matches("witnesses-[0-9]{5}\\.block")) {
+           safe = false;
+           counters.foreign++;
+         }
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+index c719f92..fe2c77d 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+@@ -55,8 +55,8 @@ import java.util.function.LongSupplier;
+  * closes.
+  */
+ final class LocalCacheSession implements FingerprintValueStore {
+-  static final String MANAGED_DIRECTORY = "leased-v1";
+-  private static final int MAGIC = 0x534b5333;
++  static final String MANAGED_DIRECTORY = "leased-v2";
++  private static final int MAGIC = 0x534b5334;
+   private static final int MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
+   private static final int MAX_WITNESSES = 1_000_000;
+   private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
+@@ -75,11 +75,11 @@ final class LocalCacheSession implements FingerprintValueStore {
+       String id,
+       List<LocalInputSnapshot.Witness> witnesses,
+       List<String> parents,
+-      long encodedBytes) {}
++      long metadataBytes) {}
+ 
+   private record Candidate(
+       String id,
+-      PackedFingerprintValueStore store,
++      SegmentedFingerprintValueStore store,
+       List<LocalInputSnapshot.Witness> witnesses,
+       List<String> parents,
+       long metadataBytes,
+@@ -102,7 +102,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+   private final Path publications;
+   private final LocalCacheLeaseManager leases;
+   private final String id;
+-  private volatile PackedFingerprintValueStore privateStore;
++  private volatile SegmentedFingerprintValueStore privateStore;
+   // Puts hold locks across private writes and shared reads. Keep more stripes than writers
+   // so unrelated keys rarely wait behind another record's I/O.
+   private final Striped<Lock> putLocks = Striped.lock(4096);
+@@ -161,9 +161,9 @@ final class LocalCacheSession implements FingerprintValueStore {
+     this.inputs = inputs;
+     this.nanoTime = nanoTime;
+     Path managed = durableDirectory(root.toAbsolutePath().normalize().resolve(MANAGED_DIRECTORY));
+-    this.objects = durableDirectory(managed.resolve("objects").resolve("packed-v1"));
++    this.objects = durableDirectory(managed.resolve("objects").resolve("segmented-v1"));
+     this.publications =
+-        durableDirectory(managed.resolve("publications-v3").resolve(inputs.cacheNamespace()));
++        durableDirectory(managed.resolve("publications-v4").resolve(inputs.cacheNamespace()));
+     this.id =
+         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+     this.leases = LocalCacheLeaseManager.open(managed);
+@@ -339,12 +339,12 @@ final class LocalCacheSession implements FingerprintValueStore {
+     }
+   }
+ 
+-  private synchronized PackedFingerprintValueStore storeForWrites() throws IOException {
++  private synchronized SegmentedFingerprintValueStore storeForWrites() throws IOException {
+     if (privateStore == null) {
+       try (var catalog = requireSharedCatalog()) {
+         // The pin outlives this short catalog operation, including a partially created pack.
+         leases.pinPublication(id);
+-        privateStore = PackedFingerprintValueStore.create(objects, id);
++        privateStore = SegmentedFingerprintValueStore.create(objects, id);
+       }
+     }
+     return privateStore;
+@@ -514,7 +514,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+     return null;
+   }
+ 
+-  private static byte[] read(PackedFingerprintValueStore store, KeyBytesProvider key)
++  private static byte[] read(SegmentedFingerprintValueStore store, KeyBytesProvider key)
+       throws InterruptedException {
+     if (store == null) {
+       return null;
+@@ -617,7 +617,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+             continue;
+           }
+           Manifest manifest = readManifest(path, remaining);
+-          long indexBudget = remaining - manifest.encodedBytes();
++          long indexBudget = remaining - manifest.metadataBytes();
+           if (Files.size(objects.resolve(manifest.id()).resolve("index")) > indexBudget) {
+             readLimitSkips++;
+             inspected.remove(filename);
+@@ -631,14 +631,14 @@ final class LocalCacheSession implements FingerprintValueStore {
+           }
+           if (matches) {
+             rejectedWitnesses.remove(filename);
+-            var store = PackedFingerprintValueStore.open(objects, manifest.id(), indexBudget);
++            var store = SegmentedFingerprintValueStore.open(objects, manifest.id(), indexBudget);
+             Candidate candidate =
+                 new Candidate(
+                     manifest.id(),
+                     store,
+                     witnesses,
+                     manifest.parents(),
+-                    manifest.encodedBytes() + store.indexBytes(),
++                    manifest.metadataBytes() + store.indexBytes(),
+                     pin);
+             opened.add(candidate);
+             pin = null; // Ownership transfers to the opened candidate.
+@@ -650,6 +650,9 @@ final class LocalCacheSession implements FingerprintValueStore {
+               validatedWitnessLists.put(witnesses, witnesses);
+             }
+           }
++        } catch (SegmentedFingerprintValueStore.BudgetExceededException e) {
++          readLimitSkips++;
++          inspected.remove(filename);
+         } catch (IOException e) {
+           rejected.incrementAndGet();
+         } finally {
+@@ -777,13 +780,8 @@ final class LocalCacheSession implements FingerprintValueStore {
+         for (String parent : usedParents.stream().sorted().toList()) {
+           out.writeUTF(parent);
+         }
+-        List<LocalInputSnapshot.Witness> witnesses = inputs.globalWitnesses();
+-        out.writeInt(witnesses.size());
+-        for (var witness : witnesses) {
+-          out.writeUTF(witness.path());
+-          out.writeBoolean(witness.listing());
+-          out.writeUTF(witness.digest());
+-        }
++        var blocks = LocalWitnessTable.write(objects.resolve(id), inputs.globalWitnesses());
++        LocalWitnessTable.writeDescriptors(out, blocks);
+       }
+       byte[] payload = buffer.toByteArray();
+       if (payload.length > MAX_MANIFEST_BYTES) {
+@@ -827,7 +825,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+ 
+   // finish owns the lifecycle write lock, so no get or put can still be using a descriptor.
+   private void closeStores() throws IOException {
+-    List<PackedFingerprintValueStore> stores = new ArrayList<>();
++    List<SegmentedFingerprintValueStore> stores = new ArrayList<>();
+     if (privateStore != null) {
+       stores.add(privateStore);
+       privateStore = null;
+@@ -843,7 +841,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+     rejectedWitnesses.clear();
+     inputs.clearAdmissionWitnesses();
+     IOException failure = null;
+-    for (PackedFingerprintValueStore store : stores) {
++    for (SegmentedFingerprintValueStore store : stores) {
+       try {
+         store.close();
+       } catch (IOException e) {
+@@ -913,16 +911,18 @@ final class LocalCacheSession implements FingerprintValueStore {
+         }
+         parents.add(parent);
+       }
+-      List<LocalInputSnapshot.Witness> witnesses = new ArrayList<>();
+-      int witnessCount = boundedCount(in);
+-      for (int i = 0; i < witnessCount; i++) {
+-        witnesses.add(new LocalInputSnapshot.Witness(in.readUTF(), in.readBoolean(), in.readUTF()));
++      var blocks = LocalWitnessTable.readDescriptors(in);
++      long metadataBytes = bytes.length + LocalWitnessTable.metadataBytes(blocks);
++      if (metadataBytes > remainingBytes) {
++        throw new SegmentedFingerprintValueStore.BudgetExceededException();
+       }
++      var witnesses =
++          LocalWitnessTable.read(objects.resolve(namespace), blocks, remainingBytes - bytes.length);
+       if (in.read() != -1
+           || !Files.isDirectory(objects.resolve(namespace), LinkOption.NOFOLLOW_LINKS)) {
+         throw new IOException("incomplete publication");
+       }
+-      return new Manifest(namespace, List.copyOf(witnesses), List.copyOf(parents), bytes.length);
++      return new Manifest(namespace, witnesses, List.copyOf(parents), metadataBytes);
+     }
+   }
+ 
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java
+index cfb6914..044255c 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidator.java
+@@ -34,12 +34,22 @@ import java.util.regex.Pattern;
+ final class LocalDependencyValidator {
+   private static final Pattern LEAF_KEY_PATTERN = Pattern.compile("local-input-v1/[0-9a-f]{32}");
+ 
+-  record Limits(int records, long bytes, int depth, int references, int nodeBytes) {
++  record Limits(
++      int records, long bytes, int depth, int references, int nodeBytes, int memoEntries) {
+     static final Limits DEFAULT =
+-        new Limits(250_000, 128L * 1024 * 1024, 4096, 100_000, 8 * 1024 * 1024);
++        new Limits(250_000, 128L * 1024 * 1024, 4096, 100_000, 8 * 1024 * 1024, 1_000_000);
++
++    Limits(int records, long bytes, int depth, int references, int nodeBytes) {
++      this(records, bytes, depth, references, nodeBytes, records);
++    }
+ 
+     Limits {
+-      if (records < 1 || bytes < 1 || depth < 1 || references < 1 || nodeBytes < 1) {
++      if (records < 1
++          || bytes < 1
++          || depth < 1
++          || references < 1
++          || nodeBytes < 1
++          || memoEntries < 1) {
+         throw new IllegalArgumentException("invalid dependency validation limits");
+       }
+     }
+@@ -85,6 +95,7 @@ final class LocalDependencyValidator {
+   private final LongAdder admissionWitnessMemoHits = new LongAdder();
+   private final LongAdder recordsRead = new LongAdder();
+   private final LongAdder memoHits = new LongAdder();
++  private final LongAdder memoCapacitySkips = new LongAdder();
+   private final LongAdder witnessesChecked = new LongAdder();
+   private final LongAdder rejected = new LongAdder();
+   private final LongAdder subtreeWaits = new LongAdder();
+@@ -161,10 +172,14 @@ final class LocalDependencyValidator {
+         }
+         synchronized (memoInsertion) {
+           if (!validated.contains(frame.key())) {
+-            if (validated.size() >= limits.records()) {
+-              throw new IOException("dependency success memo capacity exceeded");
++            // This memo is an optimization, not evidence required for a successful traversal.
++            // Once full, later lookups must repeat validation. Traversal and in-flight limits
++            // still fail closed, and every successful witness remains registered with inputs.
++            if (validated.size() < limits.memoEntries()) {
++              validated.add(frame.key());
++            } else {
++              memoCapacitySkips.increment();
+             }
+-            validated.add(frame.key());
+           }
+         }
+         finish(frame.key(), frame.pending(), true);
+@@ -199,7 +214,7 @@ final class LocalDependencyValidator {
+       }
+     }
+     synchronized (memoInsertion) {
+-      if (validatedWitnesses.size() < limits.records()) {
++      if (validatedWitnesses.size() < limits.memoEntries()) {
+         validatedWitnesses.add(witness);
+       }
+     }
+@@ -360,12 +375,13 @@ final class LocalDependencyValidator {
+   String statisticsJson() {
+     return String.format(
+         java.util.Locale.ROOT,
+-        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d,\"admission_witness_memo_hits\":%d,\"subtree_waits\":%d}",
++        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"memo_capacity_skips\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d,\"admission_witness_memo_hits\":%d,\"subtree_waits\":%d}",
+         recordsRead.sum(),
+         memoHits.sum(),
+         witnessesChecked.sum(),
+         rejected.sum(),
+         validated.size(),
++        memoCapacitySkips.sum(),
+         witnessMemoHits.sum(),
+         validatedWitnesses.size(),
+         admissionWitnessMemoHits.sum(),
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessTable.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessTable.java
+new file mode 100644
+index 0000000..bf0403e
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessTable.java
+@@ -0,0 +1,281 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
++package com.google.devtools.build.lib.skyframe.serialization.local;
++
++import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
++import static java.nio.file.StandardOpenOption.CREATE_NEW;
++import static java.nio.file.StandardOpenOption.READ;
++import static java.nio.file.StandardOpenOption.WRITE;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.DataInputStream;
++import java.io.DataOutputStream;
++import java.io.IOException;
++import java.nio.ByteBuffer;
++import java.nio.channels.FileChannel;
++import java.nio.charset.CharacterCodingException;
++import java.nio.charset.CodingErrorAction;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Path;
++import java.nio.file.attribute.PosixFilePermissions;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.ArrayList;
++import java.util.HexFormat;
++import java.util.List;
++import java.util.Set;
++import java.util.zip.DataFormatException;
++import java.util.zip.Deflater;
++import java.util.zip.Inflater;
++
++/** Immutable, bounded witness blocks; only their authenticated descriptors enter the manifest. */
++final class LocalWitnessTable {
++  private static final int MAX_BLOCKS = 16384;
++  private static final int MAX_COUNT = 4096;
++  private static final int TARGET_BYTES = 1024 * 1024;
++  private static final int MAX_BYTES = TARGET_BYTES + 128 * 1024;
++  private static final int MAX_PATH_BYTES = 65535;
++
++  record Block(int count, int encodedBytes, int decodedBytes, long expandedBytes, String digest) {}
++
++  static List<Block> write(Path directory, List<LocalInputSnapshot.Witness> witnesses)
++      throws IOException {
++    var blocks = new ArrayList<Block>();
++    int offset = 0;
++    while (offset < witnesses.size()) {
++      if (blocks.size() >= MAX_BLOCKS) {
++        throw new IOException("witness block count exceeds size limit");
++      }
++      var bytes = new ByteArrayOutputStream();
++      int count = 0;
++      long expandedBytes = 0;
++      byte[] previous = new byte[0];
++      try (var out = new DataOutputStream(bytes)) {
++        while (offset < witnesses.size() && count < MAX_COUNT && bytes.size() < TARGET_BYTES) {
++          var witness = witnesses.get(offset++);
++          byte[] path = witness.path().getBytes(StandardCharsets.UTF_8);
++          if (path.length > MAX_PATH_BYTES) {
++            throw new IOException("witness path exceeds size limit");
++          }
++          int prefix = 0;
++          while (prefix < Math.min(previous.length, path.length)
++              && previous[prefix] == path[prefix]) {
++            prefix++;
++          }
++          out.writeShort(prefix);
++          out.writeShort(path.length - prefix);
++          out.write(path, prefix, path.length - prefix);
++          out.writeBoolean(witness.listing());
++          String digest = witness.digest();
++          if (digest.equals("missing")) {
++            out.writeByte(1);
++          } else if (digest.equals("not-directory")) {
++            out.writeByte(2);
++          } else {
++            if (!digest.matches("[0-9a-f]{64}")) {
++              throw new IOException("invalid witness digest");
++            }
++            out.writeByte(0);
++            out.write(HexFormat.of().parseHex(digest));
++          }
++          expandedBytes += path.length + 38L;
++          previous = path;
++          count++;
++        }
++      }
++      byte[] plain = bytes.toByteArray();
++      var deflater = new Deflater(Deflater.BEST_SPEED, true);
++      byte[] compressed;
++      try {
++        deflater.setInput(plain);
++        deflater.finish();
++        var encoded = new ByteArrayOutputStream();
++        byte[] chunk = new byte[8192];
++        while (!deflater.finished()) {
++          int n = deflater.deflate(chunk);
++          if (n == 0 || encoded.size() + n > MAX_BYTES) {
++            throw new IOException("witness compression exceeds size limit");
++          }
++          encoded.write(chunk, 0, n);
++        }
++        compressed = encoded.toByteArray();
++      } finally {
++        deflater.end();
++      }
++      Path file = directory.resolve(filename(blocks.size()));
++      try (var channel =
++          FileChannel.open(
++              file,
++              Set.of(CREATE_NEW, WRITE, NOFOLLOW_LINKS),
++              PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))) {
++        ByteBuffer buffer = ByteBuffer.wrap(compressed);
++        while (buffer.hasRemaining()) {
++          channel.write(buffer);
++        }
++        channel.force(true);
++      }
++      blocks.add(
++          new Block(count, compressed.length, plain.length, expandedBytes, hash(compressed)));
++    }
++    try (var channel = FileChannel.open(directory, READ)) {
++      channel.force(true);
++    }
++    return List.copyOf(blocks);
++  }
++
++  static void writeDescriptors(DataOutputStream out, List<Block> blocks) throws IOException {
++    out.writeInt(blocks.size());
++    for (Block block : blocks) {
++      out.writeInt(block.count());
++      out.writeInt(block.encodedBytes());
++      out.writeInt(block.decodedBytes());
++      out.writeLong(block.expandedBytes());
++      out.write(HexFormat.of().parseHex(block.digest()));
++    }
++  }
++
++  static List<Block> readDescriptors(DataInputStream in) throws IOException {
++    int count = in.readInt();
++    if (count < 0 || count > MAX_BLOCKS) {
++      throw new IOException("invalid witness block count");
++    }
++    var blocks = new ArrayList<Block>();
++    for (int i = 0; i < count; i++) {
++      int entries = in.readInt();
++      int encoded = in.readInt();
++      int decoded = in.readInt();
++      long expanded = in.readLong();
++      byte[] digest = new byte[32];
++      in.readFully(digest);
++      if (entries < 1
++          || entries > MAX_COUNT
++          || encoded < 1
++          || encoded > MAX_BYTES
++          || decoded < 1
++          || decoded > MAX_BYTES
++          || expanded < 38L * entries
++          || expanded > (MAX_PATH_BYTES + 38L) * entries) {
++        throw new IOException("invalid witness block bounds");
++      }
++      blocks.add(new Block(entries, encoded, decoded, expanded, HexFormat.of().formatHex(digest)));
++    }
++    return List.copyOf(blocks);
++  }
++
++  /** Charge fully expanded paths too: prefix compression must not bypass the admission budget. */
++  static long metadataBytes(List<Block> blocks) {
++    return blocks.stream()
++        .mapToLong(b -> Math.max(Math.max(b.encodedBytes(), b.decodedBytes()), b.expandedBytes()))
++        .sum();
++  }
++
++  static List<LocalInputSnapshot.Witness> read(Path directory, List<Block> blocks, long budget)
++      throws IOException {
++    if (metadataBytes(blocks) > budget) {
++      throw new IOException("witness blocks exceed metadata budget");
++    }
++    var witnesses = new ArrayList<LocalInputSnapshot.Witness>();
++    for (int i = 0; i < blocks.size(); i++) {
++      Block block = blocks.get(i);
++      byte[] encoded = new byte[block.encodedBytes()];
++      try (var channel = FileChannel.open(directory.resolve(filename(i)), READ, NOFOLLOW_LINKS)) {
++        if (channel.size() != encoded.length) {
++          throw new IOException("witness block length mismatch");
++        }
++        ByteBuffer buffer = ByteBuffer.wrap(encoded);
++        while (buffer.hasRemaining()) {
++          if (channel.read(buffer) < 0) {
++            throw new IOException("truncated witness block");
++          }
++        }
++      }
++      if (!hash(encoded).equals(block.digest())) {
++        throw new IOException("witness block checksum mismatch");
++      }
++      byte[] plain = new byte[block.decodedBytes()];
++      var inflater = new Inflater(true);
++      try {
++        inflater.setInput(encoded);
++        int position = 0;
++        while (!inflater.finished() && position < plain.length) {
++          int n = inflater.inflate(plain, position, plain.length - position);
++          if (n == 0) {
++            throw new IOException("incomplete witness compression stream");
++          }
++          position += n;
++        }
++        if (position != plain.length || !inflater.finished() || inflater.getRemaining() != 0) {
++          throw new IOException("witness decompression bounds mismatch");
++        }
++      } catch (DataFormatException e) {
++        throw new IOException("invalid witness compression stream", e);
++      } finally {
++        inflater.end();
++      }
++      try (var in = new DataInputStream(new ByteArrayInputStream(plain))) {
++        byte[] previous = new byte[0];
++        long expanded = 0;
++        for (int n = 0; n < block.count(); n++) {
++          int prefix = in.readUnsignedShort();
++          int suffix = in.readUnsignedShort();
++          if (prefix > previous.length || prefix + suffix > MAX_PATH_BYTES) {
++            throw new IOException("invalid witness path prefix");
++          }
++          expanded += prefix + suffix + 38L;
++          if (expanded > block.expandedBytes()) {
++            throw new IOException("expanded witness paths exceed metadata budget");
++          }
++          byte[] path = java.util.Arrays.copyOf(previous, prefix + suffix);
++          in.readFully(path, prefix, suffix);
++          boolean listing = in.readBoolean();
++          int tag = in.readUnsignedByte();
++          String digest;
++          if (tag == 0) {
++            byte[] value = new byte[32];
++            in.readFully(value);
++            digest = HexFormat.of().formatHex(value);
++          } else if (tag == 1) {
++            digest = "missing";
++          } else if (tag == 2) {
++            digest = "not-directory";
++          } else {
++            throw new IOException("invalid witness digest tag");
++          }
++          String name;
++          try {
++            name =
++                StandardCharsets.UTF_8
++                    .newDecoder()
++                    .onMalformedInput(CodingErrorAction.REPORT)
++                    .onUnmappableCharacter(CodingErrorAction.REPORT)
++                    .decode(ByteBuffer.wrap(path))
++                    .toString();
++          } catch (CharacterCodingException e) {
++            throw new IOException("invalid witness path encoding", e);
++          }
++          witnesses.add(new LocalInputSnapshot.Witness(name, listing, digest));
++          previous = path;
++        }
++        if (expanded != block.expandedBytes() || in.read() != -1) {
++          throw new IOException("trailing witness block bytes");
++        }
++      }
++    }
++    return List.copyOf(witnesses);
++  }
++
++  static String filename(int index) {
++    return String.format(java.util.Locale.ROOT, "witnesses-%05d.block", index);
++  }
++
++  private static String hash(byte[] bytes) {
++    try {
++      return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
++    } catch (NoSuchAlgorithmException e) {
++      throw new AssertionError(e);
++    }
++  }
++
++  private LocalWitnessTable() {}
++}
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
+index 53b75cb..31d3cad 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
+@@ -65,8 +65,9 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+   private final Path namespace;
+   private final FileChannel data;
+   // Only writers need a mutable map. Published readers use fixed-width binary search.
+-  private final Map<ByteString, Location> pending;
+-  private final byte[] index;
++  private Map<ByteString, Location> pending;
++  private byte[] index;
++  private final String indexName;
+   private final AtomicLong end = new AtomicLong();
+   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
+   private boolean sealed;
+@@ -80,12 +81,23 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+         namespace,
+         PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+     syncDirectory(format);
++    return createFiles(namespace, "data.pack", "index");
++  }
++
++  static PackedFingerprintValueStore createSegment(Path namespace, String prefix)
++      throws IOException {
++    return createFiles(namespace, prefix + ".pack", prefix + ".index");
++  }
++
++  private static PackedFingerprintValueStore createFiles(
++      Path namespace, String dataName, String indexName) throws IOException {
+     FileChannel data =
+         FileChannel.open(
+-            namespace.resolve("data.pack"),
++            namespace.resolve(dataName),
+             Set.of(CREATE_NEW, READ, WRITE, NOFOLLOW_LINKS),
+             PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+-    return new PackedFingerprintValueStore(namespace, data, new ConcurrentHashMap<>(), null);
++    return new PackedFingerprintValueStore(
++        namespace, data, new ConcurrentHashMap<>(), null, indexName);
+   }
+ 
+   /** Opens only a sealed namespace, verifying index bounds, checksum and data-file length. */
+@@ -97,12 +109,22 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+   static PackedFingerprintValueStore open(Path format, String id, long maxIndexBytes)
+       throws IOException {
+     checkId(id);
+-    Path namespace = format.resolve(id);
++    return openFiles(format.resolve(id), "data.pack", "index", maxIndexBytes);
++  }
++
++  static PackedFingerprintValueStore openSegment(Path namespace, String prefix, long maxIndexBytes)
++      throws IOException {
++    return openFiles(namespace, prefix + ".pack", prefix + ".index", maxIndexBytes);
++  }
++
++  private static PackedFingerprintValueStore openFiles(
++      Path namespace, String dataName, String indexName, long maxIndexBytes) throws IOException {
+     byte[] index;
+     if (!Files.isDirectory(namespace, NOFOLLOW_LINKS)) {
+       throw new IOException("packed cache namespace is not a directory");
+     }
+-    try (FileChannel channel = FileChannel.open(namespace.resolve("index"), READ, NOFOLLOW_LINKS)) {
++    try (FileChannel channel =
++        FileChannel.open(namespace.resolve(indexName), READ, NOFOLLOW_LINKS)) {
+       long size = channel.size();
+       if (size < INDEX_HEADER_BYTES + 32 || size > MAX_INDEX_BYTES || size > maxIndexBytes) {
+         throw new IOException("packed cache index size outside bounds");
+@@ -143,12 +165,12 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+         throw new IOException("packed cache record location outside bounds");
+       }
+     }
+-    FileChannel data = FileChannel.open(namespace.resolve("data.pack"), READ, NOFOLLOW_LINKS);
++    FileChannel data = FileChannel.open(namespace.resolve(dataName), READ, NOFOLLOW_LINKS);
+     try {
+       if (data.size() != dataSize) {
+         throw new IOException("packed cache data length mismatch");
+       }
+-      return new PackedFingerprintValueStore(namespace, data, null, index);
++      return new PackedFingerprintValueStore(namespace, data, null, index, indexName);
+     } catch (IOException | RuntimeException e) {
+       data.close();
+       throw e;
+@@ -160,8 +182,13 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+   }
+ 
+   private PackedFingerprintValueStore(
+-      Path namespace, FileChannel data, Map<ByteString, Location> pending, byte[] index) {
++      Path namespace,
++      FileChannel data,
++      Map<ByteString, Location> pending,
++      byte[] index,
++      String indexName) {
+     this.namespace = namespace;
++    this.indexName = indexName;
+     this.data = data;
+     this.pending = pending;
+     this.index = index;
+@@ -231,13 +258,11 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+       if (closed) {
+         throw new IOException("packed cache is closed");
+       }
+-      byte[] key = checkedKey(fingerprint);
+-      byte[] hash = digest(key, key.length);
+-      Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
+-      if (location == null) {
++      byte[] value = getIfPresent(fingerprint);
++      if (value == null) {
+         throw new IOException("packed cache key is absent");
+       }
+-      return immediateFuture(readRecord(location, key));
++      return immediateFuture(value);
+     } catch (IOException e) {
+       return immediateFailedFuture(new MissingFingerprintValueException(fingerprint, e));
+     } finally {
+@@ -245,6 +270,29 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+     }
+   }
+ 
++  byte[] getIfPresent(KeyBytesProvider fingerprint) throws IOException {
++    lifecycle.readLock().lock();
++    try {
++      if (closed) {
++        throw new IOException("packed cache is closed");
++      }
++      byte[] key = checkedKey(fingerprint);
++      byte[] hash = digest(key, key.length);
++      Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
++      return location == null ? null : readRecord(location, key);
++    } finally {
++      lifecycle.readLock().unlock();
++    }
++  }
++
++  long dataBytes() throws IOException {
++    return data.size();
++  }
++
++  byte[] indexDigest() {
++    return Arrays.copyOfRange(index, index.length - 32, index.length);
++  }
++
+   /** Makes all completed writes durable before the caller publishes the enclosing manifest. */
+   void seal() throws IOException {
+     lifecycle.writeLock().lock();
+@@ -287,11 +335,14 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+           write(channel, buffer, 0);
+           channel.force(true);
+         }
+-        Files.createLink(namespace.resolve("index"), temporary);
++        Files.createLink(namespace.resolve(indexName), temporary);
+         syncDirectory(namespace);
+       } finally {
+         Files.deleteIfExists(temporary);
+       }
++      index = buffer.array();
++      pending.clear();
++      pending = null;
+       sealed = true;
+     } finally {
+       lifecycle.writeLock().unlock();
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
+new file mode 100644
+index 0000000..f31c63b
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
+@@ -0,0 +1,411 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
++package com.google.devtools.build.lib.skyframe.serialization.local;
++
++import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
++import static com.google.common.util.concurrent.Futures.immediateFuture;
++import static com.google.devtools.build.lib.skyframe.serialization.WriteStatuses.immediateFailedWriteStatus;
++import static com.google.devtools.build.lib.skyframe.serialization.WriteStatuses.immediateWriteStatus;
++import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
++import static java.nio.file.StandardOpenOption.READ;
++import static java.nio.file.StandardOpenOption.WRITE;
++
++import com.google.common.util.concurrent.ListenableFuture;
++import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
++import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
++import com.google.devtools.build.lib.skyframe.serialization.WriteStatus;
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.DataInputStream;
++import java.io.DataOutputStream;
++import java.io.IOException;
++import java.nio.ByteBuffer;
++import java.nio.channels.FileChannel;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.attribute.PosixFilePermissions;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Comparator;
++import java.util.List;
++import java.util.concurrent.ExecutionException;
++import java.util.concurrent.atomic.AtomicLong;
++import java.util.concurrent.locks.ReentrantReadWriteLock;
++
++/** One publication, bounded mutable segments, and compact indexes opened only when used. */
++final class SegmentedFingerprintValueStore implements FingerprintValueStore, AutoCloseable {
++  private static final int MAGIC = 0x53475331;
++  private static final int BUCKETS = 16;
++  private static final int MAX_SEGMENTS = 4096;
++  private static final int MAX_ROOT_BYTES = 1024 * 1024;
++  private static final int SEGMENT_ENTRIES = 16384;
++  private static final long SEGMENT_BYTES = 32L * 1024 * 1024;
++  private static final long WRITER_INDEX_BUDGET = 256L * 1024 * 1024;
++
++  static final class BudgetExceededException extends IOException {
++    BudgetExceededException() {
++      super("segmented metadata exceeds admission budget");
++    }
++  }
++
++  private static final class Segment {
++    final int number;
++    final int bucket;
++    PackedFingerprintValueStore store;
++    int entries;
++    int indexBytes;
++    long dataBytes;
++    byte[] indexDigest;
++
++    Segment(int number, int bucket, PackedFingerprintValueStore store) {
++      this.number = number;
++      this.bucket = bucket;
++      this.store = store;
++    }
++
++    String prefix() {
++      return String.format(java.util.Locale.ROOT, "segment-%05d", number);
++    }
++  }
++
++  private static final class Bucket {
++    final List<Segment> segments = new ArrayList<>();
++    Segment active;
++  }
++
++  private final Path directory;
++  private final Bucket[] buckets = new Bucket[BUCKETS];
++  private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
++  private final AtomicLong entries = new AtomicLong();
++  private final int segmentEntries;
++  private final long segmentBytes;
++  private int nextSegment;
++  private long metadataBytes;
++  private boolean sealed;
++  private boolean closed;
++
++  private SegmentedFingerprintValueStore(Path directory, int segmentEntries, long segmentBytes) {
++    this.directory = directory;
++    this.segmentEntries = segmentEntries;
++    this.segmentBytes = segmentBytes;
++    for (int i = 0; i < BUCKETS; i++) {
++      buckets[i] = new Bucket();
++    }
++  }
++
++  static SegmentedFingerprintValueStore create(Path format, String id) throws IOException {
++    return create(format, id, SEGMENT_ENTRIES, SEGMENT_BYTES);
++  }
++
++  // Small limits exercise rotation and closure in unit tests without million-entry fixtures.
++  static SegmentedFingerprintValueStore create(Path format, String id, int count, long bytes)
++      throws IOException {
++    checkId(id);
++    if (count < 1 || count > SEGMENT_ENTRIES || bytes < 1 || bytes > SEGMENT_BYTES) {
++      throw new IllegalArgumentException("invalid segment limits");
++    }
++    Path directory = format.resolve(id);
++    Files.createDirectory(
++        directory,
++        PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
++    sync(format);
++    return new SegmentedFingerprintValueStore(directory, count, bytes);
++  }
++
++  static SegmentedFingerprintValueStore open(Path format, String id, long budget)
++      throws IOException {
++    checkId(id);
++    Path directory = format.resolve(id);
++    if (!Files.isDirectory(directory, NOFOLLOW_LINKS)) {
++      throw new IOException("segmented store is not a directory");
++    }
++    byte[] bytes;
++    try (var channel = FileChannel.open(directory.resolve("index"), READ, NOFOLLOW_LINKS)) {
++      long length = channel.size();
++      if (length < 40 || length > MAX_ROOT_BYTES) {
++        throw new IOException("segmented index directory outside bounds");
++      }
++      if (length > budget) {
++        throw new BudgetExceededException();
++      }
++      bytes = new byte[(int) length];
++      ByteBuffer target = ByteBuffer.wrap(bytes);
++      while (target.hasRemaining()) {
++        if (channel.read(target) < 0) {
++          throw new IOException("truncated segmented index directory");
++        }
++      }
++    }
++    byte[] payload = Arrays.copyOf(bytes, bytes.length - 32);
++    if (!MessageDigest.isEqual(
++        hash(payload), Arrays.copyOfRange(bytes, payload.length, bytes.length))) {
++      throw new IOException("segmented index directory checksum mismatch");
++    }
++    var result = new SegmentedFingerprintValueStore(directory, SEGMENT_ENTRIES, SEGMENT_BYTES);
++    result.metadataBytes = bytes.length;
++    try (var in = new DataInputStream(new ByteArrayInputStream(payload))) {
++      if (in.readInt() != MAGIC) {
++        throw new IOException("unsupported segmented index directory");
++      }
++      int count = in.readInt();
++      if (count < 0 || count > MAX_SEGMENTS) {
++        throw new IOException("invalid segment count");
++      }
++      for (int i = 0; i < count; i++) {
++        int bucket = in.readInt();
++        if (bucket < 0 || bucket >= BUCKETS) {
++          throw new IOException("invalid segment bucket");
++        }
++        var segment = new Segment(i, bucket, null);
++        segment.entries = in.readInt();
++        segment.dataBytes = in.readLong();
++        segment.indexBytes = in.readInt();
++        segment.indexDigest = new byte[32];
++        in.readFully(segment.indexDigest);
++        if (segment.entries < 1
++            || segment.entries > SEGMENT_ENTRIES
++            || segment.dataBytes < 0
++            || segment.indexBytes != 48L + 48L * segment.entries) {
++          throw new IOException("segment metadata exceeds bounds or budget");
++        }
++        if (segment.indexBytes > budget - result.metadataBytes) {
++          throw new BudgetExceededException();
++        }
++        if (Files.size(directory.resolve(segment.prefix() + ".index")) != segment.indexBytes
++            || Files.size(directory.resolve(segment.prefix() + ".pack")) != segment.dataBytes) {
++          throw new IOException("segment file length mismatch");
++        }
++        result.metadataBytes += segment.indexBytes;
++        result.buckets[bucket].segments.add(segment);
++      }
++      if (in.read() != -1) {
++        throw new IOException("trailing segmented index directory bytes");
++      }
++    }
++    result.sealed = true;
++    return result;
++  }
++
++  long indexBytes() {
++    return metadataBytes;
++  }
++
++  private synchronized Segment newSegment(int bucket) throws IOException {
++    if (nextSegment >= MAX_SEGMENTS) {
++      throw new IOException("segment count exceeds limit");
++    }
++    var segment = new Segment(nextSegment++, bucket, null);
++    segment.store = PackedFingerprintValueStore.createSegment(directory, segment.prefix());
++    return segment;
++  }
++
++  private static int bucket(KeyBytesProvider key) {
++    return hash(key.toBytes())[0] & (BUCKETS - 1);
++  }
++
++  private PackedFingerprintValueStore store(Segment segment) throws IOException {
++    if (segment.store == null) {
++      var opened =
++          PackedFingerprintValueStore.openSegment(directory, segment.prefix(), segment.indexBytes);
++      if (!MessageDigest.isEqual(opened.indexDigest(), segment.indexDigest)) {
++        opened.close();
++        throw new IOException("segment index differs from publication descriptor");
++      }
++      segment.store = opened;
++    }
++    return segment.store;
++  }
++
++  private byte[] find(Bucket bucket, KeyBytesProvider key) throws IOException {
++    for (int i = bucket.segments.size() - 1; i >= 0; i--) {
++      byte[] value = store(bucket.segments.get(i)).getIfPresent(key);
++      if (value != null) {
++        return value;
++      }
++    }
++    return null;
++  }
++
++  @Override
++  public WriteStatus put(KeyBytesProvider key, byte[] value) {
++    lifecycle.readLock().lock();
++    try {
++      if (closed || sealed) {
++        throw new IOException("segmented writer closed or sealed");
++      }
++      int number = bucket(key);
++      Bucket bucket = buckets[number];
++      synchronized (bucket) {
++        byte[] previous = find(bucket, key);
++        if (previous != null) {
++          if (!Arrays.equals(previous, value)) {
++            throw new IOException("conflicting immutable shared cache value");
++          }
++          return immediateWriteStatus(false);
++        }
++        if (bucket.active != null
++            && (bucket.active.entries >= segmentEntries
++                || bucket.active.store.dataBytes() >= segmentBytes)) {
++          sealSegment(bucket.active);
++          bucket.active = null;
++        }
++        if (bucket.active == null) {
++          bucket.active = newSegment(number);
++          bucket.segments.add(bucket.active);
++        }
++        if ((entries.incrementAndGet() * 48) > WRITER_INDEX_BUDGET) {
++          throw new IOException("segmented writer index budget exceeded");
++        }
++        boolean novel = bucket.active.store.put(key, value).get();
++        if (novel) {
++          bucket.active.entries++;
++        }
++        return immediateWriteStatus(novel);
++      }
++    } catch (IOException e) {
++      return immediateFailedWriteStatus(e);
++    } catch (ExecutionException e) {
++      return immediateFailedWriteStatus(e.getCause());
++    } catch (InterruptedException e) {
++      Thread.currentThread().interrupt();
++      return immediateFailedWriteStatus(e);
++    } finally {
++      lifecycle.readLock().unlock();
++    }
++  }
++
++  @Override
++  public ListenableFuture<byte[]> get(KeyBytesProvider key) {
++    lifecycle.readLock().lock();
++    try {
++      if (closed) {
++        throw new IOException("segmented store closed");
++      }
++      Bucket bucket = buckets[bucket(key)];
++      synchronized (bucket) {
++        byte[] value = find(bucket, key);
++        if (value == null) {
++          throw new IOException("segmented cache key is absent");
++        }
++        return immediateFuture(value);
++      }
++    } catch (IOException e) {
++      return immediateFailedFuture(new MissingFingerprintValueException(key, e));
++    } finally {
++      lifecycle.readLock().unlock();
++    }
++  }
++
++  private void sealSegment(Segment segment) throws IOException {
++    segment.store.seal();
++    segment.indexBytes = segment.store.indexBytes();
++    segment.dataBytes = segment.store.dataBytes();
++    segment.indexDigest = segment.store.indexDigest();
++  }
++
++  void seal() throws IOException {
++    lifecycle.writeLock().lock();
++    try {
++      if (closed) {
++        throw new IOException("segmented store closed");
++      }
++      if (sealed) {
++        return;
++      }
++      var segments = new ArrayList<Segment>();
++      for (Bucket bucket : buckets) {
++        if (bucket.active != null) {
++          sealSegment(bucket.active);
++          bucket.active = null;
++        }
++        segments.addAll(bucket.segments);
++      }
++      segments.sort(Comparator.comparingInt(s -> s.number));
++      var bytes = new ByteArrayOutputStream();
++      try (var out = new DataOutputStream(bytes)) {
++        out.writeInt(MAGIC);
++        out.writeInt(segments.size());
++        for (Segment segment : segments) {
++          out.writeInt(segment.bucket);
++          out.writeInt(segment.entries);
++          out.writeLong(segment.dataBytes);
++          out.writeInt(segment.indexBytes);
++          out.write(segment.indexDigest);
++        }
++      }
++      byte[] payload = bytes.toByteArray();
++      bytes.write(hash(payload));
++      Path temporary = Files.createTempFile(directory, ".pending-", ".index");
++      try {
++        try (var channel = FileChannel.open(temporary, WRITE, NOFOLLOW_LINKS)) {
++          ByteBuffer buffer = ByteBuffer.wrap(bytes.toByteArray());
++          while (buffer.hasRemaining()) {
++            channel.write(buffer);
++          }
++          channel.force(true);
++        }
++        Files.createLink(directory.resolve("index"), temporary);
++        sync(directory);
++      } finally {
++        Files.deleteIfExists(temporary);
++      }
++      metadataBytes = bytes.size() + segments.stream().mapToLong(s -> s.indexBytes).sum();
++      sealed = true;
++    } finally {
++      lifecycle.writeLock().unlock();
++    }
++  }
++
++  @Override
++  public void close() throws IOException {
++    lifecycle.writeLock().lock();
++    try {
++      closed = true;
++      IOException failure = null;
++      for (Bucket bucket : buckets) {
++        for (Segment segment : bucket.segments) {
++          if (segment.store != null) {
++            try {
++              segment.store.close();
++            } catch (IOException e) {
++              if (failure == null) {
++                failure = e;
++              } else {
++                failure.addSuppressed(e);
++              }
++            }
++          }
++        }
++        bucket.segments.clear();
++        bucket.active = null;
++      }
++      if (failure != null) {
++        throw failure;
++      }
++    } finally {
++      lifecycle.writeLock().unlock();
++    }
++  }
++
++  private static void checkId(String id) {
++    if (!id.matches("[0-9a-f]{64}")) {
++      throw new IllegalArgumentException("invalid segmented publication ID");
++    }
++  }
++
++  private static byte[] hash(byte[] value) {
++    try {
++      return MessageDigest.getInstance("SHA-256").digest(value);
++    } catch (NoSuchAlgorithmException e) {
++      throw new AssertionError(e);
++    }
++  }
++
++  private static void sync(Path directory) throws IOException {
++    try (var channel = FileChannel.open(directory, READ)) {
++      channel.force(true);
++    }
++  }
++}
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTaskTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTaskTest.java
+index 775a22e..09c2fc8 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTaskTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/AnalysisCacheIdleRetentionTaskTest.java
+@@ -74,7 +74,7 @@ public final class AnalysisCacheIdleRetentionTaskTest {
+   public void existingBackingReleasesGraphAndWritesReceipt() throws Exception {
+     Path root = temporary.newFolder().toPath();
+     Path manifest =
+-        root.resolve("leased-v1/publications-v3/namespace/" + "a".repeat(64) + ".manifest");
++        root.resolve("leased-v2/publications-v4/namespace/" + "a".repeat(64) + ".manifest");
+     Files.createDirectories(manifest.getParent());
+     Files.writeString(manifest, "already-published fixture");
+     var released = new AtomicInteger();
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 612aab4..a1fc604 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -439,3 +439,31 @@ java_test(
+         "//third_party/java/truth",
+     ],
+ )
++
++java_test(
++    name = "LocalWitnessTableTest",
++    size = "medium",
++    srcs = ["LocalWitnessTableTest.java"],
++    tags = ["no_windows"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
++        "//third_party/java/junit",
++        "//third_party/java/truth",
++    ],
++)
++
++java_test(
++    name = "SegmentedFingerprintValueStoreTest",
++    size = "medium",
++    srcs = ["SegmentedFingerprintValueStoreTest.java"],
++    tags = ["no_windows"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
++        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:packed_store",
++        "//third_party/java/guava:concurrent",
++        "//third_party/java/junit",
++        "//third_party/java/truth",
++    ],
++)
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAdmissionValidationBenchmark.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAdmissionValidationBenchmark.java
+index 9a003c8..623b367 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAdmissionValidationBenchmark.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAdmissionValidationBenchmark.java
+@@ -34,7 +34,7 @@ public final class LocalAdmissionValidationBenchmark {
+       var inputs = new LocalInputSnapshot(Path.of(args[1]), Path.of(args[2]), environment);
+       if (!Files.isDirectory(cache.resolve("publications-v3").resolve(inputs.cacheNamespace()))
+           && !Files.isDirectory(
+-              cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace()))) {
++              cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace()))) {
+         throw new IllegalStateException(
+             "fixture environment or repository namespace does not match");
+       }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest.java
+index e44e6ad..7e48eac 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorIdleTaskTest.java
+@@ -68,9 +68,9 @@ public final class LocalCacheGarbageCollectorIdleTaskTest {
+   public void idleCollectionWritesCompleteJsonAndAtomicallyReplacesPriorReport() throws Exception {
+     Path cache = temporary.newFolder().toPath();
+     Path output = temporary.newFolder().toPath();
+-    Files.createDirectories(cache.resolve("leased-v1/publications-v3"));
++    Files.createDirectories(cache.resolve("leased-v2/publications-v4"));
+     Path pack =
+-        Files.createDirectories(cache.resolve("leased-v1/objects/packed-v1/" + "1".repeat(64)));
++        Files.createDirectories(cache.resolve("leased-v2/objects/segmented-v1/" + "1".repeat(64)));
+     Files.writeString(pack.resolve("data.pack"), "abandoned private write");
+     var task =
+         LocalCacheGarbageCollectorIdleTask.create(
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorTest.java
+index d3f3ff1..bf81c50 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorTest.java
+@@ -37,22 +37,22 @@ public final class LocalCacheGarbageCollectorTest {
+ 
+   private Path cache() throws Exception {
+     Path cache = temporary.newFolder().toPath();
+-    Files.createDirectories(managed(cache).resolve("publications-v3"));
+-    Files.createDirectories(managed(cache).resolve("objects/packed-v1"));
++    Files.createDirectories(managed(cache).resolve("publications-v4"));
++    Files.createDirectories(managed(cache).resolve("objects/segmented-v1"));
+     try (var unused = LocalCacheLeaseManager.open(managed(cache))) {}
+     return cache;
+   }
+ 
+   private static Path managed(Path cache) {
+-    return cache.resolve("leased-v1");
++    return cache.resolve("leased-v2");
+   }
+ 
+   private static Path pack(Path cache, String id) {
+-    return managed(cache).resolve("objects/packed-v1/" + id);
++    return managed(cache).resolve("objects/segmented-v1/" + id);
+   }
+ 
+   private static Path manifest(Path cache, String id) {
+-    return managed(cache).resolve("publications-v3/" + NAMESPACE + "/" + id + ".manifest");
++    return managed(cache).resolve("publications-v4/" + NAMESPACE + "/" + id + ".manifest");
+   }
+ 
+   // Only manifest framing matters to collection. Live session tests below also use real packs.
+@@ -68,7 +68,7 @@ public final class LocalCacheGarbageCollectorTest {
+     Files.write(directory.resolve("index"), new byte[64]);
+     var bytes = new ByteArrayOutputStream();
+     try (var out = new DataOutputStream(bytes)) {
+-      out.writeInt(0x534b5333);
++      out.writeInt(0x534b5334);
+       out.writeUTF(id);
+       out.writeUTF(namespace);
+       out.writeUTF("f".repeat(64));
+@@ -76,14 +76,11 @@ public final class LocalCacheGarbageCollectorTest {
+       for (String parent : parents) {
+         out.writeUTF(parent);
+       }
+-      out.writeInt(1);
+-      out.writeUTF("file");
+-      out.writeBoolean(false);
+-      out.writeUTF("e".repeat(64));
++      out.writeInt(0); // No witness blocks are needed by these GC framing fixtures.
+     }
+     byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray());
+     bytes.write(digest);
+-    Path path = managed(cache).resolve("publications-v3/" + namespace + "/" + id + ".manifest");
++    Path path = managed(cache).resolve("publications-v4/" + namespace + "/" + id + ".manifest");
+     Files.createDirectories(path.getParent());
+     Files.write(path, bytes.toByteArray());
+     Files.setLastModifiedTime(path, FileTime.fromMillis(time));
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
+index d096cd1..c7c6e4f 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
+@@ -55,7 +55,7 @@ public final class LocalCacheSessionTest {
+   }
+ 
+   private static java.util.List<String> publicationIds(Path cache) throws Exception {
+-    try (var paths = Files.walk(cache.resolve("leased-v1/publications-v3"))) {
++    try (var paths = Files.walk(cache.resolve("leased-v2/publications-v4"))) {
+       return paths
+           .filter(p -> p.toString().endsWith(".manifest"))
+           .map(p -> p.getFileName().toString().substring(0, 64))
+@@ -80,9 +80,9 @@ public final class LocalCacheSessionTest {
+     assertThat(child.acceptAnalysisCandidate(candidate)).isTrue();
+     assertThat(child.importedPublicationManifest()).isEqualTo(parent.publicationManifest());
+     child.put(new Key("child"), new byte[] {2}).get();
+-    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"))) {
++    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v2"))) {
+       try (var catalog = collector.tryExclusiveCatalog();
+-          var objects = Files.list(cache.resolve("leased-v1/objects/packed-v1"))) {
++          var objects = Files.list(cache.resolve("leased-v2/objects/segmented-v1"))) {
+         assertThat(catalog).isNotNull();
+         var ids = objects.map(p -> p.getFileName().toString()).toList();
+         assertThat(ids).hasSize(2);
+@@ -126,7 +126,7 @@ public final class LocalCacheSessionTest {
+     var clock = new AtomicLong();
+     var reader = new LocalCacheSession(cache, snapshot(workspace, output), clock::get);
+     var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+-    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"))) {
++    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v2"))) {
+       try (var catalog = collector.tryExclusiveCatalog()) {
+         assertThat(catalog).isNotNull();
+         assertThrows(ExecutionException.class, () -> reader.get(key).get());
+@@ -149,10 +149,10 @@ public final class LocalCacheSessionTest {
+     var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+     writer.put(new Key("private"), new byte[] {2}).get();
+     String id;
+-    try (var objects = Files.list(cache.resolve("leased-v1/objects/packed-v1"))) {
++    try (var objects = Files.list(cache.resolve("leased-v2/objects/segmented-v1"))) {
+       id = objects.findFirst().orElseThrow().getFileName().toString();
+     }
+-    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v1"));
++    try (var collector = LocalCacheLeaseManager.open(cache.resolve("leased-v2"));
+         var catalog = collector.tryExclusiveCatalog()) {
+       assertThat(catalog).isNotNull();
+       assertThat(collector.tryCollectPublication(id)).isNull();
+@@ -212,7 +212,7 @@ public final class LocalCacheSessionTest {
+   }
+ 
+   private static long coordinationDescriptors(Path cache) throws Exception {
+-    Path lock = cache.resolve("leased-v1/leases.lock").toRealPath();
++    Path lock = cache.resolve("leased-v2/leases.lock").toRealPath();
+     try (var descriptors = Files.list(Path.of("/proc/self/fd"))) {
+       return descriptors
+           .filter(
+@@ -683,7 +683,7 @@ public final class LocalCacheSessionTest {
+     first.put(new Key("a"), new byte[] {1}).get();
+     assertThat(first.finish(true)).isTrue();
+     Path publications =
+-        cache.resolve("leased-v1/publications-v3").resolve(inputsA.cacheNamespace());
++        cache.resolve("leased-v2/publications-v4").resolve(inputsA.cacheNamespace());
+     Path manifestA;
+     try (var paths = Files.list(publications)) {
+       manifestA = paths.findFirst().orElseThrow();
+@@ -724,7 +724,7 @@ public final class LocalCacheSessionTest {
+     var first = new LocalCacheSession(cache, inputs);
+     first.put(new Key("a"), new byte[] {1}).get();
+     assertThat(first.finish(true)).isTrue();
+-    Path publications = cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace());
++    Path publications = cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace());
+     Path manifestA;
+     try (var paths = Files.list(publications)) {
+       manifestA = paths.findFirst().orElseThrow();
+@@ -772,7 +772,8 @@ public final class LocalCacheSessionTest {
+             System::nanoTime,
+             new LocalCacheSession.ReadLimits(1, 1024 * 1024, 100));
+     assertThrows(ExecutionException.class, () -> reader.get(new Key("missing")).get());
+-    assertThat(openPackDescriptors(cache)).isEqualTo(1);
++    // A missing key may consult an empty bucket without opening a data segment.
++    assertThat(openPackDescriptors(cache)).isAtMost(1);
+     assertThat(reader.statisticsJson(false)).contains("\"peak_candidate_count\":1");
+     assertThat(reader.put(new Key("private"), new byte[] {7}).get()).isTrue();
+     assertThat(reader.get(new Key("private")).get()).isEqualTo(new byte[] {7});
+@@ -794,17 +795,20 @@ public final class LocalCacheSessionTest {
+     assertThat(writer.finish(true)).isTrue();
+     Path manifest;
+     try (var paths =
+-        Files.list(cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace()))) {
++        Files.list(cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace()))) {
+       manifest = paths.findFirst().orElseThrow();
+     }
+     String id = manifest.getFileName().toString().replace(".manifest", "");
+-    Path format = cache.resolve("leased-v1/objects/packed-v1");
++    Path format = cache.resolve("leased-v2/objects/segmented-v1");
+     Path index = format.resolve(id).resolve("index");
+-    long bytes = Files.size(manifest) + Files.size(index);
++    long bytes;
++    try (var stored = SegmentedFingerprintValueStore.open(format, id, Long.MAX_VALUE)) {
++      bytes = Files.size(manifest) + stored.indexBytes();
++    }
+     // The store also checks the opened channel's size, independently of a caller's preflight.
+     assertThrows(
+         IOException.class,
+-        () -> PackedFingerprintValueStore.open(format, id, Files.size(index) - 1));
++        () -> SegmentedFingerprintValueStore.open(format, id, Files.size(index) - 1));
+     assertThat(openPackDescriptors(cache)).isEqualTo(0);
+     var tooSmall =
+         new LocalCacheSession(
+@@ -943,12 +947,9 @@ public final class LocalCacheSessionTest {
+     Path cache = temporary.newFolder("cache").toPath();
+     var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+     writer.put(new Key("entry"), new byte[] {7}).get();
+-    try (var paths = Files.walk(cache.resolve("leased-v1/objects"))) {
++    try (var paths = Files.walk(cache.resolve("leased-v2/objects"))) {
+       Path pack =
+-          paths
+-              .filter(p -> p.getFileName().toString().equals("data.pack"))
+-              .findFirst()
+-              .orElseThrow();
++          paths.filter(p -> p.getFileName().toString().endsWith(".pack")).findFirst().orElseThrow();
+       Files.createDirectory(pack.getParent().resolve("index"));
+     }
+     assertThat(openPackDescriptors(cache)).isGreaterThan(0);
+@@ -992,7 +993,7 @@ public final class LocalCacheSessionTest {
+   }
+ 
+   private static long openPackDescriptors(Path cache) throws java.io.IOException {
+-    Path physicalCache = cache.resolve("leased-v1/objects").toRealPath();
++    Path physicalCache = cache.resolve("leased-v2/objects").toRealPath();
+     try (var descriptors = Files.list(Path.of("/proc/self/fd"))) {
+       return descriptors
+           .filter(
+@@ -1412,7 +1413,7 @@ public final class LocalCacheSessionTest {
+     parent.put(new Key("chunk"), new byte[] {1}).get();
+     assertThat(parent.finish(true)).isTrue();
+     Path parentManifest;
+-    try (var files = Files.walk(cache.resolve("leased-v1/publications-v3"))) {
++    try (var files = Files.walk(cache.resolve("leased-v2/publications-v4"))) {
+       parentManifest =
+           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
+     }
+@@ -1442,7 +1443,7 @@ public final class LocalCacheSessionTest {
+         var parent = new LocalCacheSession(cache, inputs);
+         parent.put(new Key("parent-" + i), new byte[] {(byte) i}).get();
+         assertThat(parent.finish(true)).isTrue();
+-        publications = cache.resolve("leased-v1/publications-v3").resolve(inputs.cacheNamespace());
++        publications = cache.resolve("leased-v2/publications-v4").resolve(inputs.cacheNamespace());
+         try (var paths = Files.list(publications)) {
+           parents.add(paths.filter(path -> !parents.contains(path)).findFirst().orElseThrow());
+         }
+@@ -1586,7 +1587,7 @@ public final class LocalCacheSessionTest {
+     parent.put(new Key("chunk"), new byte[] {1}).get();
+     assertThat(parent.finish(true)).isTrue();
+     Path parentManifest;
+-    try (var files = Files.walk(cache.resolve("leased-v1/publications-v3"))) {
++    try (var files = Files.walk(cache.resolve("leased-v2/publications-v4"))) {
+       parentManifest =
+           files.filter(p -> p.toString().endsWith(".manifest")).findFirst().orElseThrow();
+     }
+@@ -1704,12 +1705,9 @@ public final class LocalCacheSessionTest {
+     assertThat(parent.finish(true)).isTrue();
+     var child = new LocalCacheSession(cache, snapshot(workspace, output));
+     assertThat(child.put(key, new byte[] {1}).get()).isFalse();
+-    try (var files = Files.walk(cache.resolve("leased-v1/objects"))) {
++    try (var files = Files.walk(cache.resolve("leased-v2/objects"))) {
+       Path entry =
+-          files
+-              .filter(p -> p.getFileName().toString().equals("data.pack"))
+-              .findFirst()
+-              .orElseThrow();
++          files.filter(p -> p.getFileName().toString().endsWith(".pack")).findFirst().orElseThrow();
+       Files.write(entry, new byte[] {0});
+     }
+     assertThrows(ExecutionException.class, () -> child.get(key).get());
+@@ -1877,4 +1875,20 @@ public final class LocalCacheSessionTest {
+     assertThat(reader.get(key).get()).isEqualTo(new byte[] {7});
+     reader.finish(false);
+   }
++
++  @Test
++  public void segmentedLayoutLeavesPreviousLeasedCacheUntouched() throws Exception {
++    Path cache = temporary.newFolder("cache").toPath();
++    Path old = Files.createDirectories(cache.resolve("leased-v1/publications-v3"));
++    Path sentinel = Files.writeString(old.resolve("old.manifest"), "old-format-sentinel");
++    var writer =
++        new LocalCacheSession(
++            cache,
++            snapshot(
++                temporary.newFolder("workspace").toPath(), temporary.newFolder("output").toPath()));
++    writer.put(new Key("new"), new byte[] {1}).get();
++    assertThat(writer.finish(true)).isTrue();
++    new LocalCacheGarbageCollector(cache, new LocalCacheGarbageCollector.Policy(1, 0)).run();
++    assertThat(Files.readString(sentinel)).isEqualTo("old-format-sentinel");
++  }
+ }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
+index 0850400..f404777 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java
+@@ -892,6 +892,56 @@ public final class LocalDependencyValidatorTest {
+     assertThat(inputs.isUnchanged()).isTrue();
+   }
+ 
++  @Test
++  public void successMemoCapacityDoesNotRaisePerLookupTraversalBudget() throws Exception {
++    var first = root(leaf(file, false, List.of()));
++    var second =
++        root(leaf(Files.writeString(workspace.resolve("second"), "two"), false, List.of()));
++    var validator =
++        new LocalDependencyValidator(
++            store,
++            snapshot(),
++            NONPROD_FINGERPRINTER,
++            compression,
++            new LocalDependencyValidator.Limits(2, 1024 * 1024, 100, 100, 1024, 10));
++    assertThat(validator.validate(first)).isTrue();
++    assertThat(validator.validate(second)).isTrue();
++    assertThat(validator.statisticsJson()).contains("\"memo_entries\":4");
++    var fresh =
++        root(leaf(Files.writeString(workspace.resolve("third"), "three"), false, List.of()));
++    var tooDeep = put(bytes(List.of(fresh), List.of(), List.of(), null));
++    assertThat(validator.validate(tooDeep)).isFalse();
++  }
++
++  @Test
++  public void fullSuccessMemoKeepsValidationAndFinalEvidenceWithoutGrowing() throws Exception {
++    var files = new java.util.ArrayList<Path>();
++    for (int i = 0; i < 8; i++) {
++      files.add(Files.writeString(workspace.resolve("memo-capacity-" + i), "original"));
++    }
++    var inputs = snapshot();
++    var validator =
++        new LocalDependencyValidator(
++            store,
++            inputs,
++            NONPROD_FINGERPRINTER,
++            compression,
++            new LocalDependencyValidator.Limits(3, 1024 * 1024, 100, 100, 1024));
++    PackedFingerprint lastRoot = null;
++    for (Path input : files) {
++      lastRoot = root(leaf(input, false, List.of()));
++      assertThat(validator.validate(lastRoot)).isTrue();
++    }
++    assertThat(validator.statisticsJson()).contains("\"memo_entries\":3");
++    assertThat(validator.validate(lastRoot)).isTrue();
++    // The uncached success must be validated again; corrupt evidence cannot reuse it.
++    store.put(lastRoot, new byte[] {99}).get();
++    assertThat(validator.validate(lastRoot)).isFalse();
++    assertThat(inputs.isUnchanged()).isTrue();
++    Files.writeString(files.getLast(), "changed");
++    assertThat(inputs.isUnchanged()).isFalse();
++  }
++
+   @Test
+   public void witnessMemoIsBoundedWithoutDroppingFinalEvidence() throws Exception {
+     var witnesses = new java.util.ArrayList<LocalInputSnapshot.Witness>();
+@@ -981,6 +1031,7 @@ public final class LocalDependencyValidatorTest {
+       session.finish(false);
+     }
+   }
++
+   @Test
+   public void executionClientValidatesSourceWitnessesBeforeReturningMetadata() throws Exception {
+     var inputs = snapshot();
+@@ -1010,5 +1061,4 @@ public final class LocalDependencyValidatorTest {
+       session.finish(false);
+     }
+   }
+-
+ }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java
+index 70fa483..45428aa 100755
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalPublicationValidationBenchmark.java
+@@ -71,7 +71,7 @@ public final class LocalPublicationValidationBenchmark {
+     }
+     Path manifests =
+         cache
+-            .resolve("leased-v1/publications-v3")
++            .resolve("leased-v2/publications-v4")
+             .resolve(new LocalInputSnapshot(workspace, output, Map.of()).cacheNamespace());
+     Set<Path> parents;
+     try (var entries = Files.list(manifests)) {
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessTableTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessTableTest.java
+new file mode 100644
+index 0000000..b3a107b
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalWitnessTableTest.java
+@@ -0,0 +1,97 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
++package com.google.devtools.build.lib.skyframe.serialization.local;
++
++import static com.google.common.truth.Truth.assertThat;
++import static org.junit.Assert.assertThrows;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.DataInputStream;
++import java.io.DataOutputStream;
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.List;
++import org.junit.Rule;
++import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++@RunWith(JUnit4.class)
++public final class LocalWitnessTableTest {
++  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
++
++  @Test
++  public void losslessBlocksExceedOldManifestLimitWithoutOneLargeAllocation() throws Exception {
++    Path directory = temporary.newFolder().toPath();
++    var witnesses = new ArrayList<LocalInputSnapshot.Witness>();
++    String prefix = "external/repository/" + "path/".repeat(210);
++    long oldBytes = 0;
++    for (int i = 0; i < 70000; i++) {
++      String path = prefix + i;
++      String digest =
++          switch (i % 3) {
++            case 0 -> "a".repeat(64);
++            case 1 -> "missing";
++            default -> "not-directory";
++          };
++      witnesses.add(new LocalInputSnapshot.Witness(path, i % 2 == 0, digest));
++      oldBytes += 5 + path.length() + digest.length();
++    }
++    assertThat(oldBytes).isGreaterThan(64L * 1024 * 1024);
++    var blocks = LocalWitnessTable.write(directory, witnesses);
++    assertThat(blocks.size()).isGreaterThan(1);
++    var header = new ByteArrayOutputStream();
++    LocalWitnessTable.writeDescriptors(new DataOutputStream(header), blocks);
++    assertThat(header.size()).isLessThan(4096);
++    var decoded =
++        LocalWitnessTable.readDescriptors(
++            new DataInputStream(new ByteArrayInputStream(header.toByteArray())));
++    assertThat(decoded).isEqualTo(blocks);
++    assertThat(
++            LocalWitnessTable.read(directory, decoded, LocalWitnessTable.metadataBytes(blocks))
++                .equals(witnesses))
++        .isTrue();
++    assertThrows(
++        IOException.class,
++        () ->
++            LocalWitnessTable.read(directory, blocks, LocalWitnessTable.metadataBytes(blocks) - 1));
++  }
++
++  @Test
++  public void unicodeAndNegativeWitnessesSurviveButCorruptionAndSymlinksAreRejected()
++      throws Exception {
++    Path directory = temporary.newFolder().toPath();
++    var witnesses =
++        List.of(
++            new LocalInputSnapshot.Witness("external/r/é/日本", false, "b".repeat(64)),
++            new LocalInputSnapshot.Witness("external/r/é/日本2", true, "missing"),
++            new LocalInputSnapshot.Witness("absolute/link", true, "not-directory"));
++    var blocks = LocalWitnessTable.write(directory, witnesses);
++    assertThat(LocalWitnessTable.read(directory, blocks, 10000)).isEqualTo(witnesses);
++    var descriptor = blocks.get(0);
++    var understated =
++        List.of(
++            new LocalWitnessTable.Block(
++                descriptor.count(),
++                descriptor.encodedBytes(),
++                descriptor.decodedBytes(),
++                descriptor.expandedBytes() - 1,
++                descriptor.digest()));
++    assertThrows(IOException.class, () -> LocalWitnessTable.read(directory, understated, 10000));
++    Path block = directory.resolve(LocalWitnessTable.filename(0));
++    byte[] original = Files.readAllBytes(block);
++    byte[] damaged = original.clone();
++    damaged[0] ^= 1;
++    Files.write(block, damaged);
++    assertThrows(IOException.class, () -> LocalWitnessTable.read(directory, blocks, 10000));
++    Path outside = temporary.newFile().toPath();
++    Files.write(outside, original);
++    Files.delete(block);
++    Files.createSymbolicLink(block, outside);
++    assertThrows(IOException.class, () -> LocalWitnessTable.read(directory, blocks, 10000));
++  }
++}
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStoreTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStoreTest.java
+new file mode 100644
+index 0000000..a2c7981
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStoreTest.java
+@@ -0,0 +1,88 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
++package com.google.devtools.build.lib.skyframe.serialization.local;
++
++import static com.google.common.truth.Truth.assertThat;
++import static org.junit.Assert.assertThrows;
++
++import com.google.devtools.build.lib.skyframe.serialization.StringKey;
++import java.io.IOException;
++import java.nio.file.Files;
++import java.util.ArrayList;
++import java.util.concurrent.Callable;
++import java.util.concurrent.ExecutionException;
++import java.util.concurrent.Executors;
++import org.junit.Rule;
++import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++@RunWith(JUnit4.class)
++public final class SegmentedFingerprintValueStoreTest {
++  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
++
++  @Test
++  public void concurrentRotationRetainsValuesAndDeduplicationAcrossSealedSegments()
++      throws Exception {
++    var directory = temporary.newFolder().toPath();
++    String id = "1".repeat(64);
++    try (var writer = SegmentedFingerprintValueStore.create(directory, id, 8, 1024);
++        var executor = Executors.newFixedThreadPool(8)) {
++      var tasks = new ArrayList<Callable<Void>>();
++      for (int n = 0; n < 512; n++) {
++        int value = n;
++        tasks.add(
++            () -> {
++              var key = new StringKey("key-" + value);
++              byte[] bytes = ("value-" + value).getBytes(java.nio.charset.StandardCharsets.UTF_8);
++              assertThat(writer.put(key, bytes).get()).isTrue();
++              assertThat(writer.get(key).get()).isEqualTo(bytes);
++              return null;
++            });
++      }
++      for (var done : executor.invokeAll(tasks)) {
++        done.get();
++      }
++      var first = new StringKey("key-0");
++      assertThat(
++              writer.put(first, "value-0".getBytes(java.nio.charset.StandardCharsets.UTF_8)).get())
++          .isFalse();
++      assertThrows(ExecutionException.class, () -> writer.put(first, new byte[] {99}).get());
++      assertThrows(
++          IOException.class, () -> SegmentedFingerprintValueStore.open(directory, id, 1000000));
++      writer.seal();
++      long metadata = writer.indexBytes();
++      assertThrows(
++          IOException.class,
++          () -> SegmentedFingerprintValueStore.open(directory, id, metadata - 1));
++      try (var reader = SegmentedFingerprintValueStore.open(directory, id, metadata)) {
++        for (int n = 0; n < 512; n++) {
++          assertThat(reader.get(new StringKey("key-" + n)).get())
++              .isEqualTo(("value-" + n).getBytes(java.nio.charset.StandardCharsets.UTF_8));
++        }
++      }
++    }
++    try (var files = Files.list(directory.resolve(id))) {
++      assertThat(files.filter(f -> f.toString().endsWith(".pack")).count()).isGreaterThan(16);
++    }
++  }
++
++  @Test
++  public void indexIsAuthenticatedLazilyAgainstThePublicationDescriptor() throws Exception {
++    var directory = temporary.newFolder().toPath();
++    String id = "2".repeat(64);
++    var key = new StringKey("one");
++    try (var writer = SegmentedFingerprintValueStore.create(directory, id)) {
++      writer.put(key, new byte[] {1}).get();
++      writer.seal();
++    }
++    var index = directory.resolve(id).resolve("segment-00000.index");
++    byte[] damaged = Files.readAllBytes(index);
++    damaged[20] ^= 1;
++    Files.write(index, damaged);
++    try (var reader = SegmentedFingerprintValueStore.open(directory, id, 100000)) {
++      assertThrows(ExecutionException.class, () -> reader.get(key).get());
++    }
++  }
++}

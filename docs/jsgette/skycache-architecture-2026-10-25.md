@@ -6,7 +6,7 @@ SkyCache is an experimental persistent backend for Bazel's Skyframe analysis cac
 
 The implementation builds on Bazel's existing serialization, dependency-validation and graph-retrieval paths. Cache & Carry supplies the remote action cache and content-addressable store (CAS); SkyCache keeps graph values and output digests on a shared local filesystem. Output bytes remain in CAS until the build needs them.
 
-Implementation snapshot: `71521fabb3420707c39d73329fa9aa9622e8c382`, 25 October 2026. The [complete implementation patch](https://github.com/JSGette/bazel/blob/jsgette/master/docs/jsgette/measurements/skycache-execution-metadata-2026-10-25/implementation-current.patch) and [execution-metadata change](https://github.com/JSGette/bazel/blob/jsgette/master/docs/jsgette/measurements/skycache-execution-metadata-2026-10-25/implementation-incremental.patch) are published with the validation evidence. This is a prototype for discussion, with the tested scope described below.
+Implementation snapshot: `d4971808785aaa3cd46bf6dd1419cb65afb4319e`, 25 October 2026. The [complete implementation patch](measurements/skycache-large-tree-2026-10-25/implementation-current.patch) and [large-tree implementation, benchmark and protocol](skycache-large-tree-2026-10-25.md) include the segmented format and bounded validation memo update. Earlier measurements below are labeled by their historical implementation scope. This remains a prototype for discussion.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ The integration has four layers:
 |---|---|---|
 | Invocation setup | Select the local backend, capture input context, set the analysis-cache mode and apply retention policy | `LocalSkycacheModule`, `LocalSkycacheOptions` |
 | Validated graph retrieval | Read serialized values and validate their dependency roots against current input evidence | `LocalAnalysisCacheClient`, `LocalDependencyValidator`, `LocalInputSnapshot` |
-| Persistent storage | Store fingerprint-addressed values in immutable packs and publish a manifest after a successful build | `LocalCacheSession`, `PackedFingerprintValueStore` |
+| Persistent storage | Store fingerprint-addressed values in immutable packs and publish a manifest after a successful build | `LocalCacheSession`, `SegmentedFingerprintValueStore`, `PackedFingerprintValueStore`, `LocalWitnessTable` |
 | Lifetime management | Pin readers, writers and required parent publications; collect unneeded publications during idle time | `LocalCacheLeaseManager`, `LocalCacheGarbageCollector` |
 
 The local backend uses the existing asynchronous bidirectional analysis-cache machinery. `--experimental_active_directories` determines the active part of the graph and its reuse frontier. A small number of restored frontier values can therefore avoid reconstructing a much larger dependency closure. The number of cache hits is not the number of configured targets whose work was avoided.
@@ -77,13 +77,20 @@ Zero action-result lookups does not imply zero service traffic. Remote-client in
 The cache directory is external to the source workspace and output base, so `bazel clean` does not delete it. The storage layout separates immutable object packs from publication manifests:
 
 ```text
-<cache>/leased-v1/
-  objects/packed-v1/<publication-id>/...
-  publications-v3/<namespace>/<publication-id>.manifest
+<cache>/leased-v2/
+  objects/segmented-v1/<publication-id>/
+    index
+    segment-00000.pack
+    segment-00000.index
+    witnesses-00000.block
+    ...
+  publications-v4/<namespace>/<publication-id>.manifest
   ...lease and collection metadata...
 ```
 
-Each writer owns private storage. It seals the pack before publishing a manifest, flushes manifest contents, atomically links the manifest into the publication directory and synchronizes that directory. A SHA-256 trailer checks manifest integrity. Readers discover only published manifests, rather than partially written packs.
+Each writer owns private storage. Witness paths are prefix-compressed in bounded, independently checksummed blocks; SHA-256 values are stored as raw bytes. The small manifest references those blocks and parent publications. Value packs rotate at 16,384 records or approximately 32 MiB across sixteen fingerprint buckets. Sealing replaces mutable maps with compact indexes, which readers load on demand within an aggregate admission budget. All blocks and segments are durable before the manifest is atomically linked and the publication directory synchronized. Old `leased-v1` caches are preserved in an isolated format namespace.
+
+The 256 MiB admission budget charges expanded witness paths as well as encoded/decoded blocks and segment indexes. Validation memo retention is bounded separately: at most one million dependency successes and one million witness successes. A full memo stops retaining new successes without invalidating completed validation. Per-lookup traversal still has its original 250,000-record and 128 MiB bounds. Global external/repository witness admission remains eager; selective validation is future work.
 
 Publications record references to reused parents. Readers pin the required publication closure; active writers are pinned as well. Collection uses filesystem locks and preserves the parent closure needed by live readers or retained publications. Candidate counts and metadata budgets bound admission work.
 
@@ -91,7 +98,7 @@ This is a shared local filesystem design. Its correctness relies on the filesyst
 
 The backend also has an idle graph-eviction policy. Benchmarks below set its idle-eviction timeout to zero and explicitly cleaned the graph, so their gains do not depend on leaving the analysis graph resident between measured builds.
 
-## Evidence and limitations
+## Historical evidence and limitations (snapshot 71521fa)
 
 The initial Datadog benchmark built `//cmd/cluster-agent:cluster-agent` on Linux under WSL. Every measured build followed shutdown and synchronous `bazel clean --noasync --noexpunge`. The harness verified zero Skyframe nodes and edges, an empty execroot, no local action cache, and preserved external SkyCache publications. Clean started the JVM; the measured build used that same JVM with an empty graph.
 
@@ -116,9 +123,9 @@ A separate concurrent test used two Git worktrees with edits in different packag
 
 These are warm OS-page-cache and warm external-repository-download measurements on one machine, with a small sample and shared network service. PSS/RSS sampling covers the build process tree, not all host RAM or filesystem cache. Analysis-only caching was slower in an earlier series; the measured improvement depends on avoiding execution-graph traversal as well. Broader rule coverage, cold-filesystem behavior, larger graph scaling and production failure handling remain evaluation areas.
 
-The expanded Datadog scope exposed two current storage limits. A successful six-binary build configured 237,112 targets including aspects, but SkyCache publication failed because its manifest exceeded 64 MiB. Inspection of the unpublished pack reconstructed 418,098 external/absolute witnesses requiring at least 77,546,670 encoded bytes; Linux-header trees and shared-repository paths dominate. Its 1,664,716 unique records also exceed the separate one-million-entry pack sealing limit. A five-binary scope at 220,062 configured targets hit the same manifest limit. These scopes currently cannot produce a reusable publication; increasing only the manifest limit would not resolve both constraints.
+The previous format failed to publish the 237,112- and 220,062-configured-target scopes. The larger unpublished pack contained over 73.95 MiB of reconstructed witness manifest data and 1,664,716 records, beyond its 64 MiB manifest and one-million-entry pack limits. The segmented implementation now publishes both scopes; current measurements follow below.
 
-## Expanded Datadog results
+## Historical expanded Datadog results (snapshot 71521fa)
 
 The follow-up benchmark built six application binaries—Cluster Agent, Process Agent, Trace Agent, DogStatsD, Installer and Private Action Runner—with 80,301 configured targets including aspects, 40% more than the original scope. Three preparation builds were followed by 18 measured builds, with the same verified empty-graph clean protocol and Cache & Carry enabled.
 
@@ -133,7 +140,20 @@ Analysis time remained around four seconds. The total-build improvement coincide
 
 Every requested executable digest matched the vanilla control. Minimal downloaded no output bytes; toplevel fetched ten required output/runfile blobs totaling 304,075,144 bytes. Neither hit policy materialized intermediate `.a` or `.x` files. BES profile checks were identified separately from build-output validation.
 
-The 220k/237k-target scopes described above remain outside the current publication limits. [Full expanded benchmark, failed scopes and reproducible evidence](https://github.com/JSGette/bazel/blob/jsgette/master/docs/jsgette/skycache-datadog-wide-2026-10-25.md).
+The larger scopes failed with that historical snapshot. [Historical expanded benchmark, failed scopes and reproducible evidence](https://github.com/JSGette/bazel/blob/jsgette/master/docs/jsgette/skycache-datadog-wide-2026-10-25.md).
+
+## Current larger-tree results (snapshot d497180)
+
+Both previously rejected scopes now publish and reuse the segmented format. Each cell is a median of three after-clean builds with Cache & Carry; positive time reductions mean faster than vanilla and negative values mean slower.
+
+| Configured targets | Policy | Vanilla s | Candidate off s | SkyCache s | Time reduction | Vanilla PSS MiB | SkyCache PSS MiB |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 237,112 | minimal | 13.87 | 13.38 | 14.42 | -4.0% | 3592 | 2999 |
+| 237,112 | toplevel | 26.17 | 26.43 | 22.89 | 12.5% | 3547 | 2855 |
+| 220,062 | minimal | 12.37 | 12.32 | 14.93 | -20.6% | 3485 | 2571 |
+| 220,062 | toplevel | 20.68 | 21.38 | 19.02 | 8.0% | 3373 | 3088 |
+
+The final SkyCache package suite passes 201 cases across 15 targets. All executable digests match the controls; raw traffic and materialization inventories are retained. Capacity is improved, while eager input admission and dependency traversal still cost time. The [full report](skycache-large-tree-2026-10-25.md) includes ranges, same-binary controls, RAM, remote calls, diagnostic regressions, source patches and the complete protocol. The old-format concurrent-worktree and fault-injection results above are historical; the new format adds unit coverage for concurrent rotation and retains the existing lease/GC and validation suite.
 
 ## Discussion questions
 

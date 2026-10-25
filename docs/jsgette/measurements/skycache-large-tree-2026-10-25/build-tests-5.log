@@ -1,0 +1,51 @@
+Starting local Bazel server (9.3.0) and connecting to it...
+INFO: Invocation ID: d7121f8a-fcbb-46b1-ba72-1de70666fbb7
+INFO: Streaming build results to: http://192.168.2.71:8088/invocation/d7121f8a-fcbb-46b1-ba72-1de70666fbb7
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+Analyzing: 31 targets (9 packages loaded, 6 targets configured)
+Analyzing: 31 targets (9 packages loaded, 6 targets configured)
+
+WARNING: /home/jgett/REPOS/bazel-skycache-v2/src/conditions/BUILD:205:15: in config_setting rule //src/conditions:windows_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+WARNING: /home/jgett/REPOS/bazel-skycache-v2/src/conditions/BUILD:196:15: in config_setting rule //src/conditions:windows_x64_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+WARNING: /home/jgett/REPOS/bazel-skycache-v2/src/conditions/BUILD:128:15: in config_setting rule //src/conditions:darwin_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+DEBUG: /home/jgett/REPOS/.work/skycache-execution-2026-10-25/build/external/grpc-java+/java_grpc_library.bzl:202:14: Multiple values in 'deps' is deprecated in build_bazel_remote_execution_v2_remote_execution_java_grpc
+Analyzing: 31 targets (626 packages loaded, 23071 targets configured)
+[1 / 1] no actions running
+INFO: Analyzed 31 targets (651 packages loaded, 27453 targets configured, 184 aspect applications).
+[1,042 / 3,386] [Prepa] Reticulating //tools/build_defs/proguard:wrapper_private build data [for tool]
+[5,848 / 5,938] 3 / 15 tests; Compiling Java headers src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/liblocal_skycache_module-hjar.jar (19 source files) and running annotation processors (OptionsClassProcessor); 0s remote-cache, linux-sandbox ... (2 actions running)
+[5,868 / 5,938] 3 / 15 tests; Building src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/liblocal_skycache_module.jar (19 source files) and running annotation processors (OptionProcessor, OptionsClassProcessor); 2s remote-cache, multiplex-worker ... (6 actions, 5 running)
+[5,935 / 5,950] 3 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheLeaseManagerTest; 0s remote-cache, linux-sandbox ... (6 actions, 3 running)
+[5,936 / 5,950] 4 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheLeaseManagerTest; 1s remote-cache, linux-sandbox ... (6 actions, 5 running)
+[5,939 / 5,950] 7 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest; 2s remote-cache, linux-sandbox ... (6 actions, 5 running)
+[5,944 / 5,950] 11 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest; 3s remote-cache, linux-sandbox ... (4 actions, 3 running)
+[5,947 / 5,950] 13 / 15 tests; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheGarbageCollectorTest; 1s remote-cache, linux-sandbox ... (3 actions running)
+INFO: Found 16 targets and 15 test targets...
+INFO: Elapsed time: 13.156s, Critical Path: 7.40s
+INFO: 98 processes: 5852 action cache hit, 3 remote cache hit, 25 internal, 44 linux-sandbox, 26 worker.
+INFO: Build completed successfully, 98 total actions
+INFO: 
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:ConcurrentFileFingerprintValueStoreTest (cached) PASSED in 0.9s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:PackedFingerprintValueStoreTest (cached) PASSED in 0.7s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:SegmentedFingerprintValueStoreTest (cached) PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:AnalysisCacheIdleRetentionTaskTest PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheGarbageCollectorIdleTaskTest PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheGarbageCollectorTest PASSED in 1.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheLeaseManagerTest PASSED in 1.3s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest PASSED in 4.1s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalContentHasherTest PASSED in 0.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest PASSED in 1.3s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalExecutionValuesTest PASSED in 0.5s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalPathCodecTest PASSED in 0.4s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalRepositoryMappingCodecTest PASSED in 1.0s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalRunfilesCodecTest PASSED in 1.1s
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalWitnessTableTest PASSED in 0.9s
+
+Executed 12 out of 15 tests: 15 tests pass.
+There were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.
+INFO: 
+INFO: 
+INFO: 
+INFO: Streaming build results to: http://192.168.2.71:8088/invocation/d7121f8a-fcbb-46b1-ba72-1de70666fbb7
