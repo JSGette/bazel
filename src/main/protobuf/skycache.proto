@@ -1,0 +1,61 @@
+// Copyright 2026 The Bazel Authors. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See the repository LICENSE.
+syntax = "proto3";
+package build.bazel.skycache.v1;
+
+import "build/bazel/remote/execution/v2/remote_execution.proto";
+
+option java_package = "com.google.devtools.build.lib.skyframe.serialization.remote";
+option java_outer_classname = "SkyCacheProto";
+
+// Experimental v1: SHA-256 CAS, immutable complete local publication bundles.
+// Discovery is advisory. Clients MUST validate source evidence after hydration.
+service SkyCacheCatalog {
+  rpc DiscoverPublications(DiscoverRequest) returns (DiscoverResponse);
+  rpc CommitPublication(CommitRequest) returns (PublicationRef);
+}
+message Scope {
+  string instance_name = 1;
+  string namespace_id = 2;
+}
+message PublicationRef {
+  build.bazel.remote.execution.v2.Digest manifest = 1;
+  int64 catalog_sequence = 2;
+}
+message DiscoverRequest {
+  Scope scope = 1;
+  int32 page_size = 2; // zero selects default; maximum 64
+  bytes page_token = 3;
+}
+message DiscoverResponse {
+  repeated PublicationRef candidates = 1;
+  bytes next_page_token = 2;
+}
+message CommitRequest {
+  Scope scope = 1;
+  build.bazel.remote.execution.v2.Digest manifest = 2;
+  string idempotency_key = 3;
+}
+// References ONLY SkyCache metadata, never ordinary action-output CAS objects.
+// All file chunks are independently addressed, ordered, <= 1 MiB.
+message PublicationBundle {
+  uint32 format_version = 1;
+  string namespace_id = 2;
+  string root_id = 3;
+  repeated LocalPublication publications = 4; // complete parent closure, parents first
+}
+message LocalPublication {
+  string id = 1;
+  repeated string parent_ids = 2;
+  repeated PublicationFile files = 3; // "manifest", "index", segments and witnesses
+}
+message PublicationFile {
+  string name = 1; // validated basename; no arbitrary paths or symlinks
+  int64 size_bytes = 2;
+  repeated build.bazel.remote.execution.v2.Digest chunks = 3;
+}
+// Server-private durable receipt; not a public RPC.
+message CatalogReceipt {
+  CommitRequest request = 1;
+  PublicationRef publication = 2;
+}

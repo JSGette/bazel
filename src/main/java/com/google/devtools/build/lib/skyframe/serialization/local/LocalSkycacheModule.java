@@ -60,6 +60,7 @@ public final class LocalSkycacheModule extends SerializationModule {
   @Nullable private CommandEnvironment environment;
   private boolean buildSucceeded;
   @Nullable private Path retainedPublication;
+  @Nullable private RemoteSkyCache remoteSkyCache;
 
   @Override
   protected Supplier<ObjectCodecRegistry> getAnalysisCodecRegistrySupplier(
@@ -107,7 +108,14 @@ public final class LocalSkycacheModule extends SerializationModule {
     services.client = null;
     services.clientId = null;
     services.executionValues = false;
+    remoteSkyCache = null;
     var options = env.getOptions().getOptions(LocalSkycacheOptions.class);
+    if (options != null
+        && !options.getRemoteEndpoint().isEmpty()
+        && options.getDirectory().isEmpty()) {
+      env.getReporter()
+          .handle(Event.warn("Remote SkyCache requires --experimental_local_skycache for staging"));
+    }
     if (options == null
         || options.getDirectory().isEmpty()
         || env.getWorkspace() == null
@@ -135,6 +143,18 @@ public final class LocalSkycacheModule extends SerializationModule {
       // Validate the idle policy before opening a session or taking any cache leases.
       var collection = LocalCacheGarbageCollectorIdleTask.create(options, root, outputBase);
       var inputs = new LocalInputSnapshot(workspace, outputBase, inputEnvironment(env));
+      if (!options.getRemoteEndpoint().isEmpty()) {
+        try {
+          remoteSkyCache = new RemoteSkyCache(root, inputs.cacheNamespace(), options);
+          if (options.getMaxPublications() > 0 && options.getMaxMetadataMb() > 0) {
+            int imported = remoteSkyCache.hydrate();
+            env.getReporter()
+                .handle(Event.info("Remote SkyCache: imported " + imported + " publications"));
+          }
+        } catch (IOException | IllegalArgumentException e) {
+          env.getReporter().handle(Event.warn("Remote SkyCache import skipped: " + e.getMessage()));
+        }
+      }
       services.session =
           new LocalCacheSession(
               root,
@@ -178,6 +198,10 @@ public final class LocalSkycacheModule extends SerializationModule {
         env.addIdleTask(collection);
       }
     } catch (IOException | IllegalArgumentException e) {
+      if (remoteSkyCache != null) {
+        remoteSkyCache.close();
+        remoteSkyCache = null;
+      }
       RunfilesOrigin.setSharingEnabled(false);
       setMode(env, "off");
       env.getReporter().handle(Event.warn("Local SkyCache disabled: " + e.getMessage()));
@@ -250,6 +274,15 @@ public final class LocalSkycacheModule extends SerializationModule {
       services.retainedRoots = services.client.retainedRoots();
       if (published) {
         retainedPublication = session.publicationManifest();
+        if (remoteSkyCache != null) {
+          try {
+            remoteSkyCache.publish(retainedPublication);
+            env.getReporter().handle(Event.info("Remote SkyCache: publication committed"));
+          } catch (IOException | IllegalArgumentException e) {
+            env.getReporter()
+                .handle(Event.warn("Remote SkyCache publication skipped: " + e.getMessage()));
+          }
+        }
       } else if (importedPublication != null) {
         retainedPublication = importedPublication;
       }
@@ -294,6 +327,10 @@ public final class LocalSkycacheModule extends SerializationModule {
       }
     }
     environment = null;
+    if (remoteSkyCache != null) {
+      remoteSkyCache.close();
+      remoteSkyCache = null;
+    }
     super.afterCommand();
   }
 

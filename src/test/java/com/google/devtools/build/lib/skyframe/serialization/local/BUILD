@@ -3,6 +3,34 @@ load("@rules_java//java:defs.bzl", "java_binary", "java_test")
 package(default_applicable_licenses = ["//:license"])
 
 java_test(
+    name = "RemoteSkyCacheTest",
+    srcs = ["RemoteSkyCacheTest.java"],
+    size = "small",
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:write_status",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:key_bytes_provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote:protocol",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote:transport",
+        "//src/main/protobuf:skycache_java_proto",
+        "//src/main/protobuf:skycache_java_grpc",
+        "//third_party/google/bytestream:bytestream_grpc",
+        "//third_party/google/bytestream:bytestream_java_proto",
+        "//third_party/google/rpc:status_java_proto",
+        "//third_party/java/grpc:core",
+        "//third_party/java/grpc:netty",
+        "//third_party/java/grpc:stub",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/protobuf",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+        "@remoteapis//:build_bazel_remote_execution_v2_remote_execution_java_grpc",
+        "@remoteapis//:build_bazel_remote_execution_v2_remote_execution_java_proto",
+    ],
+)
+
+java_test(
     name = "AnalysisCacheIdleRetentionTaskTest",
     size = "small",
     srcs = ["AnalysisCacheIdleRetentionTaskTest.java"],

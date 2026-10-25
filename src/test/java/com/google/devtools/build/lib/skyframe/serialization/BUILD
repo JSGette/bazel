@@ -10,6 +10,7 @@ filegroup(
     srcs = glob(["**"]) + [
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:srcs",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:srcs",
+        "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/remote:srcs",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/strings:srcs",
         "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/testutils:srcs",
     ],

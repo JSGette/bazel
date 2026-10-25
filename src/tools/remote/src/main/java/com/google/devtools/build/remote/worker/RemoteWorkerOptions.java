@@ -31,6 +31,24 @@ import java.util.List;
 /** Options for remote worker. */
 @OptionsClass
 public abstract class RemoteWorkerOptions extends OptionsBase {
+  @Option(
+      name = "skycache_catalog_path",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNCATEGORIZED,
+      effectTags = {OptionEffectTag.UNKNOWN},
+      help =
+          "Enable the experimental SkyCache catalog in this persistent POSIX directory."
+              + " One process per directory; 4096 durable receipts maximum. No catalog GC.")
+  public abstract String getSkycacheCatalogPath();
+
+  @Option(
+      name = "skycache_instance_name",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNCATEGORIZED,
+      effectTags = {OptionEffectTag.UNKNOWN},
+      help = "Only this instance may access the SkyCache catalog. CAS is shared by this server.")
+  public abstract String getSkycacheInstanceName();
+
   private static final GoogleLogger logger = GoogleLogger.forEnclosingClass();
 
   private static final class PathFragmentConverter extends Converter.Contextless<PathFragment> {
@@ -53,6 +71,14 @@ public abstract class RemoteWorkerOptions extends OptionsBase {
       effectTags = {OptionEffectTag.UNKNOWN},
       help = "Listening port for the netty server.")
   public abstract int getListenPort();
+
+  @Option(
+      name = "listen_address",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNCATEGORIZED,
+      effectTags = {OptionEffectTag.UNKNOWN},
+      help = "gRPC bind address; empty listens on all interfaces. Use 127.0.0.1 for local tests.")
+  public abstract String getListenAddress();
 
   @Option(
       name = "work_path",

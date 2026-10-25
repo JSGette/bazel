@@ -192,6 +192,30 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
     return metadataBytes;
   }
 
+  /** Lists exactly the immutable files owned by a sealed store, excluding witness blocks. */
+  List<String> sealedFiles() throws IOException {
+    lifecycle.readLock().lock();
+    try {
+      if (!sealed || closed) {
+        throw new IOException("segmented store is not open and sealed");
+      }
+      var segments = new ArrayList<Segment>();
+      for (Bucket bucket : buckets) {
+        segments.addAll(bucket.segments);
+      }
+      segments.sort(Comparator.comparingInt(s -> s.number));
+      var files = new ArrayList<String>();
+      files.add("index");
+      for (Segment segment : segments) {
+        files.add(segment.prefix() + ".index");
+        files.add(segment.prefix() + ".pack");
+      }
+      return List.copyOf(files);
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
   private synchronized Segment newSegment(int bucket) throws IOException {
     if (nextSegment >= MAX_SEGMENTS) {
       throw new IOException("segment count exceeds limit");

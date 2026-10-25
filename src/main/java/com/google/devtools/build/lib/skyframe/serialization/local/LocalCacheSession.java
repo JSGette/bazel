@@ -77,6 +77,9 @@ final class LocalCacheSession implements FingerprintValueStore {
       List<String> parents,
       long metadataBytes) {}
 
+  record ManifestHeader(
+      String id, List<String> parents, List<LocalWitnessTable.Block> blocks, long encodedBytes) {}
+
   private record Candidate(
       String id,
       SegmentedFingerprintValueStore store,
@@ -868,6 +871,22 @@ final class LocalCacheSession implements FingerprintValueStore {
   }
 
   private Manifest readManifest(Path path, long remainingBytes) throws IOException {
+    ManifestHeader header = readManifestHeader(path, inputs.cacheNamespace(), remainingBytes);
+    long metadataBytes = header.encodedBytes() + LocalWitnessTable.metadataBytes(header.blocks());
+    if (metadataBytes > remainingBytes) {
+      throw new SegmentedFingerprintValueStore.BudgetExceededException();
+    }
+    var witnesses =
+        LocalWitnessTable.read(
+            objects.resolve(header.id()), header.blocks(), remainingBytes - header.encodedBytes());
+    if (!Files.isDirectory(objects.resolve(header.id()), LinkOption.NOFOLLOW_LINKS)) {
+      throw new IOException("incomplete publication");
+    }
+    return new Manifest(header.id(), witnesses, header.parents(), metadataBytes);
+  }
+
+  static ManifestHeader readManifestHeader(Path path, String cacheNamespace, long remainingBytes)
+      throws IOException {
     byte[] bytes;
     try (var channel = FileChannel.open(path, READ, LinkOption.NOFOLLOW_LINKS)) {
       long size = channel.size();
@@ -898,7 +917,7 @@ final class LocalCacheSession implements FingerprintValueStore {
       String namespace = in.readUTF();
       if (!namespace.matches("[0-9a-f]{64}")
           || !path.getFileName().toString().equals(namespace + ".manifest")
-          || !in.readUTF().equals(inputs.cacheNamespace())
+          || !in.readUTF().equals(cacheNamespace)
           || !in.readUTF().matches("[0-9a-f]{64}")) {
         throw new IOException("invalid publication identity");
       }
@@ -912,17 +931,10 @@ final class LocalCacheSession implements FingerprintValueStore {
         parents.add(parent);
       }
       var blocks = LocalWitnessTable.readDescriptors(in);
-      long metadataBytes = bytes.length + LocalWitnessTable.metadataBytes(blocks);
-      if (metadataBytes > remainingBytes) {
-        throw new SegmentedFingerprintValueStore.BudgetExceededException();
-      }
-      var witnesses =
-          LocalWitnessTable.read(objects.resolve(namespace), blocks, remainingBytes - bytes.length);
-      if (in.read() != -1
-          || !Files.isDirectory(objects.resolve(namespace), LinkOption.NOFOLLOW_LINKS)) {
+      if (in.read() != -1) {
         throw new IOException("incomplete publication");
       }
-      return new Manifest(namespace, witnesses, List.copyOf(parents), metadataBytes);
+      return new ManifestHeader(namespace, List.copyOf(parents), blocks, bytes.length);
     }
   }
 

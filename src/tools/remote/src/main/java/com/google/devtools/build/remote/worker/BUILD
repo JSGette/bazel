@@ -29,6 +29,9 @@ java_library(
     resources = ["//src/main/tools:linux-sandbox"],
     visibility = ["//src/tools/remote:__subpackages__"],
     deps = [
+        "//src/main/protobuf:skycache_java_proto",
+        "//src/main/protobuf:skycache_java_grpc",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote:protocol",
         "//src/main/java/com/google/devtools/build/lib/actions",
         "//src/main/java/com/google/devtools/build/lib/bazel/repository/downloader",
         "//src/main/java/com/google/devtools/build/lib/events",
