@@ -1,0 +1,66 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
+index 31d3cadf6f..508c66f472 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java
+@@ -271,13 +271,17 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+   }
+ 
+   byte[] getIfPresent(KeyBytesProvider fingerprint) throws IOException {
++    byte[] key = checkedKey(fingerprint);
++    return getIfPresent(key, digest(key, key.length));
++  }
++
++  // A segmented lookup computes and owns these bytes once, across all of its segment probes.
++  byte[] getIfPresent(byte[] key, byte[] hash) throws IOException {
+     lifecycle.readLock().lock();
+     try {
+       if (closed) {
+         throw new IOException("packed cache is closed");
+       }
+-      byte[] key = checkedKey(fingerprint);
+-      byte[] hash = digest(key, key.length);
+       Location location = pending == null ? find(hash) : pending.get(ByteString.copyFrom(hash));
+       return location == null ? null : readRecord(location, key);
+     } finally {
+@@ -421,7 +425,7 @@ final class PackedFingerprintValueStore implements FingerprintValueStore, AutoCl
+     }
+   }
+ 
+-  private static byte[] checkedKey(KeyBytesProvider fingerprint) throws IOException {
++  static byte[] checkedKey(KeyBytesProvider fingerprint) throws IOException {
+     byte[] key = fingerprint.toBytes();
+     if (key.length == 0 || key.length > MAX_KEY_BYTES) {
+       throw new IOException("packed cache key length outside bounds");
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
+index f31c63be5e..acd0d41f45 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java
+@@ -219,8 +219,13 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
+   }
+ 
+   private byte[] find(Bucket bucket, KeyBytesProvider key) throws IOException {
++    byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
++    return find(bucket, bytes, hash(bytes));
++  }
++
++  private byte[] find(Bucket bucket, byte[] key, byte[] digest) throws IOException {
+     for (int i = bucket.segments.size() - 1; i >= 0; i--) {
+-      byte[] value = store(bucket.segments.get(i)).getIfPresent(key);
++      byte[] value = store(bucket.segments.get(i)).getIfPresent(key, digest);
+       if (value != null) {
+         return value;
+       }
+@@ -283,9 +288,11 @@ final class SegmentedFingerprintValueStore implements FingerprintValueStore, Aut
+       if (closed) {
+         throw new IOException("segmented store closed");
+       }
+-      Bucket bucket = buckets[bucket(key)];
++      byte[] bytes = PackedFingerprintValueStore.checkedKey(key);
++      byte[] digest = hash(bytes);
++      Bucket bucket = buckets[digest[0] & (BUCKETS - 1)];
+       synchronized (bucket) {
+-        byte[] value = find(bucket, key);
++        byte[] value = find(bucket, bytes, digest);
+         if (value == null) {
+           throw new IOException("segmented cache key is absent");
+         }

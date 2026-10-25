@@ -6,7 +6,7 @@ SkyCache is an experimental persistent backend for Bazel's Skyframe analysis cac
 
 The implementation builds on Bazel's existing serialization, dependency-validation and graph-retrieval paths. Cache & Carry supplies the remote action cache and content-addressable store (CAS); SkyCache keeps graph values and output digests on a shared local filesystem. Output bytes remain in CAS until the build needs them.
 
-Implementation snapshot: `1aac2aa2ec6fe31af2e979558f06a3b6971c601b`, 25 October 2026, merged with upstream `a5c50fcb65841b505ec72840d83381a704e70afa`. The [upstream sync report](skycache-upstream-sync-2026-10-25.md) contains the current implementation patch, 432 passing test cases and refreshed Datadog baseline. The [large-tree report](skycache-large-tree-2026-10-25.md) documents the preceding segmented-storage implementation. Earlier measurements below are historical. This remains a prototype for discussion.
+Implementation snapshot: `1aac2aa2ec6fe31af2e979558f06a3b6971c601b`, 25 October 2026, merged with upstream `a5c50fcb65841b505ec72840d83381a704e70afa`. The [upstream sync report](skycache-upstream-sync-2026-10-25.md) contains the current implementation patch, 432 passing test cases and refreshed Datadog baseline. The [large-tree report](skycache-large-tree-2026-10-25.md) documents the preceding segmented-storage implementation. The [performance and memory investigation](skycache-perf-options-2026-10-25.md) evaluates two unpromoted fast-path prototypes and prioritizes shared witness evidence, validation-state lifetime and leaf summaries. Earlier measurements below are historical. This remains a prototype for discussion.
 
 ## Architecture
 
