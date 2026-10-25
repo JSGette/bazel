@@ -466,7 +466,7 @@ The prepared minimal reader delivers **244,617,077 B of cached value bytes**, ye
 nearly the entire 1.53 GB publication. Its fresh Bazel process records **827,313,019,557 B**
 of `rchar`, with **zero physical `read_bytes`**. These counters include startup/clean and
 all read-like I/O; they are neither physical disk traffic nor network payload. Source
-inspection shows that every cached range read rereads and SHA-256-checks the whole chunk
+inspection of this baseline shows that every cached range read rereads and SHA-256-checks the whole chunk
 under synchronization before returning a slice. This is strong evidence of repeated local
 read/hash amplification, not exclusive CPU attribution from a sampling profiler.
 
@@ -486,11 +486,11 @@ exact chunk availability at put time was not retained. The toplevel continuation
 remote writes without requiring zero. Its writes were not independently audited for duplication.
 Both earlier harness outcomes remain in the raw evidence rather than being rewritten as passes.
 
-The larger bound therefore removes the functional blocker, but **remote SkyCache is not
-competitive on this workload yet**. Prioritize avoiding repeated whole-chunk reads/hashes
-while retaining digest/record validation, then batch FindMissingBlobs to skip existing
-uploads. Smaller fixed chunks can address demand-read amplification; CDC does not by itself
-remove the repeated cached-read verification demonstrated here.
+The larger bound removes the functional blocker, but this baseline leaves remote SkyCache
+well behind local and vanilla Bazel. It motivated the authenticated block-read implementation
+below. Batched FindMissingBlobs can then skip existing uploads, and smaller fixed chunks can
+address demand-read amplification; CDC does not by itself remove the repeated cached-read
+verification demonstrated here.
 
 [Comparison and phase/transfer counters](measurements/skycache-large-agent-2026-10-25/comparison.json),
 [verification and provenance](measurements/skycache-large-agent-2026-10-25/verification.json),
@@ -499,6 +499,98 @@ and [logs, profiles and test XML](measurements/skycache-large-agent-2026-10-25/l
 preserve the results. The evidence directory includes exact environment-specific harnesses,
 all raw run reports and SHA-256 checksums. Source, frozen local seeds, catalog receipts,
 original CAS and prior reports were checked after the continuation; all fixture services stopped.
+
+## Optimization plan and first implementation
+
+1. **Remove repeated cached-read amplification (implemented).** After verifying a complete CAS
+   response against its SHA-256 digest, derive SHA-256 hashes for 4 KiB blocks. Cached range reads
+   read and authenticate only covering blocks. Retain hashes, not payloads, in an invocation-owned
+   LRU with a 32 MiB weight budget including a per-entry overhead allowance. Eviction requires a
+   whole-chunk digest check before rebuilding trusted hashes. File size, missing-file, symlink,
+   record-key, record-checksum and index checks remain. Corruption in an unread block is detected
+   when that block is requested; every returned byte remains authenticated. No wire-format or
+   server change is required. Counters expose cached bytes read, hash-cache weight and evictions.
+2. **Measure and reduce the remaining serialized I/O.** Keep the current global read lock for
+   this first change so the benchmark isolates reduced read/hash work. If profiles show it still
+   dominates, use per-chunk in-flight deduplication and bounded parallel downloads, then narrow
+   locking around the hash LRU. Gate on concurrent same-chunk reads, failed-transfer accounting,
+   close/cancellation behavior and bounded memory before measuring throughput and latency.
+3. **Deduplicate and batch uploads.** Use bounded REAPI `FindMissingBlobs` requests before
+   `BatchUpdateBlobs`, retaining complete descriptor validation and atomic catalog commit. Compare
+   an unchanged repeat, a changed subtree, and an empty server. An unchanged blob should transfer
+   no payload, and a missing parent or failed upload must prevent commit. This also avoids
+   transferring already-present local parent chunks when publishing a child.
+4. **Reduce demand-transfer amplification, then evaluate CDC.** Compare fixed 1 MiB and 256 KiB
+   chunks on the same frozen publication, counting payload, RPCs, descriptor size and total wall
+   time. Keep the existing 1 MiB chunk maximum and 1 MiB bundle bound; a 64 KiB experiment on a
+   multi-GiB closure may need a separately designed bounded descriptor layout. Compare CDC with
+   fixed chunks of the same average size only after testing realistic changed records and
+   repacking. Adopt it only if saved transfer outweighs chunking CPU and extra RPC/metadata costs.
+
+The first implementation has five new regression tests: repeated/boundary ranges, rewritten
+value plus embedded checksum, deferred detection of unread-block corruption, missing/truncated/
+symlinked scratch, and eviction followed by successful or rejected whole-chunk reauthentication.
+The build and all 578 cases across 21 test targets pass (13 targets executed, eight cached).
+
+Bazel's installation digest is part of `FrontierNodeVersion`, so a new binary requires its own
+prepared analysis entries. The first cross-binary pilot correctly missed every old analysis key;
+it is excluded from performance conclusions. The new binary's prepared local and remote arms
+must share the same frozen metadata, and their six binary digests must match vanilla. Do not
+disable installation identity to manufacture cache hits in a production benchmark.
+
+### Agent repository measurements after block authentication
+
+Product commit `cf7456d7b70a9c59d014908670bfb33ea0340ebc` was built from the exact tested tree.
+Three measured repetitions per arm/policy (18 builds), plus two excluded preparation passes,
+used the same six Datadog targets and repository revision as the earlier comparison. Arm order
+rotated and policy order alternated. All builds and output checks passed; every cache reader
+restored 17 configured-target and 11 execution entries. The 578 test cases also pass.
+
+| Output policy | Vanilla, median | Local, median | Remote before, one sample | Remote after, median | Before / after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| minimal | 13.37 s | 14.27 s | 457.71 s | 93.68 s | 4.89x |
+| toplevel | 25.42 s | 23.92 s | 451.52 s | 97.73 s | 4.62x |
+
+Remote minimal samples span 92.99–94.43 seconds;
+toplevel samples span 97.53–98.48 seconds.
+The old binary has only one prepared sample per policy. Each binary has its own prepared seed
+because installation identity versions analysis keys; these are equivalent workload comparisons,
+not identical cache-file comparisons. The new local/remote arms share identical frozen metadata
+within this matrix. Their binary outputs match the pinned vanilla outputs byte-for-byte where
+downloaded and by BEP digest in both policies. Build wall time includes publication and excludes
+startup/clean and backend warmup. The metadata backend is loopback; these results do not establish
+performance over a production network.
+
+Minimal remote process `rchar` fell from **827,313,019,557 B** to a median **20,218,565,730 B**
+(97.56% lower). This is the same cumulative process counter before/after,
+including startup/clean and all read-like I/O, not physical disk or network traffic. Separately,
+the new cached-read counter records a median **3,543,395,561 B** across remote samples.
+Hash-cache weight reaches **11,523,808 B**, below the 32 MiB budget, with **zero evictions**.
+Minimal remote client process-tree PSS has median **2.38 GiB**;
+backend PSS is recorded separately and filesystem page cache is excluded.
+
+The remaining cost is still material: each fresh remote reader downloads **1,448,193,238 B**
+of metadata/chunk payload, despite returning about 244.6 MB of shared values. Remote reads retain
+the global lock and 1 MiB wire chunks. All six remote samples reuse both parent descriptors and
+materialize zero publications, but still write 16 private records; cached-only put deduplication
+is unchanged. The excluded first refresh uploads **1,521,873,109 B**, confirming the
+value of `FindMissingBlobs` before uploading local parents already present in CAS. Profile and
+reduce serialized reads, deduplicate uploads, then compare fixed 256 KiB chunks before adopting CDC.
+
+The first cross-binary pilot and an initial preparation run stopped on harness assertions and
+remain explicitly failed in the evidence. The latter completed two correct preparation builds;
+its first pass had 1,708 analysis hits, while the stable second pass had 17 and zero writes. The
+corrected harness gates the final stable pass, and reran preparation in a new directory before
+the 18 successful measurements. No input-validation or output-verification checks were disabled;
+neither failed run enters the timing table. All original source/seed/CAS/catalog checks passed;
+client and server services
+were stopped at completion.
+
+[Per-sample comparison](measurements/skycache-block-reads-agent-2026-10-25/comparison.json),
+[raw matrix](measurements/skycache-block-reads-agent-2026-10-25/matrix.json),
+[verification/provenance](measurements/skycache-block-reads-agent-2026-10-25/verification.json),
+and [logs, profiles and test XML](measurements/skycache-block-reads-agent-2026-10-25/logs-profiles-tests.tar.gz)
+include the exact harnesses and checksums. Catalog signing keys are excluded.
 
 ## Content-defined chunking
 
@@ -544,10 +636,11 @@ algorithm translation. No CDC production code or wire-format change was introduc
 
 ## Remaining limitations and next implementation choices
 
-1. **Cached reads and uncached/local uploads still do avoidable work.** The Datadog probe
-   exposes repeated whole-chunk reads/hashes from the filesystem page cache. Address that
-   path while preserving digest/record validation. Remote-parent descriptor reuse removes
-   repeated parent transfer, but new local files still use singleton BatchUpdateBlobs calls.
+1. **Serialized reads and uncached/local uploads still do avoidable work.** Authenticated
+   block reads now remove repeated whole-chunk reads/hashes while preserving returned-byte
+   integrity. The first implementation retains the global read lock and 1 MiB wire chunks.
+   Remote-parent descriptor reuse removes repeated parent transfer, but new local files
+   still use singleton BatchUpdateBlobs calls.
    Batch FindMissingBlobs and skip existing chunks before considering CDC; measure RPC overhead
    and use bounded batches. Compare smaller fixed chunks for demand-read amplification.
 2. **Larger publications still have independent limits.** Logical closure and transfer bounds
@@ -569,7 +662,7 @@ algorithm translation. No CDC production code or wire-format change was introduc
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Prioritize the cached-read work above, then measure upload deduplication and smaller chunks.
+Use the optimization sequence above to measure concurrent reads, upload deduplication and smaller chunks.
 Further size increases and independent-clone portability need separate compatibility work
 that preserves the existing per-entry validator. The development server is sufficient for these
 correctness and controlled bandwidth/latency experiments; production catalog retention and
