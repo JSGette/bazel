@@ -211,7 +211,7 @@ def main():
         git('add', '.')
         git('-c', 'user.name=SkyCache Probe', '-c', 'user.email=skycache-probe@example.invalid',
             'commit', '--quiet', '-m', 'Remote SkyCache correctness fixture')
-        for name in ('writer', 'reader', 'restarted', 'mutated', 'offline'):
+        for name in ('writer', 'reader', 'restarted', 'mutated', 'evicted', 'offline'):
             git('worktree', 'add', '--detach', str(root / name), 'HEAD')
         expected = ''.join(f'base:{number:02d}\n' for number in range(6)).encode()
         start_worker('initial')
@@ -239,6 +239,18 @@ def main():
         mutation = build('mutated', mutated)
         assert mutation['output_sha256'] != first['output_sha256'], mutation
         shutdown('mutated')
+
+        stop_worker()
+        # Keep receipts but remove their complete CAS backing. Preserve the evicted bytes as
+        # evidence, and restart against a fresh, empty CAS directory owned by this fixture.
+        (root / 'server-cas').rename(root / 'evicted-cas-backup')
+        start_worker('evicted')
+        evicted = build('evicted', expected)
+        assert evicted['remote_import_skipped'], evicted
+        assert evicted['imported_publications'] == 0, evicted
+        assert evicted['local_stats']['shared_reads'] == 0, evicted
+        assert evicted['remote_committed'], evicted
+        shutdown('evicted')
 
         stop_worker()
         offline = build('offline', expected, timeout='1s')

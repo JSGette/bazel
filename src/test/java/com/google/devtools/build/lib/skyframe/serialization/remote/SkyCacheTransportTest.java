@@ -11,9 +11,11 @@ import build.bazel.remote.execution.v2.BatchUpdateBlobsResponse;
 import build.bazel.remote.execution.v2.ContentAddressableStorageGrpc;
 import build.bazel.remote.execution.v2.Digest;
 import build.bazel.remote.execution.v2.DigestFunction;
+import build.bazel.remote.execution.v2.RequestMetadata;
 import com.google.bytestream.ByteStreamGrpc;
 import com.google.bytestream.ByteStreamProto.ReadRequest;
 import com.google.bytestream.ByteStreamProto.ReadResponse;
+import com.google.devtools.build.lib.remote.util.TracingMetadataUtils;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.CommitRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverResponse;
@@ -145,6 +147,14 @@ public final class SkyCacheTransportTest {
       transport.download(DIGEST);
       transport.discover(SCOPE, ByteString.EMPTY);
       transport.commit(commit());
+      assertThat(backend.requestMetadata).hasSize(4);
+      RequestMetadata metadata = backend.requestMetadata.get(0);
+      assertThat(metadata.getToolInvocationId()).isNotEmpty();
+      assertThat(metadata.getCorrelatedInvocationsId()).isEqualTo(metadata.getToolInvocationId());
+      assertThat(metadata.getActionId()).isEqualTo("skycache-metadata");
+      for (RequestMetadata request : backend.requestMetadata) {
+        assertThat(request).isEqualTo(metadata);
+      }
       assertThat(backend.authorization)
           .containsExactly(
               "Bearer local-test-token",
@@ -319,11 +329,13 @@ public final class SkyCacheTransportTest {
     private final AtomicInteger unavailableCommits = new AtomicInteger();
     private final List<CommitRequest> commits = new CopyOnWriteArrayList<>();
     private final List<String> authorization = new CopyOnWriteArrayList<>();
+    private final List<RequestMetadata> requestMetadata = new CopyOnWriteArrayList<>();
 
     Backend() throws IOException {
       server =
           NettyServerBuilder.forAddress(new InetSocketAddress("127.0.0.1", 0))
               .directExecutor()
+              .intercept(new TracingMetadataUtils.ServerHeadersInterceptor())
               .intercept(
                   new ServerInterceptor() {
                     @Override
@@ -331,6 +343,11 @@ public final class SkyCacheTransportTest {
                         ServerCall<ReqT, RespT> call,
                         Metadata headers,
                         ServerCallHandler<ReqT, RespT> next) {
+                      RequestMetadata metadata =
+                          TracingMetadataUtils.requestMetadataFromHeaders(headers);
+                      if (metadata != null) {
+                        requestMetadata.add(metadata);
+                      }
                       String auth =
                           headers.get(
                               Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));

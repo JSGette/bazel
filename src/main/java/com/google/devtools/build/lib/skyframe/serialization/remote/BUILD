@@ -22,6 +22,7 @@ java_library(
     srcs = ["SkyCacheTransport.java"],
     deps = [
         ":protocol",
+        "//src/main/java/com/google/devtools/build/lib/remote/util:tracing_metadata_utils",
         "//src/main/protobuf:skycache_java_proto",
         "//src/main/protobuf:skycache_java_grpc",
         "//third_party/google/bytestream:bytestream_grpc",

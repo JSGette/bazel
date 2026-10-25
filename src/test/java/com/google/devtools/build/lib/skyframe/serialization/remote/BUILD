@@ -13,6 +13,7 @@ java_test(
     srcs = ["SkyCacheTransportTest.java"],
     size = "small",
     deps = [
+        "//src/main/java/com/google/devtools/build/lib/remote/util:tracing_metadata_utils",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote:protocol",
         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/remote:transport",
         "//src/main/protobuf:skycache_java_proto",

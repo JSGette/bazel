@@ -8,6 +8,7 @@ import build.bazel.remote.execution.v2.Digest;
 import build.bazel.remote.execution.v2.DigestFunction;
 import com.google.bytestream.ByteStreamGrpc;
 import com.google.bytestream.ByteStreamProto.ReadRequest;
+import com.google.devtools.build.lib.remote.util.TracingMetadataUtils;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.CommitRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverResponse;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -85,11 +87,18 @@ public final class SkyCacheTransport implements AutoCloseable {
     } catch (RuntimeException e) {
       throw new IOException("Unable to initialize SkyCache RPC channel");
     }
+    String invocationId = UUID.randomUUID().toString();
+    Channel traced =
+        ClientInterceptors.intercept(
+            channel,
+            TracingMetadataUtils.attachMetadataInterceptor(
+                TracingMetadataUtils.buildMetadata(
+                    invocationId, invocationId, "skycache-metadata")));
     Channel authenticated =
         headers == null
-            ? channel
+            ? traced
             : ClientInterceptors.intercept(
-                channel, MetadataUtils.newAttachHeadersInterceptor(headers));
+                traced, MetadataUtils.newAttachHeadersInterceptor(headers));
     catalog = SkyCacheCatalogGrpc.newBlockingStub(authenticated);
     cas = ContentAddressableStorageGrpc.newBlockingStub(authenticated);
     byteStream = ByteStreamGrpc.newBlockingStub(authenticated);
