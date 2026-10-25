@@ -1,0 +1,197 @@
+{
+  "passed": false,
+  "scope": "Two linked Git worktrees, distinct edits, common remote metadata catalog/CAS",
+  "limitations": [
+    "Single WSL host and loopback metadata RPC",
+    "Correctness fixture; elapsed times are not comparative benchmarks"
+  ],
+  "bazel": "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+  "bazel_sha256": "518de2101dbf40346f17200a520d3ce4dfd65a998f5909c537f3dd2a72689d3f",
+  "worker": "/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+  "worker_sha256": "a8c63fbe7191f5c17db30e7ceed4e6c75d8d311510077b9ebd3c01ff89084d23",
+  "harness_sha256": "de9613d60eb827139c88a30b92a80ef9cdc8ea629aabf9a26578cc81b6301c32",
+  "readiness_helper_sha256": "c0cbb962ac6bc1b7138e955776cde2f3141b561ad7b34eb21f4c8f24244f9746",
+  "action_cache": "grpc://10.55.0.1:8080",
+  "download_outputs": "toplevel",
+  "package_count": 32,
+  "genrule_count": 97,
+  "boot_id": "74f9d8f7-2c86-45d4-a3f6-863f9723130b",
+  "created_at": "2026-10-25T13:25:24.590615+00:00",
+  "phases": [],
+  "commands": [
+    {
+      "label": "git-init",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed",
+        "init",
+        "--quiet"
+      ]
+    },
+    {
+      "label": "git-add",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed",
+        "add",
+        "."
+      ]
+    },
+    {
+      "label": "git-commit",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed",
+        "-c",
+        "user.name=SkyCache Probe",
+        "-c",
+        "user.email=skycache-probe@example.invalid",
+        "commit",
+        "--quiet",
+        "-m",
+        "Remote SkyCache concurrent worktrees fixture"
+      ]
+    },
+    {
+      "label": "git-head",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed",
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "label": "git-worktree-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed",
+        "worktree",
+        "add",
+        "--detach",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/a",
+        "HEAD"
+      ]
+    },
+    {
+      "label": "git-common-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/a",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ]
+    },
+    {
+      "label": "git-worktree-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed",
+        "worktree",
+        "add",
+        "--detach",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/b",
+        "HEAD"
+      ]
+    },
+    {
+      "label": "git-common-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/b",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ]
+    },
+    {
+      "label": "worker-initial",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+        "--listen_address=127.0.0.1",
+        "--listen_port=40098",
+        "--cas_path=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/server-cas",
+        "--skycache_catalog_path=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/server-catalog",
+        "--skycache_instance_name=concurrent-worktrees"
+      ]
+    },
+    {
+      "label": "worker-ready-initial",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-mvp/benchmark-rpc-venv/bin/python",
+        "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/remote-worktree-ready.py",
+        "grpc://127.0.0.1:40098",
+        "concurrent-worktrees"
+      ]
+    }
+  ],
+  "worker_starts": [
+    {
+      "label": "initial",
+      "pid": 523,
+      "log": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/worker-initial.log"
+    }
+  ],
+  "shutdown_failures": [],
+  "metadata_endpoint": "grpc://127.0.0.1:40098",
+  "lock_wait_seconds": 9.457000032853102e-06,
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready",
+        "free_bytes": 912311103488,
+        "host_backing": {
+          "kind": "wsl_distro",
+          "path": "E:\\WSL\\Ubuntu",
+          "free_bytes": 817906962432
+        }
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 817906962432,
+      "system_drive": "C:\\",
+      "system_free_bytes": 146439114752,
+      "windows_drives": {
+        "C:\\": 146439114752,
+        "D:\\": 961270476800,
+        "E:\\": 817906962432
+      },
+      "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+      "observed_unix": 1792934722.869
+    }
+  },
+  "fixture_commit": "effd17c267b32df79a4078d5e0696e96228da11d",
+  "git_common_directories": [
+    "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed/.git",
+    "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25-ready/seed/.git"
+  ],
+  "failure": {
+    "type": "RuntimeError",
+    "message": "worker-ready-initial returned 1; see its log"
+  },
+  "final_receipts": {},
+  "finished_at": "2026-10-25T13:25:26.314975+00:00"
+}

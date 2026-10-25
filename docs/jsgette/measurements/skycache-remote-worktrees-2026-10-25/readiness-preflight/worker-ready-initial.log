@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/remote-worktree-ready.py", line 23, in <module>
+    response = discover(request, timeout=30, wait_for_ready=True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jgett/REPOS/.work/skycache-remote-mvp/benchmark-rpc-venv/lib/python3.12/site-packages/grpc/_channel.py", line 1166, in __call__
+    return _end_unary_response_blocking(state, call, False, None)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jgett/REPOS/.work/skycache-remote-mvp/benchmark-rpc-venv/lib/python3.12/site-packages/grpc/_channel.py", line 996, in _end_unary_response_blocking
+    raise _InactiveRpcError(state)  # pytype: disable=not-instantiable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with:
+	status = StatusCode.INVALID_ARGUMENT
+	details = "RequestMetadata not received from the client for build.bazel.skycache.v1.SkyCacheCatalog/DiscoverPublications"
+	debug_error_string = "UNKNOWN:Error received from peer  {grpc_status:3, grpc_message:"RequestMetadata not received from the client for build.bazel.skycache.v1.SkyCacheCatalog/DiscoverPublications"}"
+>

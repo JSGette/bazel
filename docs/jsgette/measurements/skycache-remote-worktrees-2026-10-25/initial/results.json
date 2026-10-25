@@ -1,0 +1,914 @@
+{
+  "passed": false,
+  "scope": "Two linked Git worktrees, distinct edits, common remote metadata catalog/CAS",
+  "limitations": [
+    "Single WSL host and loopback metadata RPC",
+    "Correctness fixture; elapsed times are not comparative benchmarks"
+  ],
+  "bazel": "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+  "bazel_sha256": "518de2101dbf40346f17200a520d3ce4dfd65a998f5909c537f3dd2a72689d3f",
+  "worker": "/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+  "worker_sha256": "a8c63fbe7191f5c17db30e7ceed4e6c75d8d311510077b9ebd3c01ff89084d23",
+  "harness_sha256": "f083b92c1f2d428514626a07b55656c91e38ae0a90903a8dffefa152867a0d3d",
+  "action_cache": "grpc://10.55.0.1:8080",
+  "download_outputs": "toplevel",
+  "package_count": 32,
+  "genrule_count": 97,
+  "boot_id": "74f9d8f7-2c86-45d4-a3f6-863f9723130b",
+  "created_at": "2026-10-25T13:18:52.640002+00:00",
+  "phases": [
+    {
+      "phase": "baseline",
+      "builds": [
+        {
+          "worktree": "seed",
+          "phase": "baseline",
+          "exit_code": 0,
+          "start_monotonic_ns": 831284891032,
+          "end_monotonic_ns": 841947312261,
+          "seconds": 10.662421229,
+          "staging_cache_initially_absent": true,
+          "staging_cache": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-baseline-seed",
+          "output_base": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-seed",
+          "output_matches_expected": true,
+          "output_sha256": "1af88dfadc7d723d20a94542d1bc31cf05eb22ed0cca1ea0d1cef96d957873da",
+          "expected_sha256": "1af88dfadc7d723d20a94542d1bc31cf05eb22ed0cca1ea0d1cef96d957873da",
+          "analysis_hits": 0,
+          "local_stats": {
+            "writes": 1311,
+            "reads": 229,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 1311,
+            "cas_accepted_puts": 1311,
+            "cas_put_key_bytes": 27207,
+            "cas_put_value_bytes": 234587,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "memo_capacity_skips": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0,
+            "subtree_waits": 0
+          },
+          "transfers": {
+            "downloaded_bytes": 0,
+            "downloaded_chunks": 0,
+            "discovered_publications": 0,
+            "materialized_publications": 0,
+            "reused_publications": 0
+          },
+          "remote_committed": true,
+          "remote_import_skipped": false,
+          "remote_publish_skipped": false,
+          "local_disabled": false,
+          "process_summary": [
+            "INFO: 98 processes: 1 internal, 97 linux-sandbox."
+          ]
+        }
+      ],
+      "receipts_after": {
+        "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd"
+      }
+    },
+    {
+      "phase": "concurrent-edits",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+            "free_bytes": 912316973056,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 817940541440
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 817940541440,
+          "system_drive": "C:\\",
+          "system_free_bytes": 146477678592,
+          "windows_drives": {
+            "C:\\": 146477678592,
+            "D:\\": 961270476800,
+            "E:\\": 817940541440
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792934521.186
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "phase": "concurrent-edits",
+          "exit_code": 0,
+          "start_monotonic_ns": 842443291889,
+          "end_monotonic_ns": 853015371597,
+          "seconds": 10.572079708,
+          "staging_cache_initially_absent": true,
+          "staging_cache": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-concurrent-edits-a",
+          "output_base": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a",
+          "output_matches_expected": true,
+          "output_sha256": "9dc9d7398864711516946ac175b67dd4525ca3dc67abd51ea8206009bfa78414",
+          "expected_sha256": "9dc9d7398864711516946ac175b67dd4525ca3dc67abd51ea8206009bfa78414",
+          "analysis_hits": 94,
+          "local_stats": {
+            "writes": 212,
+            "reads": 1325,
+            "shared_reads": 1220,
+            "rejected_publications": 0,
+            "deduplicated_writes": 448,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 78278,
+            "cas_put_requests": 660,
+            "cas_accepted_puts": 660,
+            "cas_put_key_bytes": 12916,
+            "cas_put_value_bytes": 89068,
+            "cas_get_requests": 1127,
+            "cas_get_hits": 1127,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 198490,
+            "catalog_busy_skips": 0
+          },
+          "validation": {
+            "records_read": 395,
+            "memo_hits": 339,
+            "witnesses_checked": 143,
+            "rejected_roots": 5,
+            "memo_entries": 370,
+            "memo_capacity_skips": 0,
+            "witness_memo_hits": 41,
+            "witness_memo_entries": 241,
+            "admission_witness_memo_hits": 103,
+            "subtree_waits": 0
+          },
+          "transfers": {
+            "downloaded_bytes": 389581,
+            "downloaded_chunks": 36,
+            "discovered_publications": 1,
+            "materialized_publications": 0,
+            "reused_publications": 1
+          },
+          "remote_committed": true,
+          "remote_import_skipped": false,
+          "remote_publish_skipped": false,
+          "local_disabled": false,
+          "process_summary": [
+            "INFO: 98 processes: 93 remote cache hit, 1 internal, 4 linux-sandbox."
+          ]
+        },
+        {
+          "worktree": "b",
+          "phase": "concurrent-edits",
+          "exit_code": 0,
+          "start_monotonic_ns": 842443213968,
+          "end_monotonic_ns": 853193727660,
+          "seconds": 10.750513692,
+          "staging_cache_initially_absent": true,
+          "staging_cache": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-concurrent-edits-b",
+          "output_base": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-b",
+          "output_matches_expected": true,
+          "output_sha256": "d9717d92b3b2a1f465a4b490a669343f24e20dbcafe58036a90699e8db21f1bf",
+          "expected_sha256": "d9717d92b3b2a1f465a4b490a669343f24e20dbcafe58036a90699e8db21f1bf",
+          "analysis_hits": 94,
+          "local_stats": {
+            "writes": 212,
+            "reads": 1324,
+            "shared_reads": 1219,
+            "rejected_publications": 0,
+            "deduplicated_writes": 448,
+            "published": false,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 1,
+            "peak_candidate_metadata_bytes": 78278,
+            "cas_put_requests": 660,
+            "cas_accepted_puts": 660,
+            "cas_put_key_bytes": 12916,
+            "cas_put_value_bytes": 89066,
+            "cas_get_requests": 1126,
+            "cas_get_hits": 1126,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 198394,
+            "catalog_busy_skips": 0
+          },
+          "validation": {
+            "records_read": 394,
+            "memo_hits": 328,
+            "witnesses_checked": 142,
+            "rejected_roots": 5,
+            "memo_entries": 369,
+            "memo_capacity_skips": 0,
+            "witness_memo_hits": 41,
+            "witness_memo_entries": 240,
+            "admission_witness_memo_hits": 103,
+            "subtree_waits": 0
+          },
+          "transfers": {
+            "downloaded_bytes": 389581,
+            "downloaded_chunks": 36,
+            "discovered_publications": 1,
+            "materialized_publications": 0,
+            "reused_publications": 1
+          },
+          "remote_committed": true,
+          "remote_import_skipped": false,
+          "remote_publish_skipped": false,
+          "local_disabled": false,
+          "process_summary": [
+            "INFO: 98 processes: 93 remote cache hit, 1 internal, 4 linux-sandbox."
+          ]
+        }
+      ],
+      "overlap_seconds": 10.572079708,
+      "receipts_before": {
+        "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd"
+      },
+      "receipts_after": {
+        "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd",
+        "receipt-00000002.pb": "5af3e7c249ba6c026b810af6bdef7d679f69fc28db46446b215fc933137486ee",
+        "receipt-00000003.pb": "479beb28c9309b642a1baf21b00b2bf49d2c52d87df1b99cf014ef8b44f2fff8"
+      },
+      "new_receipts": [
+        "receipt-00000002.pb",
+        "receipt-00000003.pb"
+      ]
+    },
+    {
+      "phase": "after-clean-and-restart",
+      "storage": {
+        "minimum_free_bytes": 32212254720,
+        "system_reserve_bytes": 10737418240,
+        "filesystems": [
+          {
+            "path": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+            "free_bytes": 912304742400,
+            "host_backing": {
+              "kind": "wsl_distro",
+              "path": "E:\\WSL\\Ubuntu",
+              "free_bytes": 817940541440
+            }
+          }
+        ],
+        "wsl_host": {
+          "distro": "Ubuntu",
+          "distro_path": "E:\\WSL\\Ubuntu",
+          "backing_free_bytes": 817940541440,
+          "system_drive": "C:\\",
+          "system_free_bytes": 146477539328,
+          "windows_drives": {
+            "C:\\": 146477539328,
+            "D:\\": 961270476800,
+            "E:\\": 817940541440
+          },
+          "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+          "observed_unix": 1792934533.247
+        }
+      },
+      "builds": [
+        {
+          "worktree": "a",
+          "phase": "after-clean-and-restart",
+          "exit_code": 0,
+          "start_monotonic_ns": 853367700634,
+          "end_monotonic_ns": 861706575514,
+          "seconds": 8.33887488,
+          "staging_cache_initially_absent": true,
+          "staging_cache": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-after-clean-and-restart-a",
+          "output_base": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a",
+          "output_matches_expected": true,
+          "output_sha256": "9dc9d7398864711516946ac175b67dd4525ca3dc67abd51ea8206009bfa78414",
+          "expected_sha256": "9dc9d7398864711516946ac175b67dd4525ca3dc67abd51ea8206009bfa78414",
+          "analysis_hits": 0,
+          "local_stats": {
+            "writes": 1407,
+            "reads": 229,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 1407,
+            "cas_accepted_puts": 1407,
+            "cas_put_key_bytes": 28743,
+            "cas_put_value_bytes": 241363,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "memo_capacity_skips": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0,
+            "subtree_waits": 0
+          },
+          "transfers": {
+            "downloaded_bytes": 0,
+            "downloaded_chunks": 0,
+            "discovered_publications": 0,
+            "materialized_publications": 0,
+            "reused_publications": 0
+          },
+          "remote_committed": true,
+          "remote_import_skipped": true,
+          "remote_publish_skipped": false,
+          "local_disabled": false,
+          "process_summary": [
+            "INFO: 98 processes: 97 remote cache hit, 1 internal."
+          ]
+        },
+        {
+          "worktree": "b",
+          "phase": "after-clean-and-restart",
+          "exit_code": 0,
+          "start_monotonic_ns": 853367621938,
+          "end_monotonic_ns": 861760981305,
+          "seconds": 8.393359367,
+          "staging_cache_initially_absent": true,
+          "staging_cache": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-after-clean-and-restart-b",
+          "output_base": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-b",
+          "output_matches_expected": true,
+          "output_sha256": "d9717d92b3b2a1f465a4b490a669343f24e20dbcafe58036a90699e8db21f1bf",
+          "expected_sha256": "d9717d92b3b2a1f465a4b490a669343f24e20dbcafe58036a90699e8db21f1bf",
+          "analysis_hits": 0,
+          "local_stats": {
+            "writes": 1407,
+            "reads": 229,
+            "shared_reads": 0,
+            "rejected_publications": 0,
+            "deduplicated_writes": 0,
+            "published": true,
+            "failed": false,
+            "read_limit_skips": 0,
+            "scan_limit_hits": 0,
+            "peak_candidate_count": 0,
+            "peak_candidate_metadata_bytes": 0,
+            "cas_put_requests": 1407,
+            "cas_accepted_puts": 1407,
+            "cas_put_key_bytes": 28743,
+            "cas_put_value_bytes": 241354,
+            "cas_get_requests": 0,
+            "cas_get_hits": 0,
+            "cas_get_misses": 0,
+            "cas_received_value_bytes": 0,
+            "catalog_busy_skips": 0
+          },
+          "validation": {
+            "records_read": 0,
+            "memo_hits": 0,
+            "witnesses_checked": 0,
+            "rejected_roots": 0,
+            "memo_entries": 0,
+            "memo_capacity_skips": 0,
+            "witness_memo_hits": 0,
+            "witness_memo_entries": 0,
+            "admission_witness_memo_hits": 0,
+            "subtree_waits": 0
+          },
+          "transfers": {
+            "downloaded_bytes": 0,
+            "downloaded_chunks": 0,
+            "discovered_publications": 0,
+            "materialized_publications": 0,
+            "reused_publications": 0
+          },
+          "remote_committed": true,
+          "remote_import_skipped": true,
+          "remote_publish_skipped": false,
+          "local_disabled": false,
+          "process_summary": [
+            "INFO: 98 processes: 97 remote cache hit, 1 internal."
+          ]
+        }
+      ],
+      "overlap_seconds": 8.33887488,
+      "receipts_before": {
+        "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd",
+        "receipt-00000002.pb": "5af3e7c249ba6c026b810af6bdef7d679f69fc28db46446b215fc933137486ee",
+        "receipt-00000003.pb": "479beb28c9309b642a1baf21b00b2bf49d2c52d87df1b99cf014ef8b44f2fff8"
+      },
+      "receipts_after": {
+        "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd",
+        "receipt-00000002.pb": "5af3e7c249ba6c026b810af6bdef7d679f69fc28db46446b215fc933137486ee",
+        "receipt-00000003.pb": "479beb28c9309b642a1baf21b00b2bf49d2c52d87df1b99cf014ef8b44f2fff8",
+        "receipt-00000004.pb": "fe3f4e32a24c2a7d1c63a565f8752bed19a16a3a9770e69856decb2f25a69b52",
+        "receipt-00000005.pb": "066b4ba86ae95c10cd51f8dbb26b01b5080e79cc9a7cacffd450a5eb4bcdd0ab"
+      },
+      "new_receipts": [
+        "receipt-00000004.pb",
+        "receipt-00000005.pb"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "label": "git-init",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+        "init",
+        "--quiet"
+      ]
+    },
+    {
+      "label": "git-add",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+        "add",
+        "."
+      ]
+    },
+    {
+      "label": "git-commit",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+        "-c",
+        "user.name=SkyCache Probe",
+        "-c",
+        "user.email=skycache-probe@example.invalid",
+        "commit",
+        "--quiet",
+        "-m",
+        "Remote SkyCache concurrent worktrees fixture"
+      ]
+    },
+    {
+      "label": "git-head",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "label": "git-worktree-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+        "worktree",
+        "add",
+        "--detach",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+        "HEAD"
+      ]
+    },
+    {
+      "label": "git-common-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ]
+    },
+    {
+      "label": "git-worktree-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+        "worktree",
+        "add",
+        "--detach",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+        "HEAD"
+      ]
+    },
+    {
+      "label": "git-common-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ]
+    },
+    {
+      "label": "worker-initial",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+        "--listen_address=127.0.0.1",
+        "--listen_port=38436",
+        "--cas_path=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/server-cas",
+        "--skycache_catalog_path=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/server-catalog",
+        "--skycache_instance_name=concurrent-worktrees"
+      ]
+    },
+    {
+      "label": "baseline-seed",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-seed",
+        "build",
+        "//app:bundle",
+        "--jobs=2",
+        "--local_resources=memory=1024",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--disk_cache=",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_timeout=30s",
+        "--experimental_active_directories=app",
+        "--repo_env=SKYCACHE_PROBE=stable",
+        "--action_env=SKYCACHE_PROBE=stable",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-baseline-seed",
+        "--experimental_remote_skycache=grpc://127.0.0.1:38436",
+        "--experimental_remote_skycache_instance_name=concurrent-worktrees",
+        "--experimental_remote_skycache_timeout=60s",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/baseline-seed.bep.json"
+      ]
+    },
+    {
+      "label": "shutdown-seed",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-seed",
+        "shutdown"
+      ]
+    },
+    {
+      "label": "git-edit-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+        "diff",
+        "--binary"
+      ]
+    },
+    {
+      "label": "git-edit-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "git",
+        "-C",
+        "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+        "diff",
+        "--binary"
+      ]
+    },
+    {
+      "label": "concurrent-edits-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a",
+        "build",
+        "//app:bundle",
+        "--jobs=2",
+        "--local_resources=memory=1024",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--disk_cache=",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_timeout=30s",
+        "--experimental_active_directories=app",
+        "--repo_env=SKYCACHE_PROBE=stable",
+        "--action_env=SKYCACHE_PROBE=stable",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-concurrent-edits-a",
+        "--experimental_remote_skycache=grpc://127.0.0.1:38436",
+        "--experimental_remote_skycache_instance_name=concurrent-worktrees",
+        "--experimental_remote_skycache_timeout=60s",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/concurrent-edits-a.bep.json"
+      ]
+    },
+    {
+      "label": "concurrent-edits-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-b",
+        "build",
+        "//app:bundle",
+        "--jobs=2",
+        "--local_resources=memory=1024",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--disk_cache=",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_timeout=30s",
+        "--experimental_active_directories=app",
+        "--repo_env=SKYCACHE_PROBE=stable",
+        "--action_env=SKYCACHE_PROBE=stable",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-concurrent-edits-b",
+        "--experimental_remote_skycache=grpc://127.0.0.1:38436",
+        "--experimental_remote_skycache_instance_name=concurrent-worktrees",
+        "--experimental_remote_skycache_timeout=60s",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/concurrent-edits-b.bep.json"
+      ]
+    },
+    {
+      "label": "changed-restart-clean-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a",
+        "clean"
+      ]
+    },
+    {
+      "label": "changed-restart-clean-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-b",
+        "clean"
+      ]
+    },
+    {
+      "label": "worker-restart",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-upstream-sync-2026-10-25/build/execroot/_main/bazel-out/k8-fastbuild/bin/src/tools/remote/worker",
+        "--listen_address=127.0.0.1",
+        "--listen_port=38436",
+        "--cas_path=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/server-cas",
+        "--skycache_catalog_path=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/server-catalog",
+        "--skycache_instance_name=concurrent-worktrees"
+      ]
+    },
+    {
+      "label": "after-clean-and-restart-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a",
+        "build",
+        "//app:bundle",
+        "--jobs=2",
+        "--local_resources=memory=1024",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--disk_cache=",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_timeout=30s",
+        "--experimental_active_directories=app",
+        "--repo_env=SKYCACHE_PROBE=stable",
+        "--action_env=SKYCACHE_PROBE=stable",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-after-clean-and-restart-a",
+        "--experimental_remote_skycache=grpc://127.0.0.1:38436",
+        "--experimental_remote_skycache_instance_name=concurrent-worktrees",
+        "--experimental_remote_skycache_timeout=60s",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/after-clean-and-restart-a.bep.json"
+      ]
+    },
+    {
+      "label": "after-clean-and-restart-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-b",
+        "build",
+        "//app:bundle",
+        "--jobs=2",
+        "--local_resources=memory=1024",
+        "--lockfile_mode=off",
+        "--experimental_strict_repo_env",
+        "--color=no",
+        "--curses=no",
+        "--remote_cache=grpc://10.55.0.1:8080",
+        "--disk_cache=",
+        "--remote_download_outputs=toplevel",
+        "--remote_upload_local_results",
+        "--remote_timeout=30s",
+        "--experimental_active_directories=app",
+        "--repo_env=SKYCACHE_PROBE=stable",
+        "--action_env=SKYCACHE_PROBE=stable",
+        "--experimental_local_skycache=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-after-clean-and-restart-b",
+        "--experimental_remote_skycache=grpc://127.0.0.1:38436",
+        "--experimental_remote_skycache_instance_name=concurrent-worktrees",
+        "--experimental_remote_skycache_timeout=60s",
+        "--build_event_json_file=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/after-clean-and-restart-b.bep.json"
+      ]
+    },
+    {
+      "label": "shutdown-final-a",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/a",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a",
+        "shutdown"
+      ]
+    },
+    {
+      "label": "shutdown-final-b",
+      "cwd": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/b",
+      "argv": [
+        "/home/jgett/REPOS/.work/skycache-remote-sync-2026-10-25/update/bin/bazel-remote-sync",
+        "--nosystem_rc",
+        "--nohome_rc",
+        "--noworkspace_rc",
+        "--host_jvm_args=-Xmx1g",
+        "--max_idle_secs=120",
+        "--output_base=/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-b",
+        "shutdown"
+      ]
+    }
+  ],
+  "worker_starts": [
+    {
+      "label": "initial",
+      "pid": 62768,
+      "log": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/worker-initial.log"
+    },
+    {
+      "label": "restart",
+      "pid": 65603,
+      "log": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/worker-restart.log"
+    }
+  ],
+  "shutdown_failures": [],
+  "metadata_endpoint": "grpc://127.0.0.1:38436",
+  "lock_wait_seconds": 179.334824529,
+  "initial_storage": {
+    "minimum_free_bytes": 32212254720,
+    "system_reserve_bytes": 10737418240,
+    "filesystems": [
+      {
+        "path": "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25",
+        "free_bytes": 912322031616,
+        "host_backing": {
+          "kind": "wsl_distro",
+          "path": "E:\\WSL\\Ubuntu",
+          "free_bytes": 817940541440
+        }
+      }
+    ],
+    "wsl_host": {
+      "distro": "Ubuntu",
+      "distro_path": "E:\\WSL\\Ubuntu",
+      "backing_free_bytes": 817940541440,
+      "system_drive": "C:\\",
+      "system_free_bytes": 146477682688,
+      "windows_drives": {
+        "C:\\": 146477682688,
+        "D:\\": 961270476800,
+        "E:\\": 817940541440
+      },
+      "observation_source": "/mnt/c/Users/jgett/Documents/Codex/2026-10-24/ex/work/datadog-storage-live.json",
+      "observed_unix": 1792934509.148
+    }
+  },
+  "fixture_commit": "9712c7fc94bfae0cd3b27d355520bde1f0b91d70",
+  "git_common_directories": [
+    "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed/.git",
+    "/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/seed/.git"
+  ],
+  "edits": {
+    "a": [
+      3,
+      "a"
+    ],
+    "b": [
+      30,
+      "b"
+    ]
+  },
+  "clean_checks": [
+    {
+      "phase": "changed-restart",
+      "outputs_absent": true
+    }
+  ],
+  "receipts_before_restart": {
+    "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd",
+    "receipt-00000002.pb": "5af3e7c249ba6c026b810af6bdef7d679f69fc28db46446b215fc933137486ee",
+    "receipt-00000003.pb": "479beb28c9309b642a1baf21b00b2bf49d2c52d87df1b99cf014ef8b44f2fff8"
+  },
+  "failure": {
+    "type": "AssertionError",
+    "message": "{'worktree': 'a', 'phase': 'after-clean-and-restart', 'exit_code': 0, 'start_monotonic_ns': 853367700634, 'end_monotonic_ns': 861706575514, 'seconds': 8.33887488, 'staging_cache_initially_absent': True, 'staging_cache': '/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/cache-after-clean-and-restart-a', 'output_base': '/home/jgett/REPOS/.work/skycache-remote-worktrees-2026-10-25/out-a', 'output_matches_expected': True, 'output_sha256': '9dc9d7398864711516946ac175b67dd4525ca3dc67abd51ea8206009bfa78414', 'expected_sha256': '9dc9d7398864711516946ac175b67dd4525ca3dc67abd51ea8206009bfa78414', 'analysis_hits': 0, 'local_stats': {'writes': 1407, 'reads': 229, 'shared_reads': 0, 'rejected_publications': 0, 'deduplicated_writes': 0, 'published': True, 'failed': False, 'read_limit_skips': 0, 'scan_limit_hits': 0, 'peak_candidate_count': 0, 'peak_candidate_metadata_bytes': 0, 'cas_put_requests': 1407, 'cas_accepted_puts': 1407, 'cas_put_key_bytes': 28743, 'cas_put_value_bytes': 241363, 'cas_get_requests': 0, 'cas_get_hits': 0, 'cas_get_misses': 0, 'cas_received_value_bytes': 0, 'catalog_busy_skips': 0}, 'validation': {'records_read': 0, 'memo_hits': 0, 'witnesses_checked': 0, 'rejected_roots': 0, 'memo_entries': 0, 'memo_capacity_skips': 0, 'witness_memo_hits': 0, 'witness_memo_entries': 0, 'admission_witness_memo_hits': 0, 'subtree_waits': 0}, 'transfers': {'downloaded_bytes': 0, 'downloaded_chunks': 0, 'discovered_publications': 0, 'materialized_publications': 0, 'reused_publications': 0}, 'remote_committed': True, 'remote_import_skipped': True, 'remote_publish_skipped': False, 'local_disabled': False, 'process_summary': ['INFO: 98 processes: 97 remote cache hit, 1 internal.']}"
+  },
+  "final_receipts": {
+    "receipt-00000001.pb": "1283426d37d7629f1510c413fdcbb432bbc6ebb5e7f2e3dc96c1b6e476f7f7fd",
+    "receipt-00000002.pb": "5af3e7c249ba6c026b810af6bdef7d679f69fc28db46446b215fc933137486ee",
+    "receipt-00000003.pb": "479beb28c9309b642a1baf21b00b2bf49d2c52d87df1b99cf014ef8b44f2fff8",
+    "receipt-00000004.pb": "fe3f4e32a24c2a7d1c63a565f8752bed19a16a3a9770e69856decb2f25a69b52",
+    "receipt-00000005.pb": "066b4ba86ae95c10cd51f8dbb26b01b5080e79cc9a7cacffd450a5eb4bcdd0ab"
+  },
+  "finished_at": "2026-10-25T13:22:23.032050+00:00"
+}
