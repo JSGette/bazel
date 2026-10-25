@@ -510,11 +510,13 @@ original CAS and prior reports were checked after the continuation; all fixture 
    record-key, record-checksum and index checks remain. Corruption in an unread block is detected
    when that block is requested; every returned byte remains authenticated. No wire-format or
    server change is required. Counters expose cached bytes read, hash-cache weight and evictions.
-2. **Measure and reduce the remaining serialized I/O.** Keep the current global read lock for
-   this first change so the benchmark isolates reduced read/hash work. If profiles show it still
-   dominates, use per-chunk in-flight deduplication and bounded parallel downloads, then narrow
-   locking around the hash LRU. Gate on concurrent same-chunk reads, failed-transfer accounting,
-   close/cancellation behavior and bounded memory before measuring throughput and latency.
+2. **Measure and reduce the remaining serialized I/O (cached-read overlap implemented).**
+   Up to eight cached range reads now run alongside the single download stream. Hash-cache locking
+   covers only map operations; successful concurrent requests for one missing chunk share the
+   downloaded file. The next experiment is bounded parallel downloads, which needs explicit
+   aggregate RPC-time accounting and cancellation before changing transport concurrency. Gate on
+   concurrent same-chunk reads, failed-transfer accounting, close/cancellation behavior and bounded
+   memory before measuring throughput and latency.
 3. **Deduplicate and batch uploads.** Use bounded REAPI `FindMissingBlobs` requests before
    `BatchUpdateBlobs`, retaining complete descriptor validation and atomic catalog commit. Compare
    an unchanged repeat, a changed subtree, and an empty server. An unchanged blob should transfer
@@ -592,6 +594,114 @@ were stopped at completion.
 and [logs, profiles and test XML](measurements/skycache-block-reads-agent-2026-10-25/logs-profiles-tests.tar.gz)
 include the exact harnesses and checksums. Catalog signing keys are excluded.
 
+### Overlapping cached reads with downloads
+
+The block-read baseline spends 81.894 seconds in `ParallelEvaluator.eval`, compared with 12.536
+seconds locally in the first minimal sample. Its profile shows low CPU utilization during much
+of that interval, but has no per-RPC or monitor-wait events to separate network latency from lock
+contention. Source inspection establishes that the global chunk-reader monitor blocks cached
+disk reads behind unrelated downloads. Uploads occur after evaluation and cannot explain that gap.
+
+The second implementation removes that coupling while preserving the transport's one-at-a-time
+RPC contract and cumulative time/byte budgets. A semaphore bounds cached range reads to eight;
+the separate download lock coalesces successful missing-chunk fetches. Completed chunk files are
+exposed with an atomic, non-replacing hard link, so cached-only reads never observe partial writes
+or initiate a transfer. Hashes remain bounded by the same 32 MiB LRU weight budget, with full-digest
+verification after eviction and authentication of every returned byte.
+
+Lifecycle locks prevent scratch deletion while reads are active. Closing first cancels the channel
+without waiting for the blocking RPC monitor, then waits for readers and removes scratch. Export
+and admission hold the exclusive lifecycle lock so they cannot reset budgets during active reads.
+Four latch-controlled tests cover cached reads during a blocked download, prompt cached-only
+misses, duplicate fetches, close/cancellation and interrupted download waiters. All 582 test cases
+across 21 targets pass (14 targets executed, seven cached).
+
+New `peak_cached_reads`, `cached_read_nanos` and `download_rpc_nanos` counters distinguish bounded
+cached-read overlap from time in the serialized download calls. Cached-read duration includes I/O
+and hashing but excludes waiting for a reader permit. Durations sum across operations and can
+overlap; they must not be added as exclusive wall-clock phases. The hash budget is a retained-cache
+weight, not a total heap bound; up to eight cached operations and one download also own temporary
+buffers, while callers own their result buffers.
+
+### Agent repository measurements with overlapping cached reads
+
+Product commit `d1289931bc63f7b6bf6786ec1002bfd182269ba1` was built from tested tree
+`7685da9520dbaaa6184800686fc1aec8f5964736`; all **582 test cases** passed.
+The comparison uses the same six Datadog targets, revision, output base, embedded tools,
+output digests, and pinned vanilla binary as the preceding block-authentication matrix.
+Both matrices contain three measured samples per arm/policy. The new run completed
+18 measured builds after one deliberate cross-binary prime and two excluded stabilization
+passes. The prime succeeded with zero old-seed hits and a committed new publication;
+the final stabilization wrote zero records. Every measured cache reader restored
+17 configured-target and 11 execution entries, with clean graph/action state and no
+cache failures, transfer skips or scan/read-limit failures.
+
+| Output policy | Arm | Previous median (range) | Overlapping reads median (range) | Previous / current |
+| --- | --- | ---: | ---: | ---: |
+| minimal | vanilla | 13.37 s (12.97–13.57 s) | 13.22 s (13.17–13.77 s) | 1.01x |
+| minimal | local | 14.27 s (14.17–14.62 s) | 15.00 s (14.22–15.97 s) | 0.95x |
+| minimal | remote | 93.68 s (92.99–94.43 s) | 85.08 s (84.78–102.53 s) | 1.10x |
+| toplevel | vanilla | 25.42 s (25.12–25.53 s) | 25.52 s (25.48–26.12 s) | 1.00x |
+| toplevel | local | 23.92 s (23.72–24.00 s) | 24.57 s (23.82–27.77 s) | 0.97x |
+| toplevel | remote | 97.73 s (97.53–98.48 s) | 92.64 s (91.18–105.23 s) | 1.06x |
+
+Ratios above 1 indicate lower current wall time; these small samples describe this run
+and do not establish statistical significance. Each binary uses its own prepared seed
+because installation identity versions analysis keys. Within the new matrix, local and
+remote readers use identical frozen publication metadata. All six binary digests match
+the pinned vanilla outputs in BEP; toplevel downloads also match by actual SHA-256.
+Arm order rotates and policy order alternates. Each sample has a fresh JVM and client
+metadata cache, with startup/clean and one backend warmup round excluded from build
+wall time. Publication work is included. The metadata backend is loopback with warmed
+CAS and OS caches, so production-network performance remains unmeasured.
+
+The new counters separate accumulated cached-read work from accumulated download-RPC
+duration. They are **not exclusive wall-time components**: cached operations can overlap
+each other and the RPC stream, so their sums must not be added into a wall-time breakdown
+or interpreted as CPU time. Cached-read timing starts after acquiring one of eight slots;
+the RPC counter measures the transport download call, not all metadata RPCs or queue waits.
+
+| Remote sample | Build wall | Cached-read accumulated duration | Download-RPC accumulated duration | Peak cached readers |
+| --- | ---: | ---: | ---: | ---: |
+| r1-minimal-remote | 102.53 s | 17.84 s | 57.71 s | 8 |
+| r1-toplevel-remote | 92.64 s | 8.73 s | 57.89 s | 8 |
+| r2-toplevel-remote | 91.18 s | 8.25 s | 57.46 s | 8 |
+| r2-minimal-remote | 84.78 s | 7.77 s | 58.15 s | 8 |
+| r3-minimal-remote | 85.08 s | 8.03 s | 56.71 s | 8 |
+| r3-toplevel-remote | 105.23 s | 12.22 s | 58.81 s | 8 |
+
+Observed cached-reader peaks span **8–8**, within the limit of eight.
+Authentication-cache weight reaches **11,811,744 B**, within 32 MiB; recorded evictions
+span **0–0** per sample. Fresh remote readers download
+**1,484,230,964–1,484,230,964 B** of metadata/chunk payload and record a median
+**3,565,280,220 B** of cached reads. Remote sample writes span
+**15–16**; 6 of six samples report a publication commit.
+Materialized-publication counts span 0–0 and reused-publication
+counts span 2–2. These observed counts are recorded without a fixed
+payload or remote-write assumption.
+
+Remote client process-tree PSS medians are **2.77 GiB**
+for minimal and **2.85 GiB** for toplevel; worker
+peaks are recorded separately and filesystem page cache is excluded. Corresponding median
+process `rchar` values are **20,293,201,670 B** and
+**20,230,976,701 B**. These are cumulative fresh-JVM read-like counters,
+including startup/clean, and are neither physical disk bytes nor network traffic.
+
+Remaining limits include one download-RPC stream, 1 MiB wire chunks, repeated uploads
+when a new publication is exported, and work required to read and authenticate local
+chunk ranges. The measurements isolate overlapping cached I/O; they do not evaluate
+upload deduplication, smaller chunks, CDC, or a production-network deployment. All
+source/seed/CAS/catalog preservation and cleanup checks passed. Exact raw reports,
+the prior report hashes, binary/runtime JAR provenance, harnesses, build scripts,
+legacy helpers, logs/profiles and test XML are frozen with SHA-256 checksums; catalog
+directories and signing keys are excluded from the archive.
+
+[Six-cell and per-sample comparison](measurements/skycache-parallel-reads-agent-2026-10-25/comparison.json),
+[successful prime](measurements/skycache-parallel-reads-agent-2026-10-25/prime.json),
+[raw matrix](measurements/skycache-parallel-reads-agent-2026-10-25/matrix.json),
+[verification/provenance](measurements/skycache-parallel-reads-agent-2026-10-25/verification.json),
+and [logs, profiles and test XML](measurements/skycache-parallel-reads-agent-2026-10-25/logs-profiles-tests.tar.gz).
+
 ## Content-defined chunking
 
 CDC is compatible with the current ordered, variable-length chunk descriptors; no proto change
@@ -636,9 +746,10 @@ algorithm translation. No CDC production code or wire-format change was introduc
 
 ## Remaining limitations and next implementation choices
 
-1. **Serialized reads and uncached/local uploads still do avoidable work.** Authenticated
+1. **Serialized downloads and uncached/local uploads still do avoidable work.** Authenticated
    block reads now remove repeated whole-chunk reads/hashes while preserving returned-byte
-   integrity. The first implementation retains the global read lock and 1 MiB wire chunks.
+   integrity. Cached range reads can overlap, but the transport still issues one RPC at a time
+   and retains 1 MiB wire chunks.
    Remote-parent descriptor reuse removes repeated parent transfer, but new local files
    still use singleton BatchUpdateBlobs calls.
    Batch FindMissingBlobs and skip existing chunks before considering CDC; measure RPC overhead
