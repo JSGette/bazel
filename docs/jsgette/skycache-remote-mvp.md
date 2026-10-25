@@ -5,6 +5,10 @@ a persistent catalog to Bazel's existing Java REAPI worker. It uses the worker's
 CAS and ByteStream implementations; a separate fork of bb-storage or bazel-remote is
 unnecessary for this MVP.
 
+The implementation is based on the parallel upstream integration `1aac2aa2ec`, which
+merges Bazel `a5c50fcb65841b505ec72840d83381a704e70afa`. It includes the test-configuration
+key fix, upstream serialization changes, and the `local-project-v4` namespace isolation.
+
 The client and server are experimental. The client preserves the local cache's current
 identity and validation rules. In particular, sharing is between linked worktrees of the
 same Git repository/common directory, with compatible effective environments and
@@ -120,6 +124,23 @@ and normal local SkyCache/build fallback. This implementation does not provide a
 guarantee that every published remote candidate remains retrievable.
 
 ## Verification
+
+Verified on 25 October 2026 at implementation commit
+`c8325fda96c1619ad3f9707c0bf2305a10fd61db`: both binaries build, and **238 test cases
+across 19 test targets pass**. The real-worker probe also passes with action caches disabled:
+
+| Phase | Imported publications | Configured-target hits | Result |
+| --- | ---: | ---: | --- |
+| Writer | 0 | 0 | Published metadata; expected output |
+| Fresh reader | 1 | 7 | Expected output from separate cache/output base |
+| Restarted backend, fresh reader | 1 | 7 | Durable discovery; expected output |
+| Dependency BUILD mutation | 1 | 6 | Correct changed output |
+| Catalog retained, CAS emptied | 0 | 0 | Normal build fallback; new publication succeeds |
+| Backend offline | 0 | 0 | Normal build fallback |
+
+All fixture services stopped successfully. [Machine-readable results](measurements/skycache-remote-mvp-2026-10-25/results.json)
+include binary/output digests and individual test counts. Full logs remain under
+`/home/jgett/REPOS/.work/skycache-remote-mvp/` on the test host.
 
 Focused tests live in:
 
