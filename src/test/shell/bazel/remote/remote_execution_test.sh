@@ -55,6 +55,57 @@ function tear_down() {
   stop_worker
 }
 
+function setup_authorization_token_test() {
+  mkdir -p authorization
+  cat > authorization/BUILD <<'EOF'
+genrule(
+  name = "check",
+  outs = ["check.txt"],
+  cmd = "echo authorized > $@",
+)
+EOF
+  stop_worker
+  start_worker --expected_authorization_token=TOKEN
+}
+
+function assert_worker_authorization_denied() {
+  bazel build \
+      --remote_cache=grpc://localhost:${worker_port} \
+      --remote_retries=0 \
+      "$@" \
+      //authorization:check >& "$TEST_log" \
+      && fail "Build with missing or invalid credentials should have failed"
+  # Missing and malformed headers must return a deliberate denial, not UNKNOWN
+  # from an uncaught exception in the worker's authorization interceptor.
+  expect_log "PERMISSION_DENIED"
+}
+
+function test_worker_authorization_missing_bearer_token() {
+  setup_authorization_token_test
+  assert_worker_authorization_denied
+}
+
+function test_worker_authorization_malformed_bearer_token() {
+  setup_authorization_token_test
+  assert_worker_authorization_denied --remote_header="Authorization=Basic TOKEN"
+}
+
+function test_worker_authorization_wrong_bearer_token() {
+  setup_authorization_token_test
+  assert_worker_authorization_denied --remote_header="Authorization=Bearer WRONG"
+}
+
+function test_worker_authorization_valid_bearer_token() {
+  setup_authorization_token_test
+  bazel build \
+      --remote_cache=grpc://localhost:${worker_port} \
+      --remote_retries=0 \
+      --remote_header="Authorization=Bearer TOKEN" \
+      //authorization:check >& "$TEST_log" \
+      || fail "Build with the expected bearer token should have succeeded"
+  assert_equals "authorized" "$(cat bazel-bin/authorization/check.txt)"
+}
+
 function has_utf8_locale() {
   charmap="$(LC_ALL=en_US.UTF-8 locale charmap 2>/dev/null)"
   [[ "${charmap}" == "UTF-8" ]]
