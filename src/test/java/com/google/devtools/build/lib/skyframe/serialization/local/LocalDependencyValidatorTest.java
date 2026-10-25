@@ -893,6 +893,35 @@ public final class LocalDependencyValidatorTest {
   }
 
   @Test
+  public void fullSuccessMemoKeepsValidationAndFinalEvidenceWithoutGrowing() throws Exception {
+    var files = new java.util.ArrayList<Path>();
+    for (int i = 0; i < 8; i++) {
+      files.add(Files.writeString(workspace.resolve("memo-capacity-" + i), "original"));
+    }
+    var inputs = snapshot();
+    var validator =
+        new LocalDependencyValidator(
+            store,
+            inputs,
+            NONPROD_FINGERPRINTER,
+            compression,
+            new LocalDependencyValidator.Limits(3, 1024 * 1024, 100, 100, 1024));
+    PackedFingerprint lastRoot = null;
+    for (Path input : files) {
+      lastRoot = root(leaf(input, false, List.of()));
+      assertThat(validator.validate(lastRoot)).isTrue();
+    }
+    assertThat(validator.statisticsJson()).contains("\"memo_entries\":3");
+    assertThat(validator.validate(lastRoot)).isTrue();
+    // The uncached success must be validated again; corrupt evidence cannot reuse it.
+    store.put(lastRoot, new byte[] {99}).get();
+    assertThat(validator.validate(lastRoot)).isFalse();
+    assertThat(inputs.isUnchanged()).isTrue();
+    Files.writeString(files.getLast(), "changed");
+    assertThat(inputs.isUnchanged()).isFalse();
+  }
+
+  @Test
   public void witnessMemoIsBoundedWithoutDroppingFinalEvidence() throws Exception {
     var witnesses = new java.util.ArrayList<LocalInputSnapshot.Witness>();
     Path last = null;
@@ -981,6 +1010,7 @@ public final class LocalDependencyValidatorTest {
       session.finish(false);
     }
   }
+
   @Test
   public void executionClientValidatesSourceWitnessesBeforeReturningMetadata() throws Exception {
     var inputs = snapshot();
@@ -1010,5 +1040,4 @@ public final class LocalDependencyValidatorTest {
       session.finish(false);
     }
   }
-
 }

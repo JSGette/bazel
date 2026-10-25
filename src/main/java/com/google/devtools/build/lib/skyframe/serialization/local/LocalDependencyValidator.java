@@ -85,6 +85,7 @@ final class LocalDependencyValidator {
   private final LongAdder admissionWitnessMemoHits = new LongAdder();
   private final LongAdder recordsRead = new LongAdder();
   private final LongAdder memoHits = new LongAdder();
+  private final LongAdder memoCapacitySkips = new LongAdder();
   private final LongAdder witnessesChecked = new LongAdder();
   private final LongAdder rejected = new LongAdder();
   private final LongAdder subtreeWaits = new LongAdder();
@@ -161,10 +162,14 @@ final class LocalDependencyValidator {
         }
         synchronized (memoInsertion) {
           if (!validated.contains(frame.key())) {
-            if (validated.size() >= limits.records()) {
-              throw new IOException("dependency success memo capacity exceeded");
+            // This memo is an optimization, not evidence required for a successful traversal.
+            // Once full, later lookups must repeat validation. Traversal and in-flight limits
+            // still fail closed, and every successful witness remains registered with inputs.
+            if (validated.size() < limits.records()) {
+              validated.add(frame.key());
+            } else {
+              memoCapacitySkips.increment();
             }
-            validated.add(frame.key());
           }
         }
         finish(frame.key(), frame.pending(), true);
@@ -360,12 +365,13 @@ final class LocalDependencyValidator {
   String statisticsJson() {
     return String.format(
         java.util.Locale.ROOT,
-        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d,\"admission_witness_memo_hits\":%d,\"subtree_waits\":%d}",
+        "{\"records_read\":%d,\"memo_hits\":%d,\"witnesses_checked\":%d,\"rejected_roots\":%d,\"memo_entries\":%d,\"memo_capacity_skips\":%d,\"witness_memo_hits\":%d,\"witness_memo_entries\":%d,\"admission_witness_memo_hits\":%d,\"subtree_waits\":%d}",
         recordsRead.sum(),
         memoHits.sum(),
         witnessesChecked.sum(),
         rejected.sum(),
         validated.size(),
+        memoCapacitySkips.sum(),
         witnessMemoHits.sum(),
         validatedWitnesses.size(),
         admissionWitnessMemoHits.sum(),
