@@ -152,7 +152,7 @@ public final class RemoteWorker {
     public <ReqT, RespT> Listener<ReqT> interceptCall(
         ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
       Optional<String> actualToken = getTokenFromMetadata(headers);
-      if (!expectedToken.equals(actualToken.get())) {
+      if (!expectedToken.equals(actualToken.orElse(null))) {
         call.close(Status.PERMISSION_DENIED, new Metadata());
         return new ServerCall.Listener<ReqT>() {};
       }
