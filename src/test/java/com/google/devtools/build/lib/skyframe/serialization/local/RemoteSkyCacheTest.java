@@ -285,12 +285,16 @@ public final class RemoteSkyCacheTest {
       long before = statistic(reader, "cached_read_bytes");
       long opens = statistic(reader, "cached_channel_opens");
       long hits = statistic(reader, "cached_channel_hits");
+      long buffers = statistic(reader, "range_buffer_allocations");
+      long scratch = statistic(reader, "read_scratch_created");
       for (int i = 0; i < 100; i++) {
         fixture.assertRead(128 + i, 17);
       }
       assertThat(statistic(reader, "cached_read_bytes") - before).isEqualTo(100L * 4096);
       assertThat(statistic(reader, "cached_channel_opens")).isEqualTo(opens);
       assertThat(statistic(reader, "cached_channel_hits") - hits).isEqualTo(100);
+      assertThat(statistic(reader, "range_buffer_allocations")).isEqualTo(buffers);
+      assertThat(statistic(reader, "read_scratch_created")).isEqualTo(scratch);
       assertThat(backend.requestedDigests).isEmpty();
 
       for (int offset : List.of(4093, SkyCacheProtocol.CHUNK_BYTES - 3)) {
@@ -310,6 +314,107 @@ public final class RemoteSkyCacheTest {
           .isEqualTo(fixture.bytes().length % 4096);
       assertThat(backend.requestedDigests).isEmpty();
     }
+  }
+
+  @Test
+  public void reusedBufferAuthenticatesOnlyCurrentRangeAndNeverAliasesReturnedBytes()
+      throws Exception {
+    Path source = temporary.newFolder().toPath();
+    Path destination = temporary.newFolder().toPath();
+    try (var backend = new MemoryRemote();
+        var reader = remote(destination, backend)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 1);
+      fixture.assertRead(0, 65536); // Grow the retained buffer to its limit.
+      var retained = ByteBuffer.allocate(8201);
+      fixture.source().read(fixture.pack().getName(), retained, 127);
+      byte[] expected = retained.array().clone();
+      for (int length : List.of(65537, 1, 4097, 17, 65536, 7)) {
+        fixture.assertRead(4093, length);
+        // A short final block must not hash stale bytes in the reusable buffer's unused tail.
+        fixture.assertRead(fixture.bytes().length - 7, 7);
+      }
+      assertThat(retained.array()).isEqualTo(expected);
+      long allocations = statistic(reader, "range_buffer_allocations");
+      fixture.assertRead(0, 65536);
+      assertThat(statistic(reader, "range_buffer_allocations")).isEqualTo(allocations);
+      reader.close();
+      assertThat(statistic(reader, "read_scratch_idle")).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void concurrentRangesUseExclusiveScratchAndFailedAuthenticationDoesNotPoisonReuse()
+      throws Exception {
+    Path source = temporary.newFolder().toPath();
+    Path destination = temporary.newFolder().toPath();
+    try (var backend = new MemoryRemote();
+        var reader =
+            new RemoteSkyCache(
+                destination,
+                namespace,
+                32L * 1024 * 1024,
+                "instance",
+                new SkyCacheTransport(backend.endpoint(), "instance", "", Duration.ofSeconds(15)),
+                32 * 1024 * 1024,
+                3,
+                0);
+        var pool = Executors.newFixedThreadPool(8)) {
+      var fixture = prepareRanges(source, backend, reader);
+      fixture.assertRead(0, 1);
+      var start = new CountDownLatch(1);
+      var reads = new ArrayList<Future<?>>();
+      for (int thread = 0; thread < 8; thread++) {
+        int seed = thread;
+        reads.add(
+            pool.submit(
+                () -> {
+                  start.await();
+                  for (int i = 0; i < 50; i++) {
+                    fixture.assertRead(127 + seed * 8192 + i * 13, 4097 + i);
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (var read : reads) {
+        read.get(30, TimeUnit.SECONDS);
+      }
+      Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
+      byte[] original = Files.readAllBytes(cached);
+      byte[] damaged = original.clone();
+      damaged[8192] ^= 1;
+      Files.write(cached, damaged);
+      var target = ByteBuffer.allocate(8193);
+      assertThrows(
+          IOException.class,
+          () -> fixture.source().readCached(fixture.pack().getName(), target, 0));
+      assertThat(target.position()).isEqualTo(0);
+      Files.write(cached, original);
+      fixture.assertRead(0, 8193);
+      assertThat(statistic(reader, "read_scratch_idle")).isAtMost(3);
+    }
+  }
+
+  @Test
+  public void scratchDoesNotRetainOversizedBuffersAndResetsDigestBetweenBlocks() throws Exception {
+    var scratch = new RemoteSkyCache.ReadScratch();
+    var retained = scratch.buffer(65536);
+    assertThat(scratch.buffer(65537)).isNotSameInstanceAs(retained);
+    assertThat(scratch.buffer(7)).isSameInstanceAs(retained);
+    byte[] bytes = new byte[4096];
+    new Random(1).nextBytes(bytes);
+    byte[] hashes = new byte[64];
+    scratch.hash(bytes, 0, bytes.length, hashes, 0);
+    scratch.hash(bytes, 127, 7, hashes, 32);
+    assertThat(Arrays.copyOfRange(hashes, 0, 32))
+        .isEqualTo(MessageDigest.getInstance("SHA-256").digest(bytes));
+    assertThat(Arrays.copyOfRange(hashes, 32, 64))
+        .isEqualTo(
+            MessageDigest.getInstance("SHA-256").digest(Arrays.copyOfRange(bytes, 127, 134)));
+    assertThrows(
+        SerializationException.NoCodecException.class,
+        () -> AutoRegistry.get().getCodecDescriptorForObject(scratch));
   }
 
   @Test

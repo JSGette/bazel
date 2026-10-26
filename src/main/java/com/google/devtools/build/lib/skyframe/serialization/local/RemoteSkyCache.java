@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -37,6 +38,8 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nullable;
@@ -53,6 +56,13 @@ final class RemoteSkyCache implements AutoCloseable {
   private static final int AUTHENTICATION_ENTRY_OVERHEAD = 128;
   private static final long DEFAULT_LOCAL_CACHE_BYTES = 5L * 1024 * 1024 * 1024;
   private static final int DEFAULT_CACHED_CHANNELS = 128;
+  // Retain at most 4 MiB of range buffers, independently of read/download concurrency.
+  private static final int MAX_IDLE_READ_SCRATCH = 64;
+  private final AtomicReferenceArray<ReadScratch> idleReadScratch;
+  private final LongAdder readScratchCreated = new LongAdder();
+  private final LongAdder readScratchReused = new LongAdder();
+  private final AtomicLong rangeBufferAllocations = new AtomicLong();
+  private final AtomicLong rangeBufferAllocatedBytes = new AtomicLong();
   // Bound temporary range/rehashing buffers independently of the retained hash-cache budget.
   private final int maxConcurrency;
   private final Semaphore cachedReaders;
@@ -94,6 +104,101 @@ final class RemoteSkyCache implements AutoCloseable {
   private final AtomicLong downloadedChunks = new AtomicLong();
   private long attemptedMaterializationBytes;
   private int reusedPublications;
+
+  /** Exclusively borrowed state; neither digests nor buffers escape a read or hash operation. */
+  static final class ReadScratch {
+    static final int MAX_BUFFER_BYTES = 64 * 1024;
+    private final MessageDigest digest;
+    private final byte[] actual = new byte[32];
+    @Nullable private ByteBuffer buffer;
+
+    ReadScratch() {
+      try {
+        digest = MessageDigest.getInstance("SHA-256");
+      } catch (NoSuchAlgorithmException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    ByteBuffer buffer(int length) {
+      if (length > MAX_BUFFER_BYTES) {
+        return ByteBuffer.allocate(length);
+      }
+      if (buffer == null || buffer.capacity() < length) {
+        int capacity = Math.max(AUTHENTICATION_BLOCK_BYTES, Integer.highestOneBit(length - 1) << 1);
+        buffer = ByteBuffer.allocate(capacity);
+      }
+      return buffer.clear().limit(length);
+    }
+
+    void hash(byte[] bytes, int offset, int length, byte[] output, int outputOffset) {
+      digest.update(bytes, offset, length);
+      try {
+        digest.digest(output, outputOffset, 32);
+      } catch (DigestException e) {
+        throw new AssertionError(e);
+      }
+    }
+  }
+
+  private ReadScratch borrowReadScratch() {
+    int capacity = idleReadScratch.length();
+    int start = (int) (Thread.currentThread().threadId() % capacity);
+    // Prefer a stable slot without retaining thread-local state or serializing all readers.
+    for (int i = 0; i < capacity; i++) {
+      var scratch = idleReadScratch.getAndSet((start + i) % capacity, null);
+      if (scratch != null) {
+        readScratchReused.increment();
+        return scratch;
+      }
+    }
+    readScratchCreated.increment();
+    return new ReadScratch();
+  }
+
+  private void releaseReadScratch(ReadScratch scratch) {
+    // Reset even after failure; a subsequent borrower must never inherit a partial hash.
+    scratch.digest.reset();
+    if (closed) {
+      return;
+    }
+    int capacity = idleReadScratch.length();
+    int start = (int) (Thread.currentThread().threadId() % capacity);
+    for (int i = 0; i < capacity; i++) {
+      if (idleReadScratch.compareAndSet((start + i) % capacity, null, scratch)) {
+        return;
+      }
+    }
+  }
+
+  private ByteBuffer rangeBuffer(ReadScratch scratch, int length) {
+    var previous = scratch.buffer;
+    var buffer = scratch.buffer(length);
+    if (buffer != previous) {
+      rangeBufferAllocations.incrementAndGet();
+      rangeBufferAllocatedBytes.addAndGet(buffer.capacity());
+    }
+    return buffer;
+  }
+
+  private String scratchStatisticsJsonFields() {
+    int idle = 0;
+    for (int i = 0; i < idleReadScratch.length(); i++) {
+      if (idleReadScratch.get(i) != null) {
+        idle++;
+      }
+    }
+    return ",\"read_scratch_created\":"
+        + readScratchCreated.sum()
+        + ",\"read_scratch_reused\":"
+        + readScratchReused.sum()
+        + ",\"read_scratch_idle\":"
+        + idle
+        + ",\"range_buffer_allocations\":"
+        + rangeBufferAllocations.get()
+        + ",\"range_buffer_allocated_bytes\":"
+        + rangeBufferAllocatedBytes.get();
+  }
 
   /**
    * Only idle channels are cached. Each lease has exclusive ownership, so interrupting a reader
@@ -396,6 +501,12 @@ final class RemoteSkyCache implements AutoCloseable {
   private byte[] readCachedBytes(Digest digest, int offset, int length) throws IOException {
     checkOpen();
     var buffer = ByteBuffer.allocate(length);
+    readCachedBytes(digest, offset, buffer);
+    return buffer.array();
+  }
+
+  private void readCachedBytes(Digest digest, int offset, ByteBuffer buffer) throws IOException {
+    checkOpen();
     try (var lease = cachedChannels.acquire(chunks, digest)) {
       var channel = lease.channel();
       if (channel.size() != digest.getSizeBytes()) {
@@ -413,7 +524,6 @@ final class RemoteSkyCache implements AutoCloseable {
       }
       lease.checkUnchanged();
     }
-    return buffer.array();
   }
 
   private void readChunk(
@@ -470,17 +580,26 @@ final class RemoteSkyCache implements AutoCloseable {
             (int) digest.getSizeBytes(),
             ((offset + length - 1) / AUTHENTICATION_BLOCK_BYTES + 1) * AUTHENTICATION_BLOCK_BYTES);
     int start = first * AUTHENTICATION_BLOCK_BYTES;
-    byte[] bytes = readCachedBytes(digest, start, end - start);
-    for (int at = 0; at < bytes.length; at += AUTHENTICATION_BLOCK_BYTES) {
-      byte[] actual = blockDigest(bytes, at);
-      int expected = (first + at / AUTHENTICATION_BLOCK_BYTES) * 32;
-      if (!Arrays.equals(hashes, expected, expected + 32, actual, 0, actual.length)) {
-        throw new IOException("cached remote chunk block checksum mismatch");
+    var scratch = borrowReadScratch();
+    try {
+      int covered = end - start;
+      var buffer = rangeBuffer(scratch, covered);
+      readCachedBytes(digest, start, buffer);
+      byte[] bytes = buffer.array();
+      for (int at = 0; at < covered; at += AUTHENTICATION_BLOCK_BYTES) {
+        scratch.hash(
+            bytes, at, Math.min(AUTHENTICATION_BLOCK_BYTES, covered - at), scratch.actual, 0);
+        int expected = (first + at / AUTHENTICATION_BLOCK_BYTES) * 32;
+        if (!Arrays.equals(hashes, expected, expected + 32, scratch.actual, 0, 32)) {
+          throw new IOException("cached remote chunk block checksum mismatch");
+        }
       }
+      // Every returned byte is authenticated against hashes derived from a verified CAS response.
+      // Unread blocks are checked when requested; no mutable scratch bytes become trust anchors.
+      target.put(bytes, offset - start, length);
+    } finally {
+      releaseReadScratch(scratch);
     }
-    // Every returned byte is authenticated against hashes derived from a verified CAS response.
-    // Unread blocks are checked when requested; no mutable scratch bytes become trust anchors.
-    target.put(bytes, offset - start, length);
   }
 
   private void rememberAuthentication(Digest digest, byte[] bytes) {
@@ -495,9 +614,18 @@ final class RemoteSkyCache implements AutoCloseable {
       }
     }
     byte[] hashes = new byte[blocks * 32];
-    for (int at = 0; at < bytes.length; at += AUTHENTICATION_BLOCK_BYTES) {
-      byte[] hash = blockDigest(bytes, at);
-      System.arraycopy(hash, 0, hashes, at / AUTHENTICATION_BLOCK_BYTES * 32, hash.length);
+    var scratch = borrowReadScratch();
+    try {
+      for (int at = 0; at < bytes.length; at += AUTHENTICATION_BLOCK_BYTES) {
+        scratch.hash(
+            bytes,
+            at,
+            Math.min(AUTHENTICATION_BLOCK_BYTES, bytes.length - at),
+            hashes,
+            at / AUTHENTICATION_BLOCK_BYTES * 32);
+      }
+    } finally {
+      releaseReadScratch(scratch);
     }
     synchronized (authenticatedBlocks) {
       if (authenticatedBlocks.containsKey(digest)) {
@@ -511,16 +639,6 @@ final class RemoteSkyCache implements AutoCloseable {
       }
       authenticatedBlocks.put(digest, hashes);
       authenticationBytes += weight;
-    }
-  }
-
-  private static byte[] blockDigest(byte[] bytes, int offset) {
-    try {
-      var digest = MessageDigest.getInstance("SHA-256");
-      digest.update(bytes, offset, Math.min(AUTHENTICATION_BLOCK_BYTES, bytes.length - offset));
-      return digest.digest();
-    } catch (NoSuchAlgorithmException e) {
-      throw new AssertionError(e);
     }
   }
 
@@ -755,6 +873,7 @@ final class RemoteSkyCache implements AutoCloseable {
             + ",\"reused_publications\":"
             + reusedPublications
             + cachedChannels.statisticsJsonFields()
+            + scratchStatisticsJsonFields()
             + "}";
       }
     } finally {
@@ -872,6 +991,8 @@ final class RemoteSkyCache implements AutoCloseable {
       this.localCacheMaxBytes = localCacheMaxBytes;
       this.authenticationBudget = authenticationBudget;
       this.maxConcurrency = maxConcurrency;
+      this.idleReadScratch =
+          new AtomicReferenceArray<>(Math.min(maxConcurrency, MAX_IDLE_READ_SCRATCH));
       this.cachedReaders = new Semaphore(maxConcurrency);
       this.downloadSlots = new Semaphore(maxConcurrency);
       this.cachedChannels = new CachedChunkChannels(cachedChannelCapacity);
@@ -1439,6 +1560,9 @@ final class RemoteSkyCache implements AutoCloseable {
         synchronized (authenticatedBlocks) {
           authenticatedBlocks.clear();
           authenticationBytes = 0;
+        }
+        for (int i = 0; i < idleReadScratch.length(); i++) {
+          idleReadScratch.set(i, null);
         }
         for (Path stage : stages) {
           try {
