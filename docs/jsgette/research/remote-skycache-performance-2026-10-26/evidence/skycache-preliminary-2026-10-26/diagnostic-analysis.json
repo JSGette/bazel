@@ -1,0 +1,767 @@
+[
+  {
+    "label": "diagnostic-remote",
+    "arm": "remote-warm",
+    "jfr": true,
+    "seconds": 53.496470437999996,
+    "profile_end_s": 46.960425,
+    "outside_profile_s": 6.536045437999995,
+    "outputs_match": true,
+    "analysis_hits": 17,
+    "execution_hits": 11,
+    "committed": true,
+    "markers": {
+      "build_complete": 46.986391024999996,
+      "commit_reported": 53.456335086,
+      "transfers_reported": 53.458353342
+    },
+    "rpc": {
+      "/build.bazel.remote.execution.v2.ContentAddressableStorage/BatchUpdateBlobs": {
+        "count": 116,
+        "sum_duration_s": 0.163949907999978,
+        "request_bytes": 10246567,
+        "first_start_s": 53.062838077545166,
+        "last_end_s": 53.4197735786438
+      },
+      "/build.bazel.skycache.v1.SkyCacheCatalog/CommitPublication": {
+        "count": 1,
+        "sum_duration_s": 0.03026764999999898,
+        "request_bytes": 221,
+        "first_start_s": 53.42266488075256,
+        "last_end_s": 53.452932596206665
+      },
+      "/build.bazel.skycache.v1.SkyCacheCatalog/DiscoverPublications": {
+        "count": 1,
+        "sum_duration_s": 0.0050131980000003296,
+        "request_bytes": 85,
+        "first_start_s": 1.8392858505249023,
+        "last_end_s": 1.844299077987671
+      }
+    },
+    "jfr_summary": {
+      "samples": 4193,
+      "after_build_complete_samples": 574,
+      "exclusive_categories": {
+        "other": 3335,
+        "candidate_preparation": 25,
+        "publication_seal": 1,
+        "authenticated_range_read": 33,
+        "retained_activation": 113,
+        "dependency_validation": 434,
+        "publication_repository_bindings": 1,
+        "publication_inherit_witnesses": 16,
+        "publication_finish_other": 44,
+        "publication_final_validation": 149,
+        "publication_witness_table": 41,
+        "publication_upload": 1
+      },
+      "after_build_complete_categories": {
+        "other": 322,
+        "publication_repository_bindings": 1,
+        "publication_inherit_witnesses": 16,
+        "publication_finish_other": 44,
+        "publication_final_validation": 149,
+        "publication_witness_table": 41,
+        "publication_upload": 1
+      },
+      "inclusive_methods": [
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprint",
+          561
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matches",
+          558
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalAnalysisCacheClient.lookup",
+          550
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validate",
+          545
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateRoot",
+          545
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.hashContents",
+          493
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest",
+          492
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.get",
+          305
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.read",
+          295
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.push",
+          290
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.get",
+          284
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.readCandidates",
+          255
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand",
+          253
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish",
+          252
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.findForRead",
+          245
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.find",
+          245
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateWitness",
+          244
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.getIfPresent",
+          239
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put",
+          238
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refresh",
+          232
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refreshCandidates",
+          232
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.matchesForAdmission",
+          213
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matchesForAdmission",
+          211
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.validateAndInclude",
+          209
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache$FileSource.read",
+          165
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.readRecord",
+          163
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.readData",
+          159
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readChunk",
+          158
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.isUnchanged",
+          149
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.reuseRetainedChunk",
+          113
+        ]
+      ],
+      "after_build_complete_methods": [
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand",
+          253
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish",
+          252
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.isUnchanged",
+          149
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprint",
+          147
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matches",
+          143
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.hashContents",
+          133
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest",
+          132
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.globalWitnesses",
+          41
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.write",
+          41
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.witnesses",
+          39
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.registerInheritedForFinalValidation",
+          16
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.remember",
+          16
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969b6c90.accept",
+          16
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969c5d78.apply",
+          16
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.children",
+          11
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprintListing",
+          11
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.lambda$children$0",
+          10
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x000000009650d0f8.apply",
+          10
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.captureSource",
+          6
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.captureDirectory",
+          6
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969c6208.test",
+          2
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.lambda$globalWitnesses$0",
+          2
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.publishPending",
+          2
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.uploadLocal",
+          2
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.publishPendingExclusive",
+          2
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.observe",
+          1
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.recordRepositoryBindings",
+          1
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$Witness.hashCode",
+          1
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.resolve",
+          1
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher$FileVersion.hashCode",
+          1
+        ]
+      ],
+      "sampled_threads": [
+        [
+          "grpc-command-0",
+          301
+        ],
+        [
+          "skyframe-evaluator-cpu-heavy-7",
+          261
+        ],
+        [
+          "skyframe-evaluator-cpu-heavy-5",
+          232
+        ],
+        [
+          "grpc-default-worker-ELG-3-3",
+          167
+        ],
+        [
+          "grpc-default-worker-ELG-3-2",
+          164
+        ],
+        [
+          "skyframe-evaluator-cpu-heavy-10",
+          164
+        ],
+        [
+          "grpc-default-boss-ELG-1-1",
+          163
+        ],
+        [
+          "grpc-default-worker-ELG-3-1",
+          163
+        ],
+        [
+          "grpc-default-worker-ELG-3-4",
+          162
+        ],
+        [
+          "grpc-default-worker-ELG-3-6",
+          162
+        ],
+        [
+          "grpc-default-worker-ELG-3-5",
+          162
+        ],
+        [
+          "grpc-default-worker-ELG-3-9",
+          155
+        ]
+      ],
+      "wait_seconds_by_category": {
+        "other": 6843.482532704002,
+        "dependency_validation": 14.205902419000001,
+        "publication_upload": 0.024002828,
+        "publication_commit": 0.031468386
+      },
+      "after_build_complete_top_stacks": [
+        [
+          "io.netty.channel.epoll.Native.epollWait0 <- io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.EpollEventLoop.epollWait <- io.netty.channel.epoll.EpollEventLoop.run <- io.netty.util.concurrent.SingleThreadEventExecutor$4.run <- io.netty.util.internal.ThreadExecutorMap$2.run <- io.netty.util.concurrent.FastThreadLocalRunnable.run <- java.lang.Thread.runWith <- java.lang.Thread.run",
+          194
+        ],
+        [
+          "sun.nio.ch.NativeThread.current0 <- sun.nio.ch.NativeThread.current <- sun.nio.ch.NativeThreadSet.add <- sun.nio.ch.FileChannelImpl.implRead <- sun.nio.ch.FileChannelImpl.traceImplRead <- sun.nio.ch.FileChannelImpl.read <- sun.nio.ch.ChannelInputStream.read <- sun.nio.ch.ChannelInputStream.read <- java.io.InputStream.read <- com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest <- com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.hashContents <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprint",
+          127
+        ],
+        [
+          "io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.EpollEventLoop.epollWaitNoTimerChange <- io.netty.channel.epoll.EpollEventLoop.run <- io.netty.util.concurrent.SingleThreadEventExecutor$4.run <- io.netty.util.internal.ThreadExecutorMap$2.run <- io.netty.util.concurrent.FastThreadLocalRunnable.run <- java.lang.Thread.runWith <- java.lang.Thread.run",
+          119
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969c5d78.apply <- java.util.Comparator.lambda$comparing$77a9974f$1 <- java.util.Comparator$$Lambda.0x00000000960c6428.compare <- java.util.Comparator.lambda$thenComparing$36697e65$1 <- java.util.Comparator$$Lambda.0x00000000960c66d0.compare <- java.util.TimSort.mergeLo <- java.util.TimSort.mergeAt <- java.util.TimSort.mergeCollapse <- java.util.TimSort.sort <- java.util.Arrays.sort <- java.util.ArrayList.sortRange <- java.util.ArrayList.sort",
+          8
+        ],
+        [
+          "java.util.regex.Pattern.lambda$union$0 <- java.util.regex.Pattern$$Lambda.0x800000030.is <- java.util.regex.Pattern$BmpCharProperty.match <- java.util.regex.Pattern$Curly.match <- java.util.regex.Matcher.match <- java.util.regex.Matcher.matches <- java.util.regex.Pattern.matches <- java.lang.String.matches <- com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.write <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand",
+          7
+        ],
+        [
+          "java.util.regex.Pattern$BmpCharProperty.match <- java.util.regex.Pattern$Curly.match <- java.util.regex.Matcher.match <- java.util.regex.Matcher.matches <- java.util.regex.Pattern.matches <- java.lang.String.matches <- com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.write <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec",
+          7
+        ],
+        [
+          "java.util.concurrent.ConcurrentHashMap.putVal <- java.util.concurrent.ConcurrentHashMap.putIfAbsent <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.remember <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969b6c90.accept <- java.lang.Iterable.forEach <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.registerInheritedForFinalValidation <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec <- com.google.devtools.build.lib.server.CommandServer.run",
+          6
+        ],
+        [
+          "java.lang.String.charAt <- java.util.HexFormat.fromHexDigits <- java.util.HexFormat.parseNoDelimiter <- java.util.HexFormat.parseHex <- java.util.HexFormat.parseHex <- com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.write <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec <- com.google.devtools.build.lib.server.CommandServer.run",
+          6
+        ],
+        [
+          "java.util.regex.Pattern.<init> <- java.util.regex.Pattern.compile <- java.util.regex.Pattern.matches <- java.lang.String.matches <- com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.write <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec <- com.google.devtools.build.lib.server.CommandServer.run <- com.google.devtools.build.lib.server.GrpcCommandServerImpl.lambda$run$0",
+          6
+        ],
+        [
+          "java.lang.String.compareTo <- java.lang.String.compareTo <- java.util.Comparator.lambda$comparing$77a9974f$1 <- java.util.Comparator$$Lambda.0x00000000960c6428.compare <- java.util.Comparator.lambda$thenComparing$36697e65$1 <- java.util.Comparator$$Lambda.0x00000000960c66d0.compare <- java.util.TimSort.binarySort <- java.util.TimSort.sort <- java.util.Arrays.sort <- java.util.ArrayList.sortRange <- java.util.ArrayList.sort <- java.util.stream.SortedOps$RefSortingSink.end",
+          5
+        ],
+        [
+          "java.lang.String.compareTo <- java.lang.String.compareTo <- java.util.Comparator.lambda$comparing$77a9974f$1 <- java.util.Comparator$$Lambda.0x00000000960c6428.compare <- java.util.Comparator.lambda$thenComparing$36697e65$1 <- java.util.Comparator$$Lambda.0x00000000960c66d0.compare <- java.util.TimSort.mergeHi <- java.util.TimSort.mergeAt <- java.util.TimSort.mergeForceCollapse <- java.util.TimSort.sort <- java.util.Arrays.sort <- java.util.ArrayList.sortRange",
+          5
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.write <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec <- com.google.devtools.build.lib.server.CommandServer.run <- com.google.devtools.build.lib.server.GrpcCommandServerImpl.lambda$run$0 <- com.google.devtools.build.lib.server.GrpcCommandServerImpl$$Lambda.0x00000000962e7120.run <- io.grpc.Context$1.run <- java.util.concurrent.ThreadPoolExecutor.runWorker <- java.util.concurrent.ThreadPoolExecutor$Worker.run",
+          5
+        ],
+        [
+          "java.lang.String.equals <- java.util.concurrent.ConcurrentHashMap.putVal <- java.util.concurrent.ConcurrentHashMap.putIfAbsent <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.remember <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969b6c90.accept <- java.lang.Iterable.forEach <- com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.registerInheritedForFinalValidation <- com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.finish <- com.google.devtools.build.lib.skyframe.serialization.local.LocalSkycacheModule.afterCommand <- com.google.devtools.build.lib.runtime.BlazeRuntime.afterCommand <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively <- com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec",
+          4
+        ],
+        [
+          "java.lang.String.compareTo <- java.lang.String.compareTo <- java.util.Comparator.lambda$comparing$77a9974f$1 <- java.util.Comparator$$Lambda.0x00000000960c6428.compare <- java.util.Comparator.lambda$thenComparing$36697e65$1 <- java.util.Comparator$$Lambda.0x00000000960c66d0.compare <- java.util.TimSort.mergeLo <- java.util.TimSort.mergeAt <- java.util.TimSort.mergeCollapse <- java.util.TimSort.sort <- java.util.Arrays.sort <- java.util.ArrayList.sortRange",
+          4
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000969c5d78.apply <- java.util.Comparator.lambda$comparing$77a9974f$1 <- java.util.Comparator$$Lambda.0x00000000960c6428.compare <- java.util.Comparator.lambda$thenComparing$36697e65$1 <- java.util.Comparator$$Lambda.0x00000000960c66d0.compare <- java.util.TimSort.binarySort <- java.util.TimSort.sort <- java.util.Arrays.sort <- java.util.ArrayList.sortRange <- java.util.ArrayList.sort <- java.util.stream.SortedOps$RefSortingSink.end <- java.util.stream.AbstractPipeline.copyInto",
+          4
+        ]
+      ],
+      "interpretation": "CPU/native execution sample counts, not wall-time shares; nested methods are inclusive. Wait sums are overlapping thread-time and thresholded. Marker arrival includes output transport delay."
+    }
+  },
+  {
+    "label": "r1-remote",
+    "arm": "remote-warm",
+    "jfr": false,
+    "seconds": 25.388125994000006,
+    "profile_end_s": 19.017975,
+    "outside_profile_s": 6.3701509940000065,
+    "outputs_match": true,
+    "analysis_hits": 17,
+    "execution_hits": 11,
+    "committed": true,
+    "markers": {
+      "build_complete": 19.042407251,
+      "commit_reported": 25.348954487000015,
+      "transfers_reported": 25.350777969999996
+    },
+    "rpc": {
+      "/build.bazel.remote.execution.v2.ContentAddressableStorage/BatchUpdateBlobs": {
+        "count": 116,
+        "sum_duration_s": 0.15653752800017173,
+        "request_bytes": 10246582,
+        "first_start_s": 24.988588571548462,
+        "last_end_s": 25.317096948623657
+      },
+      "/build.bazel.skycache.v1.SkyCacheCatalog/CommitPublication": {
+        "count": 1,
+        "sum_duration_s": 0.025871805000008408,
+        "request_bytes": 221,
+        "first_start_s": 25.31976819038391,
+        "last_end_s": 25.345639944076538
+      },
+      "/build.bazel.skycache.v1.SkyCacheCatalog/DiscoverPublications": {
+        "count": 1,
+        "sum_duration_s": 0.004459456999995837,
+        "request_bytes": 85,
+        "first_start_s": 0.5559704303741455,
+        "last_end_s": 0.5604298114776611
+      }
+    }
+  },
+  {
+    "label": "r1-local",
+    "arm": "local",
+    "jfr": false,
+    "seconds": 21.94138238399998,
+    "profile_end_s": 21.810526,
+    "outside_profile_s": 0.1308563839999799,
+    "outputs_match": true,
+    "analysis_hits": 17,
+    "execution_hits": 11,
+    "committed": false,
+    "markers": {
+      "build_complete": 21.83511735899998
+    },
+    "rpc": {}
+  },
+  {
+    "label": "r2-local",
+    "arm": "local",
+    "jfr": false,
+    "seconds": 14.848604015000006,
+    "profile_end_s": 14.712095,
+    "outside_profile_s": 0.13650901500000678,
+    "outputs_match": true,
+    "analysis_hits": 17,
+    "execution_hits": 11,
+    "committed": false,
+    "markers": {
+      "build_complete": 14.73480742999999
+    },
+    "rpc": {}
+  },
+  {
+    "label": "r2-remote",
+    "arm": "remote-warm",
+    "jfr": false,
+    "seconds": 25.669537835,
+    "profile_end_s": 19.263651,
+    "outside_profile_s": 6.4058868350000004,
+    "outputs_match": true,
+    "analysis_hits": 17,
+    "execution_hits": 11,
+    "committed": true,
+    "markers": {
+      "build_complete": 19.28916700000002,
+      "commit_reported": 25.627733897000013,
+      "transfers_reported": 25.629738537999998
+    },
+    "rpc": {
+      "/build.bazel.remote.execution.v2.ContentAddressableStorage/BatchUpdateBlobs": {
+        "count": 118,
+        "sum_duration_s": 0.17790187200012042,
+        "request_bytes": 10247185,
+        "first_start_s": 25.221648454666138,
+        "last_end_s": 25.5847749710083
+      },
+      "/build.bazel.skycache.v1.SkyCacheCatalog/CommitPublication": {
+        "count": 1,
+        "sum_duration_s": 0.035642735999999786,
+        "request_bytes": 221,
+        "first_start_s": 25.58797836303711,
+        "last_end_s": 25.623620986938477
+      },
+      "/build.bazel.skycache.v1.SkyCacheCatalog/DiscoverPublications": {
+        "count": 1,
+        "sum_duration_s": 0.004392433999981904,
+        "request_bytes": 85,
+        "first_start_s": 0.5487418174743652,
+        "last_end_s": 0.5531342029571533
+      }
+    }
+  },
+  {
+    "label": "diagnostic-local",
+    "arm": "local",
+    "jfr": true,
+    "seconds": 16.32253380399999,
+    "profile_end_s": 16.185757,
+    "outside_profile_s": 0.13677680399998948,
+    "outputs_match": true,
+    "analysis_hits": 17,
+    "execution_hits": 11,
+    "committed": false,
+    "markers": {
+      "build_complete": 16.209484258999993
+    },
+    "rpc": {},
+    "jfr_summary": {
+      "samples": 2005,
+      "after_build_complete_samples": 8,
+      "exclusive_categories": {
+        "other": 1521,
+        "dependency_validation": 484
+      },
+      "after_build_complete_categories": {
+        "other": 8
+      },
+      "inclusive_methods": [
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalAnalysisCacheClient.lookup",
+          485
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validate",
+          484
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateRoot",
+          484
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matches",
+          332
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprint",
+          330
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.hashContents",
+          302
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest",
+          301
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateWitness",
+          236
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.push",
+          234
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.validateAndInclude",
+          192
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.get",
+          186
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.read",
+          183
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.get",
+          179
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.readCandidates",
+          176
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put",
+          168
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refresh",
+          162
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refreshCandidates",
+          162
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.matchesForAdmission",
+          145
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matchesForAdmission",
+          143
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.findForRead",
+          140
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.find",
+          140
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.getIfPresent",
+          130
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.find",
+          99
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalRepositoryMappingCodec.deserializeDeferred",
+          42
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.readRecord",
+          27
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyEvidence.decode",
+          25
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.includeAdmittedWitness",
+          23
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.remember",
+          22
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalSourceArtifactCodec.deserializeDeferred",
+          18
+        ],
+        [
+          "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprintListing",
+          17
+        ]
+      ],
+      "after_build_complete_methods": [],
+      "sampled_threads": [
+        [
+          "skyframe-evaluator-cpu-heavy-9",
+          274
+        ],
+        [
+          "skyframe-evaluator-cpu-heavy-4",
+          176
+        ],
+        [
+          "skyframe-evaluator-cpu-heavy-1",
+          101
+        ],
+        [
+          "grpc-default-worker-ELG-3-3",
+          72
+        ],
+        [
+          "grpc-default-worker-ELG-3-1",
+          71
+        ],
+        [
+          "grpc-default-worker-ELG-3-2",
+          71
+        ],
+        [
+          "grpc-default-worker-ELG-3-5",
+          71
+        ],
+        [
+          "grpc-default-boss-ELG-1-1",
+          70
+        ],
+        [
+          "skyframe-evaluator-cpu-heavy-6",
+          70
+        ],
+        [
+          "grpc-default-worker-ELG-3-4",
+          69
+        ],
+        [
+          "grpc-default-worker-ELG-3-6",
+          69
+        ],
+        [
+          "grpc-default-worker-ELG-3-7",
+          58
+        ]
+      ],
+      "wait_seconds_by_category": {
+        "other": 3830.9343923950023,
+        "dependency_validation": 11.143066166999999
+      },
+      "after_build_complete_top_stacks": [
+        [
+          "io.netty.channel.epoll.Native.epollWait0 <- io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.EpollEventLoop.epollWait <- io.netty.channel.epoll.EpollEventLoop.run <- io.netty.util.concurrent.SingleThreadEventExecutor$4.run <- io.netty.util.internal.ThreadExecutorMap$2.run <- io.netty.util.concurrent.FastThreadLocalRunnable.run <- java.lang.Thread.runWith <- java.lang.Thread.run",
+          4
+        ],
+        [
+          "io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.Native.epollWait <- io.netty.channel.epoll.EpollEventLoop.epollWaitNoTimerChange <- io.netty.channel.epoll.EpollEventLoop.run <- io.netty.util.concurrent.SingleThreadEventExecutor$4.run <- io.netty.util.internal.ThreadExecutorMap$2.run <- io.netty.util.concurrent.FastThreadLocalRunnable.run <- java.lang.Thread.runWith <- java.lang.Thread.run",
+          2
+        ],
+        [
+          "io.netty.handler.codec.http2.Http2ConnectionHandler.flush <- io.netty.channel.AbstractChannelHandlerContext.invokeFlush0 <- io.netty.channel.AbstractChannelHandlerContext.invokeFlush <- io.netty.channel.AbstractChannelHandlerContext.flush <- io.netty.channel.DefaultChannelPipeline.flush <- io.netty.channel.AbstractChannel.flush <- io.grpc.netty.WriteQueue.flush <- io.grpc.netty.WriteQueue$1.run <- io.netty.util.concurrent.AbstractEventExecutor.runTask <- io.netty.util.concurrent.AbstractEventExecutor.safeExecute <- io.netty.util.concurrent.SingleThreadEventExecutor.runAllTasks <- io.netty.channel.epoll.EpollEventLoop.run",
+          1
+        ],
+        [
+          "io.netty.channel.epoll.EpollEventLoop.run <- io.netty.util.concurrent.SingleThreadEventExecutor$4.run <- io.netty.util.internal.ThreadExecutorMap$2.run <- io.netty.util.concurrent.FastThreadLocalRunnable.run <- java.lang.Thread.runWith <- java.lang.Thread.run",
+          1
+        ]
+      ],
+      "interpretation": "CPU/native execution sample counts, not wall-time shares; nested methods are inclusive. Wait sums are overlapping thread-time and thresholded. Marker arrival includes output transport delay."
+    }
+  }
+]
