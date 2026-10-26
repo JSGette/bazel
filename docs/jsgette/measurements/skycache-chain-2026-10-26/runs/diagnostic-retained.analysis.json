@@ -1,0 +1,388 @@
+{
+  "source": "/home/jgett/REPOS/.work/skycache-chain-2026-10-26/runs/diagnostic-retained.jfr",
+  "samples": 2746,
+  "exclusive_categories": {
+    "other": 1556,
+    "fresh_input_hashing": 318,
+    "remote_retained_activation": 104,
+    "remote_download": 1,
+    "witness_table": 44,
+    "remote_prepare": 1,
+    "candidate_admission": 45,
+    "dependency_validation": 244,
+    "deserialization": 155,
+    "packed_record_read": 29,
+    "remote_range_read": 56,
+    "other_finalization": 37,
+    "final_input_validation": 155,
+    "remote_publish": 1
+  },
+  "inclusive_methods": [
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalAnalysisCacheClient.lookup",
+      559
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validate",
+      551
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateRoot",
+      551
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matches",
+      504
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.fingerprint",
+      499
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.hashContents",
+      455
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest",
+      455
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.get",
+      346
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.read",
+      333
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.get",
+      324
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.push",
+      317
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.find",
+      301
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.SegmentedFingerprintValueStore.findForRead",
+      301
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.readCandidates",
+      287
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.getIfPresent",
+      284
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalDependencyValidator.validateWitness",
+      224
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.put",
+      210
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refreshCandidates",
+      196
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.refresh",
+      196
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.validateAndInclude",
+      192
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.readRecord",
+      182
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache$FileSource.read",
+      177
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalCacheSession.matchesForAdmission",
+      176
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readChunk",
+      174
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matchesForAdmission",
+      173
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.readData",
+      170
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.lambda$isUnchanged$0",
+      146
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot$$Lambda.0x00000000139fb838.call",
+      146
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalInputSnapshot.matchesAll",
+      146
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.downloadLocked",
+      105
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.reuseRetainedChunk",
+      104
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.find",
+      92
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.blockDigest",
+      67
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedRange",
+      56
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.rememberAuthentication",
+      50
+    ]
+  ],
+  "top_frames": [
+    [
+      "io.netty.channel.epoll.Native.epollWait0",
+      751
+    ],
+    [
+      "sun.nio.ch.NativeThread.current0",
+      413
+    ],
+    [
+      "io.netty.channel.epoll.Native.epollWait",
+      370
+    ],
+    [
+      "jdk.internal.util.ArraysSupport.mismatch",
+      89
+    ],
+    [
+      "sun.security.provider.ByteArrayAccess.i2bBig",
+      73
+    ],
+    [
+      "java.security.MessageDigest.update",
+      37
+    ],
+    [
+      "java.util.concurrent.ConcurrentHashMap.get",
+      33
+    ],
+    [
+      "java.lang.String.<init>",
+      28
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalContentHasher.readDigest",
+      27
+    ],
+    [
+      "java.util.concurrent.ConcurrentHashMap.transfer",
+      24
+    ],
+    [
+      "java.nio.file.Path.resolve",
+      22
+    ],
+    [
+      "sun.nio.cs.UTF_8$Decoder.decodeLoop",
+      19
+    ],
+    [
+      "java.lang.invoke.DirectMethodHandle.allocateInstance",
+      17
+    ],
+    [
+      "java.util.concurrent.ForkJoinPool.deactivate",
+      16
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.PackedFingerprintValueStore.find",
+      15
+    ],
+    [
+      "java.util.concurrent.ConcurrentHashMap.addCount",
+      15
+    ],
+    [
+      "java.lang.String.equals",
+      14
+    ],
+    [
+      "sun.nio.fs.UnixPath.initOffsets",
+      13
+    ],
+    [
+      "java.util.concurrent.ForkJoinPool.runWorker",
+      13
+    ],
+    [
+      "com.github.benmanes.caffeine.cache.BoundedLocalCache.put",
+      12
+    ],
+    [
+      "java.util.concurrent.ConcurrentHashMap.putVal",
+      11
+    ],
+    [
+      "com.google.common.util.concurrent.AggregateFuture.init",
+      11
+    ],
+    [
+      "net.starlark.java.spelling.SpellChecker.editDistance",
+      11
+    ],
+    [
+      "sun.nio.fs.UnixNativeDispatcher.lstat0",
+      10
+    ],
+    [
+      "com.google.devtools.build.lib.skyframe.serialization.local.LocalWitnessTable.read",
+      10
+    ],
+    [
+      "java.lang.String.hashCode",
+      10
+    ],
+    [
+      "java.util.concurrent.ConcurrentHashMap.putIfAbsent",
+      9
+    ],
+    [
+      "java.lang.ThreadLocal$ThreadLocalMap.getEntry",
+      8
+    ],
+    [
+      "com.google.common.util.concurrent.AbstractFuture.addListener",
+      8
+    ],
+    [
+      "com.google.common.base.Equivalence$Equals.doEquivalent",
+      8
+    ]
+  ],
+  "remote_range_top_stacks": [
+    [
+      "java.nio.file.Path.resolve <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedBytes <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedRange <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readChunk <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache$FileSource.read",
+      20
+    ],
+    [
+      "sun.security.provider.ByteArrayAccess.i2bBig <- sun.security.provider.SHA2.implDigest <- sun.security.provider.DigestBase.engineDigest <- sun.security.provider.DigestBase.engineDigest <- java.security.MessageDigest$Delegate.engineDigest",
+      17
+    ],
+    [
+      "sun.nio.fs.UnixChannelFactory$Flags.toFlags <- sun.nio.fs.UnixChannelFactory.newFileChannel <- sun.nio.fs.UnixChannelFactory.newFileChannel <- sun.nio.fs.UnixFileSystemProvider.newFileChannel <- java.nio.channels.FileChannel.open",
+      3
+    ],
+    [
+      "sun.nio.fs.UnixNativeDispatcher.lstat0 <- sun.nio.fs.UnixNativeDispatcher.lstat <- sun.nio.fs.UnixFileAttributes.get <- sun.nio.fs.UnixFileAttributeViews$Basic.readAttributes <- sun.nio.fs.UnixFileSystemProvider.readAttributes",
+      2
+    ],
+    [
+      "sun.nio.fs.UnixNativeDispatcher.open0 <- sun.nio.fs.UnixNativeDispatcher.open <- sun.nio.fs.UnixChannelFactory.open <- sun.nio.fs.UnixChannelFactory.newFileChannel <- sun.nio.fs.UnixChannelFactory.newFileChannel",
+      2
+    ],
+    [
+      "java.io.FileDescriptor.close0 <- java.io.FileDescriptor.close <- java.io.FileDescriptor$1.close <- sun.nio.ch.FileChannelImpl$Closer.run <- jdk.internal.ref.CleanerImpl$PhantomCleanableRef.performCleanup",
+      2
+    ],
+    [
+      "java.lang.String.<init> <- sun.nio.fs.Util.toString <- sun.nio.fs.UnixPath.toString <- sun.nio.fs.UnixChannelFactory.newFileChannel <- sun.nio.fs.UnixChannelFactory.newFileChannel",
+      2
+    ],
+    [
+      "java.lang.ThreadLocal$ThreadLocalMap.getEntry <- java.lang.ThreadLocal.get <- java.lang.ThreadLocal.getCarrierThreadLocal <- java.lang.System$1.getCarrierThreadLocal <- jdk.internal.misc.CarrierThreadLocal.get",
+      2
+    ],
+    [
+      "sun.nio.fs.UnixNativeDispatcher.stat0 <- sun.nio.fs.UnixNativeDispatcher.stat <- sun.nio.fs.UnixFileAttributes.get <- sun.nio.fs.UnixFileAttributeViews$Basic.readAttributes <- sun.nio.fs.UnixFileSystemProvider.readAttributes",
+      2
+    ],
+    [
+      "sun.nio.ch.FileChannelImpl.open <- sun.nio.fs.UnixChannelFactory.newFileChannel <- sun.nio.fs.UnixChannelFactory.newFileChannel <- sun.nio.fs.UnixFileSystemProvider.newFileChannel <- java.nio.channels.FileChannel.open",
+      1
+    ],
+    [
+      "java.nio.file.Files.readAttributes <- java.nio.file.Files.size <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.cached <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedBytes <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedRange",
+      1
+    ],
+    [
+      "java.nio.ByteBuffer.allocate <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedBytes <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readCachedRange <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache.readChunk <- com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache$FileSource.read",
+      1
+    ],
+    [
+      "sun.nio.ch.UnixFileDispatcherImpl.pread0 <- sun.nio.ch.UnixFileDispatcherImpl.pread <- sun.nio.ch.IOUtil.readIntoNativeBuffer <- sun.nio.ch.IOUtil.read <- sun.nio.ch.IOUtil.read",
+      1
+    ]
+  ],
+  "monitor_thread_seconds": {
+    "other": 31.971561195,
+    "deserialization": 0.010650781,
+    "dependency_validation": 0.056616827999999994,
+    "remote_range_read": 0.03930536,
+    "final_input_validation": 2.8056466689999997
+  },
+  "sampled_threads": [
+    [
+      "skyframe-evaluator-cpu-heavy-10",
+      275
+    ],
+    [
+      "skyframe-evaluator-cpu-heavy-1",
+      211
+    ],
+    [
+      "skyframe-evaluator-cpu-heavy-8",
+      148
+    ],
+    [
+      "grpc-command-0",
+      100
+    ],
+    [
+      "grpc-default-worker-ELG-3-3",
+      73
+    ],
+    [
+      "grpc-default-boss-ELG-1-1",
+      71
+    ],
+    [
+      "grpc-default-worker-ELG-3-1",
+      71
+    ],
+    [
+      "grpc-default-worker-ELG-3-2",
+      71
+    ],
+    [
+      "grpc-default-worker-ELG-3-9",
+      71
+    ],
+    [
+      "skyframe-evaluator-cpu-heavy-5",
+      71
+    ]
+  ],
+  "caveat": "Execution/native samples are not wall-time shares; native samples may represent blocking I/O. Monitor durations overlap. The recording spans only the diagnostic build."
+}

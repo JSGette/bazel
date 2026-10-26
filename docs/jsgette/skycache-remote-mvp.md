@@ -1070,6 +1070,34 @@ or tail-latency claim is made. Both RPC and command phase timings now use one mo
 [test results](measurements/skycache-validation-2026-10-26/build-result.json), and
 [provenance](measurements/skycache-validation-2026-10-26/provenance.json).
 
+## Local versus remote chain attribution (26 October 2026)
+
+A matched comparison now uses the same binary and the exact same two-publication seed in
+all three modes, reconstructing the remote seed through production hydration for local use.
+Direct-endpoint median command times were **16.026 s local, 20.670 s retained remote and
+30.299 s empty-retained remote**, with three observations per arm. Retained remote downloaded
+zero metadata payload bytes but remained **4.643 s / 29.0% slower**. All runs restored the same
+18 configured-target and 11 execution entries, matched outputs and successfully published.
+
+The middle command interval, including candidate use, dependency validation and restoration,
+accounts for **81.5% of the mean warm gap**. A separate warmed diagnostic pair requested
+approximately 306 MB of packed data in both modes. Local reused open pack channels; remote
+made **794,923 cached range reads, each opening and closing a chunk channel**, read 3.569 GB
+of covering blocks and performed 1.229 million block digest operations. Retained activation
+also verified 1.464 GB of whole chunks. The authentication-hash cache had zero evictions.
+
+The first implementation experiment is bounded channel/path reuse in
+`RemoteSkyCache.readCachedBytes`, comparing 128 and 256 retained descriptors while preserving
+fresh path checks, block authentication, cancellation and bounded resource lifetime. A trace
+simulation predicts 55.5% and 76.7% descriptor hits respectively; these are sizing evidence,
+not measured latency gains. Buffer/digest reuse and cold chunk amplification follow as separate
+experiments. No production code changed in this investigation.
+
+[Full chain, phase comparison, research and acceptance criteria](measurements/skycache-chain-2026-10-26/README.md),
+[direct-endpoint measurements](measurements/skycache-chain-2026-10-26/comparison-direct.json),
+[read counters](measurements/skycache-chain-2026-10-26/stages.json), and
+[provenance](measurements/skycache-chain-2026-10-26/provenance.json).
+
 ## Remaining limitations and next implementation choices
 
 1. **Chunk amplification and uncached/local uploads still do avoidable work.** Authenticated
@@ -1079,8 +1107,9 @@ or tail-latency claim is made. Both RPC and command phase timings now use one mo
    filesystem operations, block authentication and record checks.
    Remote-parent descriptor reuse removes repeated parent transfer, but new local files
    still use singleton BatchUpdateBlobs calls.
-   Batch FindMissingBlobs and skip existing chunks before considering CDC; measure RPC overhead
-   and use bounded batches. Compare smaller fixed chunks for demand-read amplification.
+   Prioritize bounded channel reuse on the measured warm range-read path. Compare smaller fixed
+   chunks for cold demand-read amplification. Batch FindMissingBlobs and skip existing uploads
+   before considering CDC when service measurements establish upload/RPC overhead.
 2. **Larger publications still have independent limits.** Logical closure and transfer bounds
    are now separate: 4 GiB logical, configurable actual transfer, unchanged metadata/count
    limits. Tests admit a 1.5 GiB logical publication while fetching less than 4 MiB, preserve
@@ -1100,9 +1129,11 @@ or tail-latency claim is made. Both RPC and command phase timings now use one mo
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Next profile the remaining authenticated warm-read and restoration overhead with the new binary.
-Final validation is now parallel and bounded; further concurrency needs resource-pressure evidence.
-Upload deduplication and smaller chunks remain conditional on measured transfer/RPC costs.
+Next prototype bounded channel reuse against the matched direct-endpoint control, then isolate
+buffer/digest reuse. Final validation is now parallel and bounded; further concurrency needs
+resource-pressure evidence. Empty retained storage adds another 9.629 s over warm remote on
+loopback, so chunk size/layout remains a separate cold-path priority. WAN measurements are
+needed before ranking upload deduplication against demand reads on the actual service.
 Further size increases and independent-clone portability need separate compatibility work
 that preserves the existing per-entry validator. The development server is sufficient for these
 correctness and controlled bandwidth/latency experiments; production catalog retention and
