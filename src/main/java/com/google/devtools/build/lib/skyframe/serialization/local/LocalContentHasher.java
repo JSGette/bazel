@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import javax.annotation.Nullable;
 
-/** Thread-confined content digests shared only within one fresh validation or capture pass. */
+/** Thread-confined hashing with a bounded digest cache shared only within one fresh pass. */
 final class LocalContentHasher {
   // Large toolchain binaries have many aliases. Do not add metadata reads for ordinary small files.
   private static final long DEFAULT_MINIMUM_BYTES = 1024 * 1024;
@@ -31,7 +31,8 @@ final class LocalContentHasher {
 
   private final long minimumBytes;
   private final int maximumDigests;
-  private final Map<FileVersion, byte[]> digests = new HashMap<>();
+  // Guarded by itself, including content reads on a miss, so concurrent aliases are read once.
+  private final Map<FileVersion, byte[]> digests;
   private long filesHashed;
   private long bytesHashed;
   private long hits;
@@ -46,17 +47,32 @@ final class LocalContentHasher {
     }
     this.minimumBytes = minimumBytes;
     this.maximumDigests = maximumDigests;
+    this.digests = new HashMap<>();
+  }
+
+  /** Creates another thread-confined hasher sharing evidence from this same fresh pass only. */
+  LocalContentHasher(LocalContentHasher samePass) {
+    minimumBytes = samePass.minimumBytes;
+    maximumDigests = samePass.maximumDigests;
+    digests = samePass.digests;
   }
 
   void hashContents(Path path, MessageDigest fingerprint, long observedSize) throws IOException {
     checkInterrupted();
     FileVersion before = observedSize >= minimumBytes ? version(path) : null;
-    byte[] content = before == null ? null : digests.get(before);
-    boolean reused = content != null;
-    if (!reused) {
-      content = readDigest(path);
+    if (before == null) {
+      fingerprint.update(readDigest(path));
+      return;
     }
-    if (before != null) {
+    // Only large, versioned files take this lock. Small-file reads remain independent. Serializing
+    // large misses prevents duplicate reads without adding an unbounded set of in-flight digests.
+    synchronized (digests) {
+      checkInterrupted();
+      byte[] content = digests.get(before);
+      boolean reused = content != null;
+      if (!reused) {
+        content = readDigest(path);
+      }
       if (!before.equals(version(path))) {
         throw new IOException("input changed while hashing: " + path);
       }
@@ -65,8 +81,8 @@ final class LocalContentHasher {
       } else if (digests.size() < maximumDigests) {
         digests.put(before, content);
       }
+      fingerprint.update(content);
     }
-    fingerprint.update(content);
   }
 
   /** Fresh device/inode and change time are required; mtime/size alone never justify reuse. */
@@ -120,6 +136,8 @@ final class LocalContentHasher {
   }
 
   Statistics statistics() {
-    return new Statistics(filesHashed, bytesHashed, hits, digests.size());
+    synchronized (digests) {
+      return new Statistics(filesHashed, bytesHashed, hits, digests.size());
+    }
   }
 }

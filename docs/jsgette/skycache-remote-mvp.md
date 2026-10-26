@@ -1042,6 +1042,34 @@ work rather than eliminating child disk writes or upload bytes.
 [test verification](measurements/skycache-witness-reuse-2026-10-26/verification.json), and
 [provenance](measurements/skycache-witness-reuse-2026-10-26/provenance.json).
 
+## Bounded parallel final validation (26 October 2026)
+
+Fresh final validation now uses at most four workers for sets of at least 16,384 witnesses.
+Workers preserve every typed check and share the bounded content-digest cache from that one
+fresh validation pass. Small sets remain serial. Cancellation and failures join all workers
+before publication leases can be released. No fingerprint, manifest or wire format changes.
+
+A scheduling replay reduced median validation from **4.817 s to 2.235 s**, with exactly the
+same **5,048,629,414 content bytes hashed**. Independent worker caches were faster on warmed
+storage but hashed 35.7% more bytes, so the shared-cache version was selected.
+
+Against the preceding witness-reuse implementation, a fresh six-run ABBAAB comparison gave
+median command times of **26.222 s versus 23.096 s (11.9% lower)** and post-build intervals
+of **6.753 s versus 3.940 s (41.7% lower)**. Every pair improved; post-build savings ranged
+from 2.611 to 3.216 s. All runs matched the six original outputs and a fresh publication probe,
+restored 18 configured-target and 11 execution entries, downloaded zero metadata bytes and
+successfully published. All child witness tables remained byte-identical: 103 reused blocks,
+10,075,663 bytes. **626 cases across 23 selected test targets passed.**
+
+The post-build interval includes more than validation. These are three samples per binary,
+separate binary-specific primers, warm local storage and a loopback metadata service; no WAN
+or tail-latency claim is made. Both RPC and command phase timings now use one monotonic clock.
+
+[Results, research rationale and limits](measurements/skycache-validation-2026-10-26/README.md),
+[comparison](measurements/skycache-validation-2026-10-26/comparison.json),
+[test results](measurements/skycache-validation-2026-10-26/build-result.json), and
+[provenance](measurements/skycache-validation-2026-10-26/provenance.json).
+
 ## Remaining limitations and next implementation choices
 
 1. **Chunk amplification and uncached/local uploads still do avoidable work.** Authenticated
@@ -1072,7 +1100,8 @@ work rather than eliminating child disk writes or upload bytes.
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Next measure fresh final validation and the remaining authenticated warm-read overhead.
+Next profile the remaining authenticated warm-read and restoration overhead with the new binary.
+Final validation is now parallel and bounded; further concurrency needs resource-pressure evidence.
 Upload deduplication and smaller chunks remain conditional on measured transfer/RPC costs.
 Further size increases and independent-clone portability need separate compatibility work
 that preserves the existing per-entry validator. The development server is sufficient for these

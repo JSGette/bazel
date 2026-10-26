@@ -485,6 +485,18 @@ java_test(
 )
 
 java_test(
+    name = "LocalInputSnapshotTest",
+    size = "medium",
+    srcs = ["LocalInputSnapshotTest.java"],
+    tags = ["no_windows"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+        "//third_party/java/junit",
+        "//third_party/java/truth",
+    ],
+)
+
+java_test(
     name = "LocalWitnessTableTest",
     size = "medium",
     srcs = ["LocalWitnessTableTest.java"],

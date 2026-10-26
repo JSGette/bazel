@@ -10,6 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -40,6 +44,82 @@ public final class LocalContentHasherTest {
     assertThat(hash(hasher, hard)).isEqualTo(expected);
     assertThat(hash(hasher, distinct)).isEqualTo(expected);
     assertThat(hasher.statistics()).isEqualTo(new LocalContentHasher.Statistics(2, 16, 2, 2));
+  }
+
+  @Test
+  public void concurrentAliasesShareOneBoundedDigestCache() throws Exception {
+    Path file = Files.write(temporary.newFile().toPath(), new byte[1024 * 1024]);
+    Path symbolic = Files.createSymbolicLink(file.resolveSibling("symbolic"), file.getFileName());
+    Path hard = Files.createLink(file.resolveSibling("hard"), file);
+    var pass = new LocalContentHasher(0, 8);
+    var barrier = new CyclicBarrier(4);
+    var hashers = new ArrayList<LocalContentHasher>();
+    var pending = new ArrayList<Future<byte[]>>();
+    try (var executor = Executors.newFixedThreadPool(4)) {
+      for (Path alias : new Path[] {file, symbolic, hard, file}) {
+        var hasher = new LocalContentHasher(pass);
+        hashers.add(hasher);
+        pending.add(
+            executor.submit(
+                () -> {
+                  barrier.await();
+                  return hash(hasher, alias);
+                }));
+      }
+      for (var result : pending) {
+        assertThat(result.get()).isEqualTo(pending.getFirst().get());
+      }
+    }
+    assertThat(hashers.stream().mapToLong(h -> h.statistics().filesHashed()).sum()).isEqualTo(1);
+    assertThat(hashers.stream().mapToLong(h -> h.statistics().bytesHashed()).sum())
+        .isEqualTo(1024 * 1024);
+    assertThat(hashers.stream().mapToLong(h -> h.statistics().hits()).sum()).isEqualTo(3);
+    assertThat(pass.statistics().retainedDigests()).isEqualTo(1);
+  }
+
+  @Test
+  public void sharedCacheRechecksVersionAndDoesNotCrossPasses() throws Exception {
+    Path file = Files.writeString(temporary.newFile().toPath(), "one");
+    var first = new LocalContentHasher(0, 8);
+    byte[] original = hash(first, file);
+    var sibling = new LocalContentHasher(first);
+    assertThat(hash(sibling, file)).isEqualTo(original);
+    assertThat(sibling.statistics().hits()).isEqualTo(1);
+    var modified = Files.getLastModifiedTime(file);
+    Thread.sleep(5);
+    Files.writeString(file, "two");
+    Files.setLastModifiedTime(file, modified);
+    assertThat(hash(sibling, file)).isNotEqualTo(original);
+    assertThat(sibling.statistics().filesHashed()).isEqualTo(1);
+    var nextPass = new LocalContentHasher(0, 8);
+    assertThat(hash(nextPass, file)).isEqualTo(hash(sibling, file));
+    assertThat(nextPass.statistics().filesHashed()).isEqualTo(1);
+    assertThat(nextPass.statistics().hits()).isEqualTo(0);
+  }
+
+  @Test
+  public void concurrentDistinctFilesRespectSharedCapacity() throws Exception {
+    var pass = new LocalContentHasher(0, 2);
+    var barrier = new CyclicBarrier(4);
+    var pending = new ArrayList<Future<LocalContentHasher.Statistics>>();
+    try (var executor = Executors.newFixedThreadPool(4)) {
+      for (int i = 0; i < 4; i++) {
+        Path file = Files.writeString(temporary.newFile().toPath(), "contents");
+        pending.add(
+            executor.submit(
+                () -> {
+                  var hasher = new LocalContentHasher(pass);
+                  barrier.await();
+                  hash(hasher, file);
+                  return hasher.statistics();
+                }));
+      }
+      for (var result : pending) {
+        assertThat(result.get().filesHashed()).isEqualTo(1);
+        assertThat(result.get().retainedDigests()).isAtMost(2);
+      }
+    }
+    assertThat(pass.statistics().retainedDigests()).isEqualTo(2);
   }
 
   @Test

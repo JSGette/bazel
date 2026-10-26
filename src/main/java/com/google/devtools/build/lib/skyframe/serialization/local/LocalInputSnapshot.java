@@ -7,6 +7,7 @@ import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
 import com.google.devtools.build.lib.versioning.IndependentFileDependencyProvider;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -17,6 +18,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -25,6 +27,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 
 /**
@@ -36,6 +42,9 @@ import javax.annotation.Nullable;
  * deliberately favors conservative misses over treating a Git revision as a source snapshot.
  */
 final class LocalInputSnapshot implements IndependentFileDependencyProvider {
+  private static final int MAX_VALIDATION_WORKERS = 4;
+  private static final int PARALLEL_VALIDATION_MINIMUM_WITNESSES = 16_384;
+
   record Witness(String path, boolean listing, String digest) {}
 
   // A cheap retry hint, never validity evidence. Any retry still verifies the content witness.
@@ -203,18 +212,90 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
   }
 
   boolean isUnchanged() throws IOException {
+    return isUnchanged(
+        witnesses.size() < PARALLEL_VALIDATION_MINIMUM_WITNESSES
+            ? 1
+            : Math.min(MAX_VALIDATION_WORKERS, Runtime.getRuntime().availableProcessors()));
+  }
+
+  /** Explicit worker count for exercising both validation paths on small test fixtures. */
+  boolean isUnchanged(int parallelism) throws IOException {
+    if (parallelism < 1 || parallelism > MAX_VALIDATION_WORKERS) {
+      throw new IllegalArgumentException("invalid final validation worker count");
+    }
+    checkValidationInterrupted();
     var contents = new LocalContentHasher();
     if (changed
         || !cacheNamespace.equals(captureNamespace())
         || !sourceDigest.equals(captureSource(contents))) {
       return false;
     }
+    if (parallelism == 1) {
+      return matchesAll(witnesses.values(), contents) && !changed;
+    }
+    var partitions = new ArrayList<ArrayList<Witness>>(parallelism);
+    for (int i = 0; i < parallelism; i++) {
+      partitions.add(new ArrayList<>());
+    }
+    int next = 0;
     for (Witness witness : witnesses.values()) {
+      checkValidationInterrupted();
+      partitions.get(next++ % parallelism).add(witness);
+    }
+    // Only a handful of tasks, not a future per witness. Joining the executor on every exit keeps
+    // validation inside the caller's publication/lease lifetime, including failure and
+    // cancellation.
+    try (var executor =
+        Executors.newFixedThreadPool(
+            parallelism, Thread.ofPlatform().name("skycache-final-validation-", 0).factory())) {
+      var completion = new ExecutorCompletionService<Boolean>(executor);
+      var pending = new ArrayList<Future<Boolean>>(parallelism);
+      try {
+        for (var partition : partitions) {
+          var workerContents = new LocalContentHasher(contents);
+          pending.add(completion.submit(() -> matchesAll(partition, workerContents)));
+        }
+        for (int i = 0; i < pending.size(); i++) {
+          if (!completion.take().get()) {
+            return false;
+          }
+        }
+        return !changed;
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new InterruptedIOException("interrupted local input validation");
+      } catch (ExecutionException e) {
+        if (e.getCause() instanceof IOException cause) {
+          throw cause;
+        }
+        if (e.getCause() instanceof RuntimeException cause) {
+          throw cause;
+        }
+        if (e.getCause() instanceof Error cause) {
+          throw cause;
+        }
+        throw new IOException("local input validation failed", e.getCause());
+      } finally {
+        pending.forEach(task -> task.cancel(true));
+      }
+    }
+  }
+
+  private boolean matchesAll(Iterable<Witness> batch, LocalContentHasher contents)
+      throws IOException {
+    for (Witness witness : batch) {
+      checkValidationInterrupted();
       if (!matches(witness, contents)) {
         return false;
       }
     }
     return true;
+  }
+
+  private static void checkValidationInterrupted() throws InterruptedIOException {
+    if (Thread.currentThread().isInterrupted()) {
+      throw new InterruptedIOException("interrupted local input validation");
+    }
   }
 
   /** Always checks current content; only a success may later help entry validation. */
