@@ -17,6 +17,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
@@ -135,6 +136,50 @@ final class LocalWitnessTable {
     }
   }
 
+  /**
+   * Copies already decoded blocks after checking their authenticated bytes again. The caller must
+   * prove exact witness equality and perform fresh input validation first. Independent durable
+   * files keep the child's ownership separate from parent retention and subsequent corruption.
+   */
+  static boolean copy(Path source, Path target, List<Block> blocks) throws IOException {
+    var created = new ArrayList<Path>();
+    try {
+      for (int i = 0; i < blocks.size(); i++) {
+        byte[] encoded = readBlock(source.resolve(filename(i)), blocks.get(i));
+        Path file = target.resolve(filename(i));
+        try (var channel =
+            FileChannel.open(
+                file,
+                Set.of(CREATE_NEW, WRITE, NOFOLLOW_LINKS),
+                PosixFilePermissions.asFileAttribute(
+                    PosixFilePermissions.fromString("rw-------")))) {
+          created.add(file);
+          ByteBuffer buffer = ByteBuffer.wrap(encoded);
+          while (buffer.hasRemaining()) {
+            channel.write(buffer);
+          }
+          channel.force(true);
+        }
+      }
+      try (var channel = FileChannel.open(target, READ)) {
+        channel.force(true);
+      }
+      return true;
+    } catch (IOException unavailable) {
+      // A missing or damaged optional copy must not prevent ordinary witness generation. Delete
+      // only files this attempt created; a pre-existing destination is never ours to remove.
+      for (Path file : created) {
+        try {
+          Files.delete(file);
+        } catch (IOException cleanup) {
+          cleanup.addSuppressed(unavailable);
+          throw cleanup;
+        }
+      }
+      return false;
+    }
+  }
+
   static List<Block> readDescriptors(DataInputStream in) throws IOException {
     int count = in.readInt();
     if (count < 0 || count > MAX_BLOCKS) {
@@ -178,21 +223,7 @@ final class LocalWitnessTable {
     var witnesses = new ArrayList<LocalInputSnapshot.Witness>();
     for (int i = 0; i < blocks.size(); i++) {
       Block block = blocks.get(i);
-      byte[] encoded = new byte[block.encodedBytes()];
-      try (var channel = FileChannel.open(directory.resolve(filename(i)), READ, NOFOLLOW_LINKS)) {
-        if (channel.size() != encoded.length) {
-          throw new IOException("witness block length mismatch");
-        }
-        ByteBuffer buffer = ByteBuffer.wrap(encoded);
-        while (buffer.hasRemaining()) {
-          if (channel.read(buffer) < 0) {
-            throw new IOException("truncated witness block");
-          }
-        }
-      }
-      if (!hash(encoded).equals(block.digest())) {
-        throw new IOException("witness block checksum mismatch");
-      }
+      byte[] encoded = readBlock(directory.resolve(filename(i)), block);
       byte[] plain = new byte[block.decodedBytes()];
       var inflater = new Inflater(true);
       try {
@@ -267,6 +298,28 @@ final class LocalWitnessTable {
 
   static String filename(int index) {
     return String.format(java.util.Locale.ROOT, "witnesses-%05d.block", index);
+  }
+
+  private static byte[] readBlock(Path file, Block block) throws IOException {
+    byte[] encoded = new byte[block.encodedBytes()];
+    try (var channel = FileChannel.open(file, READ, NOFOLLOW_LINKS)) {
+      if (channel.size() != encoded.length) {
+        throw new IOException("witness block length mismatch");
+      }
+      ByteBuffer buffer = ByteBuffer.wrap(encoded);
+      while (buffer.hasRemaining()) {
+        if (channel.read(buffer) < 0) {
+          throw new IOException("truncated witness block");
+        }
+      }
+      if (channel.size() != encoded.length) {
+        throw new IOException("witness block length changed while reading");
+      }
+    }
+    if (!hash(encoded).equals(block.digest())) {
+      throw new IOException("witness block checksum mismatch");
+    }
+    return encoded;
   }
 
   private static String hash(byte[] bytes) {

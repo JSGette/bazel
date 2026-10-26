@@ -74,6 +74,7 @@ final class LocalCacheSession implements FingerprintValueStore {
   private record Manifest(
       String id,
       List<LocalInputSnapshot.Witness> witnesses,
+      List<LocalWitnessTable.Block> blocks,
       List<String> parents,
       long metadataBytes) {}
 
@@ -84,6 +85,8 @@ final class LocalCacheSession implements FingerprintValueStore {
       String id,
       SegmentedFingerprintValueStore store,
       List<LocalInputSnapshot.Witness> witnesses,
+      List<LocalWitnessTable.Block> blocks,
+      Path witnessDirectory,
       List<String> parents,
       long metadataBytes,
       LocalCacheLeaseManager.Lease lease,
@@ -152,6 +155,8 @@ final class LocalCacheSession implements FingerprintValueStore {
   private volatile long catalogBusySkips;
   private volatile int peakCandidateCount;
   private volatile long peakCandidateMetadataBytes;
+  private volatile int reusedWitnessBlocks;
+  private volatile long reusedWitnessBytes;
 
   LocalCacheSession(Path root, LocalInputSnapshot inputs) throws IOException {
     this(root, inputs, System::nanoTime);
@@ -262,6 +267,7 @@ final class LocalCacheSession implements FingerprintValueStore {
             + "\"deduplicated_writes\":%d,\"published\":%s,\"failed\":%s,"
             + "\"read_limit_skips\":%d,\"scan_limit_hits\":%d,\"peak_candidate_count\":%d,"
             + "\"peak_candidate_metadata_bytes\":%d,"
+            + "\"reused_witness_blocks\":%d,\"reused_witness_bytes\":%d,"
             + "\"cas_put_requests\":%d,\"cas_accepted_puts\":%d,\"cas_put_key_bytes\":%d,"
             + "\"cas_put_value_bytes\":%d,\"cas_get_requests\":%d,\"cas_get_hits\":%d,"
             + "\"cas_get_misses\":%d,\"cas_received_value_bytes\":%d,\"catalog_busy_skips\":%d}",
@@ -276,6 +282,8 @@ final class LocalCacheSession implements FingerprintValueStore {
         scanLimitHits,
         peakCandidateCount,
         peakCandidateMetadataBytes,
+        reusedWitnessBlocks,
+        reusedWitnessBytes,
         putRequests.get(),
         acceptedPuts.get(),
         putKeyBytes.get(),
@@ -681,6 +689,8 @@ final class LocalCacheSession implements FingerprintValueStore {
                     manifest.id(),
                     store,
                     witnesses,
+                    manifest.blocks(),
+                    objects.resolve(manifest.id()),
                     manifest.parents(),
                     manifest.metadataBytes() + store.indexBytes(),
                     pin,
@@ -736,6 +746,8 @@ final class LocalCacheSession implements FingerprintValueStore {
                     manifest.id(),
                     store,
                     witnesses,
+                    manifest.blocks(),
+                    source.objectRoot().resolve(manifest.id()),
                     manifest.parents(),
                     manifest.metadataBytes() + store.indexBytes(),
                     null,
@@ -880,7 +892,7 @@ final class LocalCacheSession implements FingerprintValueStore {
         for (String parent : usedParents.stream().sorted().toList()) {
           out.writeUTF(parent);
         }
-        var blocks = LocalWitnessTable.write(objects.resolve(id), inputs.globalWitnesses());
+        var blocks = writeWitnesses();
         LocalWitnessTable.writeDescriptors(out, blocks);
       }
       byte[] payload = buffer.toByteArray();
@@ -932,6 +944,20 @@ final class LocalCacheSession implements FingerprintValueStore {
         lifecycle.writeLock().unlock();
       }
     }
+  }
+
+  private List<LocalWitnessTable.Block> writeWitnesses() throws IOException {
+    Path directory = objects.resolve(id);
+    for (Candidate candidate : candidates) {
+      if (usedParents.contains(candidate.id())
+          && inputs.hasSameGlobalWitnesses(candidate.witnesses())
+          && LocalWitnessTable.copy(candidate.witnessDirectory(), directory, candidate.blocks())) {
+        reusedWitnessBlocks = candidate.blocks().size();
+        reusedWitnessBytes = candidate.blocks().stream().mapToLong(b -> b.encodedBytes()).sum();
+        return candidate.blocks();
+      }
+    }
+    return LocalWitnessTable.write(directory, inputs.globalWitnesses());
   }
 
   // finish owns the lifecycle write lock, so no get or put can still be using a descriptor.
@@ -997,7 +1023,7 @@ final class LocalCacheSession implements FingerprintValueStore {
     if (!Files.isDirectory(objectRoot.resolve(header.id()), LinkOption.NOFOLLOW_LINKS)) {
       throw new IOException("incomplete publication");
     }
-    return new Manifest(header.id(), witnesses, header.parents(), metadataBytes);
+    return new Manifest(header.id(), witnesses, header.blocks(), header.parents(), metadataBytes);
   }
 
   static ManifestHeader readManifestHeader(Path path, String cacheNamespace, long remainingBytes)

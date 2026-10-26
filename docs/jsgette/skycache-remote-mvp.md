@@ -1013,6 +1013,35 @@ arbitrary record reordering is much less favorable.
 include pinned primary sources, input hashes, synthetic-control limitations and the licensed
 algorithm translation. No CDC production code or wire-format change was introduced.
 
+## Reusing unchanged witness tables (26 October 2026)
+
+Publication finalization now compares the complete global witness set with used parents and
+reuses an exactly matching canonical table. Fresh input validation still runs first. The copied
+blocks are authenticated again and written as independent durable child files; damaged or missing
+blocks fall back to ordinary generation. Manifest/wire formats and parent retention are unchanged.
+The `reused_witness_blocks` and `reused_witness_bytes` statistics identify this path.
+
+The selected suite passed **618 cases across 22 targets**. A controlled comparison used the six
+Datadog binaries plus one tiny fresh genrule per invocation so both binaries had to publish.
+Three measured observations per binary, in ABBAAB order, gave median command times of
+**27.043 s baseline versus 25.473 s candidate (5.8% lower)**. The more directly attributable
+post-build interval fell from **6.921 s to 6.115 s (11.6%)**, saving 0.804–0.838 s in every pair.
+All measured runs committed, restored 18 configured-target and 11 execution entries, downloaded
+zero metadata blob bytes and matched all output digests. Each candidate reused 103 blocks,
+10,075,663 bytes; all six child witness tables were byte-identical.
+
+The complete command comparison uses separate per-binary primers and is sensitive to pack
+layout and run variation. It is a small loopback experiment with forced publication, not a WAN
+or production forecast. Preparations, no-publication runs and a baseline JVM crash were excluded.
+Only monotonic command/post-build timing is used because the host wall clock stepped during
+several runs. Independent copies preserve ownership, so this saves sorting/encoding/compression
+work rather than eliminating child disk writes or upload bytes.
+
+[Results and limitations](measurements/skycache-witness-reuse-2026-10-26/README.md),
+[comparison](measurements/skycache-witness-reuse-2026-10-26/comparison.json),
+[test verification](measurements/skycache-witness-reuse-2026-10-26/verification.json), and
+[provenance](measurements/skycache-witness-reuse-2026-10-26/provenance.json).
+
 ## Remaining limitations and next implementation choices
 
 1. **Chunk amplification and uncached/local uploads still do avoidable work.** Authenticated
@@ -1043,7 +1072,8 @@ algorithm translation. No CDC production code or wire-format change was introduc
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Next measure upload deduplication, smaller chunks and the remaining warm-read overhead.
+Next measure fresh final validation and the remaining authenticated warm-read overhead.
+Upload deduplication and smaller chunks remain conditional on measured transfer/RPC costs.
 Further size increases and independent-clone portability need separate compatibility work
 that preserves the existing per-entry validator. The development server is sufficient for these
 correctness and controlled bandwidth/latency experiments; production catalog retention and

@@ -62,6 +62,69 @@ public final class LocalWitnessTableTest {
   }
 
   @Test
+  public void copiedBlocksRemainIndependentAfterParentMutationAndRemoval() throws Exception {
+    Path parent = temporary.newFolder().toPath();
+    Path child = temporary.newFolder().toPath();
+    var witnesses =
+        List.of(new LocalInputSnapshot.Witness("external/input", false, "a".repeat(64)));
+    var blocks = LocalWitnessTable.write(parent, witnesses);
+    assertThat(LocalWitnessTable.copy(parent, child, blocks)).isTrue();
+    Path original = parent.resolve(LocalWitnessTable.filename(0));
+    Path copied = child.resolve(LocalWitnessTable.filename(0));
+    assertThat(Files.isSameFile(original, copied)).isFalse();
+    assertThat(Files.readAllBytes(copied)).isEqualTo(Files.readAllBytes(original));
+    Files.writeString(original, "corrupt");
+    assertThat(LocalWitnessTable.read(child, blocks, 10000)).isEqualTo(witnesses);
+    Files.delete(original);
+    Files.delete(parent);
+    assertThat(LocalWitnessTable.read(child, blocks, 10000)).isEqualTo(witnesses);
+  }
+
+  @Test
+  public void failedCopyRemovesPartialFilesAndAllowsFreshGeneration() throws Exception {
+    for (String failure : List.of("missing", "corrupt", "symlink")) {
+      Path parent = temporary.newFolder().toPath();
+      Path child = temporary.newFolder().toPath();
+      var witnesses = new ArrayList<LocalInputSnapshot.Witness>();
+      for (int i = 0; i < 4097; i++) {
+        witnesses.add(new LocalInputSnapshot.Witness("external/" + i, false, "a".repeat(64)));
+      }
+      var blocks = LocalWitnessTable.write(parent, witnesses);
+      assertThat(blocks).hasSize(2);
+      Path damaged = parent.resolve(LocalWitnessTable.filename(1));
+      byte[] original = Files.readAllBytes(damaged);
+      Files.delete(damaged);
+      if (failure.equals("corrupt")) {
+        original[0] ^= 1;
+        Files.write(damaged, original);
+      } else if (failure.equals("symlink")) {
+        Path outside = Files.write(temporary.newFile().toPath(), original);
+        Files.createSymbolicLink(damaged, outside);
+      }
+      assertThat(LocalWitnessTable.copy(parent, child, blocks)).isFalse();
+      try (var files = Files.list(child)) {
+        assertThat(files.toList()).isEmpty();
+      }
+      var regenerated = LocalWitnessTable.write(child, witnesses);
+      assertThat(LocalWitnessTable.read(child, regenerated, Long.MAX_VALUE)).isEqualTo(witnesses);
+    }
+  }
+
+  @Test
+  public void copyDoesNotOverwriteOrDeletePreexistingDestination() throws Exception {
+    Path parent = temporary.newFolder().toPath();
+    Path child = temporary.newFolder().toPath();
+    var blocks =
+        LocalWitnessTable.write(
+            parent,
+            List.of(new LocalInputSnapshot.Witness("external/input", false, "a".repeat(64))));
+    Path existing =
+        Files.writeString(child.resolve(LocalWitnessTable.filename(0)), "owned elsewhere");
+    assertThat(LocalWitnessTable.copy(parent, child, blocks)).isFalse();
+    assertThat(Files.readString(existing)).isEqualTo("owned elsewhere");
+  }
+
+  @Test
   public void unicodeAndNegativeWitnessesSurviveButCorruptionAndSymlinksAreRejected()
       throws Exception {
     Path directory = temporary.newFolder().toPath();

@@ -1466,6 +1466,102 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void unchangedInheritedWitnessesReuseBlocksButAdditionalEvidenceRegenerates()
+      throws Exception {
+    for (boolean additionalGlobal : java.util.List.of(false, true)) {
+      Path workspace = temporary.newFolder().toPath();
+      Path output = temporary.newFolder().toPath();
+      Path cache = temporary.newFolder().toPath();
+      Path input = Files.writeString(temporary.newFile().toPath(), "parent input");
+      Path source = Files.writeString(workspace.resolve("source"), "source input");
+      var parentInputs = snapshot(workspace, output);
+      parentInputs.observe(input, false);
+      var parent = new LocalCacheSession(cache, parentInputs);
+      parent.put(new Key("parent"), new byte[] {1}).get();
+      assertThat(parent.finish(true)).isTrue();
+      var childInputs = snapshot(workspace, output);
+      var child = new LocalCacheSession(cache, childInputs);
+      assertThat(child.get(new Key("parent")).get()).isEqualTo(new byte[] {1});
+      Path extra =
+          additionalGlobal ? Files.writeString(temporary.newFile().toPath(), "new input") : source;
+      childInputs.observe(extra, false);
+      child.put(new Key("child"), new byte[] {2}).get();
+      assertThat(child.finish(true)).isTrue();
+      assertThat(child.statisticsJson(true))
+          .contains("\"reused_witness_blocks\":" + (additionalGlobal ? 0 : 1));
+      var header =
+          LocalCacheSession.readManifestHeader(
+              child.publicationManifest(), childInputs.cacheNamespace(), Long.MAX_VALUE);
+      Path directory = cache.resolve("leased-v2/objects/segmented-v1").resolve(header.id());
+      assertThat(LocalWitnessTable.read(directory, header.blocks(), Long.MAX_VALUE))
+          .isEqualTo(childInputs.globalWitnesses());
+      var reader = new LocalCacheSession(cache, snapshot(workspace, output));
+      assertThat(reader.get(new Key("child")).get()).isEqualTo(new byte[] {2});
+      reader.finish(false);
+    }
+  }
+
+  @Test
+  public void damagedParentWitnessCopyFallsBackAfterFreshValidation() throws Exception {
+    Path workspace = temporary.newFolder().toPath();
+    Path output = temporary.newFolder().toPath();
+    Path cache = temporary.newFolder().toPath();
+    Path input = Files.writeString(temporary.newFile().toPath(), "input");
+    var parentInputs = snapshot(workspace, output);
+    parentInputs.observe(input, false);
+    var parent = new LocalCacheSession(cache, parentInputs);
+    parent.put(new Key("parent"), new byte[] {1}).get();
+    assertThat(parent.finish(true)).isTrue();
+    var childInputs = snapshot(workspace, output);
+    var child = new LocalCacheSession(cache, childInputs);
+    assertThat(child.get(new Key("parent")).get()).isEqualTo(new byte[] {1});
+    child.put(new Key("child"), new byte[] {2}).get();
+    var parentHeader =
+        LocalCacheSession.readManifestHeader(
+            parent.publicationManifest(), parentInputs.cacheNamespace(), Long.MAX_VALUE);
+    Path objects = cache.resolve("leased-v2/objects/segmented-v1");
+    Files.writeString(
+        objects.resolve(parentHeader.id()).resolve(LocalWitnessTable.filename(0)), "bad");
+    assertThat(child.finish(true)).isTrue();
+    assertThat(child.statisticsJson(true)).contains("\"reused_witness_blocks\":0");
+    var childHeader =
+        LocalCacheSession.readManifestHeader(
+            child.publicationManifest(), childInputs.cacheNamespace(), Long.MAX_VALUE);
+    assertThat(
+            LocalWitnessTable.read(
+                objects.resolve(childHeader.id()), childHeader.blocks(), Long.MAX_VALUE))
+        .isEqualTo(childInputs.globalWitnesses());
+  }
+
+  @Test
+  public void globalWitnessReuseRequiresExactUniqueTypedEvidence() throws Exception {
+    var inputs = snapshot(temporary.newFolder().toPath(), temporary.newFolder().toPath());
+    var a = new LocalInputSnapshot.Witness("absolute/a", false, "a".repeat(64));
+    var b = new LocalInputSnapshot.Witness("absolute/b", true, "missing");
+    inputs.registerInheritedForFinalValidation(java.util.List.of(a, b));
+    assertThat(inputs.hasSameGlobalWitnesses(java.util.List.of(a, b))).isTrue();
+    assertThat(inputs.hasSameGlobalWitnesses(java.util.List.of(a, a))).isFalse();
+    assertThat(inputs.hasSameGlobalWitnesses(java.util.List.of(b, a))).isFalse();
+    assertThat(inputs.hasSameGlobalWitnesses(java.util.List.of(a))).isFalse();
+    assertThat(
+            inputs.hasSameGlobalWitnesses(
+                java.util.List.of(a, new LocalInputSnapshot.Witness(b.path(), false, b.digest()))))
+        .isFalse();
+    assertThat(
+            inputs.hasSameGlobalWitnesses(
+                java.util.List.of(
+                    a, new LocalInputSnapshot.Witness(b.path(), b.listing(), "not-directory"))))
+        .isFalse();
+    inputs.registerInheritedForFinalValidation(
+        java.util.List.of(new LocalInputSnapshot.Witness("workspace/source", false, "missing")));
+    assertThat(inputs.hasSameGlobalWitnesses(java.util.List.of(a, b))).isTrue();
+    assertThat(inputs.hasSameGlobalWitnesses(inputs.witnesses())).isFalse();
+    inputs.registerInheritedForFinalValidation(
+        java.util.List.of(new LocalInputSnapshot.Witness(a.path(), a.listing(), "b".repeat(64))));
+    assertThat(inputs.hasSameGlobalWitnesses(java.util.List.of(a, b))).isFalse();
+  }
+
+  @Test
   public void inheritedInputChangeBeforePublicationIsRejectedDespiteEqualLists() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();

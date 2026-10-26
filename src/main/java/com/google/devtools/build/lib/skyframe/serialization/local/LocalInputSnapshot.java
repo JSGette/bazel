@@ -87,6 +87,27 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
     return witnesses().stream().filter(w -> !w.path().startsWith("workspace/")).toList();
   }
 
+  /** Exact representation comparison after final validation; never authorizes a cache hit. */
+  boolean hasSameGlobalWitnesses(List<Witness> expected) {
+    if (changed
+        || witnesses.values().stream().filter(w -> !w.path().startsWith("workspace/")).count()
+            != expected.size()) {
+      return false;
+    }
+    Witness previous = null;
+    var order = Comparator.comparing(Witness::path).thenComparing(Witness::listing);
+    for (Witness witness : expected) {
+      // Only canonical, unique global tables can stand in for a freshly generated table.
+      if (witness.path().startsWith("workspace/")
+          || (previous != null && order.compare(previous, witness) >= 0)
+          || !witness.equals(witnesses.get((witness.listing() ? "d:" : "f:") + witness.path()))) {
+        return false;
+      }
+      previous = witness;
+    }
+    return true;
+  }
+
   private String captureNamespace() throws IOException {
     MessageDigest digest = sha256();
     // Upstream test-configuration keys changed wire format. Keep old publications isolated.

@@ -1,5 +1,9 @@
 # Remote Skycache preliminary findings
 
+**Implementation follow-up:** [The witness-reuse experiment](../../../measurements/skycache-witness-reuse-2026-10-26/README.md)
+preserves fresh validation and reduces the measured post-build interval by about 0.81 seconds.
+Its small controlled comparison, tests, benchmark corrections and limitations are recorded separately.
+
 **Recommendation: prioritize publication preparation, especially exact reuse of inherited witness blocks and cheaper fresh validation. Keep authenticated reads second and upload batching conditional on network latency.** The new evidence changes the initial plan's ordering: on the measured loopback workload, almost six seconds pass between build completion and the first upload, while the entire upload-to-commit interval lasts only 0.36–0.40 seconds.
 
 This preliminary investigation used the existing product binary and produced six valid builds, nine measured hashing replays, and a read-only witness inventory. No product source, protocol or configuration defaults changed. One additional instrumented build restored no cached entries and was excluded. [Evidence and provenance](../evidence/skycache-preliminary-2026-10-26/provenance.json)
