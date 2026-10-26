@@ -1098,6 +1098,32 @@ experiments. No production code changed in this investigation.
 [read counters](measurements/skycache-chain-2026-10-26/stages.json), and
 [provenance](measurements/skycache-chain-2026-10-26/provenance.json).
 
+## Bounded chunk-channel reuse (26 October 2026)
+
+Remote range reads now reuse up to **128 idle file channels**, with exclusive leases so an
+interrupted read cannot close another reader's channel. Fresh no-follow path/type/size/identity
+checks, covering-block authentication and packed-record checks remain in place. Eviction closes
+only idle channels, and final close drains readers before releasing channels and scratch files.
+The new runtime helper classes are excluded from dynamic serialization to preserve existing tags.
+
+The controlled warm-command median fell from **22.498 s to 21.892 s (2.7%)**, with approximately
+**55% of cached range opens avoided** and a peak of **150 cached-read channels**. The 256-channel
+prototype improved its warm median by 3.4%, but its small timing difference did not justify doubling
+the idle-descriptor allowance in this fixture. Cold medians were **30.506 s baseline and 30.284 s
+selected**; the difference is within the observed variation and is not a cold-speedup claim.
+
+All 21 measured commands matched outputs, hit counts and publication checks; remote child witness
+tables remained byte-identical. **632 cases across 23 targets passed.** Timings use one frozen
+installation with a startup-only agent loading exact compiled reader variants, because normal
+installation checksums intentionally separate binaries' root keys. This preserves the exact same
+publication bytes and guards in every arm; the agent is not shipped. The final production source
+matches the tested 128-channel build.
+
+[Implementation, measurements and limitations](measurements/skycache-channels-2026-10-26/README.md),
+[warm comparison](measurements/skycache-channels-2026-10-26/warm-comparison.json),
+[cold comparison](measurements/skycache-channels-2026-10-26/cold-comparison.json), and
+[verification](measurements/skycache-channels-2026-10-26/verification.json).
+
 ## Remaining limitations and next implementation choices
 
 1. **Chunk amplification and uncached/local uploads still do avoidable work.** Authenticated
@@ -1107,8 +1133,9 @@ experiments. No production code changed in this investigation.
    filesystem operations, block authentication and record checks.
    Remote-parent descriptor reuse removes repeated parent transfer, but new local files
    still use singleton BatchUpdateBlobs calls.
-   Prioritize bounded channel reuse on the measured warm range-read path. Compare smaller fixed
-   chunks for cold demand-read amplification. Batch FindMissingBlobs and skip existing uploads
+   Bounded channel reuse now removes repeated opens on about 55% of warm range reads. Next isolate
+   buffer/digest reuse while preserving authentication. Compare smaller fixed chunks for cold
+   demand-read amplification. Batch FindMissingBlobs and skip existing uploads
    before considering CDC when service measurements establish upload/RPC overhead.
 2. **Larger publications still have independent limits.** Logical closure and transfer bounds
    are now separate: 4 GiB logical, configurable actual transfer, unchanged metadata/count
@@ -1129,8 +1156,8 @@ experiments. No production code changed in this investigation.
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Next prototype bounded channel reuse against the matched direct-endpoint control, then isolate
-buffer/digest reuse. Final validation is now parallel and bounded; further concurrency needs
+Next isolate buffer/digest reuse on the authenticated range path. Channel reuse is now bounded
+and measured. Final validation is parallel and bounded; further concurrency needs
 resource-pressure evidence. Empty retained storage adds another 9.629 s over warm remote on
 loopback, so chunk size/layout remains a separate cold-path priority. WAN measurements are
 needed before ranking upload deduplication against demand reads on the actual service.

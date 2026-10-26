@@ -1,0 +1,394 @@
+{
+  "cohort": "cold",
+  "summary": {
+    "baseline": {
+      "n": 3,
+      "command_s": {
+        "median": 30.50627364600018,
+        "mean": 31.200237548666752,
+        "min": 29.89889894800001,
+        "max": 33.19554005200007
+      },
+      "before_command_s": {
+        "median": 1.745058,
+        "mean": 1.754996,
+        "min": 1.744443,
+        "max": 1.775487
+      },
+      "middle_s": {
+        "median": 25.280541991000177,
+        "mean": 25.912793491333414,
+        "min": 24.780162001000054,
+        "max": 27.67767648200001
+      },
+      "finalization_s": {
+        "median": 3.450244655000006,
+        "mean": 3.5324480573333403,
+        "min": 3.3742939469999556,
+        "max": 3.7728055700000596
+      }
+    },
+    "channels128": {
+      "n": 3,
+      "command_s": {
+        "median": 30.283503171000007,
+        "mean": 30.353289451333392,
+        "min": 29.928009139000096,
+        "max": 30.84835604400007
+      },
+      "before_command_s": {
+        "median": 1.75658,
+        "mean": 1.7564313333333332,
+        "min": 1.734572,
+        "max": 1.778142
+      },
+      "middle_s": {
+        "median": 25.147530740999926,
+        "mean": 25.156984164666618,
+        "min": 24.691577149999947,
+        "max": 25.631844602999976
+      },
+      "finalization_s": {
+        "median": 3.45828998900015,
+        "mean": 3.4398739533334415,
+        "min": 3.4014004300000806,
+        "max": 3.4599314410000943
+      }
+    },
+    "channels256": {
+      "n": 3,
+      "command_s": {
+        "median": 30.52124234900009,
+        "mean": 30.51134533800003,
+        "min": 29.486607050999964,
+        "max": 31.52618661400004
+      },
+      "before_command_s": {
+        "median": 1.750774,
+        "mean": 1.742354,
+        "min": 1.711991,
+        "max": 1.764297
+      },
+      "middle_s": {
+        "median": 25.291364392000002,
+        "mean": 25.354660168666648,
+        "min": 24.388355380999975,
+        "max": 26.384260732999962
+      },
+      "finalization_s": {
+        "median": 3.377628881000078,
+        "mean": 3.414331169333385,
+        "min": 3.3474776699999893,
+        "max": 3.517886957000087
+      }
+    }
+  },
+  "change_from_baseline": {
+    "channels128": {
+      "seconds": -0.22277047500017488,
+      "percent": -0.7302447935307987
+    },
+    "channels256": {
+      "seconds": 0.0149687029999086,
+      "percent": 0.04906762187217861
+    }
+  },
+  "rows": [
+    {
+      "label": "r1-baseline",
+      "implementation": "baseline",
+      "command_s": 33.19554005200007,
+      "before_command_s": 1.745058,
+      "middle_s": 27.67767648200001,
+      "finalization_s": 3.7728055700000596,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3567751133,
+        "peak_cached_reads": 32,
+        "cached_read_nanos": 11360370505,
+        "download_rpc_nanos": 15176916313,
+        "peak_chunk_downloads": 13,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2
+      }
+    },
+    {
+      "label": "r2-channels128",
+      "implementation": "channels128",
+      "command_s": 30.283503171000007,
+      "before_command_s": 1.734572,
+      "middle_s": 25.147530740999926,
+      "finalization_s": 3.4014004300000806,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3569848285,
+        "peak_cached_reads": 31,
+        "cached_read_nanos": 7056491153,
+        "download_rpc_nanos": 15036011190,
+        "peak_chunk_downloads": 13,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2,
+        "cached_channel_capacity": 128,
+        "cached_channel_hits": 462129,
+        "cached_channel_opens": 332679,
+        "cached_channel_closes": 332551,
+        "cached_channel_live": 128,
+        "cached_channel_peak": 147
+      },
+      "channel_hit_fraction": 0.5814347616028022
+    },
+    {
+      "label": "r3-channels256",
+      "implementation": "channels256",
+      "command_s": 31.52618661400004,
+      "before_command_s": 1.764297,
+      "middle_s": 26.384260732999962,
+      "finalization_s": 3.377628881000078,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3567767517,
+        "peak_cached_reads": 31,
+        "cached_read_nanos": 9226018396,
+        "download_rpc_nanos": 15668574229,
+        "peak_chunk_downloads": 11,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2,
+        "cached_channel_capacity": 256,
+        "cached_channel_hits": 615456,
+        "cached_channel_opens": 179355,
+        "cached_channel_closes": 179099,
+        "cached_channel_live": 256,
+        "cached_channel_peak": 281
+      },
+      "channel_hit_fraction": 0.7743425795566493
+    },
+    {
+      "label": "r4-channels256",
+      "implementation": "channels256",
+      "command_s": 30.52124234900009,
+      "before_command_s": 1.711991,
+      "middle_s": 25.291364392000002,
+      "finalization_s": 3.517886957000087,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3568818584,
+        "peak_cached_reads": 32,
+        "cached_read_nanos": 7466229484,
+        "download_rpc_nanos": 15477200701,
+        "peak_chunk_downloads": 12,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2,
+        "cached_channel_capacity": 256,
+        "cached_channel_hits": 614662,
+        "cached_channel_opens": 180149,
+        "cached_channel_closes": 179893,
+        "cached_channel_live": 256,
+        "cached_channel_peak": 276
+      },
+      "channel_hit_fraction": 0.7733435999250137
+    },
+    {
+      "label": "r5-channels128",
+      "implementation": "channels128",
+      "command_s": 30.84835604400007,
+      "before_command_s": 1.75658,
+      "middle_s": 25.631844602999976,
+      "finalization_s": 3.4599314410000943,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3569864669,
+        "peak_cached_reads": 32,
+        "cached_read_nanos": 8198244301,
+        "download_rpc_nanos": 15416731480,
+        "peak_chunk_downloads": 13,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2,
+        "cached_channel_capacity": 128,
+        "cached_channel_hits": 464588,
+        "cached_channel_opens": 330223,
+        "cached_channel_closes": 330095,
+        "cached_channel_live": 128,
+        "cached_channel_peak": 145
+      },
+      "channel_hit_fraction": 0.5845263842599058
+    },
+    {
+      "label": "r6-baseline",
+      "implementation": "baseline",
+      "command_s": 29.89889894800001,
+      "before_command_s": 1.744443,
+      "middle_s": 24.780162001000054,
+      "finalization_s": 3.3742939469999556,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3568791517,
+        "peak_cached_reads": 31,
+        "cached_read_nanos": 7656438078,
+        "download_rpc_nanos": 15510271665,
+        "peak_chunk_downloads": 12,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2
+      }
+    },
+    {
+      "label": "r7-channels128",
+      "implementation": "channels128",
+      "command_s": 29.928009139000096,
+      "before_command_s": 1.778142,
+      "middle_s": 24.691577149999947,
+      "finalization_s": 3.45828998900015,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3567765912,
+        "peak_cached_reads": 31,
+        "cached_read_nanos": 7339608467,
+        "download_rpc_nanos": 15071866332,
+        "peak_chunk_downloads": 12,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2,
+        "cached_channel_capacity": 128,
+        "cached_channel_hits": 461277,
+        "cached_channel_opens": 333534,
+        "cached_channel_closes": 333406,
+        "cached_channel_live": 128,
+        "cached_channel_peak": 146
+      },
+      "channel_hit_fraction": 0.5803606140327701
+    },
+    {
+      "label": "r8-baseline",
+      "implementation": "baseline",
+      "command_s": 30.50627364600018,
+      "before_command_s": 1.775487,
+      "middle_s": 25.280541991000177,
+      "finalization_s": 3.450244655000006,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3567759325,
+        "peak_cached_reads": 30,
+        "cached_read_nanos": 8110600121,
+        "download_rpc_nanos": 15405016186,
+        "peak_chunk_downloads": 12,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2
+      }
+    },
+    {
+      "label": "r9-channels256",
+      "implementation": "channels256",
+      "command_s": 29.486607050999964,
+      "before_command_s": 1.750774,
+      "middle_s": 24.388355380999975,
+      "finalization_s": 3.3474776699999893,
+      "remote": {
+        "downloaded_bytes": 1463742717,
+        "downloaded_chunks": 1613,
+        "cached_read_bytes": 3567771613,
+        "peak_cached_reads": 30,
+        "cached_read_nanos": 7009994387,
+        "download_rpc_nanos": 15006492942,
+        "peak_chunk_downloads": 12,
+        "max_concurrency": 100,
+        "local_cache_hits": 0,
+        "local_cache_bytes": 0,
+        "local_cache_errors": 0,
+        "local_cache_max_bytes": 5368709120,
+        "authentication_cache_bytes": 11649120,
+        "authentication_cache_evictions": 0,
+        "discovered_publications": 2,
+        "materialized_publications": 0,
+        "reused_publications": 2,
+        "cached_channel_capacity": 256,
+        "cached_channel_hits": 613340,
+        "cached_channel_opens": 181473,
+        "cached_channel_closes": 181217,
+        "cached_channel_live": 256,
+        "cached_channel_peak": 275
+      },
+      "channel_hit_fraction": 0.7716783696290825
+    }
+  ],
+  "source_head": "126d3813c8d72c2bbb16d95fae457eae5effe4bf",
+  "binaries": {
+    "baseline": "397ddf08c55af2d380df1b396ce4cbc96a3aa7575a0c7934a46b694bd82b52b9",
+    "channels128": "c074b1807fb14e3001a32e6ee29f3eb7e6a3185888a3ad3fa39ae49ee0359941",
+    "channels256": "6e3bd88920e4c31fca1c53e8e769765a7f1ac1feb353813227fdde38e496784f"
+  },
+  "runtime_binary_sha256": "397ddf08c55af2d380df1b396ce4cbc96a3aa7575a0c7934a46b694bd82b52b9",
+  "agent_sha256": "1dcc66cdbe3bfa9349b2b24c7c359ad0895f818d81297edd9671200a46cc0466",
+  "agent_configuration_verified": true,
+  "witness_tables_identical": true,
+  "caveats": "One frozen installation with startup-only reader replacement from tested candidate classfiles. Three samples per implementation, warmed host/loopback service. Cold means empty client retained storage. Medians are not additive. No WAN or tail-latency estimate."
+}

@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,10 +52,12 @@ final class RemoteSkyCache implements AutoCloseable {
   private static final int AUTHENTICATION_CACHE_BYTES = 32 * 1024 * 1024;
   private static final int AUTHENTICATION_ENTRY_OVERHEAD = 128;
   private static final long DEFAULT_LOCAL_CACHE_BYTES = 5L * 1024 * 1024 * 1024;
+  private static final int DEFAULT_CACHED_CHANNELS = 128;
   // Bound temporary range/rehashing buffers independently of the retained hash-cache budget.
   private final int maxConcurrency;
   private final Semaphore cachedReaders;
   private final Semaphore downloadSlots;
+  private final CachedChunkChannels cachedChannels;
   // Fixed stripes bound coalescing state without retaining an entry for every fetched digest.
   private final ReentrantLock[] downloadLocks = new ReentrantLock[1024];
   private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
@@ -91,6 +94,177 @@ final class RemoteSkyCache implements AutoCloseable {
   private final AtomicLong downloadedChunks = new AtomicLong();
   private long attemptedMaterializationBytes;
   private int reusedPublications;
+
+  /**
+   * Only idle channels are cached. Each lease has exclusive ownership, so interrupting a reader
+   * cannot close another reader's channel. Callers bound live leases with cachedReaders and drain
+   * them with the lifecycle lock before deleting scratch files. At most capacity + maxConcurrency
+   * channels can be open, including channels being evicted; no file I/O runs under the map lock.
+   */
+  static final class CachedChunkChannels implements AutoCloseable {
+    private record Entry(Path path, @Nullable Object fileKey, FileChannel channel) {}
+
+    private final int capacity;
+    private final LinkedHashMap<Digest, Entry> idle = new LinkedHashMap<>();
+    private final AtomicLong opens = new AtomicLong();
+    private final AtomicLong closes = new AtomicLong();
+    private final AtomicInteger live = new AtomicInteger();
+    private final AtomicInteger peak = new AtomicInteger();
+    private long hits;
+    private boolean closed;
+
+    CachedChunkChannels(int capacity) {
+      if (capacity < 0 || capacity > 256) {
+        throw new IllegalArgumentException("invalid cached chunk channel capacity");
+      }
+      this.capacity = capacity;
+    }
+
+    final class Lease implements AutoCloseable {
+      private final Digest digest;
+      private final Entry entry;
+      private boolean reusable;
+      private boolean released;
+
+      private Lease(Digest digest, Entry entry) {
+        this.digest = digest;
+        this.entry = entry;
+      }
+
+      FileChannel channel() {
+        return entry.channel();
+      }
+
+      // This checks the current pathname, not just a possibly unlinked open descriptor.
+      void checkUnchanged() throws IOException {
+        var after = attributes(entry.path(), digest);
+        if (entry.fileKey() != null && !entry.fileKey().equals(after.fileKey())) {
+          throw new IOException("cached remote chunk identity changed");
+        }
+        reusable = entry.fileKey() != null;
+      }
+
+      @Override
+      public void close() throws IOException {
+        if (released) {
+          return;
+        }
+        released = true;
+        Entry discard = entry;
+        synchronized (idle) {
+          if (reusable
+              && !closed
+              && capacity > 0
+              && entry.channel().isOpen()
+              && !Thread.currentThread().isInterrupted()
+              && !idle.containsKey(digest)) {
+            discard = idle.size() == capacity ? idle.pollFirstEntry().getValue() : null;
+            idle.put(digest, entry);
+          }
+        }
+        if (discard != null) {
+          closeEntry(discard);
+        }
+      }
+    }
+
+    Lease acquire(Path directory, Digest digest) throws IOException {
+      Entry entry;
+      synchronized (idle) {
+        if (closed) {
+          throw new IOException("cached chunk channels are closed");
+        }
+        entry = idle.remove(digest);
+      }
+      Path path = entry == null ? directory.resolve(digest.getHash()) : entry.path();
+      boolean acquired = false;
+      try {
+        var before = attributes(path, digest);
+        if (entry != null
+            && (!entry.channel().isOpen()
+                || entry.fileKey() == null
+                || !entry.fileKey().equals(before.fileKey()))) {
+          Entry stale = entry;
+          entry = null;
+          closeEntry(stale);
+        }
+        if (entry == null) {
+          entry = new Entry(path, before.fileKey(), FileChannel.open(path, READ, NOFOLLOW_LINKS));
+          opens.incrementAndGet();
+          peak.accumulateAndGet(live.incrementAndGet(), Math::max);
+        } else {
+          synchronized (idle) {
+            hits++;
+          }
+        }
+        acquired = true;
+        return new Lease(digest, entry);
+      } finally {
+        if (!acquired && entry != null) {
+          closeEntry(entry);
+        }
+      }
+    }
+
+    private static BasicFileAttributes attributes(Path path, Digest digest) throws IOException {
+      var attributes = Files.readAttributes(path, BasicFileAttributes.class, NOFOLLOW_LINKS);
+      if (!attributes.isRegularFile() || attributes.size() != digest.getSizeBytes()) {
+        throw new SegmentedFingerprintValueStore.NotCachedException();
+      }
+      return attributes;
+    }
+
+    private void closeEntry(Entry entry) throws IOException {
+      try {
+        entry.channel().close();
+      } finally {
+        closes.incrementAndGet();
+        live.decrementAndGet();
+      }
+    }
+
+    String statisticsJsonFields() {
+      synchronized (idle) {
+        return ",\"cached_channel_capacity\":"
+            + capacity
+            + ",\"cached_channel_hits\":"
+            + hits
+            + ",\"cached_channel_opens\":"
+            + opens.get()
+            + ",\"cached_channel_closes\":"
+            + closes.get()
+            + ",\"cached_channel_live\":"
+            + live.get()
+            + ",\"cached_channel_peak\":"
+            + peak.get();
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      List<Entry> entries;
+      synchronized (idle) {
+        closed = true;
+        entries = List.copyOf(idle.values());
+        idle.clear();
+      }
+      IOException failure = null;
+      for (Entry entry : entries) {
+        try {
+          closeEntry(entry);
+        } catch (IOException e) {
+          if (failure == null) {
+            failure = e;
+          } else {
+            failure.addSuppressed(e);
+          }
+        }
+      }
+      if (failure != null) {
+        throw failure;
+      }
+    }
+  }
 
   record Candidate(
       LocalPublication publication,
@@ -220,11 +394,10 @@ final class RemoteSkyCache implements AutoCloseable {
   }
 
   private byte[] readCachedBytes(Digest digest, int offset, int length) throws IOException {
-    if (!cached(digest)) {
-      throw new SegmentedFingerprintValueStore.NotCachedException();
-    }
+    checkOpen();
     var buffer = ByteBuffer.allocate(length);
-    try (var channel = FileChannel.open(chunks.resolve(digest.getHash()), READ, NOFOLLOW_LINKS)) {
+    try (var lease = cachedChannels.acquire(chunks, digest)) {
+      var channel = lease.channel();
       if (channel.size() != digest.getSizeBytes()) {
         throw new IOException("cached remote chunk size changed");
       }
@@ -238,6 +411,7 @@ final class RemoteSkyCache implements AutoCloseable {
       if (channel.size() != digest.getSizeBytes()) {
         throw new IOException("cached remote chunk size changed");
       }
+      lease.checkUnchanged();
     }
     return buffer.array();
   }
@@ -580,6 +754,7 @@ final class RemoteSkyCache implements AutoCloseable {
             + materialized.size()
             + ",\"reused_publications\":"
             + reusedPublications
+            + cachedChannels.statisticsJsonFields()
             + "}";
       }
     } finally {
@@ -656,6 +831,29 @@ final class RemoteSkyCache implements AutoCloseable {
       int maxConcurrency,
       long localCacheMaxBytes)
       throws IOException {
+    this(
+        root,
+        namespace,
+        metadataBudget,
+        instance,
+        transport,
+        authenticationBudget,
+        maxConcurrency,
+        localCacheMaxBytes,
+        DEFAULT_CACHED_CHANNELS);
+  }
+
+  RemoteSkyCache(
+      Path root,
+      String namespace,
+      long metadataBudget,
+      String instance,
+      SkyCacheTransport transport,
+      int authenticationBudget,
+      int maxConcurrency,
+      long localCacheMaxBytes,
+      int cachedChannelCapacity)
+      throws IOException {
     try {
       this.scope = Scope.newBuilder().setInstanceName(instance).setNamespaceId(namespace).build();
       SkyCacheProtocol.validateScope(scope);
@@ -676,6 +874,7 @@ final class RemoteSkyCache implements AutoCloseable {
       this.maxConcurrency = maxConcurrency;
       this.cachedReaders = new Semaphore(maxConcurrency);
       this.downloadSlots = new Semaphore(maxConcurrency);
+      this.cachedChannels = new CachedChunkChannels(cachedChannelCapacity);
       Arrays.setAll(downloadLocks, unused -> new ReentrantLock());
       this.managed = LocalCacheSession.durableDirectory(root.resolve("leased-v2"));
       RemoteChunkCache cache = null;
@@ -1232,6 +1431,11 @@ final class RemoteSkyCache implements AutoCloseable {
         // Closing the manager releases all pins, including when one individual release fails.
       } finally {
         candidates.clear();
+        try {
+          cachedChannels.close();
+        } catch (IOException ignored) {
+          // All channels are closed even if releasing one descriptor fails.
+        }
         synchronized (authenticatedBlocks) {
           authenticatedBlocks.clear();
           authenticationBytes = 0;

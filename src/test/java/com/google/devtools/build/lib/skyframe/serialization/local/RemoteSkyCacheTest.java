@@ -5,6 +5,8 @@ package com.google.devtools.build.lib.skyframe.serialization.local;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertThrows;
 
 import build.bazel.remote.execution.v2.BatchUpdateBlobsRequest;
@@ -14,7 +16,9 @@ import build.bazel.remote.execution.v2.Digest;
 import com.google.bytestream.ByteStreamGrpc.ByteStreamImplBase;
 import com.google.bytestream.ByteStreamProto.ReadRequest;
 import com.google.bytestream.ByteStreamProto.ReadResponse;
+import com.google.devtools.build.lib.skyframe.serialization.AutoRegistry;
 import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
+import com.google.devtools.build.lib.skyframe.serialization.SerializationException;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheCatalogGrpc.SkyCacheCatalogImplBase;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.CommitRequest;
 import com.google.devtools.build.lib.skyframe.serialization.remote.SkyCacheProto.DiscoverRequest;
@@ -36,6 +40,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -275,12 +280,17 @@ public final class RemoteSkyCacheTest {
         var reader = remote(destination, backend)) {
       var fixture = prepareRanges(source, backend, reader);
       fixture.assertRead(128, 17);
+      fixture.assertRead(128, 17); // Prime a reusable channel after initial chunk activation.
       backend.requestedDigests.clear();
       long before = statistic(reader, "cached_read_bytes");
+      long opens = statistic(reader, "cached_channel_opens");
+      long hits = statistic(reader, "cached_channel_hits");
       for (int i = 0; i < 100; i++) {
         fixture.assertRead(128 + i, 17);
       }
       assertThat(statistic(reader, "cached_read_bytes") - before).isEqualTo(100L * 4096);
+      assertThat(statistic(reader, "cached_channel_opens")).isEqualTo(opens);
+      assertThat(statistic(reader, "cached_channel_hits") - hits).isEqualTo(100);
       assertThat(backend.requestedDigests).isEmpty();
 
       for (int offset : List.of(4093, SkyCacheProtocol.CHUNK_BYTES - 3)) {
@@ -310,6 +320,7 @@ public final class RemoteSkyCacheTest {
         var reader = remote(destination, backend)) {
       var fixture = prepareRanges(source, backend, reader);
       fixture.assertRead(0, 1);
+      fixture.assertRead(0, 1); // Keep a channel open while its bytes change.
       byte[] forged = fixture.bytes().clone();
       int valueOffset = 44 + new Key("entry").toBytes().length;
       forged[valueOffset] ^= 1;
@@ -340,6 +351,7 @@ public final class RemoteSkyCacheTest {
         var reader = remote(destination, backend)) {
       var fixture = prepareRanges(source, backend, reader);
       fixture.assertRead(0, 1);
+      fixture.assertRead(0, 1);
       Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
       byte[] damaged = Files.readAllBytes(cached);
       damaged[8192] ^= 1;
@@ -363,6 +375,7 @@ public final class RemoteSkyCacheTest {
           var reader = remote(destination, backend)) {
         var fixture = prepareRanges(source, backend, reader);
         fixture.assertRead(0, 1);
+        fixture.assertRead(0, 1); // Damage must not be hidden by an already-open descriptor.
         Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
         byte[] original = Files.readAllBytes(cached);
         if (damage.equals("truncated")) {
@@ -385,6 +398,174 @@ public final class RemoteSkyCacheTest {
         assertThat(backend.requestedDigests).isEmpty();
       }
     }
+  }
+
+  @Test
+  public void replacedScratchReopensCurrentFileAndAuthenticatesItsBytes() throws Exception {
+    for (boolean corrupt : List.of(false, true)) {
+      Path source = temporary.newFolder().toPath();
+      Path destination = temporary.newFolder().toPath();
+      try (var backend = new MemoryRemote();
+          var reader = remote(destination, backend)) {
+        var fixture = prepareRanges(source, backend, reader);
+        fixture.assertRead(0, 1);
+        fixture.assertRead(0, 1);
+        Path cached = cachedChunk(destination, fixture.pack().getChunks(0));
+        byte[] bytes = Files.readAllBytes(cached);
+        if (corrupt) {
+          bytes[0] ^= 1;
+        }
+        Path replacement = Files.write(cached.resolveSibling("replacement"), bytes);
+        Files.setLastModifiedTime(replacement, Files.getLastModifiedTime(cached));
+        Files.move(replacement, cached, ATOMIC_MOVE, REPLACE_EXISTING);
+        backend.requestedDigests.clear();
+        long opens = statistic(reader, "cached_channel_opens");
+        if (corrupt) {
+          var target = ByteBuffer.allocate(1);
+          assertThat(
+                  assertThrows(
+                      IOException.class,
+                      () -> fixture.source().readCached(fixture.pack().getName(), target, 0)))
+              .hasMessageThat()
+              .contains("block checksum mismatch");
+          assertThat(target.position()).isEqualTo(0);
+        } else {
+          fixture.assertRead(0, 1);
+        }
+        assertThat(statistic(reader, "cached_channel_opens") - opens).isEqualTo(1);
+        assertThat(backend.requestedDigests).isEmpty();
+        reader.close();
+        assertThat(statistic(reader, "cached_channel_live")).isEqualTo(0);
+        assertThat(statistic(reader, "cached_channel_closes"))
+            .isEqualTo(statistic(reader, "cached_channel_opens"));
+      }
+    }
+  }
+
+  @Test
+  public void channelRuntimeStateIsExcludedFromDynamicSerialization() throws Exception {
+    Path directory = temporary.newFolder().toPath();
+    var digest = writeChannelFixture(directory, 0);
+    var registry = AutoRegistry.get();
+    try (var channels = new RemoteSkyCache.CachedChunkChannels(2);
+        var lease = channels.acquire(directory, digest)) {
+      assertThrows(
+          SerializationException.NoCodecException.class,
+          () -> registry.getCodecDescriptorForObject(channels));
+      assertThrows(
+          SerializationException.NoCodecException.class,
+          () -> registry.getCodecDescriptorForObject(lease));
+    }
+  }
+
+  @Test
+  public void channelEvictionLeavesBorrowedChannelsOpenAndBoundsIdleDescriptors() throws Exception {
+    Path directory = temporary.newFolder().toPath();
+    var heldDigest = writeChannelFixture(directory, 0);
+    try (var channels = new RemoteSkyCache.CachedChunkChannels(2);
+        var held = channels.acquire(directory, heldDigest)) {
+      for (int i = 1; i <= 20; i++) {
+        var digest = writeChannelFixture(directory, i);
+        try (var lease = channels.acquire(directory, digest)) {
+          assertThat(lease.channel().read(ByteBuffer.allocate(1), 0)).isEqualTo(1);
+          lease.checkUnchanged();
+        }
+        assertThat(channelStatistic(channels, "cached_channel_live")).isAtMost(3);
+      }
+      assertThat(channelStatistic(channels, "cached_channel_peak")).isAtMost(4);
+      assertThat(held.channel().read(ByteBuffer.allocate(1), 0)).isEqualTo(1);
+      held.checkUnchanged();
+    }
+  }
+
+  @Test
+  public void interruptedChannelLeaseCannotCloseAnotherReaderAndCloseDrainsIdleChannels()
+      throws Exception {
+    Path directory = temporary.newFolder().toPath();
+    var digest = writeChannelFixture(directory, 0);
+    try (var channels = new RemoteSkyCache.CachedChunkChannels(2);
+        var held = channels.acquire(directory, digest);
+        var pool = Executors.newSingleThreadExecutor()) {
+      assertThat(
+              pool.submit(
+                      () -> {
+                        try (var lease = channels.acquire(directory, digest)) {
+                          assertThat(lease.channel()).isNotSameInstanceAs(held.channel());
+                          Thread.currentThread().interrupt();
+                          assertThrows(
+                              ClosedByInterruptException.class,
+                              () -> lease.channel().read(ByteBuffer.allocate(1), 0));
+                          return Thread.currentThread().isInterrupted();
+                        } finally {
+                          Thread.interrupted();
+                        }
+                      })
+                  .get(5, TimeUnit.SECONDS))
+          .isTrue();
+      try (var idle = channels.acquire(directory, digest)) {
+        idle.checkUnchanged();
+      }
+      assertThat(channelStatistic(channels, "cached_channel_live")).isEqualTo(2);
+      channels.close();
+      assertThat(channelStatistic(channels, "cached_channel_live")).isEqualTo(1);
+      assertThrows(IOException.class, () -> channels.acquire(directory, digest));
+      assertThat(held.channel().read(ByteBuffer.allocate(1), 0)).isEqualTo(1);
+      held.checkUnchanged();
+      held.close();
+      assertThat(channelStatistic(channels, "cached_channel_live")).isEqualTo(0);
+      assertThat(channelStatistic(channels, "cached_channel_closes"))
+          .isEqualTo(channelStatistic(channels, "cached_channel_opens"));
+    }
+  }
+
+  @Test
+  public void replacementDuringLeaseFailsValidationAndDiscardsDescriptor() throws Exception {
+    Path directory = temporary.newFolder().toPath();
+    var digest = writeChannelFixture(directory, 0);
+    try (var channels = new RemoteSkyCache.CachedChunkChannels(2)) {
+      try (var lease = channels.acquire(directory, digest)) {
+        Path replacement = Files.write(directory.resolve("replacement"), new byte[] {0});
+        Files.move(replacement, directory.resolve(digest.getHash()), ATOMIC_MOVE, REPLACE_EXISTING);
+        assertThat(assertThrows(IOException.class, lease::checkUnchanged))
+            .hasMessageThat()
+            .contains("identity changed");
+      }
+      assertThat(channelStatistic(channels, "cached_channel_live")).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void unvalidatedLeaseAndZeroCapacityNeverRetainDescriptors() throws Exception {
+    Path directory = temporary.newFolder().toPath();
+    var digest = writeChannelFixture(directory, 0);
+    for (int capacity : List.of(0, 2)) {
+      try (var channels = new RemoteSkyCache.CachedChunkChannels(capacity)) {
+        for (int i = 0; i < 10; i++) {
+          try (var lease = channels.acquire(directory, digest)) {
+            assertThat(lease.channel().read(ByteBuffer.allocate(1), 0)).isEqualTo(1);
+            if (capacity == 0) {
+              lease.checkUnchanged();
+            } // Otherwise model an exception before post-read validation.
+          }
+          assertThat(channelStatistic(channels, "cached_channel_live")).isEqualTo(0);
+        }
+        assertThat(channelStatistic(channels, "cached_channel_opens")).isEqualTo(10);
+        assertThat(channelStatistic(channels, "cached_channel_closes")).isEqualTo(10);
+      }
+    }
+  }
+
+  private static Digest writeChannelFixture(Path directory, int value) throws IOException {
+    byte[] bytes = {(byte) value};
+    var digest = SkyCacheProtocol.digest(bytes);
+    Files.write(directory.resolve(digest.getHash()), bytes);
+    return digest;
+  }
+
+  private static long channelStatistic(RemoteSkyCache.CachedChunkChannels channels, String name) {
+    var match = Pattern.compile("\"" + name + "\":(\\d+)").matcher(channels.statisticsJsonFields());
+    assertThat(match.find()).isTrue();
+    return Long.parseLong(match.group(1));
   }
 
   @Test

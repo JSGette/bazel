@@ -48,6 +48,8 @@ public class AutoRegistry {
           "com.google.devtools.build.lib.google",
           "com.google.devtools.build.lib.vfs",
           "com.google.devtools.build.lib.actions.ArtifactFactory",
+          // Invocation-owned file handles must not shift persisted dynamic codec tags.
+          "com.google.devtools.build.lib.skyframe.serialization.local.RemoteSkyCache$CachedChunkChannels",
           "com.google.devtools.build.lib.packages.PackageFactory$BuiltInRuleFunction",
           "com.google.devtools.build.skyframe.SkyFunctionEnvironment");
 
