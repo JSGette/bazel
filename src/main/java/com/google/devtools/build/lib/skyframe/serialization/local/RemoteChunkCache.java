@@ -27,7 +27,10 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
-/** Advisory persistent chunks. Callers authenticate a private pin before consuming its bytes. */
+/**
+ * Advisory persistent chunks, installed atomically without synchronous durability. Callers
+ * authenticate a private pin before consuming its bytes; crash loss or damage is a cache miss.
+ */
 final class RemoteChunkCache {
   private static final int MAX_ENTRIES = 65536;
   private static final String HEX = "0123456789abcdef";
@@ -117,17 +120,34 @@ final class RemoteChunkCache {
     if (!attributes.isRegularFile() || attributes.size() != digest.getSizeBytes()) {
       throw new IOException("verified remote chunk is not a regular file of the declared size");
     }
-    LocalCacheSession.durableDirectory(path.getParent());
-    try (var channel = FileChannel.open(verifiedPrivate, READ, NOFOLLOW_LINKS)) {
-      channel.force(true);
-    }
+    ensureDirectory(path.getParent());
+    // Retention is advisory: kernel writeback may finish after this read or command. A crash may
+    // lose or damage an entry, but every new private pin is authenticated before use. Complete
+    // graph publications keep their separate durable installation path.
     try {
       Files.createLink(path, verifiedPrivate);
     } catch (FileAlreadyExistsException e) {
       return;
     }
-    try (var directory = FileChannel.open(path.getParent(), READ, NOFOLLOW_LINKS)) {
-      directory.force(true);
+  }
+
+  /** Creates/checks every ancestor without forcing advisory directory entries to storage. */
+  private static void ensureDirectory(Path path) throws IOException {
+    Path parent = path.getParent();
+    if (parent == null) {
+      if (!Files.isDirectory(path, NOFOLLOW_LINKS)) {
+        throw new IOException("cache directory has no parent");
+      }
+      return;
+    }
+    ensureDirectory(parent);
+    try {
+      Files.createDirectory(
+          path, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+    } catch (FileAlreadyExistsException e) {
+      if (!Files.isDirectory(path, NOFOLLOW_LINKS)) {
+        throw e;
+      }
     }
   }
 

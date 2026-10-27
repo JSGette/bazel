@@ -850,7 +850,7 @@ public final class RemoteSkyCacheTest {
 
   @Test
   public void damagedRetainedChunksNeverBecomeTrustedAndNetworkReadRepairsThem() throws Exception {
-    for (String damage : List.of("corrupt", "truncated", "symlink")) {
+    for (String damage : List.of("missing", "empty", "corrupt", "truncated", "symlink")) {
       Path source = temporary.newFolder("source-" + damage).toPath();
       Path destination = temporary.newFolder("destination-" + damage).toPath();
       try (var backend = new MemoryRemote()) {
@@ -865,6 +865,8 @@ public final class RemoteSkyCacheTest {
         Path outside = temporary.newFile("outside-" + damage).toPath();
         Files.write(outside, original);
         switch (damage) {
+          case "missing" -> Files.delete(retained);
+          case "empty" -> Files.write(retained, new byte[0]);
           case "corrupt" -> {
             byte[] changed = original.clone();
             changed[17] ^= 1;

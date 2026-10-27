@@ -83,6 +83,11 @@ retention, and other nonnegative byte sizes change the limit. Collection after c
 also targets at most 65,536 entries, evicting the oldest last-use times first. Concurrent
 publication and active or abandoned scratch hardlinks can retain bytes above these soft limits.
 
+Retained chunk links appear atomically, but their file/directory writes rely on operating-system
+writeback. A system crash can lose or damage recent retained entries; readers authenticate them
+before use and treat damage as a cache miss. Full local publication and hydration retain their
+separate durable installation protocol.
+
 A new invocation pins a retained file privately and verifies its complete SHA-256 digest and
 length before exposing it to readers. Later range reads retain the existing block authentication
 and record validation. Damaged entries are discarded and downloaded again; local-cache I/O
@@ -1170,6 +1175,31 @@ baseline. [Implementation, complete results and research](measurements/skycache-
 [cold trace](measurements/skycache-digests-cold-2026-10-26/cold-trace.json), and
 [verification](measurements/skycache-digests-cold-2026-10-26/verification.json).
 
+## Advisory retained-chunk writeback (27 October 2026)
+
+Cold cache misses no longer synchronously force retained chunk files or recursively force
+their parent-directory chains. Retention uses checked directory creation and atomic,
+non-replacing hardlinks, with OS writeback providing persistence. Recent advisory chunks
+can be lost or damaged by a system crash and need downloading again. Every new private pin
+still passes complete CAS authentication, and full graph publication/hydration retains its
+existing durable installation protocol. No background Java queue or close-time flush was added.
+
+In the matched three-sample cold comparison, median command time changes from **30.388 s
+to 29.139 s (4.1% lower)**, versus **23.718 s** for a page-cold local publication.
+Warm remote medians are **20.213 s before / 20.485 s after**; fully retained
+reads do not enter the changed store path. The separate diagnostic reduces retained storage
+from **15.633 to 0.247 accumulated worker-seconds**. These are small loopback
+samples; concurrent worker durations are not additive wall-time attribution.
+
+**637 tests across 23 targets, 15 primary commands and two diagnostics pass.** The source
+matches the tested binary, registry compatibility is unchanged, output digests match and
+all remote children retain identical witness blocks. Recovery tests inject missing, empty,
+truncated, corrupt and symbolic entries; they are not actual machine power-cut tests.
+[Implementation, measurements and limits](measurements/skycache-retention-2026-10-27/README.md),
+[cold comparison](measurements/skycache-retention-2026-10-27/cold-comparison.json),
+[diagnostic](measurements/skycache-retention-2026-10-27/trace-comparison.json), and
+[verification](measurements/skycache-retention-2026-10-27/verification.json).
+
 ## Remaining limitations and next implementation choices
 
 1. **Chunk amplification and uncached/local uploads still do avoidable work.** Authenticated
@@ -1181,8 +1211,9 @@ baseline. [Implementation, complete results and research](measurements/skycache-
    still use singleton BatchUpdateBlobs calls.
    Bounded channel reuse removes repeated opens on about 55% of warm range reads; digest/buffer
    reuse removes about 99.4% of covering-range buffer allocation in the measured fixture.
-   Next reduce repeated synchronous retained-chunk durability work. Compare bounded parallel
-   import that preserves remote parent provenance against smaller fixed chunks and lazy reads
+   Advisory retention now avoids synchronous file/directory forcing on misses. Next compare
+   bounded parallel import that preserves remote parent provenance against smaller fixed chunks
+   and lazy reads
    on selective/changed target sets. Batch FindMissingBlobs and skip existing uploads before
    considering CDC when service measurements establish upload/RPC overhead.
 2. **Larger publications still have independent limits.** Logical closure and transfer bounds
@@ -1204,10 +1235,10 @@ baseline. [Implementation, complete results and research](measurements/skycache-
    per-entry dependency proof only after repository identity is stable. Preserve current global
    guards until tests prove changed external subtrees invalidate every affected entry.
 
-Next isolate repeated file/directory synchronization in advisory retained storage, preserving
-atomic verified entries and durable complete publications. Then evaluate bounded parallel import
-with remote parent provenance preserved; the local-only prototype's timing is not an end-to-end
-remote-publication result. Final validation is already parallel and bounded. Smaller/changed
+Next evaluate bounded parallel import with authenticated remote parent provenance preserved
+against the lazy reader with advisory chunk writeback. The previous local-only import timing
+is not an end-to-end remote-publication result, and must be rerun after this retention change.
+Final validation is already parallel and bounded. Smaller/changed
 target sets, WAN latency and CPU pressure are needed before choosing eager or lazy loading as a
 default or ranking upload deduplication against demand reads on the actual service.
 Further size increases and independent-clone portability need separate compatibility work

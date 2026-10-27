@@ -122,6 +122,45 @@ public final class RemoteChunkCacheTest {
   }
 
   @Test
+  public void incompleteOrSymbolicPrivateSourcesCannotBePublished() throws Exception {
+    Path managed = temporary.newFolder().toPath();
+    var cache = new RemoteChunkCache(managed, 100);
+    Digest digest = digest("complete");
+    Path partial = bytes("partial");
+    Path complete = bytes("complete");
+    Path symbolic = Files.createSymbolicLink(complete.resolveSibling("symbolic"), complete);
+    for (Path source : List.of(partial, symbolic)) {
+      assertThrows(IOException.class, () -> cache.store(digest, source));
+      assertThat(cache.contains(digest)).isFalse();
+      assertThat(Files.exists(entry(managed, digest), NOFOLLOW_LINKS)).isFalse();
+    }
+    cache.store(digest, complete);
+    assertThat(Files.isSameFile(entry(managed, digest), complete)).isTrue();
+  }
+
+  @Test
+  public void ancestorReplacedBySymlinkAfterConstructionCannotReceiveRetainedWrites()
+      throws Exception {
+    for (String relative : List.of("", "remote-chunks-v1", "remote-chunks-v1/sha256")) {
+      Path managed = temporary.newFolder().toPath();
+      var cache = new RemoteChunkCache(managed, 100);
+      Path source = bytes("complete");
+      Digest digest = digest("complete");
+      Path ancestor = managed.resolve(relative);
+      Files.move(ancestor, ancestor.resolveSibling(ancestor.getFileName() + "-original"));
+      Path outside = temporary.newFolder().toPath();
+      Files.createSymbolicLink(ancestor, outside);
+
+      assertThrows(IOException.class, () -> cache.store(digest, source));
+      assertThat(cache.contains(digest)).isFalse();
+      try (var paths = Files.walk(outside)) {
+        assertThat(paths.count()).isEqualTo(1);
+      }
+      assertThat(Files.readString(source)).isEqualTo("complete");
+    }
+  }
+
+  @Test
   public void containsIsReadOnlyAndMissesDoNotCreatePrefixes() throws Exception {
     Path managed = temporary.newFolder().toPath();
     var cache = new RemoteChunkCache(managed, 100);
