@@ -206,6 +206,42 @@ public final class RemoteActionFileSystemTest extends RemoteActionFileSystemTest
   }
 
   @Test
+  public void getInputStream_forRemoteInputWithMissingParents() throws Exception {
+    var inputs = new ActionInputMap(1);
+    Artifact artifact = createRemoteArtifact("missing/nested/template", "remote contents", inputs);
+    FileSystem actionFs = createActionFileSystem(inputs);
+    doAnswer(
+            unused -> {
+              artifact.getPath().getParentDirectory().createDirectoryAndParents();
+              FileSystemUtils.writeContent(artifact.getPath(), UTF_8, "remote contents");
+              return immediateVoidFuture();
+            })
+        .when(inputFetcher)
+        .prefetchFiles(
+            any(),
+            any(),
+            argThat(arg -> arg.get().equals(ImmutableList.of(artifact))),
+            eq(inputs),
+            eq(Priority.CRITICAL),
+            eq(Reason.INPUTS));
+
+    // A restored execution value supplies metadata without running the producer, so even the
+    // output's parent directories can be absent. Reading must still fetch its contents.
+    assertThat(artifact.getPath().getParentDirectory().exists()).isFalse();
+    Path path = actionFs.getPath(artifact.getPath().asFragment());
+    assertThat(FileSystemUtils.readContent(path, UTF_8)).isEqualTo("remote contents");
+    verify(inputFetcher)
+        .prefetchFiles(
+            any(),
+            any(),
+            argThat(arg -> arg.get().equals(ImmutableList.of(artifact))),
+            eq(inputs),
+            eq(Priority.CRITICAL),
+            eq(Reason.INPUTS));
+    verifyNoMoreInteractions(inputFetcher);
+  }
+
+  @Test
   public void statAndExists_fromInputArtifactData_file() throws Exception {
     ActionInputMap inputs = new ActionInputMap(1);
     Artifact artifact = createLocalArtifact("local-file", "local contents", inputs);

@@ -718,7 +718,9 @@ public final class SkyCacheTransportTest {
   public void explicitByteBudgetAboveTwoGiBAndAtMaximumDoesNotOverflow() throws Exception {
     for (long budget :
         new long[] {
-          (1L << 31) + 1, SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES
+          (1L << 31) + 1,
+          (1L << 32) + SkyCacheProtocol.MAX_BUNDLE_BYTES + 1,
+          SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES
         }) {
       try (Backend backend = new Backend();
           SkyCacheTransport transport =

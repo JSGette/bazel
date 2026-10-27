@@ -309,6 +309,16 @@ public class RemoteActionFileSystem extends FileSystem {
   }
 
   private boolean isRemote(PathFragment path) throws IOException {
+    if (path.startsWith(execRoot)) {
+      var input = inputArtifactData.getInput(path.relativeTo(execRoot));
+      var metadata = input != null ? inputArtifactData.getInputMetadata(input) : null;
+      if (metadata != null && metadata.isRemote()) {
+        // Restored execution values can describe inputs whose producer never ran in this build.
+        // Their parent directories may not exist yet, so path canonicalization would report a
+        // missing file before reaching its metadata. Let the fetcher materialize known inputs.
+        return true;
+      }
+    }
     // Files in the local filesystem are non-remote by definition, so stat only in-memory sources.
     var status = statInternal(path, FollowMode.FOLLOW_ALL, StatSources.IN_MEMORY_ONLY);
     return status instanceof FileStatusWithMetadata fileStatusWithMetadata

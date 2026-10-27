@@ -178,10 +178,14 @@ public final class SkyCacheServerTest {
   }
 
   @Test
-  public void commitAcceptsLargeLogicalClosureThroughExactFourGiBBoundary() throws Exception {
-    assertThat(SkyCacheProtocol.MAX_PUBLICATION_BYTES).isEqualTo(4L * 1024 * 1024 * 1024);
+  public void commitAcceptsLargeLogicalClosureThroughExactEightGiBBoundary() throws Exception {
+    assertThat(SkyCacheProtocol.MAX_PUBLICATION_BYTES).isEqualTo(8L * 1024 * 1024 * 1024);
     for (long logicalBytes :
-        new long[] {256L * 1024 * 1024 + 1, SkyCacheProtocol.MAX_PUBLICATION_BYTES}) {
+        new long[] {
+          256L * 1024 * 1024 + 1,
+          4L * 1024 * 1024 * 1024 + 1,
+          SkyCacheProtocol.MAX_PUBLICATION_BYTES
+        }) {
       var blobs = new MemoryBlobs();
       PublicationBundle bundle = largeBundle(blobs, logicalBytes);
       SkyCacheProtocol.validateBundle(bundle, NAMESPACE);

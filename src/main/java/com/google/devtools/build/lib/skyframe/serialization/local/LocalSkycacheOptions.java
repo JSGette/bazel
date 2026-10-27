@@ -59,7 +59,7 @@ public abstract class LocalSkycacheOptions extends OptionsBase {
       effectTags = {OptionEffectTag.BAZEL_INTERNAL_CONFIGURATION},
       help =
           "Maximum attempted blob payload bytes per remote SkyCache read session or export."
-              + " Must be positive and at most 4 GiB + 1 MiB. Independent of the 4 GiB logical"
+              + " Must be positive and at most 8 GiB + 1 MiB. Independent of the 8 GiB logical"
               + " publication bound, 1 MiB chunk bound and local metadata admission budget."
               + " Failed reads consume this budget; exhaustion is a cache miss.")
   public abstract long getRemoteMaxTransferSize();

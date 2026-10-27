@@ -174,7 +174,7 @@ public final class SkyCacheTransport implements AutoCloseable {
         || transferBudget
             > SkyCacheProtocol.MAX_PUBLICATION_BYTES + SkyCacheProtocol.MAX_BUNDLE_BYTES) {
       throw new IOException(
-          "SkyCache transfer byte budget must be between 1 byte and 4 GiB + 1 MiB");
+          "SkyCache transfer byte budget must be between 1 byte and 8 GiB + 1 MiB");
     }
     this.transferBudget = transferBudget;
     URI uri = parseEndpoint(endpoint);

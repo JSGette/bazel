@@ -49,11 +49,11 @@ Each file is an ordered list of at-most-1-MiB SHA-256 chunks. The bundle describ
 complete closure, but readers fetch pack contents selectively using that existing format.
 No REAPI or SkyCache protobuf changes are required for demand-driven reads.
 
-Bounds per bundle: 64 publications, 16,384 files, 32,768 chunk references, 4 GiB of logical file
+Bounds per bundle: 64 publications, 16,384 files, 32,768 chunk references, 8 GiB of logical file
 bytes, and a 1 MiB bundle manifest. Per read session/export, the client caps attempted blob
 bytes at 257 MiB by default. Set `--experimental_remote_skycache_max_transfer_size=2G`, for
 example, to export a larger publication or allow a larger demand read. The setting must be
-positive and at most 4 GiB + 1 MiB; failed reads consume the budget too. Reads share a
+positive and at most 8 GiB + 1 MiB; failed reads consume the budget too. Reads share a
 cumulative RPC-time budget across discovery, candidates,
 on-demand reads and any parent materialization; build computation between reads does not
 consume it. Export retains one absolute deadline across its RPCs.
@@ -65,11 +65,12 @@ failed attempts. Concurrency does not multiply either budget. Successful request
 missing chunk share one download; unrelated chunks can proceed independently.
 Existing local metadata/decoded-witness budgets apply independently. Exports still stream
 1 MiB chunks; a larger logical publication does not allocate a correspondingly larger buffer.
-Explicit parent materialization also has a cumulative 4 GiB logical-write budget, charged
+Explicit parent materialization also has a cumulative 8 GiB logical-write budget, charged
 before creating staged files even when an attempt fails.
 
 These bounds do not change the version-1 wire schema. Upgrade servers before clients that
-publish more than 256 MiB. Older servers reject those commits and older clients skip those
+publish above the server's limit (256 MiB or 4 GiB in older builds). Older servers reject those
+commits and older clients skip those
 publications safely; smaller existing publications remain readable. Rollback needs no data
 conversion, but publications above the older bound become cache misses.
 
@@ -1272,3 +1273,17 @@ publication, restore memory use, and coordinated remote size limits. No producti
 or protocol bound changed during these measurements. [Full method and findings](measurements/skycache-all-targets-2026-10-27/README.md),
 [baseline samples](measurements/skycache-all-targets-2026-10-27/comparison.json), and
 [preparation evidence](measurements/skycache-all-targets-2026-10-27/preparation-attempts.json).
+
+
+## Generated-input restore fix and 8 GiB publication limit (2026-10-27)
+
+The missing nested generated-template inputs now download correctly after an execution-cache
+hit. Both originally failing targets pass with matching output digests through local and cold
+remote restore. The shared logical cap is now 8 GiB; use an explicit attempted-transfer budget
+up to `--experimental_remote_skycache_max_transfer_size=8193M`. The real 7.68 GB full-graph
+publication commits successfully on the updated worker, with all output digests matching.
+
+All 821 focused test cases pass. Full local restoration remains memory-limited: it reaches
+89,515 analysis hits and then exhausts a 14 GiB Java heap. This is separate from the fixed
+missing-input error; full-graph local/remote performance remains unestablished. See the
+[regression evidence and remaining blocker](measurements/skycache-restore-limits-2026-10-27/README.md).

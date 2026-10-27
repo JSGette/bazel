@@ -17,7 +17,7 @@ public final class SkyCacheProtocol {
   public static final int CHUNK_BYTES = 1024 * 1024;
   public static final int MAX_BUNDLE_BYTES = 1024 * 1024;
   // Logical parent closure, independent of the bytes a demand reader actually fetches.
-  public static final long MAX_PUBLICATION_BYTES = 4L * 1024 * 1024 * 1024;
+  public static final long MAX_PUBLICATION_BYTES = 8L * 1024 * 1024 * 1024;
   public static final int MAX_PUBLICATIONS = 64;
 
   private SkyCacheProtocol() {}

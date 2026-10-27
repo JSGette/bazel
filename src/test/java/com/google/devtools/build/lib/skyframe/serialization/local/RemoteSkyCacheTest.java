@@ -1168,10 +1168,10 @@ public final class RemoteSkyCacheTest {
         var reader = remote(destination, backend)) {
       writer.publish(fixture.manifest());
       PublicationFile originalPack = onlyFile(backend.bundle(), ".pack");
-      var padded = prependUnusedPackChunks(backend, backend.bundle(), 1536);
+      var padded = prependUnusedPackChunks(backend, backend.bundle(), 6144);
       PublicationFile paddedPack = onlyFile(padded, ".pack");
       PublicationFile index = onlyFile(padded, ".index");
-      assertThat(paddedPack.getSizeBytes()).isGreaterThan(1536L * SkyCacheProtocol.CHUNK_BYTES);
+      assertThat(paddedPack.getSizeBytes()).isGreaterThan(6144L * SkyCacheProtocol.CHUNK_BYTES);
       backend.advertise(padded);
       assertThat(reader.prepare()).isEqualTo(1);
       assertThat(backend.requestedDigests).containsNoneIn(paddedPack.getChunksList());
@@ -1205,7 +1205,7 @@ public final class RemoteSkyCacheTest {
         try (var writer = remote(source, backend)) {
           writer.publish(fixture.manifest());
         }
-        var padded = prependUnusedPackChunks(backend, backend.bundle(), 1536);
+        var padded = prependUnusedPackChunks(backend, backend.bundle(), 3072);
         bundles.add(padded);
         roots.add(padded.getRootId());
       }
@@ -1237,7 +1237,7 @@ public final class RemoteSkyCacheTest {
         var writer = remote(source, backend);
         var reader = remote(destination, backend)) {
       writer.publish(fixture.manifest());
-      var padded = prependUnusedPackChunks(backend, backend.bundle(), 1536);
+      var padded = prependUnusedPackChunks(backend, backend.bundle(), 3072);
       Digest missing = onlyFile(padded, ".pack").getChunks(0);
       backend.advertise(padded);
       assertThat(reader.prepare()).isEqualTo(1);
