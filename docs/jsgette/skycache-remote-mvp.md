@@ -1245,3 +1245,30 @@ Further size increases and independent-clone portability need separate compatibi
 that preserves the existing per-entry validator. The development server is sufficient for these
 correctness and controlled bandwidth/latency experiments; production catalog retention and
 access control remain separate server work.
+
+## Full-repository graph limits and measurements (27 October 2026)
+
+The approved `//...` workload excludes 36 unreachable packaging dependents and selects
+5,658 top-level targets. It configures **598,064 targets including aspects**, about 2.52 times
+the earlier graph; Bazel reports 5,536 completed and 122 skipped top-level targets in every
+successful baseline. Three fresh-JVM/empty-graph measurements give a vanilla median of
+**37.644 s** (36.272–37.849) and an unchanged candidate with
+SkyCache disabled median of **38.070 s** (36.701–48.399).
+All six builds match the same 10,738 named output digest/length entries. Ordinary action
+results are warm in an isolated disk cache; minimal downloads remain enabled. WSL was raised
+to 20 GiB at the user's request, and the final paired controls use 14 GiB Java heaps.
+
+There is **no valid local/remote cold/warm timing for this full graph yet**. Remote seeding
+exceeds the 4 GiB logical-publication and 4 GiB + 1 MiB transfer limits with a 7.68 GB local
+publication. Local admission requires 299.33 MiB, above its default 256 MiB limit; the default
+attempt retries admission 72 times and restores nothing. The existing 512 MiB option admits
+the graph, but a 10 GiB restore runs out of heap. With 14 GiB, restored execution state reaches
+missing generated Go inputs in two `//pkg/security/seclwin/model` template actions. Those
+same targets pass with vanilla and SkyCache disabled. Failed preparation is excluded from
+performance summaries; local cold was not reached.
+
+The next gates are generated-input materialization, cheap rejection of an over-budget
+publication, restore memory use, and coordinated remote size limits. No production code
+or protocol bound changed during these measurements. [Full method and findings](measurements/skycache-all-targets-2026-10-27/README.md),
+[baseline samples](measurements/skycache-all-targets-2026-10-27/comparison.json), and
+[preparation evidence](measurements/skycache-all-targets-2026-10-27/preparation-attempts.json).
