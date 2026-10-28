@@ -387,7 +387,7 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
           .getExecutor()
           .addCallback(
               fingerprintValueService.get(fingerprint),
-              new SharedBytesProcessor<>(fingerprint, codec, parent, setter, getOperation));
+              new SharedBytesProcessor<>(this, fingerprint, codec, parent, setter, getOperation));
     } catch (IOException
         // Avoids causing SettableFuture consumers to hang if when there are unexpected exceptions.
         | RuntimeException
@@ -400,7 +400,14 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
     }
   }
 
-  private class SharedBytesProcessor<T> implements FutureCallback<byte[]> {
+  // Retain only configuration, never the enclosing context's memo table or sibling read futures.
+  private static class SharedBytesProcessor<T> implements FutureCallback<byte[]> {
+    private final ObjectCodecRegistry registry;
+    private final ImmutableClassToInstanceMap<Object> dependencies;
+    private final CompressionService compressionService;
+    private final FingerprintValueService fingerprintValueService;
+    @Nullable private final SkyframeLookupCollector skyframeLookupCollector;
+    @Nullable private final DebugContext debugContext;
     private final PackedFingerprint childFingerprint;
     private final DeferredObjectCodec<?> codec;
     private final T parent;
@@ -408,11 +415,18 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
     private final SettableFuture<Object> getOperation;
 
     private SharedBytesProcessor(
+        SharedValueDeserializationContext owner,
         PackedFingerprint childFingerprint,
         DeferredObjectCodec<?> codec,
         T parent,
         FieldSetter<? super T> setter,
         SettableFuture<Object> getOperation) {
+      this.registry = owner.getRegistry();
+      this.dependencies = owner.getDependencies();
+      this.compressionService = owner.compressionService;
+      this.fingerprintValueService = owner.fingerprintValueService;
+      this.skyframeLookupCollector = owner.skyframeLookupCollector;
+      this.debugContext = owner.debugContext;
       this.childFingerprint = childFingerprint;
       this.codec = codec;
       this.parent = parent;
@@ -501,7 +515,17 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
 
     private void deserializeAndComplete(CodedInputStream input)
         throws SerializationException, IOException {
-      SharedValueDeserializationContext innerContext = getFreshContext(childFingerprint);
+      // Construct the fresh memo table only after bytes arrive, keeping misses inexpensive.
+      var innerContext =
+          new SharedValueDeserializationContext(
+              registry,
+              dependencies,
+              compressionService,
+              fingerprintValueService,
+              skyframeLookupCollector,
+              debugContext == null
+                  ? null
+                  : new DebugContext(childFingerprint, debugContext.edgeReceiver()));
       DeferredValue<?> deferred = codec.deserializeDeferred(innerContext, input);
       if (skyframeLookupCollector != null) {
         // The codec above is responsible for calling `getSkyValue` so any SkyKey directly requested
@@ -523,12 +547,16 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
         getOperation.set(result);
         return;
       }
+      // A pending completion needs the deferred value and setter, not this processor. Copy the
+      // fields so the callable cannot retain configuration and unrelated state through `this`.
+      T target = parent;
+      FieldSetter<? super T> fieldSetter = setter;
       getOperation.setFuture(
           Futures.whenAllSucceed(innerReadStatusFutures)
               .call(
                   () -> {
                     Object result = deferred.call();
-                    setter.set(parent, result);
+                    fieldSetter.set(target, result);
                     return result;
                   },
                   directExecutor()));
@@ -541,15 +569,15 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
       }
       getOperation.setException(t);
     }
-  }
 
-  private InputStream maybeDecompressBytes(byte[] bytes) throws IOException {
-    ByteArrayInputStream byteArrayInputStream =
-        new ByteArrayInputStream(bytes, 1, bytes.length - 1);
-    if (bytes[0] == (byte) 0) {
-      return byteArrayInputStream;
+    private InputStream maybeDecompressBytes(byte[] bytes) throws IOException {
+      ByteArrayInputStream byteArrayInputStream =
+          new ByteArrayInputStream(bytes, 1, bytes.length - 1);
+      if (bytes[0] == (byte) 0) {
+        return byteArrayInputStream;
+      }
+      return compressionService.newZstdInputStream(byteArrayInputStream);
     }
-    return compressionService.newZstdInputStream(byteArrayInputStream);
   }
 
   @Override

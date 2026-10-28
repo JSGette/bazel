@@ -15,6 +15,7 @@ package com.google.devtools.build.lib.skyframe.serialization;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor.safeDirectExecutor;
 import static com.google.devtools.build.lib.skyframe.serialization.NotNestedSet.createRandomLeafArray;
 import static com.google.devtools.build.lib.skyframe.serialization.testutils.Dumper.dumpStructureWithEquivalenceReduction;
 import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
@@ -24,8 +25,10 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.GcFinalization;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.devtools.build.lib.compress.CompressionService;
 import com.google.devtools.build.lib.compress.CompressionServiceImpl;
 import com.google.devtools.build.lib.skyframe.serialization.NotNestedSet.NestedArrayCodec;
@@ -42,7 +45,9 @@ import com.google.protobuf.CodedOutputStream;
 import com.google.testing.junit.testparameterinjector.TestParameter;
 import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import com.google.testing.junit.testparameterinjector.TestParameters;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Random;
@@ -79,6 +84,132 @@ public final class SharedValueDeserializationContextTest {
         .setVerificationFunction(
             SharedValueDeserializationContextTest::verifyDeserializedNotNestedSet)
         .runTests();
+  }
+
+  @Test(timeout = 30000)
+  public void sharedDecodeDoesNotRetainUnrelatedMemoState(@TestParameter boolean finishFirstFetch)
+      throws Exception {
+    var pending = startMemoRetentionProbe();
+    var firstRequest = pending.store().takeFirstRequest();
+    GetRequest dependentRequest = null;
+    if (finishFirstFetch) {
+      firstRequest.complete();
+      dependentRequest = pending.store().takeFirstRequest();
+      assertThat(pending.childProbe().context).isNotNull();
+      assertThat(pending.result().isDone()).isFalse();
+      GcFinalization.awaitClear(pending.childProbe().context);
+      GcFinalization.awaitClear(pending.childProbe().memoValue);
+    }
+    GcFinalization.awaitClear(pending.context());
+    GcFinalization.awaitClear(pending.memoValue());
+    assertThat(pending.result().isDone()).isFalse();
+    if (dependentRequest == null) {
+      firstRequest.complete();
+      dependentRequest = pending.store().takeFirstRequest();
+    }
+    dependentRequest.complete();
+    assertThat(pending.result().get(WAIT_TIMEOUT_SECONDS, SECONDS))
+        .isSameInstanceAs(pending.first()[0]);
+    assertThat(pending.first()[0]).isSameInstanceAs(pending.second()[0]);
+    assertThat(((SharedElement) pending.first()[0]).value).isEqualTo(42);
+    // Both owners shared the root decode, which requested its dependency only once.
+    assertThat(pending.store().pollRequest()).isNull();
+  }
+
+  private record PendingMemoProbe(
+      GetRecordingStore store,
+      WeakReference<SharedValueDeserializationContext> context,
+      WeakReference<byte[]> memoValue,
+      MemoProbeCodec childProbe,
+      Object[] first,
+      Object[] second,
+      ListenableFuture<?> result) {}
+
+  private static PendingMemoProbe startMemoRetentionProbe() throws Exception {
+    var store = new GetRecordingStore();
+    var service =
+        new FingerprintValueService(
+            safeDirectExecutor(),
+            store,
+            new FingerprintValueCache(FingerprintValueCache.SyncMode.NOT_LINKED),
+            FingerprintValueService.NONPROD_FINGERPRINTER);
+    byte[] childBytes = {0, 42};
+    var childFingerprint = service.fingerprint(childBytes);
+    store.put(childFingerprint, childBytes).get();
+    var rootBytes = new byte[1 + childFingerprint.toBytes().length];
+    childFingerprint.copyTo(rootBytes, 1); // The first byte selects uncompressed decoding.
+    var rootFingerprint = service.fingerprint(rootBytes);
+    store.put(rootFingerprint, rootBytes).get();
+    var context =
+        SharedValueDeserializationContext.createForTesting(
+            AutoRegistry.get(),
+            ImmutableClassToInstanceMap.of(),
+            new CompressionServiceImpl(),
+            service);
+    var memoValue = addMemoOnlyValue(context);
+    var codec = new MemoProbeCodec();
+    var first = new Object[1];
+    var second = new Object[1];
+    for (Object[] target : new Object[][] {first, second}) {
+      context.getSharedValue(
+          CodedInputStream.newInstance(rootFingerprint.toBytes()),
+          null,
+          codec,
+          target,
+          (parent, value) -> parent[0] = value);
+    }
+    var result =
+        (ListenableFuture<?>)
+            service.getOrClaimGetOperation(rootFingerprint, null, SettableFuture.create());
+    return new PendingMemoProbe(
+        store, new WeakReference<>(context), memoValue, codec, first, second, result);
+  }
+
+  private static WeakReference<byte[]> addMemoOnlyValue(SharedValueDeserializationContext context)
+      throws SerializationException, IOException {
+    var bytes = new ByteArrayOutputStream();
+    var codedOut = CodedOutputStream.newInstance(bytes);
+    codedOut.writeUInt32NoTag(WireType.CodecWireType.UNSTABLE.getTypedTagNumber(1));
+    codedOut.writeByteArrayNoTag(new byte[1024]);
+    codedOut.flush();
+    byte[] memoValue =
+        context.deserializeLeaf(
+            CodedInputStream.newInstance(bytes.toByteArray()), new ByteArrayCodec());
+    return new WeakReference<>(memoValue);
+  }
+
+  private static final class MemoProbeCodec extends DeferredObjectCodec<SharedElement> {
+    private WeakReference<SharedValueDeserializationContext> context;
+    private WeakReference<byte[]> memoValue;
+
+    @Override
+    public Class<SharedElement> getEncodedClass() {
+      return SharedElement.class;
+    }
+
+    @Override
+    public boolean autoRegister() {
+      return false;
+    }
+
+    @Override
+    public void serialize(
+        SerializationContext context, SharedElement value, CodedOutputStream out) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DeferredValue<SharedElement> deserializeDeferred(
+        AsyncDeserializationContext context, CodedInputStream input)
+        throws SerializationException, IOException {
+      var sharedContext = (SharedValueDeserializationContext) context;
+      this.context = new WeakReference<>(sharedContext);
+      memoValue = addMemoOnlyValue(sharedContext);
+      var result = SimpleDeferredValue.<SharedElement>create();
+      context.getSharedValue(
+          input, null, DeferredSharedElementCodec.INSTANCE, result, SimpleDeferredValue::set);
+      return result;
+    }
   }
 
   @Test
