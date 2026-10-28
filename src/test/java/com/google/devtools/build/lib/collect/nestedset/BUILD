@@ -55,6 +55,27 @@ java_test(
     ],
 )
 
+# Explicit-only conformance reproducer: two assertions currently expose a known identity defect.
+# The manual tag excludes this test from the implicit NestedSetTests suite and wildcard runs.
+java_test(
+    name = "ProviderIdentityReproTest",
+    srcs = ["ProviderIdentityReproTest.java"],
+    tags = ["manual"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/collect/nestedset",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service",
+        "//src/main/java/com/google/devtools/build/lib/compress:compression_service_impl",
+        "//src/main/java/com/google/devtools/build/lib/packages:provider",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization",
+        "//src/main/java/com/google/devtools/build/lib/skyframe/serialization:fingerprint_value_store",
+        "//third_party/java/guava:collect",
+        "//third_party/java/guava:concurrent",
+        "//third_party/java/junit",
+        "//third_party/java/protobuf:protobuf_lite",
+        "//third_party/java/truth",
+    ],
+)
+
 # Keep this as a java_library so that other tests with different hash functions can depend on it.
 java_library(
     name = "DigestMapTest_lib",
