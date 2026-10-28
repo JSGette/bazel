@@ -1,0 +1,7 @@
+load(":action_fanout.bzl", "action_fanout")
+
+action_fanout(
+    partitions = 8,
+    writers_per_partition = 64,
+    outputs_per_writer = 8,
+)

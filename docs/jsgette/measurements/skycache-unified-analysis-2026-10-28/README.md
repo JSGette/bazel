@@ -1,5 +1,7 @@
 # Paired baseline foundation
 
+See the [quiet three-arm comparison](COMPARISON.md) for current latency, CPU, peak RSS, producer cost and retained-server diagnostics against vanilla and the disabled fork.
+
 See [recorded implementation results](RESULTS.md) for native smoke evidence,
 test results, the known identity failure and the remaining acceptance gates.
 See the [retention and attribution increment](RETENTION.md) for the next code

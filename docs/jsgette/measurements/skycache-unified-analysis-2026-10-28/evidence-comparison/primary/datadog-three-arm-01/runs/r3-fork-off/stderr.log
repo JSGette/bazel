@@ -1,0 +1,527 @@
+INFO: Invocation ID: 37ec039f-f997-4ad0-9e17-e408306fc08b
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+Analyzing: 6 targets (13 packages loaded, 6 targets configured)
+Analyzing: 6 targets (13 packages loaded, 6 targets configured)
+
+Analyzing: 6 targets (121 packages loaded, 80 targets configured)
+
+Analyzing: 6 targets (122 packages loaded, 80 targets configured)
+
+Analyzing: 6 targets (122 packages loaded, 80 targets configured)
+
+Analyzing: 6 targets (2311 packages loaded, 24,022 targets configured)
+
+Analyzing: 6 targets (5968 packages loaded, 57,709 targets configured)
+
+Analyzing: 6 targets (6002 packages loaded, 62,752 targets configured)
+
+DEBUG: /home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r3-fork-off/output-base/external/rules_rs+/rs/extensions.bzl:431:30: zstd-sys schemars ["0.9.0", "1.2.1"] ^0.8.16
+DEBUG: /home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r3-fork-off/output-base/external/rules_rs+/rs/extensions.bzl:568:18: 
+WARNING: A well-known crate annotation exists for zstd-sys! Apply the following to your MODULE.bazel:
+
+```
+bazel_dep(name = "zstd", version = "1.5.7")
+
+crate.annotation(
+    crate = "zstd-sys",
+    gen_build_script = "off",
+    deps = ["@zstd"],
+)
+
+inject_repo(crate, "zstd")
+```
+
+You can disable this warning by configuring your MODULE.bazel like so:
+
+```
+crate.annotation(
+    crate = "zstd-sys",
+    gen_build_script = "on",
+)
+```
+Analyzing: 6 targets (6105 packages loaded, 70,325 targets configured)
+
+Analyzing: 6 targets (6138 packages loaded, 80,302 targets configured)
+
+WARNING: /home/jgett/REPOS/.work/skycache-large-remote-2026-10-25/agent/worktree/pkg/ebpf/kernelbugs/BUILD.bazel:121:10: target 'c/detect-seccomp-bug' is both a rule and a file; please choose another name for the rule
+Analyzing: 6 targets (6146 packages loaded, 80,352 targets configured)
+
+Analyzing: 6 targets (6151 packages loaded, 214,681 targets configured)
+
+Analyzing: 6 targets (7141 packages loaded, 224,569 targets configured, 44 aspect applications)
+
+Analyzing: 6 targets (7141 packages loaded, 233,909 targets configured, 48 aspect applications)
+[1 / 1] no actions running
+Analyzing: 6 targets (7141 packages loaded, 237,049 targets configured, 62 aspect applications)
+[141 / 2,250] Creating runfiles tree bazel-out/k8-opt-exec/bin/tasks/schema/codegen_settings_main.runfiles [for tool]; 0s (local) ... (2 actions running)
+INFO: Analyzed 6 targets (7141 packages loaded, 237,049 targets configured, 62 aspect applications).
+[800 / 11,150] Creating runfiles tree bazel-out/k8-opt-exec/bin/tasks/schema/merge_schema.runfiles [for tool]; 0s (local) ... (6 actions, 1 running)
+[1,773 / 11,951] Creating source manifest for @@rules_cc_autoconf+//autoconf/private/checker:checker_bin [for tool]; 0s (local) ... (4 actions, 1 running)
+INFO: From Compiling src/java_raw_api.c:
+external/+http_archive+libffi/src/java_raw_api.c: In function 'ffi_java_raw_call':
+external/+http_archive+libffi/src/java_raw_api.c:317:3: warning: 'ffi_java_raw_to_ptrarray' is deprecated [-Wdeprecated-declarations]
+  317 |   ffi_java_raw_to_ptrarray (cif, raw, avalue);
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+libffi/src/java_raw_api.c:76:1: note: declared here
+   76 | ffi_java_raw_to_ptrarray (ffi_cif *cif, ffi_java_raw *raw, void **args)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+libffi/src/java_raw_api.c: In function 'ffi_java_translate_args':
+external/+http_archive+libffi/src/java_raw_api.c:328:3: warning: 'ffi_java_raw_size' is deprecated [-Wdeprecated-declarations]
+  328 |   ffi_java_raw *raw = (ffi_java_raw*)alloca (ffi_java_raw_size (cif));
+      |   ^~~~~~~~~~~~
+external/+http_archive+libffi/src/java_raw_api.c:45:1: note: declared here
+   45 | ffi_java_raw_size (ffi_cif *cif)
+      | ^~~~~~~~~~~~~~~~~
+external/+http_archive+libffi/src/java_raw_api.c:331:3: warning: 'ffi_java_ptrarray_to_raw' is deprecated [-Wdeprecated-declarations]
+  331 |   ffi_java_ptrarray_to_raw (cif, avalue, raw);
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+libffi/src/java_raw_api.c:157:1: note: declared here
+  157 | ffi_java_ptrarray_to_raw (ffi_cif *cif, void **args, ffi_java_raw *raw)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+libffi/src/java_raw_api.c: In function 'ffi_prep_java_raw_closure':
+external/+http_archive+libffi/src/java_raw_api.c:369:3: warning: 'ffi_prep_java_raw_closure_loc' is deprecated [-Wdeprecated-declarations]
+  369 |   return ffi_prep_java_raw_closure_loc (cl, cif, fun, user_data, cl);
+      |   ^~~~~~
+external/+http_archive+libffi/src/java_raw_api.c:337:1: note: declared here
+  337 | ffi_prep_java_raw_closure_loc (ffi_java_raw_closure* cl,
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[3,594 / 13,918] Compiling rtloader/rtloader/api.cpp; 0s (remote-cache) ... (5 actions, 0 running)
+INFO: From Compiling rtloader/common/builtins/util.c:
+rtloader/common/builtins/util.c:12:18: warning: 'get_hostname' declared 'static' but never defined [-Wunused-function]
+   12 | static PyObject *get_hostname(PyObject *self, PyObject *args);
+      |                  ^~~~~~~~~~~~
+rtloader/common/builtins/util.c:13:18: warning: 'get_clustername' declared 'static' but never defined [-Wunused-function]
+   13 | static PyObject *get_clustername(PyObject *self, PyObject *args);
+      |                  ^~~~~~~~~~~~~~~
+rtloader/common/builtins/util.c:14:18: warning: 'log_message' declared 'static' but never defined [-Wunused-function]
+   14 | static PyObject *log_message(PyObject *self, PyObject *args);
+      |                  ^~~~~~~~~~~
+rtloader/common/builtins/util.c:15:18: warning: 'set_external_tags' declared 'static' but never defined [-Wunused-function]
+   15 | static PyObject *set_external_tags(PyObject *self, PyObject *args);
+      |                  ^~~~~~~~~~~~~~~~~
+cc1: note: unrecognized command-line option '-Wno-deprecated-register' may have been intended to silence earlier diagnostics
+INFO: From Compiling src/mkheader.c [for tool]:
+external/+http_archive+gpg-error/src/mkheader.c: In function 'mk_include_name':
+external/+http_archive+gpg-error/src/mkheader.c:367:9: warning: unused variable 'fp' [-Wunused-variable]
+  367 |   FILE *fp;
+      |         ^~
+[5,090 / 14,682] GoCompilePkg external/gazelle++go_deps+com_github_aws_aws_sdk_go_v2_service_sts/sts.a; 0s (remote-cache) ... (5 actions, 0 running)
+[7,097 / 16,479] GoCompilePkg external/gazelle++go_deps+io_k8s_client_go/kubernetes/typed/autoscaling/v2beta2/fake/fake.a; 0s (remote-cache) ... (4 actions, 0 running)
+[8,829 / 17,548] GoCompilePkg external/gazelle++go_deps+com_github_protonmail_go_crypto/openpgp/x448/x448.a; 0s (remote-cache) ... (6 actions, 0 running)
+INFO: From Compiling libattr/libattr.c:
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/string.h:633,
+                 from external/+http_archive+attr/libattr/libattr.c:23:
+In function 'attr_list_pack',
+    inlined from 'attr_list' at external/+http_archive+attr/libattr/libattr.c:325:7:
+external/+http_archive+attr/libattr/libattr.c:279:9: warning: '__builtin_strncpy' specified bound depends on the length of the source argument [-Wstringop-truncation]
+  279 |         strncpy(aentp->a_name, name, size - sizeof(aentp->a_valuelen));
+      |         ^~~~~~~
+external/+http_archive+attr/libattr/libattr.c: In function 'attr_list':
+external/+http_archive+attr/libattr/libattr.c:269:28: note: length computed here
+  269 |         int size = roundup(strlen(name) + 1 + sizeof(aentp->a_valuelen), 8);
+      |                            ^~~~~~~~~~~~
+external/+http_archive+attr/libattr/libattr.c:40:26: note: in definition of macro 'roundup'
+   40 | #define roundup(x,y) ((((x)+((y)-1))/(y))*(y))
+      |                          ^
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/string.h:633,
+                 from external/+http_archive+attr/libattr/libattr.c:23:
+In function 'attr_list_pack',
+    inlined from 'attr_listf' at external/+http_archive+attr/libattr/libattr.c:370:7:
+external/+http_archive+attr/libattr/libattr.c:279:9: warning: '__builtin_strncpy' specified bound depends on the length of the source argument [-Wstringop-truncation]
+  279 |         strncpy(aentp->a_name, name, size - sizeof(aentp->a_valuelen));
+      |         ^~~~~~~
+external/+http_archive+attr/libattr/libattr.c: In function 'attr_listf':
+external/+http_archive+attr/libattr/libattr.c:269:28: note: length computed here
+  269 |         int size = roundup(strlen(name) + 1 + sizeof(aentp->a_valuelen), 8);
+      |                            ^~~~~~~~~~~~
+external/+http_archive+attr/libattr/libattr.c:40:26: note: in definition of macro 'roundup'
+   40 | #define roundup(x,y) ((((x)+((y)-1))/(y))*(y))
+      |                          ^
+[10,687 / 18,279] GoCompilePkg external/gazelle++go_deps+io_etcd_go_etcd_client_v2/client.a; 0s (remote-cache) ... (5 actions, 0 running)
+INFO: From ZstdCompress pkg/config/schema/compressed/core_schema.yaml.zstd:
+bazel-out/k8-fastbuild/bin/pkg/config/schema/core_schema.embedded.yaml :  8.72%   (   304 KiB =>   26.5 KiB, bazel-out/k8-fastbuild/bin/pkg/config/schema/compressed/core_schema.yaml.zstd) 
+INFO: From ZstdCompress pkg/config/schema/compressed/system-probe_schema.yaml.zstd:
+bazel-out/k8-fastbuild/bin/pkg/config/schema/system-probe_schema.embedded.yaml : 11.56%   (  77.3 KiB =>   8.94 KiB, bazel-out/k8-fastbuild/bin/pkg/config/schema/compressed/system-probe_schema.yaml.zstd) 
+INFO: From RunBinary pkg/config/setup/all_settings.go:
+INFO: From RunBinary pkg/config/setup/constants/generated.go:
+[12,603 / 18,279] GoCompilePkg external/gazelle++go_deps+io_k8s_apimachinery/pkg/api/validation/validation.a; 0s (remote-cache) ... (6 actions, 0 running)
+[13,963 / 18,279] GoLink cmd/trace-agent/trace-agent_/trace-agent; Downloading cmd/trace-agent/trace-agent_/trace-agent, 10.0 MiB / 24.6 MiB; 0s (remote-cache) ... (6 actions, 0 running)
+[14,541 / 18,279] GoLink cmd/process-agent/process-agent_/process-agent; Downloading cmd/process-agent/process-agent_/process-agent, 10.0 MiB / 36.3 MiB; 0s (remote-cache) ... (6 actions, 0 running)
+[15,058 / 18,279] [Prepa] GoCompilePkg comp/core/workloadmeta/collectors/internal/kubelet/kubelet.a ... (6 actions, 0 running)
+INFO: From GoCompilePkg pkg/collector/python/python.a:
+/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/tmp/rules_go_work-3778470359/cgo/github.com/DataDog/datadog-agent/pkg/collector/python/_cgo_export.c: In function '_cgo_7bdc334ff523_Cfunc__Cmalloc':
+/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/tmp/rules_go_work-3778470359/cgo/github.com/DataDog/datadog-agent/pkg/collector/python/_cgo_export.c:508:9: warning: 'malloc' is deprecated: raw primitives should not be used in the contextof the rtloader [-Wdeprecated-declarations]
+  508 |         ret = malloc(a->p0);
+      |         ^~~
+In file included from /home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/tmp/rules_go_work-3778470359/cgo/github.com/DataDog/datadog-agent/pkg/collector/python/_cgo_export.c:3:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdlib.h:465:14: note: declared here
+  465 | extern void *malloc (size_t __size) __THROW __attribute_malloc__ __wur;
+      |              ^~~~~~
+/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/tmp/rules_go_work-3778470359/cgo/github.com/DataDog/datadog-agent/pkg/collector/python/_cgo_export.c:510:17: warning: 'malloc' is deprecated: raw primitives should not be used in the contextof the rtloader [-Wdeprecated-declarations]
+  510 |                 ret = malloc(1);
+      |                 ^~~
+In file included from /home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/tmp/rules_go_work-3778470359/cgo/github.com/DataDog/datadog-agent/pkg/collector/python/_cgo_export.c:3:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdlib.h:465:14: note: declared here
+  465 | extern void *malloc (size_t __size) __THROW __attribute_malloc__ __wur;
+      |              ^~~~~~
+[16,016 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 3.0 MiB / 119.0 MiB; 0s (remote-cache) ... (3 actions, 0 running)
+[16,062 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 18.0 MiB / 119.0 MiB; 1s (remote-cache) ... (6 actions, 0 running)
+INFO: From Compiling src/dl.c:
+In file included from external/+http_archive+xmlsec/src/dl.c:33:
+bazel-out/k8-fastbuild/bin/external/+http_archive+xmlsec/_virtual_includes/libxmlsec1/xmlsec/private.h:700:24: warning: 'xmlSecPtrToFunc_xmlSecCryptoGetFunctionsCallback' defined but not used [-Wunused-function]
+  700 |     static func_type * xmlSecPtrToFunc_ ##func_type(void * ptr) { \
+      |                        ^~~~~~~~~~~~~~~~
+external/+http_archive+xmlsec/src/dl.c:94:1: note: in expansion of macro 'XMLSEC_PTR_TO_FUNC_IMPL'
+   94 | XMLSEC_PTR_TO_FUNC_IMPL(xmlSecCryptoGetFunctionsCallback)
+      | ^~~~~~~~~~~~~~~~~~~~~~~
+INFO: From Compiling src/xmltree.c:
+external/+http_archive+xmlsec/src/xmltree.c: In function 'xmlSecReplaceNodeBufferAndReturn':
+external/+http_archive+xmlsec/src/xmltree.c:721:25: warning: assignment discards 'const' qualifier from pointer target type [-Wdiscarded-qualifiers]
+  721 |     node->doc->encoding = oldenc;
+      |                         ^
+[16,118 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 34.0 MiB / 119.0 MiB; 2s (remote-cache) ... (6 actions, 0 running)
+[16,189 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 50.0 MiB / 119.0 MiB; 3s (remote-cache) ... (6 actions, 0 running)
+[16,234 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 66.0 MiB / 119.0 MiB; 4s (remote-cache) ... (6 actions, 0 running)
+[16,282 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 82.0 MiB / 119.0 MiB; 5s (remote-cache) ... (6 actions, 0 running)
+[16,332 / 18,279] GoLink cmd/agent/agent_/agent; Downloading cmd/agent/agent_/agent, 98.0 MiB / 119.0 MiB; 6s (remote-cache) ... (6 actions, 0 running)
+INFO: From Compiling rpmio/digest_openssl.c:
+external/+http_archive+rpm/rpmio/digest_openssl.c: In function 'constructRSASigningKey':
+external/+http_archive+rpm/rpmio/digest_openssl.c:309:5: warning: 'RSA_new' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  309 |     RSA *rsa = RSA_new();
+      |     ^~~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:4:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/rsa.h:212:28: note: declared here
+  212 | OSSL_DEPRECATEDIN_3_0 RSA *RSA_new(void);
+      |                            ^~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c:312:5: warning: 'RSA_set0_key' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  312 |     if (RSA_set0_key(rsa, key->n, key->e, NULL) <= 0)
+      |     ^~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:4:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/rsa.h:218:27: note: declared here
+  218 | OSSL_DEPRECATEDIN_3_0 int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d);
+      |                           ^~~~~~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c:322:5: warning: 'EVP_PKEY_assign' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  322 |     if (!EVP_PKEY_assign_RSA(key->evp_pkey, rsa)) {
+      |     ^~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:3:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/evp.h:1378:5: note: declared here
+ 1378 | int EVP_PKEY_assign(EVP_PKEY *pkey, int type, void *key);
+      |     ^~~~~~~~~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c:330:5: warning: 'RSA_free' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  330 |     RSA_free(rsa);
+      |     ^~~~~~~~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:4:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/rsa.h:303:28: note: declared here
+  303 | OSSL_DEPRECATEDIN_3_0 void RSA_free(RSA *r);
+      |                            ^~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c: In function 'constructDSASigningKey':
+external/+http_archive+rpm/rpmio/digest_openssl.c:518:5: warning: 'DSA_new' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  518 |     DSA *dsa = DSA_new();
+      |     ^~~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:5:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/dsa.h:129:28: note: declared here
+  129 | OSSL_DEPRECATEDIN_3_0 DSA *DSA_new(void);
+      |                            ^~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c:521:5: warning: 'DSA_set0_pqg' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  521 |     if (!DSA_set0_pqg(dsa, key->p, key->q, key->g)) {
+      |     ^~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:5:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/dsa.h:207:27: note: declared here
+  207 | OSSL_DEPRECATEDIN_3_0 int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g);
+      |                           ^~~~~~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c:526:5: warning: 'DSA_set0_key' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  526 |     if (!DSA_set0_key(dsa, key->y, NULL)) {
+      |     ^~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:5:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/dsa.h:210:27: note: declared here
+  210 | OSSL_DEPRECATEDIN_3_0 int DSA_set0_key(DSA *d, BIGNUM *pub_key,
+      |                           ^~~~~~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c:536:9: warning: 'DSA_free' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  536 |         DSA_free(dsa);
+      |         ^~~~~~~~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:5:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/dsa.h:131:28: note: declared here
+  131 | OSSL_DEPRECATEDIN_3_0 void DSA_free(DSA *r);
+      |                            ^~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c: In function 'pgpFreeKeyDSA':
+external/+http_archive+rpm/rpmio/digest_openssl.c:603:13: warning: 'DSA_free' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  603 |             DSA_free(key->dsa_key);
+      |             ^~~~~~~~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:5:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/dsa.h:131:28: note: declared here
+  131 | OSSL_DEPRECATEDIN_3_0 void DSA_free(DSA *r);
+      |                            ^~~~~~~~
+external/+http_archive+rpm/rpmio/digest_openssl.c: In function 'pgpVerifySigDSA':
+external/+http_archive+rpm/rpmio/digest_openssl.c:730:5: warning: 'DSA_do_verify' is deprecated: Since OpenSSL 3.0 [-Wdeprecated-declarations]
+  730 |     if (DSA_do_verify(hash, hashlen, sig->dsa_sig, key->dsa_key) == 1)
+      |     ^~
+In file included from external/+http_archive+rpm/rpmio/digest_openssl.c:5:
+bazel-out/k8-fastbuild/bin/external/+http_archive+openssl/openssl/include/openssl/dsa.h:119:27: note: declared here
+  119 | OSSL_DEPRECATEDIN_3_0 int DSA_do_verify(const unsigned char *dgst, int dgst_len,
+      |                           ^~~~~~~~~~~~~
+INFO: From Compiling src/poptint.c:
+external/+http_archive+popt/src/poptint.c: In function 'POPT_fprintf':
+external/+http_archive+popt/src/poptint.c:147:24: warning: unused variable 'ob' [-Wunused-variable]
+  147 |     char * b = NULL, * ob = NULL;
+      |                        ^~
+[16,438 / 18,279] GoLink cmd/agent/agent_/agent; 7s (remote-cache) ... (5 actions, 0 running)
+INFO: From Linking external/+http_archive+rpm/librpmio.so:
+/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-vanilla/external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/bin/x86_64-linux-gnu-ld.bfd: bazel-out/k8-fastbuild/bin/external/+http_archive+lua/libliblua.a(loslib.pic.o): in function `os_tmpname':
+loslib.c:(.text+0x158): warning: the use of `tmpnam' is dangerous, better use `mkstemp'
+INFO: From Compiling src/m4.c [for tool]:
+external/rules_m4++default_toolchain_ext+m4_v1.4.18/src/m4.c:146:1: warning: 'pure' attribute on function returning 'void' [-Wattributes]
+  146 | {
+      | ^
+INFO: From Compiling src/filter.c [for tool]:
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/filter.c: In function 'filter_fix_linedirs':
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/filter.c:393:68: warning: '%s' directive output may be truncated writing up to 2047 bytes into a region of size between 494 and 503 [-Wformat-truncation=]
+  393 |                                 snprintf (buf, readsz, "#line %d \"%s\"\n",
+      |                                                                    ^~
+  394 |                                           lineno, filename);
+      |                                                   ~~~~~~~~          
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdio.h:937,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:42,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/filter.c:24:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/stdio2.h:64:10: note: '__builtin_snprintf' output between 12 and 2068 bytes into a destination of size 512
+   64 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   65 |                                    __bos (__s), __fmt, __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO: From Compiling src/main.c [for tool]:
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/main.c: In function 'check_options':
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/main.c:494:5: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+  494 |     if (gen_line_dirs)
+      |     ^~
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/main.c:498:9: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+  498 |         if (userdef_buf.elts)
+      |         ^~
+INFO: From Compiling src/misc.c [for tool]:
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c: In function 'myesc':
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:515:67: warning: pointer targets in passing argument 1 of 'strtoul' differ in signedness [-Wpointer-sign]
+  515 |                         esc_char = (unsigned char) strtoul (array + 1, NULL, 8);
+      |                                                             ~~~~~~^~~
+      |                                                                   |
+      |                                                                   unsigned char *
+In file included from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:43,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:33:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdlib.h:187:58: note: expected 'const char * restrict' but argument is of type 'unsigned char *'
+  187 | extern unsigned long int strtoul (const char *__restrict __nptr,
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:537:67: warning: pointer targets in passing argument 1 of 'strtoul' differ in signedness [-Wpointer-sign]
+  537 |                         esc_char = (unsigned char) strtoul (array + 2, NULL, 16);
+      |                                                             ~~~~~~^~~
+      |                                                                   |
+      |                                                                   unsigned char *
+In file included from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:43,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:33:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdlib.h:187:58: note: expected 'const char * restrict' but argument is of type 'unsigned char *'
+  187 | extern unsigned long int strtoul (const char *__restrict __nptr,
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c: In function 'line_directive_out':
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:369:57: warning: '%s' directive output may be truncated writing up to 2047 bytes into a region of size 2039 [-Wformat-truncation=]
+  369 |                 snprintf (directive, sizeof(directive), line_fmt, 0, filename);
+      |                                                         ^~~~~~~~     ~~~~~~~~
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdio.h:937,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:42,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:33:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/stdio2.h:64:10: note: '__builtin_snprintf' output between 12 and 2059 bytes into a destination of size 2048
+   64 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   65 |                                    __bos (__s), __fmt, __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:367:57: warning: '%s' directive output may be truncated writing up to 2047 bytes into a region of size between 2029 and 2039 [-Wformat-truncation=]
+  367 |                 snprintf (directive, sizeof(directive), line_fmt, linenum, filename);
+      |                                                         ^~~~~~~~           ~~~~~~~~
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdio.h:937,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:42,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/misc.c:33:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/stdio2.h:64:10: note: '__builtin_snprintf' output between 12 and 2069 bytes into a destination of size 2048
+   64 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   65 |                                    __bos (__s), __fmt, __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO: From Compiling src/parse.c [for tool]:
+parse.y: In function 'format_warn':
+parse.y:1061:39: warning: '%s' directive output may be truncated writing up to 2047 bytes into a region of size 2039 [-Wformat-truncation=]
+......
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdio.h:937,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:42,
+                 from parse.y:66:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/stdio2.h:64:10: note: '__builtin_snprintf' output between 10 and 2057 bytes into a destination of size 2048
+   64 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   65 |                                    __bos (__s), __fmt, __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+parse.c: In function 'yyparse':
+parse.y:1061:39: warning: '%s' directive output may be truncated writing up to 2047 bytes into a region of size 2039 [-Wformat-truncation=]
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdio.h:937,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:42,
+                 from parse.y:66:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/stdio2.h:64:10: note: '__builtin_snprintf' output between 10 and 2057 bytes into a destination of size 2048
+   64 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   65 |                                    __bos (__s), __fmt, __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+parse.y:360:6: warning: '%s' directive output may be truncated writing up to 2047 bytes into a region of size 2021 [-Wformat-truncation=]
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/stdio.h:937,
+                 from external/rules_flex++default_toolchain_ext+flex_v2.6.4/src/flexdef.h:42,
+                 from parse.y:66:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/stdio2.h:64:10: note: '__builtin_snprintf' output between 28 and 2075 bytes into a destination of size 2048
+   64 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   65 |                                    __bos (__s), __fmt, __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO: From Compiling src/scan.c [for tool]:
+In file included from external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/string.h:638,
+                 from scan.c:20:
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:786:1:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:699:4:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:641:4:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:464:4:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:322:4:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:223:1:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In function 'strncpy',
+    inlined from 'flexscan' at scan.l:211:4:
+external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/x86_64-linux-gnu/sysroot/usr/include/bits/string3.h:120:10: warning: '__builtin_strncpy' specified bound 2048 equals destination size [-Wstringop-truncation]
+  120 |   return __builtin___strncpy_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO: From Compiling lib/tagexts.c:
+external/+http_archive+rpm/lib/tagexts.c:545:27: warning: '_macro_i18ndomains' defined but not used [-Wunused-const-variable=]
+  545 | static const char * const _macro_i18ndomains = "%{?_i18ndomains}";
+      |                           ^~~~~~~~~~~~~~~~~~
+external/+http_archive+rpm/lib/tagexts.c:543:27: warning: 'language' defined but not used [-Wunused-const-variable=]
+  543 | static const char * const language = "LANGUAGE";
+      |                           ^~~~~~~~
+INFO: From Compiling dbus/dbus-keyring.c:
+external/+http_archive+dbus/dbus/dbus-keyring.c: In function '_dbus_keyring_reload':
+external/+http_archive+dbus/dbus/dbus-keyring.c:569:55: warning: unknown conversion type character '@' in format [-Wformat=]
+  569 |           if (!_dbus_string_append_printf (&contents, "%d %" DBUS_INT64_MODIFIER "d ",
+      |                                                       ^~~~~~
+In file included from external/+http_archive+dbus/dbus/dbus-types.h:33,
+                 from external/+http_archive+dbus/dbus/dbus-errors.h:34,
+                 from external/+http_archive+dbus/dbus/dbus-keyring.h:29,
+                 from external/+http_archive+dbus/dbus/dbus-keyring.c:27:
+bazel-out/k8-fastbuild/bin/external/+http_archive+dbus/dbus/dbus-arch-deps.h:39:30: note: format string is defined here
+   39 | #define DBUS_INT64_MODIFIER "@DBUS_INT64_MODIFIER@"
+      |                              ^
+external/+http_archive+dbus/dbus/dbus-keyring.c:569:55: warning: too many arguments for format [-Wformat-extra-args]
+  569 |           if (!_dbus_string_append_printf (&contents, "%d %" DBUS_INT64_MODIFIER "d ",
+      |                                                       ^~~~~~
+INFO: From Compiling src/estream-printf.c:
+external/+http_archive+gpg-error/src/estream-printf.c: In function 'pr_integer':
+external/+http_archive+gpg-error/src/estream-printf.c:841:1: note: the ABI of passing union with 'long double' has changed in GCC 4.4
+  841 | pr_integer (estream_printf_out_t outfnc, void *outfncarg,
+      | ^~~~~~~~~~
+INFO: From Compiling random/rndgetentropy.c:
+external/+http_archive+gcrypt/random/rndgetentropy.c: In function '_gcry_rndgetentropy_gather_random':
+external/+http_archive+gcrypt/random/rndgetentropy.c:105:21: warning: implicit declaration of function 'getentropy' [-Wimplicit-function-declaration]
+  105 |               ret = getentropy (buffer, nbytes);
+      |                     ^~~~~~~~~~
+INFO: From Compiling lib/vtls/hostcheck.c:
+external/+http_archive+curl/lib/vtls/hostcheck.c: In function 'hostmatch':
+external/+http_archive+curl/lib/vtls/hostcheck.c:105:41: warning: comparison between pointer and integer
+  105 |      (memrchr(pattern, '.', patternlen) == pattern_label_end))
+      |                                         ^~
+[17,275 / 18,279] Compiling lib/vtls/cipher_suite.c; 0s (remote-cache) ... (6 actions, 0 running)
+INFO: From Linking external/+http_archive+gcrypt/libgcrypt.so:
+/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-vanilla/external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/bin/x86_64-linux-gnu-ld.bfd: warning: mpih-sub1.pic.o: missing .note.GNU-stack section implies executable stack
+/home/jgett/REPOS/.work/datadog-ssd-fresh-2026-10-25/out-vanilla/external/gcc_toolchain++gcc_toolchains+gcc_toolchain_x86_64_11_4_0/bin/x86_64-linux-gnu-ld.bfd: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+INFO: From Compiling src/OVAL/probes/independent/environmentvariable58_probe.c:
+external/+http_archive+openscap/src/OVAL/probes/independent/environmentvariable58_probe.c: In function 'read_environment':
+external/+http_archive+openscap/src/OVAL/probes/independent/environmentvariable58_probe.c:286:54: warning: '__s' may be used uninitialized in this function [-Wmaybe-uninitialized]
+  286 |                         collect_variable(tok, eq_chr - tok, pid, name_ent, ctx);
+      |                                               ~~~~~~~^~~~~
+INFO: From RunBinary pkg/ebpf/bytecode/oom-kill/oom-kill_raw.go:
+INFO: From Compiling src/common/oscap_acquire.c:
+In file included from external/+http_archive+openscap/src/common/oscap_acquire.c:43:
+external/+http_archive+openscap/src/common/oscap_acquire.c: In function 'oscap_acquire_url_download':
+external/+http_archive+curl/include/curl/typecheck-gcc.h:50:13: warning: call to 'Wcurl_easy_setopt_err_long' declared with attribute warning: curl_easy_setopt expects a long argument [-Wattribute-warning]
+   50 |             Wcurl_easy_setopt_err_long();                               \
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/curl.h:59:49: note: in definition of macro 'CURL_IGNORE_DEPRECATION'
+   59 | #define CURL_IGNORE_DEPRECATION(statements)     statements
+      |                                                 ^~~~~~~~~~
+external/+http_archive+openscap/src/common/oscap_acquire.c:345:15: note: in expansion of macro 'curl_easy_setopt'
+  345 |         res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+      |               ^~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/typecheck-gcc.h:50:13: warning: call to 'Wcurl_easy_setopt_err_long' declared with attribute warning: curl_easy_setopt expects a long argument [-Wattribute-warning]
+   50 |             Wcurl_easy_setopt_err_long();                               \
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/curl.h:59:49: note: in definition of macro 'CURL_IGNORE_DEPRECATION'
+   59 | #define CURL_IGNORE_DEPRECATION(statements)     statements
+      |                                                 ^~~~~~~~~~
+external/+http_archive+openscap/src/common/oscap_acquire.c:373:15: note: in expansion of macro 'curl_easy_setopt'
+  373 |         res = curl_easy_setopt(curl, CURLOPT_TRANSFER_ENCODING, true);
+      |               ^~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/typecheck-gcc.h:50:13: warning: call to 'Wcurl_easy_setopt_err_long' declared with attribute warning: curl_easy_setopt expects a long argument [-Wattribute-warning]
+   50 |             Wcurl_easy_setopt_err_long();                               \
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/curl.h:59:49: note: in definition of macro 'CURL_IGNORE_DEPRECATION'
+   59 | #define CURL_IGNORE_DEPRECATION(statements)     statements
+      |                                                 ^~~~~~~~~~
+external/+http_archive+openscap/src/common/oscap_acquire.c:380:15: note: in expansion of macro 'curl_easy_setopt'
+  380 |         res = curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+      |               ^~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/typecheck-gcc.h:50:13: warning: call to 'Wcurl_easy_setopt_err_long' declared with attribute warning: curl_easy_setopt expects a long argument [-Wattribute-warning]
+   50 |             Wcurl_easy_setopt_err_long();                               \
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+external/+http_archive+curl/include/curl/curl.h:59:49: note: in definition of macro 'CURL_IGNORE_DEPRECATION'
+   59 | #define CURL_IGNORE_DEPRECATION(statements)     statements
+      |                                                 ^~~~~~~~~~
+external/+http_archive+openscap/src/common/oscap_acquire.c:387:15: note: in expansion of macro 'curl_easy_setopt'
+  387 |         res = curl_easy_setopt(curl, CURLOPT_VERBOSE, true);
+      |               ^~~~~~~~~~~~~~~~
+INFO: From RunBinary pkg/ebpf/bytecode/tcp-queue-length/tcp-queue-length_raw.go:
+[17,798 / 18,279] GoLink cmd/security-agent/security-agent_/security-agent; Downloading cmd/security-agent/security-agent_/security-agent, 3.0 MiB / 33.5 MiB; 0s (remote-cache) ... (6 actions, 0 running)
+INFO: From RunBinary pkg/ebpf/bytecode/conntrack/conntrack_raw.go:
+INFO: From RunBinary pkg/ebpf/bytecode/usm/usm_raw.go:
+INFO: From RunBinary pkg/ebpf/bytecode/tracer/tracer_raw.go:
+INFO: From RunBinary pkg/ebpf/bytecode/shared-libraries/shared-libraries_raw.go:
+INFO: From RunBinary pkg/ebpf/bytecode/offsetguess-test/offsetguess-test_raw.go:
+INFO: From RunBinary pkg/ebpf/bytecode/runtime-security/runtime-security_raw.go:
+INFO: From RunBinary pkg/ebpf/bytecode/gpu/gpu_raw.go:
+[17,973 / 18,279] GoLink cmd/security-agent/security-agent_/security-agent; Downloading cmd/security-agent/security-agent_/security-agent, 28.0 MiB / 33.5 MiB; 1s (remote-cache) ... (5 actions, 0 running)
+[18,277 / 18,279] GoLink cmd/system-probe/system-probe_/system-probe; Downloading cmd/system-probe/system-probe_/system-probe, 32.0 MiB / 73.4 MiB; 1s (remote-cache)
+[18,278 / 18,279] [Prepa] runfiles for //cmd/system-probe:system-probe
+INFO: Found 6 targets...
+INFO: Elapsed time: 51.838s, Critical Path: 8.78s
+INFO: 18,279 processes: 16,697 remote cache hit, 1582 internal.
+INFO: Build completed successfully, 18279 total actions
+INFO: 
+INFO: Build Event Protocol files produced successfully.

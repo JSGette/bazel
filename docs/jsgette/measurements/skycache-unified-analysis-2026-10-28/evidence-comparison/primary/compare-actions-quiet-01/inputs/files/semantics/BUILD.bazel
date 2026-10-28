@@ -1,0 +1,10 @@
+load("//:action_fanout.bzl", "action_writer")
+
+action_writer(name = "shared_left", paths = ["shared.txt"], content_tag = "same", executable = False)
+action_writer(name = "shared_right", paths = ["shared.txt"], content_tag = "same", executable = False)
+action_writer(name = "content_left", paths = ["content.txt"], content_tag = "left", executable = False)
+action_writer(name = "content_right", paths = ["content.txt"], content_tag = "right", executable = False)
+action_writer(name = "mode_left", paths = ["mode.txt"], content_tag = "same", executable = False)
+action_writer(name = "mode_right", paths = ["mode.txt"], content_tag = "same", executable = True)
+action_writer(name = "prefix_file", paths = ["tree"], content_tag = "same", executable = False)
+action_writer(name = "prefix_child", paths = ["tree/leaf.txt"], content_tag = "same", executable = False)

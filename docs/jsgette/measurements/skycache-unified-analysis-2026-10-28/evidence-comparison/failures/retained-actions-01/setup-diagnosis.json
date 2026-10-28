@@ -1,0 +1,50 @@
+{
+  "additive_preservation": {
+    "diagnostics": {
+      "local-skycache-ownership.json": "b7f3bfcedecd8dd690e01b7a48a13ee8987860510fc37a6795b8973364b65b9d",
+      "local-skycache-phases.json": "aec52d3d33758ec29b5c7e98dd9e7c48a7ebdf38187b811f590c7f1bd107f3cf",
+      "local-skycache-validation.json": "212445fd75eaa45c3698fd5a978f7bff4f5fba9df6e853066f67ba1f160b82f7",
+      "local-skycache.json": "d2ed8640ad616fb4489ac4f7807135cb587a13fee96b69efb714ac6a702ee06c"
+    },
+    "existing_raw_files_modified": false,
+    "provenance_helpers": {
+      "compare_three_arms.py": "bdc5a418045bf3e006d2c6fd50ff1e0840233ef8ce9228c792b19c105e1cc99a",
+      "measure_retained_server.py": "a4b797578375e3839828d8e99d67c6dc2ca5b49333694142ae523d8bb55e600d",
+      "paired_baseline.py": "37e397401eb8a0f6f5c17f60d6a79a35e079eb6017f3ca7cdd59ca1476df520b"
+    }
+  },
+  "cause": "New retained-run install and repository directories changed authenticated external/bazel_tools and external/platforms bindings. Admission rejected the seed before dependency record/CAS reads.",
+  "changed_shared_witnesses": [
+    {
+      "failed_run_digest": "26fcba5659c36cf31bc5fbfc83c7be4450889d8f2f29bc876576533f94686adf",
+      "listing": false,
+      "path": "external/bazel_tools",
+      "producer_digest": "0b9217e58ab4c35be426175318a36d4d94795495aae04192dd1d1df30728e0ae"
+    },
+    {
+      "failed_run_digest": "f0c66f723e1dff501dc8631d56c2c74eb9c9953546f098e3a9d13f76e60c3be3",
+      "listing": false,
+      "path": "external/platforms",
+      "producer_digest": "8a37b555350385afc4a9cec394c5d644b37f56c0f7946f956168e1041e192cc9"
+    }
+  ],
+  "correction": "Reuse producer binary-state install/repository paths from workspace.parent, with new own server outputbase/log/link paths. Strict restoration gate unchanged; corrected native rerun still required.",
+  "failed_run_witness_block": {
+    "count": 100,
+    "path": "\\\\wsl.localhost\\Ubuntu\\home\\jgett\\REPOS\\.work\\skycache-analysis-foundation-evidence\\retained-actions-01\\caches\\fork-on\\leased-v2\\objects\\segmented-v1\\12f7454df67b3bb734095f6dcdeb8335562ea7d6edd4267e34c4e3ad81021396\\witnesses-00000.block",
+    "sha256": "d3b9230d10db35ff639edd66cc521d3cea90c0f5d6e838f17fa08e6147c5c467"
+  },
+  "native_result": "15 builds: vanilla7 and fork-off7 passed; fork-on initial build completed but failed required configured-target restoration gate; all3 owned servers stopped",
+  "new_only_absolute_witness_count": 47,
+  "old_only_absolute_witness_count": 47,
+  "producer_witness_block": {
+    "count": 100,
+    "path": "\\\\wsl.localhost\\Ubuntu\\home\\jgett\\REPOS\\.work\\skycache-analysis-foundation-evidence\\compare-actions-01\\caches\\producer-seed\\leased-v2\\objects\\segmented-v1\\e348c0d3489ef7ad91889da9424e9b56675daf73babdeb05692e25919f87ce77\\witnesses-00000.block",
+    "sha256": "d4bdb7e0879d3d42f1c1b2172132ba8963ee898190d6cd8578461150faae0568"
+  },
+  "source_rules": [
+    "LocalCacheSession.java:924 repository bindings checked before old physical trees",
+    "LocalInputSnapshot.java:587-595 absolute symlink targets outside workspace/outputbase retained in fingerprint"
+  ],
+  "status": "failed_setup_preserved"
+}

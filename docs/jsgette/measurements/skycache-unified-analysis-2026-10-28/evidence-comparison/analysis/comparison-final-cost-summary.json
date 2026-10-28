@@ -1,0 +1,530 @@
+{
+  "across_six_runs": {
+    "action_execution": {
+      "per_run_hit_percent": {
+        "max": 94.94330168776371,
+        "median": 92.38338842786288,
+        "min": 62.33346268270599
+      },
+      "pooled_hit_percent": 87.71488010511332,
+      "pooled_hits": 80110,
+      "pooled_misses": 11220,
+      "pooled_terminal_results": 91330
+    },
+    "configured_target": {
+      "per_run_hit_percent": {
+        "max": 57.140091983623044,
+        "median": 15.543024114525252,
+        "min": 1.9912548233272112
+      },
+      "pooled_hit_percent": 19.420492389244693,
+      "pooled_hits": 276823,
+      "pooled_misses": 1148594,
+      "pooled_terminal_results": 1425417
+    },
+    "final_validation_wall_seconds": {
+      "max": 5.211769291,
+      "median": 3.4773487285,
+      "min": 2.479703106
+    },
+    "offered_put_requests": {
+      "max": 1660652,
+      "median": 1528151.5,
+      "min": 1134349
+    },
+    "offered_put_value_bytes": {
+      "max": 1312049098,
+      "median": 1276185716.5,
+      "min": 1171529587
+    },
+    "publication_wall_seconds": {
+      "max": 7.023616809,
+      "median": 5.3102811935,
+      "min": 3.251524555
+    },
+    "rejected_validation_root_attempts_total": 11
+  },
+  "created_utc": "2026-10-28T11:53:59.404335+00:00",
+  "definitions": {
+    "action_execution_hit_ratio": "Final ACTION_EXECUTION terminal-result hit/(hit+miss) ratio for Skyframe execution-value retrieval; separate from ordinary remote action-cache runner counts.",
+    "aggregation": "Range/median over six observations; pooled rates sum per-run terminal counts, not globally distinct keys. Descriptive only; no tail probability or causal phase decomposition.",
+    "configured_target_hits_and_misses": "Counts from the final CONFIGURED_TARGET terminal-result breakdown, deduplicated within hit/miss sets by the event listener. denominator=hits+misses; not BEP targetsConfigured, a graph-size measurement, or six requested labels.",
+    "phase_times": "Inclusive elapsed wall nanoseconds, not CPU. publication contains its nested phases; never add it to them. close_stores is separate.",
+    "put_bytes": "Bytes offered to LocalCacheSession.put before deduplication. Decimal GB=bytes/1e9. Not remote traffic or unique physical disk bytes.",
+    "put_counts": "cas_put_requests counts offers; cas_accepted_puts includes deduplicated successful offers; writes counts novel private-store records.",
+    "rejected_publications": "Separate publication admission rejection attempts; may retry the same publication, so not a count of unique publications.",
+    "rejected_validation_roots": "Aggregate dependency-root traversal rejection attempts, without identities/reasons. Not requested top-level targets and not configured-target cache misses.",
+    "whole_minus_bep": "Whole subprocess wall minus BEP command wall includes startup and other tail work, not pure finalization."
+  },
+  "runs": [
+    {
+      "action_execution_retrieval": {
+        "denominator_terminal_results": 15168,
+        "exact_hit_percent": 94.94330168776371,
+        "hits": 14401,
+        "misses": 767,
+        "reported_hit_percent": 94.94
+      },
+      "bep_command_elapsed_seconds": 80.146,
+      "bep_targets_configured": 236804,
+      "bep_targets_configured_excluding_aspects": 236766,
+      "configured_target_retrieval": {
+        "denominator_terminal_results": 237396,
+        "exact_hit_percent": 18.365094609850207,
+        "hits": 43598,
+        "misses": 193798,
+        "reported_hit_percent": 18.37
+      },
+      "finalization_enabled": true,
+      "finalization_inclusive_wall_ns": {
+        "close_stores": 17687480,
+        "final_validation": 3499906105,
+        "local_install": 2134935,
+        "publication": 6176655468,
+        "seal": 1834323190,
+        "witness_manifest": 563972566
+      },
+      "get_results": {
+        "hits": 816783,
+        "misses": 0,
+        "received_value_bytes": 212860507,
+        "requests": 816783
+      },
+      "name": "r1-fork-on",
+      "ordinary_action_runner_counts": [
+        {
+          "count": 768,
+          "name": "total"
+        },
+        {
+          "count": 143,
+          "execKind": "Remote",
+          "name": "remote cache hit"
+        },
+        {
+          "count": 625,
+          "name": "internal"
+        }
+      ],
+      "publication_succeeded": true,
+      "put_offers": {
+        "accepted": 1499551,
+        "deduplicated_writes": 469388,
+        "key_bytes": 33458728,
+        "novel_private_records": 1001099,
+        "requests": 1499551,
+        "value_bytes": 1270014072,
+        "value_decimal_gb": 1.270014072
+      },
+      "rejected_publication_attempts": 43,
+      "rejected_validation_roots": 0,
+      "round_one_based": 1,
+      "source_directory": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r1-fork-on",
+      "source_sha256": {
+        "build.bep.json": "baab6eb08c800fd0aec7388ad47c78028fe42b4098a799e2e80560195a1bb4b3",
+        "local-skycache-phases.json": "d18ea7650ce4b2387c08b180fdca508c77c5165da0deb7ed8ca88ffe1f9e6115",
+        "local-skycache-validation.json": "e30d62c9f7c5861f2490886a584324d827adda291a4692b8648c00b14a732229",
+        "local-skycache.json": "ff6463d41f2dc72a1fde194e1e622fb8e05f29098a63b3a9f8c5312f89d16789",
+        "metrics.json": "3f4881c7efaa4d5ffda058c1fa215c8c3414e8d7a3db95cef1058c4949c9107e",
+        "stderr.log": "fdcad3e7d039f390ad269011613985d305033d24be448ca1800aa1f0b46158a2"
+      },
+      "validator_records_read": 604005,
+      "validator_witnesses_checked": 183137,
+      "whole_command_elapsed_seconds": 87.84208783600025,
+      "whole_command_minus_bep_seconds": 7.696087836000245
+    },
+    {
+      "action_execution_retrieval": {
+        "denominator_terminal_results": 15182,
+        "exact_hit_percent": 89.79054143064155,
+        "hits": 13632,
+        "misses": 1550,
+        "reported_hit_percent": 89.79
+      },
+      "bep_command_elapsed_seconds": 92.91,
+      "bep_targets_configured": 237073,
+      "bep_targets_configured_excluding_aspects": 237022,
+      "configured_target_retrieval": {
+        "denominator_terminal_results": 237667,
+        "exact_hit_percent": 4.594663962603138,
+        "hits": 10920,
+        "misses": 226747,
+        "reported_hit_percent": 4.59
+      },
+      "finalization_enabled": true,
+      "finalization_inclusive_wall_ns": {
+        "close_stores": 10068520,
+        "final_validation": 3454791352,
+        "local_install": 2051305,
+        "publication": 4443906919,
+        "seal": 216482713,
+        "witness_manifest": 554977098
+      },
+      "get_results": {
+        "hits": 695229,
+        "misses": 0,
+        "received_value_bytes": 193493813,
+        "requests": 695229
+      },
+      "name": "r2-fork-on",
+      "ordinary_action_runner_counts": [
+        {
+          "count": 1551,
+          "name": "total"
+        },
+        {
+          "count": 915,
+          "execKind": "Remote",
+          "name": "remote cache hit"
+        },
+        {
+          "count": 636,
+          "name": "internal"
+        }
+      ],
+      "publication_succeeded": true,
+      "put_offers": {
+        "accepted": 1634190,
+        "deduplicated_writes": 243859,
+        "key_bytes": 36619708,
+        "novel_private_records": 1359462,
+        "requests": 1634190,
+        "value_bytes": 1303913282,
+        "value_decimal_gb": 1.303913282
+      },
+      "rejected_publication_attempts": 46,
+      "rejected_validation_roots": 5,
+      "round_one_based": 2,
+      "source_directory": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r2-fork-on",
+      "source_sha256": {
+        "build.bep.json": "a804dd23a4ecd874271841e61ee81077d0f39ea85d5e2a0452c76e0d85feaec0",
+        "local-skycache-phases.json": "030899820b4f735bea04e2638d092c684648c46581a838fe7a6f4897e714fa3a",
+        "local-skycache-validation.json": "38d79915a338e3511479c0a73dccc36cf6ef98056de666789bbe0c11668d2365",
+        "local-skycache.json": "e2a675a03cee2e5539e3e17b2ff740800bffd56ae26cdd7a284a46c5d4b15f7c",
+        "metrics.json": "04a568ea46e49499a922269c91574de76b9c67bcaf48e9f2d0457697e67d6a24",
+        "stderr.log": "d8ae047f188d552d2d18982efcbef2ee56d834ac803b03aaf37c397eac827409"
+      },
+      "validator_records_read": 603317,
+      "validator_witnesses_checked": 182832,
+      "whole_command_elapsed_seconds": 98.69119790599962,
+      "whole_command_minus_bep_seconds": 5.781197905999619
+    },
+    {
+      "action_execution_retrieval": {
+        "denominator_terminal_results": 15168,
+        "exact_hit_percent": 94.94330168776371,
+        "hits": 14401,
+        "misses": 767,
+        "reported_hit_percent": 94.94
+      },
+      "bep_command_elapsed_seconds": 68.498,
+      "bep_targets_configured": 237057,
+      "bep_targets_configured_excluding_aspects": 237006,
+      "configured_target_retrieval": {
+        "denominator_terminal_results": 237651,
+        "exact_hit_percent": 57.140091983623044,
+        "hits": 135794,
+        "misses": 101857,
+        "reported_hit_percent": 57.14
+      },
+      "finalization_enabled": true,
+      "finalization_inclusive_wall_ns": {
+        "close_stores": 38531824,
+        "final_validation": 4918195976,
+        "local_install": 2506574,
+        "publication": 6321182607,
+        "seal": 523128236,
+        "witness_manifest": 561812445
+      },
+      "get_results": {
+        "hits": 1077264,
+        "misses": 0,
+        "received_value_bytes": 249120584,
+        "requests": 1077264
+      },
+      "name": "r3-fork-on",
+      "ordinary_action_runner_counts": [
+        {
+          "count": 768,
+          "name": "total"
+        },
+        {
+          "count": 143,
+          "execKind": "Remote",
+          "name": "remote cache hit"
+        },
+        {
+          "count": 625,
+          "name": "internal"
+        }
+      ],
+      "publication_succeeded": true,
+      "put_offers": {
+        "accepted": 1134349,
+        "deduplicated_writes": 638167,
+        "key_bytes": 24763310,
+        "novel_private_records": 475222,
+        "requests": 1134349,
+        "value_bytes": 1171529587,
+        "value_decimal_gb": 1.171529587
+      },
+      "rejected_publication_attempts": 26,
+      "rejected_validation_roots": 0,
+      "round_one_based": 3,
+      "source_directory": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r3-fork-on",
+      "source_sha256": {
+        "build.bep.json": "3bd3521f5759609f61c4a44dec89e25fc9a4af9afe63eddfd90e621acf0990e4",
+        "local-skycache-phases.json": "ecdc7ad4162ab5625c57007632bfebd203f401a0c8a98588bb15eedfe322368d",
+        "local-skycache-validation.json": "fc41402363d8232671c6850e675eb7f406a43f89f2505f1435925b90bc6c2fcc",
+        "local-skycache.json": "532c820ecb6382c3b56ea732ae3fab68515fff920c2137c511c1dacebc4cab1c",
+        "metrics.json": "30b8cfe21fab5b42ceeb1cdeb787dff2264f6a3035b7f16d2feb10388b718a7f",
+        "stderr.log": "fc70a7422dc2b2f2afec360e2ff3eb759f3ece1a9545cef3b656f8a5f7dc56b3"
+      },
+      "validator_records_read": 603948,
+      "validator_witnesses_checked": 183137,
+      "whole_command_elapsed_seconds": 76.18160262399942,
+      "whole_command_minus_bep_seconds": 7.68360262399942
+    },
+    {
+      "action_execution_retrieval": {
+        "denominator_terminal_results": 15462,
+        "exact_hit_percent": 62.33346268270599,
+        "hits": 9638,
+        "misses": 5824,
+        "reported_hit_percent": 62.33
+      },
+      "bep_command_elapsed_seconds": 91.125,
+      "bep_targets_configured": 236796,
+      "bep_targets_configured_excluding_aspects": 236743,
+      "configured_target_retrieval": {
+        "denominator_terminal_results": 237388,
+        "exact_hit_percent": 1.9912548233272112,
+        "hits": 4727,
+        "misses": 232661,
+        "reported_hit_percent": 1.99
+      },
+      "finalization_enabled": true,
+      "finalization_inclusive_wall_ns": {
+        "close_stores": 6600458,
+        "final_validation": 2479703106,
+        "local_install": 2207455,
+        "publication": 3251524555,
+        "seal": 120958306,
+        "witness_manifest": 444866048
+      },
+      "get_results": {
+        "hits": 663695,
+        "misses": 0,
+        "received_value_bytes": 188021915,
+        "requests": 663695
+      },
+      "name": "r4-fork-on",
+      "ordinary_action_runner_counts": [
+        {
+          "count": 5825,
+          "name": "total"
+        },
+        {
+          "count": 5103,
+          "execKind": "Remote",
+          "name": "remote cache hit"
+        },
+        {
+          "count": 722,
+          "name": "internal"
+        }
+      ],
+      "publication_succeeded": true,
+      "put_offers": {
+        "accepted": 1660652,
+        "deduplicated_writes": 177650,
+        "key_bytes": 37211895,
+        "novel_private_records": 1452227,
+        "requests": 1660652,
+        "value_bytes": 1312049098,
+        "value_decimal_gb": 1.312049098
+      },
+      "rejected_publication_attempts": 54,
+      "rejected_validation_roots": 6,
+      "round_one_based": 4,
+      "source_directory": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r4-fork-on",
+      "source_sha256": {
+        "build.bep.json": "67c04f3506fafafb373f54653be380918f7d21533fa7fccdf358127b0bb2e546",
+        "local-skycache-phases.json": "30430dc448b63b8ac93df9af9b78a980b17299a5c9780dab4666ab13bd4af66d",
+        "local-skycache-validation.json": "81e8f033179a2720e67ba2c7a381bb72a94795a93a309d4bf8073418513ca4cf",
+        "local-skycache.json": "20438677555109d4f76408adeb3771db5bdbfffb68bcf7e4b8c0d487f29c0834",
+        "metrics.json": "2cb16d68be131038e93350bf766de3f71b165180454db7be07ed81c20c72897c",
+        "stderr.log": "4ff843702e7fdd0a1152ee59ba73e76f8d2569a2ce6b34b77f68b6282fad8c17"
+      },
+      "validator_records_read": 602012,
+      "validator_witnesses_checked": 182193,
+      "whole_command_elapsed_seconds": 95.68989443999999,
+      "whole_command_minus_bep_seconds": 4.564894439999989
+    },
+    {
+      "action_execution_retrieval": {
+        "denominator_terminal_results": 15168,
+        "exact_hit_percent": 94.94330168776371,
+        "hits": 14401,
+        "misses": 767,
+        "reported_hit_percent": 94.94
+      },
+      "bep_command_elapsed_seconds": 84.378,
+      "bep_targets_configured": 237069,
+      "bep_targets_configured_excluding_aspects": 237018,
+      "configured_target_retrieval": {
+        "denominator_terminal_results": 237663,
+        "exact_hit_percent": 12.720953619200296,
+        "hits": 30233,
+        "misses": 207430,
+        "reported_hit_percent": 12.72
+      },
+      "finalization_enabled": true,
+      "finalization_inclusive_wall_ns": {
+        "close_stores": 12522524,
+        "final_validation": 2719470025,
+        "local_install": 2040610,
+        "publication": 3504658373,
+        "seal": 179508500,
+        "witness_manifest": 356956971
+      },
+      "get_results": {
+        "hits": 758305,
+        "misses": 0,
+        "received_value_bytes": 201504435,
+        "requests": 758305
+      },
+      "name": "r5-fork-on",
+      "ordinary_action_runner_counts": [
+        {
+          "count": 768,
+          "name": "total"
+        },
+        {
+          "count": 143,
+          "execKind": "Remote",
+          "name": "remote cache hit"
+        },
+        {
+          "count": 625,
+          "name": "internal"
+        }
+      ],
+      "publication_succeeded": true,
+      "put_offers": {
+        "accepted": 1556752,
+        "deduplicated_writes": 336719,
+        "key_bytes": 34782431,
+        "novel_private_records": 1197779,
+        "requests": 1556752,
+        "value_bytes": 1282357361,
+        "value_decimal_gb": 1.282357361
+      },
+      "rejected_publication_attempts": 42,
+      "rejected_validation_roots": 0,
+      "round_one_based": 5,
+      "source_directory": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r5-fork-on",
+      "source_sha256": {
+        "build.bep.json": "b97157e315bd70b671ca1bf70fe4d82c9518a40d5164edcc450cfe46c1fefa27",
+        "local-skycache-phases.json": "0f97709a0cdc63a63ea37ee3a08b19a2709abb33a2ea0e8886d183ebde997136",
+        "local-skycache-validation.json": "f91f23b55d9d5ceaad8931c4792a7c14513e79e1dddd03b1d5c54ce878b5f71a",
+        "local-skycache.json": "e9d4a1ffb695c8755b631e735b495842c2562e1babd2ad73710467046b03b2f0",
+        "metrics.json": "432fdcda7f85604b1a6c949dc65dace7cb81d719b5786b5bd23116a55e1f812d",
+        "stderr.log": "16e7ff224d3ad6489e9072b236eb5e78c72e871016759cd5a9d0699297b051dc"
+      },
+      "validator_records_read": 603900,
+      "validator_witnesses_checked": 183137,
+      "whole_command_elapsed_seconds": 89.20520469199982,
+      "whole_command_minus_bep_seconds": 4.827204691999825
+    },
+    {
+      "action_execution_retrieval": {
+        "denominator_terminal_results": 15182,
+        "exact_hit_percent": 89.82347516796206,
+        "hits": 13637,
+        "misses": 1545,
+        "reported_hit_percent": 89.82
+      },
+      "bep_command_elapsed_seconds": 80.916,
+      "bep_targets_configured": 237058,
+      "bep_targets_configured_excluding_aspects": 237007,
+      "configured_target_retrieval": {
+        "denominator_terminal_results": 237652,
+        "exact_hit_percent": 21.691801457593456,
+        "hits": 51551,
+        "misses": 186101,
+        "reported_hit_percent": 21.69
+      },
+      "finalization_enabled": true,
+      "finalization_inclusive_wall_ns": {
+        "close_stores": 12325528,
+        "final_validation": 5211769291,
+        "local_install": 2607718,
+        "publication": 7023616809,
+        "seal": 937206340,
+        "witness_manifest": 622474458
+      },
+      "get_results": {
+        "hits": 818038,
+        "misses": 0,
+        "received_value_bytes": 210853735,
+        "requests": 818038
+      },
+      "name": "r6-fork-on",
+      "ordinary_action_runner_counts": [
+        {
+          "count": 1546,
+          "name": "total"
+        },
+        {
+          "count": 910,
+          "execKind": "Remote",
+          "name": "remote cache hit"
+        },
+        {
+          "count": 636,
+          "name": "internal"
+        }
+      ],
+      "publication_succeeded": true,
+      "put_offers": {
+        "accepted": 1471963,
+        "deduplicated_writes": 322785,
+        "key_bytes": 32771149,
+        "novel_private_records": 1118015,
+        "requests": 1471963,
+        "value_bytes": 1261630904,
+        "value_decimal_gb": 1.261630904
+      },
+      "rejected_publication_attempts": 47,
+      "rejected_validation_roots": 0,
+      "round_one_based": 6,
+      "source_directory": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/r6-fork-on",
+      "source_sha256": {
+        "build.bep.json": "4e6f15ad7efd9f07671c0b9018288ee01e19ce8dc666c451451cdf0807f2fb33",
+        "local-skycache-phases.json": "f4a7c3897e5e59d981c6679ded03810f54984824d512f83f7d91378daa1add12",
+        "local-skycache-validation.json": "7fd28c629fbc2e4b9a29313719838249b812b4ab6e03dcb61732f521f90c9500",
+        "local-skycache.json": "5c1833cc0fd44ff207a3a2262493b4fe1e9db7c3bc97156a373c2f17c5d74782",
+        "metrics.json": "37a339c9b9e1ee4da0769806cadfe9b82de1af70d836a10d6d1d5110ff7559b5",
+        "stderr.log": "90b27f922c2e668ac13d07942dfd7f1e8dfc41c9fcfd0e03948c87ff012d6268"
+      },
+      "validator_records_read": 603350,
+      "validator_witnesses_checked": 182853,
+      "whole_command_elapsed_seconds": 89.5470288460001,
+      "whole_command_minus_bep_seconds": 8.631028846000106
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Final six measured Datadog fork-on commands only; preparation commands excluded. Local persistent Skycache includes analysis and portable Skyframe execution-metadata reuse; ordinary remote action cache policy is identical across arms.",
+  "source_selection": {
+    "aggregate": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/comparison-aggregate-02",
+    "aggregate_status": "passed",
+    "final_results": "/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/datadog-three-arm-01/results.json",
+    "final_results_sha256": "101354da74603f41822e816391f1013ce5b8e71625ff0099c6da77277e56c203",
+    "selection_note": "Operator-selected quiet cohorts only; host quietness is established by the separately archived quiet-window record, not inferred by this tool.",
+    "sha256": {
+      "rows.json": "9d63026c934d94801660cc88223eeb22c3a3e39a4026ab9395ff362a8ac6123c",
+      "summary.json": "37660ad75a99179b1715b28f60596564acaf7ed946abda2db9b82f9b35363233"
+    }
+  }
+}
