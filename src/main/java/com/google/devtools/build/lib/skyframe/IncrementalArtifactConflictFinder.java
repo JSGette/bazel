@@ -248,13 +248,15 @@ public final class IncrementalArtifactConflictFinder {
           mySignal = new CountDownLatch(1);
           nextSignalToWaitFor = mySignal;
         }
-        exclusivePool.execute(
-            new CheckForConflictsUnderKey(
-                actionLookupKey,
-                actionCheckingFutures,
-                temporaryBadActionMap,
-                // While rerunning, we only keep a local set of visited ALKs.
-                /* dedupSet= */ inRerun ? Sets.newConcurrentHashSet() : globalVisited));
+        // While rerunning, we only keep a local set of visited ALKs.
+        Set<ActionLookupKey> dedupSet = inRerun ? Sets.newConcurrentHashSet() : globalVisited;
+        // A root may already have been visited as another root or dependency. Even when it is
+        // pruned, this invocation must still join the ordered completion and rerun logic below.
+        if (dedupSet.add(actionLookupKey)) {
+          exclusivePool.execute(
+              new CheckForConflictsUnderKey(
+                  actionLookupKey, actionCheckingFutures, temporaryBadActionMap, dedupSet));
+        }
         exclusivePool.awaitQuiescenceWithoutShutdown(true);
       }
     }

@@ -285,9 +285,12 @@ public final class Actions {
                     action.prettyPrint(),
                     oldKey.getActionLookupKey().getLabel()));
           }
-          // Key is already set: verify that the generating action and this action are compatible.
-          verifyGeneratingActionKeys(
-              output, generatingActionKey, allowSharedAction, actionKeyContext, actions);
+          // The same artifact was already checked above, without an intervening ownership change.
+          // A distinct artifact at this path can have a different generating action, so check it.
+          if (equalOutput != output) {
+            verifyGeneratingActionKeys(
+                output, generatingActionKey, allowSharedAction, actionKeyContext, actions);
+          }
         }
       }
       actionIndex++;
