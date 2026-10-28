@@ -1,0 +1,25 @@
+{
+  "command": [
+    "/home/jgett/.local/bin/bazel",
+    "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+    "--host_jvm_args=-Xmx5g",
+    "--max_idle_secs=120",
+    "--output_base=/home/jgett/REPOS/.work/skycache-analysis-foundation-build",
+    "test",
+    "--jobs=6",
+    "--remote_cache=grpc://10.55.0.1:8080",
+    "--remote_upload_local_results=false",
+    "//src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest",
+    "--nocache_test_results",
+    "--test_filter=",
+    "--runs_per_test=1",
+    "--flaky_test_attempts=1",
+    "--test_sharding_strategy=disabled",
+    "--test_output=all",
+    "--symlink_prefix=/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/identity-01/bazel-"
+  ],
+  "cwd": "/home/jgett/REPOS/.work/skycache-analysis-foundation-2026-10-28",
+  "revision": "de588ece3ce8f0397bff1f4f9da6dfd6476f01c7",
+  "fixture_sha256": "16309f420a74d5ebaccb0b4df58f54ef98614704df53e99677b053c30ffd1f30",
+  "expect_known_failure": true
+}

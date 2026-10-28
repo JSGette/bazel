@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skycache paired baseline evidence, version 1",
+  "oneOf": [
+    {
+      "title": "manifest.json",
+      "type": "object",
+      "required": ["schema_version", "source", "baseline", "binary", "harness_sha256", "fixture_sha256", "fixture", "environment", "platform", "settings", "order", "method"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "source": {"type": "object", "required": ["repository", "commit", "tree", "tracked_diff_sha256", "status", "source_state", "untracked", "binary_source_binding"]},
+        "binary": {"type": "object", "required": ["path", "sha256"]},
+        "harness_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "fixture_sha256": {"type": "object", "minProperties": 1},
+        "environment": {"type": "object"},
+        "platform": {"type": "object"},
+        "settings": {"type": "object"},
+        "order": {"type": "array", "minItems": 4},
+        "method": {"type": "string"}
+      }
+    },
+    {
+      "title": "summary.json",
+      "type": "object",
+      "required": ["schema_version", "status", "runs"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "status": {"enum": ["running", "passed", "failed"]},
+        "runs": {"type": "array"},
+        "paired_seconds_current_minus_off": {"type": "array", "items": {"type": "number"}},
+        "error": {"type": "string"}
+      }
+    }
+  ]
+}

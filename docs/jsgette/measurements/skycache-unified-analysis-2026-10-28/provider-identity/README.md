@@ -29,11 +29,13 @@ equal-content wrappers.
 
 ## Run
 
-Use a dedicated Linux/WSL checkout and output base. Build a candidate Bazel binary separately, then
-from this folder run (replace paths with the chosen candidate and new result directory):
+Use a dedicated Linux/WSL checkout and output base. `--bazel` selects the Bazel launcher that
+builds and runs the Java fixture against sources in `--repo`; the launcher itself is not the code
+under conformance test. From this folder run (replace the checkout and new result paths):
 
 ```bash
-python3 run.py --bazel /tmp/skycache-plan-bazel \
+python3 run.py --bazel bazel \
+  --repo /path/to/candidate-checkout \
   --output-base /tmp/skycache-provider-identity-tests \
   --output-dir /tmp/skycache-provider-identity-result
 ```
@@ -42,7 +44,8 @@ The default is a conformance check and exits nonzero while the defect remains. T
 reproduce the known blocker instead:
 
 ```bash
-python3 run.py --bazel /tmp/skycache-plan-bazel \
+python3 run.py --bazel bazel \
+  --repo /path/to/candidate-checkout \
   --output-base /tmp/skycache-provider-identity-tests \
   --output-dir /tmp/skycache-provider-identity-known-failure \
   --expect-known-failure
@@ -77,4 +80,5 @@ python3 -m unittest -v test_run.py
 The precursor was the local, untracked
 `skycache-demand-experiments-2026-10-27/provider-identity/regression.patch`. Only its deterministic
 test shape is promoted; diagnostic overlays, absolute-path launchers, binaries and raw workload
-archives are excluded. This directory records no new Java test result until the candidate is run.
+archives are excluded. See [recorded foundation results](../RESULTS.md) for the native fixture run
+and its exact known-failure outcome.

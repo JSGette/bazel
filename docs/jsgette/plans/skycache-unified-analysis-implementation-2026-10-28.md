@@ -1,10 +1,17 @@
 # Skycache unified analysis implementation plan
 
-28 October 2026. Status: planned; no implementation gate is claimed complete.
+28 October 2026. Status: implementation started; P00/P01/P02 foundation increments are delivered, but none of their full acceptance gates is complete. See the [implementation evidence and remaining gates](../measurements/skycache-unified-analysis-2026-10-28/RESULTS.md).
 
 Implement the [Revision 2 design](skycache-unified-analysis-design-2026-10-28.md) as small, independently measurable changes. Start by freezing a reproducible baseline and attributing client overhead. Then ship the cheapest demonstrated reduction in publication, retained metadata, or witness materialization. Introduce bounded prefetch only after an evaluator-owned decision can prevent late cache adoption. General value paging and full candidate races remain separate, gated projects.
 
-This plan targets `JSGette/bazel`, based on commit `4f5ab75ca9aeffbbf288de558220fe0bed8c1de7`. The reviewed working tree also contains uncommitted retained-v8 changes and local measurement archives. Those changes are not included in this documentation branch and must be reconciled before implementation. The paper's v8 observations and its v9 control are not a matched performance baseline.
+This plan targets `JSGette/bazel`, based on commit `4f5ab75ca9aeffbbf288de558220fe0bed8c1de7`. The reviewed working tree also contains uncommitted retained-v8 changes and local measurement archives. The first implementation slice uses a separate checkout of the committed baseline; read-only reconciliation found no dirty v8 change required for this slice. Those changes remain separate and require review before any later incorporation. The paper's v8 observations and its v9 control are not a matched performance baseline.
+
+## Current implementation checkpoint
+
+- P00 now has a paired-run harness, fixture/evidence schemas and a deterministic native fixture. Baseline and instrumented executables each passed a producer plus four paired smoke commands with exact output digests. Broader workloads, action-key comparisons, idle-release/recovery and independent reproduction remain open.
+- P01 now emits bounded scalar ownership snapshots before finish and after session close. Focused Java tests and real cache-hit diagnostics verify cleanup and retained-state distinctions. Exclusive phase costs, heap ownership and instrumentation overhead remain unproven.
+- P02 now has a manual provider identity conformance target and a strict known-failure runner. Both controls pass; the two cross-branch identity cases still fail with four leaves instead of three. Eligibility widening remains blocked on semantic proof.
+- P03 through P11 are not implemented. This checkpoint makes no performance-improvement claim. Choose the first optimization only after the remaining P00/P01 attribution work and applicable P02 gates.
 
 ## Delivery outcome and boundaries
 

@@ -53,7 +53,7 @@ def classify(xml, bazel_exit, expect_known_failure):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--bazel", required=True, help="Bazel executable to test")
+    parser.add_argument("--bazel", required=True, help="Bazel launcher used to build/test sources in --repo")
     parser.add_argument("--output-base", required=True, type=Path, help="Dedicated Bazel output base")
     parser.add_argument("--output-dir", required=True, type=Path, help="New result directory")
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[5])
