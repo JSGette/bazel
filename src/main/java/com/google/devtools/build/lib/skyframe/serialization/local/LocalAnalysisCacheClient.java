@@ -77,6 +77,19 @@ final class LocalAnalysisCacheClient implements RetainedAnalysisCacheClient.Sync
     return java.util.Map.copyOf(acceptedRoots);
   }
 
+  record OwnershipSnapshot(
+      int previousRoots, int acceptedRoots, LocalDependencyValidator.OwnershipSnapshot validator) {}
+
+  OwnershipSnapshot ownershipSnapshot() {
+    int acceptedCount;
+    synchronized (this) {
+      acceptedCount = acceptedRoots.size();
+    }
+    // Do not retain or copy either root table, or hold its monitor while sampling validation.
+    return new OwnershipSnapshot(
+        previousRoots.size(), acceptedCount, validator.ownershipSnapshot());
+  }
+
   private synchronized void rememberRoot(ByteString key, PackedFingerprint root) {
     acceptedRoots.remove(key);
     acceptedRoots.put(key, root);

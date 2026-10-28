@@ -260,6 +260,50 @@ final class LocalCacheSession implements FingerprintValueStore {
         puts);
   }
 
+  record OwnershipSnapshot(
+      boolean closed,
+      int candidates,
+      long candidateWitnessReferences,
+      long candidateAccountedMetadataBytes,
+      int sharedPuts,
+      int usedParents,
+      int inspectedPublications,
+      int rejectedInputs,
+      int rejectedWitnesses,
+      LocalInputSnapshot.OwnershipSnapshot inputs) {}
+
+  /**
+   * Samples owned references without traversing witnesses or reading cache data. Metadata bytes use
+   * admission accounting, not Java retained size; aliases may occur in several candidates.
+   */
+  OwnershipSnapshot ownershipSnapshot() {
+    lifecycle.readLock().lock();
+    try {
+      // Refresh takes this monitor while holding the lifecycle lock; preserve that order.
+      synchronized (this) {
+        long witnessReferences = 0;
+        long metadataBytes = 0;
+        for (Candidate candidate : candidates) {
+          witnessReferences += candidate.witnesses().size();
+          metadataBytes += candidate.metadataBytes();
+        }
+        return new OwnershipSnapshot(
+            closed,
+            candidates.size(),
+            witnessReferences,
+            metadataBytes,
+            sharedPuts.size(),
+            usedParents.size(),
+            inspected.size(),
+            rejectedInputs.size(),
+            rejectedWitnesses.size(),
+            inputs.ownershipSnapshot());
+      }
+    } finally {
+      lifecycle.readLock().unlock();
+    }
+  }
+
   String statisticsJson(boolean published) {
     return String.format(
         java.util.Locale.ROOT,

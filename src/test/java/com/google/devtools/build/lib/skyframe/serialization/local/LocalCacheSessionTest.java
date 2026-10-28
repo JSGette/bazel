@@ -446,7 +446,16 @@ public final class LocalCacheSessionTest {
     var session = new LocalCacheSession(cache, inputs);
     assertThat(inputs.matchesForAdmission(witness)).isTrue();
     assertThat(inputs.includeAdmittedWitness(witness)).isTrue();
+    var beforeClose = session.ownershipSnapshot();
+    assertThat(beforeClose.closed()).isFalse();
+    assertThat(beforeClose.inputs().admittedWitnesses()).isEqualTo(1);
+    assertThat(beforeClose.inputs().observedWitnesses()).isEqualTo(1);
     session.finish(false);
+    var afterClose = session.ownershipSnapshot();
+    assertThat(afterClose.closed()).isTrue();
+    assertThat(afterClose.inputs().admittedWitnesses()).isEqualTo(0);
+    assertThat(afterClose.inputs().observedWitnesses()).isEqualTo(1);
+    assertThat(beforeClose.inputs().admittedWitnesses()).isEqualTo(1);
     assertThat(inputs.includeAdmittedWitness(witness)).isFalse();
     assertThat(inputs.witnesses()).containsExactly(witness);
     assertThat(inputs.isUnchanged()).isTrue();
@@ -469,10 +478,27 @@ public final class LocalCacheSessionTest {
     var readerInputs = snapshot(workspace, output);
     var reader = new LocalCacheSession(cache, readerInputs);
     assertThrows(ExecutionException.class, () -> reader.get(new Key("missing")).get());
+    var before = reader.ownershipSnapshot();
+    assertThat(before.candidates()).isEqualTo(1);
+    assertThat(before.candidateWitnessReferences()).isEqualTo(1);
+    assertThat(before.candidateAccountedMetadataBytes()).isGreaterThan(0);
+    assertThat(before.inspectedPublications()).isEqualTo(1);
+    assertThat(before.inputs().admittedWitnesses()).isEqualTo(1);
+    assertThat(before.inputs().observedWitnesses()).isEqualTo(0);
     assertThat(readerInputs.witnesses()).isEmpty();
     reader.put(new Key("new"), new byte[] {2}).get();
     Files.writeString(file, "two");
     assertThat(reader.finish(true)).isTrue();
+    var after = reader.ownershipSnapshot();
+    assertThat(after.closed()).isTrue();
+    assertThat(after.candidates()).isEqualTo(0);
+    assertThat(after.candidateWitnessReferences()).isEqualTo(0);
+    assertThat(after.candidateAccountedMetadataBytes()).isEqualTo(0);
+    assertThat(after.inspectedPublications()).isEqualTo(0);
+    assertThat(after.inputs().admittedWitnesses()).isEqualTo(0);
+    // The earlier endpoint is a detached value; sampling never consumed the unused witness.
+    assertThat(before.candidates()).isEqualTo(1);
+    assertThat(before.inputs().observedWitnesses()).isEqualTo(0);
     var next = new LocalCacheSession(cache, snapshot(workspace, output));
     try {
       assertThat(next.get(new Key("new")).get()).isEqualTo(new byte[] {2});
@@ -1735,7 +1761,14 @@ public final class LocalCacheSessionTest {
     assertThat(child.put(key, new byte[] {1}).get()).isFalse();
     assertThat(child.put(key, new byte[] {2}).get()).isFalse();
     assertThat(child.failureReason()).contains("conflicting immutable shared cache value");
+    var beforeClose = child.ownershipSnapshot();
+    assertThat(beforeClose.sharedPuts()).isEqualTo(1);
+    assertThat(beforeClose.usedParents()).isEqualTo(1);
     assertThat(child.finish(true)).isFalse();
+    var afterClose = child.ownershipSnapshot();
+    assertThat(afterClose.sharedPuts()).isEqualTo(0);
+    assertThat(afterClose.usedParents()).isEqualTo(0);
+    assertThat(beforeClose.sharedPuts()).isEqualTo(1);
   }
 
   @Test
@@ -1908,7 +1941,13 @@ public final class LocalCacheSessionTest {
     assertThrows(ExecutionException.class, () -> reader.get(key).get());
     assertThrows(ExecutionException.class, () -> reader.get(key).get());
     assertThat(reader.statisticsJson(false)).contains("\"rejected_publications\":1");
+    var rejectedOwnership = reader.ownershipSnapshot();
+    assertThat(rejectedOwnership.rejectedInputs()).isEqualTo(1);
+    assertThat(rejectedOwnership.rejectedWitnesses()).isEqualTo(1);
     reader.finish(false);
+    assertThat(reader.ownershipSnapshot().rejectedInputs()).isEqualTo(0);
+    assertThat(reader.ownershipSnapshot().rejectedWitnesses()).isEqualTo(0);
+    assertThat(rejectedOwnership.rejectedWitnesses()).isEqualTo(1);
   }
 
   @Test

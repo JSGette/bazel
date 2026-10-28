@@ -372,6 +372,16 @@ final class LocalDependencyValidator {
     return new StringKey(key);
   }
 
+  record OwnershipSnapshot(int validatedNodes, int validatedWitnesses, int pendingNodes) {}
+
+  /** Advisory counts only: concurrent validation may advance between component samples. */
+  OwnershipSnapshot ownershipSnapshot() {
+    synchronized (ownership) {
+      return new OwnershipSnapshot(
+          validated.size(), validatedWitnesses.size(), pendingNodes.size());
+    }
+  }
+
   String statisticsJson() {
     return String.format(
         java.util.Locale.ROOT,

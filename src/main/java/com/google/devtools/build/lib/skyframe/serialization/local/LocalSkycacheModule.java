@@ -260,6 +260,8 @@ public final class LocalSkycacheModule extends SerializationModule {
     var env = environment;
     var session = services.session;
     if (env != null && session != null) {
+      String ownershipBefore =
+          ownershipSnapshotJson(session, services.client, services.retainedRoots.size());
       Path importedPublication = session.importedPublicationManifest();
       boolean published = false;
       try {
@@ -273,6 +275,10 @@ public final class LocalSkycacheModule extends SerializationModule {
             .handle(Event.warn("Local SkyCache publication discarded: " + session.failureReason()));
       }
       services.retainedRoots = services.client.retainedRoots();
+      // finish closes the session even on publication failure. The client, validator, consumed
+      // input evidence and retained root table have different lifetimes and may remain nonempty.
+      String ownershipAfter =
+          ownershipSnapshotJson(session, services.client, services.retainedRoots.size());
       if (session.remotePublished()) {
         env.getReporter()
             .handle(Event.info("Remote SkyCache: publication committed using remote parents"));
@@ -330,6 +336,14 @@ public final class LocalSkycacheModule extends SerializationModule {
         Files.writeString(
             Path.of(env.getOutputBase().getPathString()).resolve("local-skycache.json"),
             statistics);
+        Files.writeString(
+            Path.of(env.getOutputBase().getPathString()).resolve("local-skycache-ownership.json"),
+            "{\"schema_version\":1,\"sampling\":\"advisory_component_snapshots\","
+                + "\"before_finish\":"
+                + ownershipBefore
+                + ",\"after_session_close\":"
+                + ownershipAfter
+                + "}");
       } catch (IOException e) {
         env.getReporter().handle(Event.warn("Could not write local SkyCache statistics"));
       }
@@ -351,6 +365,43 @@ public final class LocalSkycacheModule extends SerializationModule {
       remoteSkyCache = null;
     }
     super.afterCommand();
+  }
+
+  /** Endpoint counts, not peaks, unique objects, retained heap or a globally atomic snapshot. */
+  static String ownershipSnapshotJson(
+      LocalCacheSession session, LocalAnalysisCacheClient client, int retainedRoots) {
+    var cache = session.ownershipSnapshot();
+    var analysis = client.ownershipSnapshot();
+    var inputs = cache.inputs();
+    var validation = analysis.validator();
+    return String.format(
+        java.util.Locale.ROOT,
+        "{\"session_closed\":%s,\"candidate_entries\":%d,"
+            + "\"candidate_witness_references\":%d,\"candidate_accounted_metadata_bytes\":%d,"
+            + "\"shared_put_entries\":%d,\"used_parent_entries\":%d,"
+            + "\"inspected_publication_entries\":%d,\"rejected_input_entries\":%d,"
+            + "\"rejected_witness_entries\":%d,\"observed_witness_entries\":%d,"
+            + "\"admitted_witness_entries\":%d,\"previous_root_entries\":%d,"
+            + "\"accepted_root_entries\":%d,\"service_retained_root_entries\":%d,"
+            + "\"validated_node_entries\":%d,\"validated_witness_entries\":%d,"
+            + "\"pending_validation_entries\":%d}",
+        cache.closed(),
+        cache.candidates(),
+        cache.candidateWitnessReferences(),
+        cache.candidateAccountedMetadataBytes(),
+        cache.sharedPuts(),
+        cache.usedParents(),
+        cache.inspectedPublications(),
+        cache.rejectedInputs(),
+        cache.rejectedWitnesses(),
+        inputs.observedWitnesses(),
+        inputs.admittedWitnesses(),
+        analysis.previousRoots(),
+        analysis.acceptedRoots(),
+        retainedRoots,
+        validation.validatedNodes(),
+        validation.validatedWitnesses(),
+        validation.pendingNodes());
   }
 
   private static final class Services implements RemoteAnalysisCachingServicesSupplier {

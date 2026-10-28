@@ -226,7 +226,24 @@ public final class LocalDependencyValidatorTest {
     assertThat(stats.bytesSent()).isEqualTo(337);
     assertThat(stats.bytesReceived()).isEqualTo(342);
     assertThat(stats.latencyMicros().stream().mapToLong(b -> b.count()).sum()).isEqualTo(22);
+    var beforeClose = client.ownershipSnapshot();
+    assertThat(beforeClose.previousRoots()).isEqualTo(1);
+    assertThat(beforeClose.acceptedRoots()).isEqualTo(1);
+    assertThat(beforeClose.validator().validatedNodes()).isGreaterThan(0);
+    assertThat(beforeClose.validator().validatedWitnesses()).isGreaterThan(0);
+    assertThat(beforeClose.validator().pendingNodes()).isEqualTo(0);
+    String ownershipBefore = LocalSkycacheModule.ownershipSnapshotJson(session, client, 1);
+    assertThat(ownershipBefore).contains("\"session_closed\":false");
+    assertThat(ownershipBefore).contains("\"previous_root_entries\":1");
+    assertThat(ownershipBefore).contains("\"accepted_root_entries\":1");
+    assertThat(ownershipBefore).contains("\"service_retained_root_entries\":1");
+    assertThat(client.getStats().requestsSent()).isEqualTo(22);
     session.finish(false);
+    // Closing storage does not discard the independently retained roots and validator memos.
+    assertThat(client.ownershipSnapshot()).isEqualTo(beforeClose);
+    assertThat(LocalSkycacheModule.ownershipSnapshotJson(session, client, 1))
+        .contains("\"session_closed\":true");
+    assertThat(ownershipBefore).contains("\"session_closed\":false");
     assertThat(client.isPreviouslyLoadedValueValid(key.toBytes()).get()).isFalse();
     assertThat(client.getStats().requestsSent()).isEqualTo(23);
     assertThat(client.getStats().bytesReceived()).isEqualTo(343);
@@ -685,6 +702,7 @@ public final class LocalDependencyValidatorTest {
       var interrupted = new CountDownLatch(1);
       try {
         assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(validator.ownershipSnapshot().pendingNodes()).isEqualTo(1);
         var waiter =
             pool.submit(
                 () -> {
@@ -705,6 +723,7 @@ public final class LocalDependencyValidatorTest {
       assertThat(owner.get(10, TimeUnit.SECONDS)).isTrue();
       assertThat(validator.validate(dependent)).isTrue();
     }
+    assertThat(validator.ownershipSnapshot().pendingNodes()).isEqualTo(0);
   }
 
   @Test

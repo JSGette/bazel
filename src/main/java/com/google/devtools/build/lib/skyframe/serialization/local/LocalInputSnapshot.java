@@ -337,6 +337,15 @@ final class LocalInputSnapshot implements IndependentFileDependencyProvider {
     }
   }
 
+  /** Counts references owned here; does not observe inputs or promote admission evidence. */
+  record OwnershipSnapshot(int observedWitnesses, int admittedWitnesses) {}
+
+  OwnershipSnapshot ownershipSnapshot() {
+    synchronized (admittedWitnesses) {
+      return new OwnershipSnapshot(witnesses.size(), admittedWitnesses.size());
+    }
+  }
+
   boolean matches(Witness witness) throws IOException {
     return matches(witness, new LocalContentHasher());
   }
