@@ -16,6 +16,7 @@ import com.google.devtools.build.lib.buildtool.buildevent.BuildCompleteEvent;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor;
 import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
 import com.google.devtools.build.lib.events.Event;
+import com.google.devtools.build.lib.profiler.Profiler;
 import com.google.devtools.build.lib.remote.options.RemoteOptions;
 import com.google.devtools.build.lib.runtime.BlazeRuntime;
 import com.google.devtools.build.lib.runtime.CommandEnvironment;
@@ -161,7 +162,9 @@ public final class LocalSkycacheModule extends SerializationModule {
               inputs,
               System::nanoTime,
               new LocalCacheSession.ReadLimits(
-                  options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
+                  options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096),
+              // BuildComplete stops the global profiler before afterCommand finalization.
+              /* profileFinalization= */ Profiler.instance().isActive());
       services.session.setRemote(remoteSkyCache);
       var remote = env.getOptions().getOptions(RemoteOptions.class);
       services.executionValues =
@@ -344,6 +347,9 @@ public final class LocalSkycacheModule extends SerializationModule {
                 + ",\"after_session_close\":"
                 + ownershipAfter
                 + "}");
+        Files.writeString(
+            Path.of(env.getOutputBase().getPathString()).resolve("local-skycache-phases.json"),
+            session.finalizationPhasesJson());
       } catch (IOException e) {
         env.getReporter().handle(Event.warn("Could not write local SkyCache statistics"));
       }

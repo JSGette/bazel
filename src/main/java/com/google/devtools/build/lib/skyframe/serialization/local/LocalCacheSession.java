@@ -61,6 +61,28 @@ final class LocalCacheSession implements FingerprintValueStore {
   private static final int MAX_WITNESSES = 1_000_000;
   private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
 
+  private enum FinalizationPhase {
+    PUBLICATION("publication"),
+    FINAL_VALIDATION("final_validation"),
+    WITNESS_MANIFEST("witness_manifest"),
+    SEAL("seal"),
+    LOCAL_INSTALL("local_install"),
+    CLOSE_STORES("close_stores");
+
+    private final String jsonName;
+
+    FinalizationPhase(String jsonName) {
+      this.jsonName = jsonName;
+    }
+  }
+
+  private interface PhaseTimer extends AutoCloseable {
+    @Override
+    void close();
+  }
+
+  private static final PhaseTimer NO_PHASE_TIMER = () -> {};
+
   record ReadLimits(int publications, long metadataBytes, int scanEntries) {
     static final ReadLimits DEFAULT = new ReadLimits(64, 256L * 1024 * 1024, 4096);
 
@@ -104,6 +126,9 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   private final LocalInputSnapshot inputs;
   private final LongSupplier nanoTime;
+  // Null when profiling was disabled before the build. Six scalars, never per-key state.
+  // The lifecycle lock protects updates. -1 means that a phase has not completed.
+  private final long[] finalizationNanos;
   private final ReadLimits limits;
   private final Path objects;
   private final Path publications;
@@ -169,9 +194,24 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   LocalCacheSession(Path root, LocalInputSnapshot inputs, LongSupplier nanoTime, ReadLimits limits)
       throws IOException {
+    this(root, inputs, nanoTime, limits, /* profileFinalization= */ false);
+  }
+
+  LocalCacheSession(
+      Path root,
+      LocalInputSnapshot inputs,
+      LongSupplier nanoTime,
+      ReadLimits limits,
+      boolean profileFinalization)
+      throws IOException {
     this.limits = limits;
     this.inputs = inputs;
     this.nanoTime = nanoTime;
+    this.finalizationNanos =
+        profileFinalization ? new long[FinalizationPhase.values().length] : null;
+    if (finalizationNanos != null) {
+      Arrays.fill(finalizationNanos, -1);
+    }
     Path managed = durableDirectory(root.toAbsolutePath().normalize().resolve(MANAGED_DIRECTORY));
     this.objects = durableDirectory(managed.resolve("objects").resolve("segmented-v1"));
     this.publications =
@@ -179,6 +219,43 @@ final class LocalCacheSession implements FingerprintValueStore {
     this.id =
         sha256(UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
     this.leases = LocalCacheLeaseManager.open(managed);
+  }
+
+  private PhaseTimer timeFinalization(FinalizationPhase phase) {
+    if (finalizationNanos == null || finalizationNanos[phase.ordinal()] >= 0) {
+      return NO_PHASE_TIMER;
+    }
+    long start = nanoTime.getAsLong();
+    return () -> finalizationNanos[phase.ordinal()] = nanoTime.getAsLong() - start;
+  }
+
+  /** Inclusive elapsed times, not CPU or exclusive attribution; read at command end. */
+  String finalizationPhasesJson() {
+    String header =
+        "{\"schema_version\":1,\"sampling\":\"boundary_command_end\","
+            + "\"unit\":\"nanoseconds\",\"semantics\":\"inclusive_elapsed_wall_not_cpu\"";
+    if (finalizationNanos == null) {
+      return header + ",\"enabled\":false}";
+    }
+    lifecycle.readLock().lock();
+    try {
+      var json = new StringBuilder(header).append(",\"enabled\":true,\"phases\":{");
+      for (FinalizationPhase phase : FinalizationPhase.values()) {
+        if (phase.ordinal() != 0) {
+          json.append(',');
+        }
+        long elapsed = finalizationNanos[phase.ordinal()];
+        json.append('"').append(phase.jsonName).append("\":");
+        if (elapsed < 0) {
+          json.append("null");
+        } else {
+          json.append(elapsed);
+        }
+      }
+      return json.append("}}").toString();
+    } finally {
+      lifecycle.readLock().unlock();
+    }
   }
 
   String cacheNamespace() {
@@ -894,7 +971,10 @@ final class LocalCacheSession implements FingerprintValueStore {
 
   boolean finish(boolean success) throws IOException {
     lifecycle.writeLock().lock();
-    try {
+    // The global trace profiler stops at BuildComplete, before this method runs. These six
+    // optional scalars use the profiling state captured before the build instead. Publication
+    // includes its nested phases but excludes the lock wait, cleanup and module-side remote export.
+    try (var publicationScope = timeFinalization(FinalizationPhase.PUBLICATION)) {
       if (closed) {
         return false;
       }
@@ -922,12 +1002,15 @@ final class LocalCacheSession implements FingerprintValueStore {
           remoteParents.add(candidate.id());
         }
       }
-      if (!inputs.isUnchanged()) {
-        failure = "inputs changed during the invocation";
-        return false;
+      try (var validationScope = timeFinalization(FinalizationPhase.FINAL_VALIDATION)) {
+        if (!inputs.isUnchanged()) {
+          failure = "inputs changed during the invocation";
+          return false;
+        }
       }
       var buffer = new ByteArrayOutputStream();
-      try (var out = new DataOutputStream(buffer)) {
+      try (var witnessScope = timeFinalization(FinalizationPhase.WITNESS_MANIFEST);
+          var out = new DataOutputStream(buffer)) {
         out.writeInt(MAGIC);
         out.writeUTF(id);
         out.writeUTF(inputs.cacheNamespace());
@@ -944,7 +1027,9 @@ final class LocalCacheSession implements FingerprintValueStore {
         throw new IOException("input manifest exceeds size limit");
       }
       // No manifest can reference private bytes that have not reached durable storage.
-      privateStore.seal();
+      try (var sealScope = timeFinalization(FinalizationPhase.SEAL)) {
+        privateStore.seal();
+      }
       byte[] manifest =
           com.google.common.primitives.Bytes.concat(
               payload, HexFormat.of().parseHex(sha256(payload)));
@@ -959,7 +1044,8 @@ final class LocalCacheSession implements FingerprintValueStore {
         remotePublished = true;
         return false;
       }
-      try (var catalog = requireSharedCatalog()) {
+      try (var installScope = timeFinalization(FinalizationPhase.LOCAL_INSTALL);
+          var catalog = requireSharedCatalog()) {
         Path temporary =
             Files.createTempFile(
                 publications,
@@ -982,7 +1068,7 @@ final class LocalCacheSession implements FingerprintValueStore {
       }
       return true;
     } finally {
-      try {
+      try (var closeScope = timeFinalization(FinalizationPhase.CLOSE_STORES)) {
         closeStores();
       } finally {
         lifecycle.writeLock().unlock();

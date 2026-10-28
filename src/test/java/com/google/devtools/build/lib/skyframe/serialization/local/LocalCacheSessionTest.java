@@ -64,6 +64,72 @@ public final class LocalCacheSessionTest {
   }
 
   @Test
+  public void disabledFinalizationTimingDoesNotReadClock() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var clock = new AtomicLong();
+    var writer = new LocalCacheSession(cache, snapshot(workspace, output), clock::getAndIncrement);
+    writer.put(new Key("entry"), new byte[] {7}).get();
+    long readsBeforeFinish = clock.get();
+    assertThat(writer.finish(true)).isTrue();
+    assertThat(writer.finalizationPhasesJson()).contains("\"enabled\":false");
+    assertThat(writer.finalizationPhasesJson()).doesNotContain("\"phases\"");
+    assertThat(clock.get()).isEqualTo(readsBeforeFinish);
+  }
+
+  @Test
+  public void finalizationTimingSeparatesInclusivePublicationFromCleanup() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var clock = new AtomicLong();
+    var writer =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            () -> clock.getAndAdd(10),
+            LocalCacheSession.ReadLimits.DEFAULT,
+            /* profileFinalization= */ true);
+    writer.put(new Key("entry"), new byte[] {7}).get();
+    clock.set(0);
+    assertThat(writer.finish(true)).isTrue();
+    String timings = writer.finalizationPhasesJson();
+    assertThat(timings).contains("\"enabled\":true");
+    assertThat(timings).contains("\"sampling\":\"boundary_command_end\"");
+    assertThat(timings).contains("\"unit\":\"nanoseconds\"");
+    // Publication includes the four nested phases, but closes before cleanup starts.
+    assertThat(timings)
+        .contains(
+            "\"phases\":{\"publication\":90,\"final_validation\":10,\"witness_manifest\":10,"
+                + "\"seal\":10,\"local_install\":10,\"close_stores\":10}");
+    assertThat(clock.get()).isEqualTo(120);
+    // A repeated finish must not replace the evidence from the original attempt.
+    assertThat(writer.finish(true)).isFalse();
+    assertThat(writer.finalizationPhasesJson()).isEqualTo(timings);
+    assertThat(clock.get()).isEqualTo(120);
+  }
+
+  @Test
+  public void finalizationTimingDistinguishesZeroDurationFromUnexecutedPhase() throws Exception {
+    Path workspace = temporary.newFolder("workspace").toPath();
+    Path output = temporary.newFolder("output").toPath();
+    Path cache = temporary.newFolder("cache").toPath();
+    var writer =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            () -> 0,
+            LocalCacheSession.ReadLimits.DEFAULT,
+            /* profileFinalization= */ true);
+    assertThat(writer.finish(false)).isFalse();
+    assertThat(writer.finalizationPhasesJson())
+        .contains(
+            "\"phases\":{\"publication\":0,\"final_validation\":null,\"witness_manifest\":null,"
+                + "\"seal\":null,\"local_install\":null,\"close_stores\":0}");
+  }
+
+  @Test
   public void leasesProtectPrivateWriterAndReaderParentClosureUntilFinish() throws Exception {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();
@@ -971,7 +1037,14 @@ public final class LocalCacheSessionTest {
     Path workspace = temporary.newFolder("workspace").toPath();
     Path output = temporary.newFolder("output").toPath();
     Path cache = temporary.newFolder("cache").toPath();
-    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
+    var clock = new AtomicLong();
+    var writer =
+        new LocalCacheSession(
+            cache,
+            snapshot(workspace, output),
+            () -> clock.getAndAdd(10),
+            LocalCacheSession.ReadLimits.DEFAULT,
+            /* profileFinalization= */ true);
     writer.put(new Key("entry"), new byte[] {7}).get();
     try (var paths = Files.walk(cache.resolve("leased-v2/objects"))) {
       Path pack =
@@ -979,7 +1052,13 @@ public final class LocalCacheSessionTest {
       Files.createDirectory(pack.getParent().resolve("index"));
     }
     assertThat(openPackDescriptors(cache)).isGreaterThan(0);
+    clock.set(0);
     assertThrows(java.io.IOException.class, () -> writer.finish(true));
+    assertThat(writer.finalizationPhasesJson())
+        .contains(
+            "\"phases\":{\"publication\":70,\"final_validation\":10,\"witness_manifest\":10,"
+                + "\"seal\":10,\"local_install\":null,\"close_stores\":10}");
+    assertThat(clock.get()).isEqualTo(100);
     assertThat(openPackDescriptors(cache)).isEqualTo(0);
     try (var paths = Files.walk(cache)) {
       assertThat(paths.anyMatch(p -> p.toString().endsWith(".manifest"))).isFalse();
