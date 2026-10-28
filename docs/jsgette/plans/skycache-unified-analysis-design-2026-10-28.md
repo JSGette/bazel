@@ -227,6 +227,30 @@ Memory and scheduling require one controller. Reserve encoded buffers, decode ba
 
 Papp, Böhnlein, and Yzelman’s ICPP 2025 model shows that choosing parallelization and memory management separately can be linearly worse than joint optimization. Its optimal solutions for small DAGs are not a practical million-node scheduler. Use bounded ready-frontier heuristics with critical-path urgency, release benefit, and starvation protection. The enforceable bound initially covers owned cache buffers and staging. The live evaluator graph, Java runtime, native memory, and page cache remain separately measured; a 512 MiB metadata setting or larger disk quota cannot establish a total-RSS bound. ([ICPP 2025](https://arxiv.org/html/2507.17411v1))
 
+## Reuse analysis while preserving action conflict checks
+
+An accepted analysis-cache hit returns a configured target or aspect with its action definitions. It bypasses that target's local construction, including the owner assignment and action checks performed by its builder. It does not establish that those actions are compatible with every other target requested in this build. When conflict checking is enabled, the current build still needs exact-output and path-prefix conflict checks across its restored and locally computed closure. The execution action cache has a different job: reuse valid outputs for an action definition, or execute that action. ([Retrieval return](../../../src/main/java/com/google/devtools/build/lib/skyframe/ConfiguredTargetFunction.java), [Aspect retrieval](../../../src/main/java/com/google/devtools/build/lib/skyframe/AspectFunction.java), [Builder checks](../../../src/main/java/com/google/devtools/build/lib/analysis/RuleConfiguredTargetBuilder.java), [Global conflicts](../../../src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java))
+
+```mermaid
+flowchart TD
+    D[Demanded target or aspect] --> H{Admissible analysis-cache hit?}
+    H -->|Yes| R[Restore validated analysis value\nIncluding action definitions]
+    H -->|No| L[Construct locally\nAssign owners and check target actions]
+    R --> C[Current build closure\nExact-output and path-prefix conflict checks]
+    L --> C
+    C -->|Conflict| F[Report error and prevent affected execution]
+    C -->|Accepted| E[Normal execution contracts\nAction-result cache and shared-action state]
+    E --> O[Reuse valid outputs or execute one producer]
+```
+
+**Figure 5. Analysis reuse and action execution remain separate decisions.** The middle check covers the actual combination of restored and computed actions; an individual hit cannot certify that combination. Existing execution sharing prevents a second producer from rewriting outputs while downstream actions read them. This is not a global analysis barrier: merged analysis/execution can run an accepted root while another root is still being checked, and a later conflict can fail the build after some actions have executed.
+
+The selected changes remove two concrete repetitions without adding a long-lived action map. In `Actions.assignOwnersAndThrowIfConflictMaybeToleratingSharedActions`, skip the second compatibility check only when the previously seen output is the **same artifact object** just checked; retain the foreign-owner check and every check for a distinct artifact. In `IncrementalArtifactConflictFinder`, claim a starting root in the existing visited set so it is not traversed again after an earlier root or dependency visit. A pruned root still joins the ordered completion chain, waits for its predecessor, and reruns with fresh traversal state when a prior conflict requires its own report. `MapBasedActionGraph` already stops after proving that an alias shares all outputs. ([Owner assignment](../../../src/main/java/com/google/devtools/build/lib/actions/Actions.java), [Root traversal](../../../src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java), [Existing alias shortcut](../../../src/main/java/com/google/devtools/build/lib/actions/MapBasedActionGraph.java))
+
+General memoization of a positive action comparison would be unsafe here. For distinct derived artifacts, owner equality initially tolerates a matching target owner while a generating key is unset; once both keys are assigned, the action indexes participate in equality. Two nonshareable actions can therefore compare equal before the first assignment and conflict at a later output. The selected shortcut stays within one iteration with no intervening ownership change. Action definitions retain their evaluator lifetime; the existing per-build execution-sharing map clears at `executionOver`, and conflict-checking scratch state clears after analysis. These changes neither add an action-key cache nor alter those lifetimes. ([Artifact owner equality](../../../src/main/java/com/google/devtools/build/lib/actions/Artifact.java), [Retained action list](../../../src/main/java/com/google/devtools/build/lib/actions/BasicActionLookupValue.java), [Execution sharing and cleanup](../../../src/main/java/com/google/devtools/build/lib/skyframe/SkyframeActionExecutor.java), [Conflict-state cleanup](../../../src/main/java/com/google/devtools/build/lib/skyframe/SkyframeBuildView.java))
+
+A future certified conflict summary would need to bind the exact closure revision, output namespace and configuration, producer/equality semantics, and complete exact-path and prefix coverage. Internal conflict freedom of one cached closure does not prove compatibility with another closure or newly computed actions: every relevant intersection must be checked before admitting execution, with conservative fallback when coverage or revisions are uncertain. This remains proposed work. The selected repetitions and their regression/measurement evidence are recorded in [action-check evidence](../measurements/skycache-unified-analysis-2026-10-28/ACTIONS.md); no command-level speedup is claimed from the source changes alone.
+
 ## Prove one useful slice before replacing broad interfaces
 
 ### Gate 0: establish owners and costs

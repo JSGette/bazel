@@ -1,0 +1,29 @@
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
+index 02b9b63c33..48f35888cc 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
+@@ -246,6 +246,24 @@ java_test(
+     ],
+ )
+ 
++java_test(
++    name = "IncrementalArtifactConflictFinderTest",
++    srcs = ["IncrementalArtifactConflictFinderTest.java"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/actions",
++        "//src/main/java/com/google/devtools/build/lib/actions:action_lookup_key",
++        "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:artifact_conflict_finder",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:incremental_artifact_conflict_finder",
++        "//src/main/java/com/google/devtools/build/skyframe",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
++        "//third_party/java/guava:collect",
++        "//third_party/java/junit",
++        "//third_party/java/mockito",
++        "//third_party/java/truth",
++    ],
++)
++
+ java_test(
+     name = "LocalDiffAwarenessIntegrationTest",
+     srcs = ["LocalDiffAwarenessIntegrationTest.java"],

@@ -1,0 +1,42 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/actions:ActionsTests
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+.Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+...................................................................WARNING: There are no active jobs - stopping the build
+WARNING: Still waiting for unfinished jobs
+WARNING: Still waiting for 3 jobs to complete:
+      Running (remote):
+        action3, 1 s
+      Running (something else):
+        action4, 0 s
+      Scheduling:
+        action2, 2 s
+Build will be stopped after these tasks terminate
+...............................................................E...............................WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/libresolution.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+..............................................................................................................................................................................................................................
+Time: 10.432
+There was 1 failure:
+1) sameArtifactIsComparedOnlyOncePerOutput(com.google.devtools.build.lib.actions.ActionsTest)
+expected: 2
+but was : 4
+	at com.google.devtools.build.lib.actions.ActionsTest.sameArtifactIsComparedOnlyOncePerOutput(ActionsTest.java:64)
+
+FAILURES!!!
+Tests run: 384,  Failures: 1
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 10:07:33 --
+

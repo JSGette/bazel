@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' timestamp='2026-10-28T10:07:20.461Z' hostname='localhost' tests='8' failures='6' errors='0' time='0.928' package='' id='0'>
+    <properties />
+    <testcase name='dependencyAlreadyVisitedAsRootRegistersActionsOnce' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.778'>
+      <failure message='value of: registrations(...)&#xA;expected: 1&#xA;but was : 2' type='com.google.common.truth.ComparisonFailureWithFacts'>value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.dependencyAlreadyVisitedAsRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:92)
+</failure></testcase>
+    <testcase name='prunedRootWaitsForOriginalActionCheck' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.113'>
+      <failure message='expected: 1&#xA;but was : 2' type='com.google.common.truth.ComparisonFailureWithFacts'>expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.prunedRootWaitsForOriginalActionCheck(IncrementalArtifactConflictFinderTest.java:139)
+</failure></testcase>
+    <testcase name='conflictingRootIsNotCertifiedForLaterCheck' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.005'>
+      <failure message='&#xA;Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.&#xA;Sealed interfaces or abstract classes can&apos;t be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.&#xA;Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.' type='org.mockito.exceptions.base.MockitoException'>org.mockito.exceptions.base.MockitoException: 
+Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.
+Sealed interfaces or abstract classes can't be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.
+Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflict(IncrementalArtifactConflictFinderTest.java:232)
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflictingRootIsNotCertifiedForLaterCheck(IncrementalArtifactConflictFinderTest.java:200)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+Caused by: org.mockito.exceptions.base.MockitoException: Unsupported settings with this type 'com.google.devtools.build.lib.actions.Artifact'
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:168)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:399)
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:190)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:410)
+	... 27 more
+</failure></testcase>
+    <testcase name='repeatedRootRegistersActionsOnce' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.006'>
+      <failure message='value of: registrations(...)&#xA;expected: 1&#xA;but was : 2' type='com.google.common.truth.ComparisonFailureWithFacts'>value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.repeatedRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:67)
+</failure></testcase>
+    <testcase name='rootAlreadyVisitedAsDependencyRegistersActionsOnce' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.008'>
+      <failure message='value of: registrations(...)&#xA;expected: 1&#xA;but was : 2' type='com.google.common.truth.ComparisonFailureWithFacts'>value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.rootAlreadyVisitedAsDependencyRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:80)
+</failure></testcase>
+    <testcase name='rerunDoesNotPrunePreviouslyVisitedRoot' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.004' />
+    <testcase name='overlappingRootsRegisterSharedDependencyOnce' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.005' />
+    <testcase name='conflictInPrunedDependencyIsRediscoveredForLaterRoot' classname='com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest' time='0.004'>
+      <failure message='&#xA;Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.&#xA;Sealed interfaces or abstract classes can&apos;t be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.&#xA;Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.' type='org.mockito.exceptions.base.MockitoException'>org.mockito.exceptions.base.MockitoException: 
+Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.
+Sealed interfaces or abstract classes can't be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.
+Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflict(IncrementalArtifactConflictFinderTest.java:232)
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflictInPrunedDependencyIsRediscoveredForLaterRoot(IncrementalArtifactConflictFinderTest.java:150)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:299)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:293)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: org.mockito.exceptions.base.MockitoException: Unsupported settings with this type 'com.google.devtools.build.lib.actions.Artifact'
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:168)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:399)
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:190)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:410)
+	... 12 more
+</failure></testcase>
+    <system-out />
+    <system-err /></testsuite></testsuites>

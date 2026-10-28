@@ -1,0 +1,66 @@
+INFO: Invocation ID: 1a128486-6bab-4031-a909-aacf4a2e618a
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest (0 packages loaded, 0 targets configured)
+Analyzing: target //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest (0 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest (0 packages loaded, 0 targets configured).
+FAIL: //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest (Exit 1) (see /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinderTest/test.log)
+[289 / 290] 1 / 1 tests, 1 failed; Testing //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest; 1s linux-sandbox
+INFO: From Testing //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest:
+==================== Test output for //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest:
+JUnit4 Test Runner
+.Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+E.E..E.E...
+Time: 1.02
+There were 4 failures:
+1) dependencyAlreadyVisitedAsRootRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.dependencyAlreadyVisitedAsRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:92)
+2) prunedRootWaitsForOriginalActionCheck(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.prunedRootWaitsForOriginalActionCheck(IncrementalArtifactConflictFinderTest.java:139)
+3) repeatedRootRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.repeatedRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:67)
+4) rootAlreadyVisitedAsDependencyRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.rootAlreadyVisitedAsDependencyRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:80)
+
+FAILURES!!!
+Tests run: 8,  Failures: 4
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 10:08:34 --
+
+================================================================================
+INFO: Found 1 test target...
+Target //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest up-to-date:
+  bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinderTest
+  bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinderTest.jar
+INFO: Elapsed time: 2.146s, Critical Path: 1.69s
+INFO: 7 processes: 8 action cache hit, 2 internal, 3 linux-sandbox, 2 worker.
+INFO: Build completed, 1 test FAILED, 7 total actions
+INFO: 
+//src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest FAILED in 1.3s
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinderTest/test.log
+
+Executed 1 out of 1 test: 1 fails locally.
+INFO: Build Event Protocol files produced successfully.

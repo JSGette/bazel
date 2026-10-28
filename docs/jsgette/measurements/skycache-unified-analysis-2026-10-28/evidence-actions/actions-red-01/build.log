@@ -1,0 +1,148 @@
+Starting local Bazel server (9.3.1) and connecting to it...
+INFO: Invocation ID: 8a28c8d4-eb81-4be7-84e1-899ec08a171c
+Computing main repo mapping: 
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+Analyzing: 2 targets (9 packages loaded, 6 targets configured)
+Analyzing: 2 targets (9 packages loaded, 6 targets configured)
+
+DEBUG: /home/jgett/REPOS/.work/skycache-analysis-foundation-build/external/grpc-java+/java_grpc_library.bzl:202:14: Multiple values in 'deps' is deprecated in build_bazel_remote_execution_v2_remote_execution_java_grpc
+WARNING: /home/jgett/REPOS/.work/skycache-analysis-foundation-2026-10-28/src/conditions/BUILD:128:15: in config_setting rule //src/conditions:darwin_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+Analyzing: 2 targets (468 packages loaded, 16860 targets configured)
+
+INFO: Analyzed 2 targets (472 packages loaded, 21992 targets configured, 54 aspect applications).
+[269 / 3,660] [Prepa] Writing repo mapping manifest for //src/test/java/com/google/devtools/build/lib/actions:ActionsTests
+[3,347 / 3,661] Building src/main/java/com/google/devtools/build/lib/testing/common/libdirectory_listing_helper.jar (1 source file); 0s remote-cache, multiplex-worker ... (3 actions, 2 running)
+[3,656 / 3,661] Building src/test/java/com/google/devtools/build/lib/actions/libActionsTests_lib.jar (25 source files) and running annotation processors (OptionProcessor, OptionsClassProcessor, AutoAnnotationProcessor, AutoBuilderProcessor, AutoOneOfProcessor, AutoValueProcessor, AutoValueGsonAdapterFactoryProcessor); 0s remote-cache, multiplex-worker ... (3 actions, 1 running)
+[3,658 / 3,662] Building src/test/java/com/google/devtools/build/lib/actions/libActionsTests_lib.jar (25 source files) and running annotation processors (OptionProcessor, OptionsClassProcessor, AutoAnnotationProcessor, AutoBuilderProcessor, AutoOneOfProcessor, AutoValueProcessor, AutoValueGsonAdapterFactoryProcessor); 1s remote-cache, multiplex-worker ... (2 actions running)
+FAIL: //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest (Exit 1) (see /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinderTest/test.log)
+INFO: From Testing //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest:
+==================== Test output for //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest:
+JUnit4 Test Runner
+.Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+E.E.E.E.E...E
+Time: 0.931
+There were 6 failures:
+1) dependencyAlreadyVisitedAsRootRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.dependencyAlreadyVisitedAsRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:92)
+2) prunedRootWaitsForOriginalActionCheck(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.prunedRootWaitsForOriginalActionCheck(IncrementalArtifactConflictFinderTest.java:139)
+3) conflictingRootIsNotCertifiedForLaterCheck(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+org.mockito.exceptions.base.MockitoException: 
+Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.
+Sealed interfaces or abstract classes can't be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.
+Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflict(IncrementalArtifactConflictFinderTest.java:232)
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflictingRootIsNotCertifiedForLaterCheck(IncrementalArtifactConflictFinderTest.java:200)
+	... 24 trimmed
+Caused by: org.mockito.exceptions.base.MockitoException: Unsupported settings with this type 'com.google.devtools.build.lib.actions.Artifact'
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:168)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:399)
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:190)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:410)
+	... 27 more
+4) repeatedRootRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.repeatedRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:67)
+5) rootAlreadyVisitedAsDependencyRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.rootAlreadyVisitedAsDependencyRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:80)
+6) conflictInPrunedDependencyIsRediscoveredForLaterRoot(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+org.mockito.exceptions.base.MockitoException: 
+Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.
+Sealed interfaces or abstract classes can't be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.
+Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflict(IncrementalArtifactConflictFinderTest.java:232)
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflictInPrunedDependencyIsRediscoveredForLaterRoot(IncrementalArtifactConflictFinderTest.java:150)
+	... 9 trimmed
+Caused by: org.mockito.exceptions.base.MockitoException: Unsupported settings with this type 'com.google.devtools.build.lib.actions.Artifact'
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:168)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:399)
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:190)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:410)
+	... 12 more
+
+FAILURES!!!
+Tests run: 8,  Failures: 6
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 10:07:21 --
+
+================================================================================
+[3,662 / 3,663] 1 / 2 tests, 1 failed; Testing //src/test/java/com/google/devtools/build/lib/actions:ActionsTests; 0s linux-sandbox
+[3,662 / 3,663] 1 / 2 tests, 1 failed; Testing //src/test/java/com/google/devtools/build/lib/actions:ActionsTests; 10s linux-sandbox
+FAIL: //src/test/java/com/google/devtools/build/lib/actions:ActionsTests (Exit 1) (see /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/actions/ActionsTests/test.log)
+[3,662 / 3,663] 2 / 2 tests, 2 failed; Testing //src/test/java/com/google/devtools/build/lib/actions:ActionsTests; 12s linux-sandbox
+INFO: From Testing //src/test/java/com/google/devtools/build/lib/actions:ActionsTests:
+==================== Test output for //src/test/java/com/google/devtools/build/lib/actions:ActionsTests:
+JUnit4 Test Runner
+.Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+...................................................................WARNING: There are no active jobs - stopping the build
+WARNING: Still waiting for unfinished jobs
+WARNING: Still waiting for 3 jobs to complete:
+      Running (remote):
+        action3, 1 s
+      Running (something else):
+        action4, 0 s
+      Scheduling:
+        action2, 2 s
+Build will be stopped after these tasks terminate
+...............................................................E...............................WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/libresolution.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+..............................................................................................................................................................................................................................
+Time: 10.432
+There was 1 failure:
+1) sameArtifactIsComparedOnlyOncePerOutput(com.google.devtools.build.lib.actions.ActionsTest)
+expected: 2
+but was : 4
+	at com.google.devtools.build.lib.actions.ActionsTest.sameArtifactIsComparedOnlyOncePerOutput(ActionsTest.java:64)
+
+FAILURES!!!
+Tests run: 384,  Failures: 1
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 10:07:33 --
+
+================================================================================
+INFO: Found 2 test targets...
+INFO: Elapsed time: 21.355s, Critical Path: 15.33s
+INFO: 25 processes: 3638 action cache hit, 3 remote cache hit, 11 internal, 5 linux-sandbox, 6 worker.
+INFO: Build completed, 2 tests FAILED, 25 total actions
+INFO: 
+//src/test/java/com/google/devtools/build/lib/actions:ActionsTests       FAILED in 12.0s
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/actions/ActionsTests/test.log
+//src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest FAILED in 1.2s
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinderTest/test.log
+
+Executed 2 out of 2 tests: 2 fail locally.
+INFO: Build Event Protocol files produced successfully.

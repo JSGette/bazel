@@ -1,0 +1,71 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/skyframe:IncrementalArtifactConflictFinderTest
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+.Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+E.E.E.E.E...E
+Time: 0.931
+There were 6 failures:
+1) dependencyAlreadyVisitedAsRootRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.dependencyAlreadyVisitedAsRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:92)
+2) prunedRootWaitsForOriginalActionCheck(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.prunedRootWaitsForOriginalActionCheck(IncrementalArtifactConflictFinderTest.java:139)
+3) conflictingRootIsNotCertifiedForLaterCheck(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+org.mockito.exceptions.base.MockitoException: 
+Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.
+Sealed interfaces or abstract classes can't be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.
+Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflict(IncrementalArtifactConflictFinderTest.java:232)
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflictingRootIsNotCertifiedForLaterCheck(IncrementalArtifactConflictFinderTest.java:200)
+	... 24 trimmed
+Caused by: org.mockito.exceptions.base.MockitoException: Unsupported settings with this type 'com.google.devtools.build.lib.actions.Artifact'
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:168)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:399)
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:190)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:410)
+	... 27 more
+4) repeatedRootRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.repeatedRootRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:67)
+5) rootAlreadyVisitedAsDependencyRegistersActionsOnce(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+value of: registrations(...)
+expected: 1
+but was : 2
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.rootAlreadyVisitedAsDependencyRegistersActionsOnce(IncrementalArtifactConflictFinderTest.java:80)
+6) conflictInPrunedDependencyIsRediscoveredForLaterRoot(com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest)
+org.mockito.exceptions.base.MockitoException: 
+Mockito cannot mock this class: class com.google.devtools.build.lib.actions.Artifact.
+Sealed interfaces or abstract classes can't be mocked. Interfaces cannot be instantiated and cannot be subclassed for mocking purposes.
+Instead of mocking a sealed interface or an abstract class, a non-abstract class can be mocked and used to represent the interface.
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflict(IncrementalArtifactConflictFinderTest.java:232)
+	at com.google.devtools.build.lib.skyframe.IncrementalArtifactConflictFinderTest.conflictInPrunedDependencyIsRediscoveredForLaterRoot(IncrementalArtifactConflictFinderTest.java:150)
+	... 9 trimmed
+Caused by: org.mockito.exceptions.base.MockitoException: Unsupported settings with this type 'com.google.devtools.build.lib.actions.Artifact'
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:168)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:399)
+	at net.bytebuddy.TypeCache.findOrInsert(TypeCache.java:190)
+	at net.bytebuddy.TypeCache$WithInlineExpunction.findOrInsert(TypeCache.java:410)
+	... 12 more
+
+FAILURES!!!
+Tests run: 8,  Failures: 6
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 10:07:21 --
+

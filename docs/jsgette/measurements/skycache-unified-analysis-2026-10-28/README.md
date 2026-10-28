@@ -4,6 +4,8 @@ See [recorded implementation results](RESULTS.md) for native smoke evidence,
 test results, the known identity failure and the remaining acceptance gates.
 See the [retention and attribution increment](RETENTION.md) for the next code
 correction, broader workload results and its measured limitations.
+See the [action-check increment](ACTIONS.md) for duplicate-work corrections,
+action-heavy workloads, and the restored/local conflict boundary.
 
 P00 provides a stdlib Python harness and a deterministic fixture. It implements
 no optimization and establishes no performance improvement. The committed

@@ -1,0 +1,149 @@
+diff --git a/docs/jsgette/measurements/skycache-unified-analysis-2026-10-28/README.md b/docs/jsgette/measurements/skycache-unified-analysis-2026-10-28/README.md
+index 0312a1d661..5c637785f3 100644
+--- a/docs/jsgette/measurements/skycache-unified-analysis-2026-10-28/README.md
++++ b/docs/jsgette/measurements/skycache-unified-analysis-2026-10-28/README.md
+@@ -4,6 +4,8 @@ See [recorded implementation results](RESULTS.md) for native smoke evidence,
+ test results, the known identity failure and the remaining acceptance gates.
+ See the [retention and attribution increment](RETENTION.md) for the next code
+ correction, broader workload results and its measured limitations.
++See the [action-check increment](ACTIONS.md) for duplicate-work corrections,
++action-heavy workloads, and the restored/local conflict boundary.
+ 
+ P00 provides a stdlib Python harness and a deterministic fixture. It implements
+ no optimization and establishes no performance improvement. The committed
+diff --git a/docs/jsgette/plans/skycache-unified-analysis-design-2026-10-28.md b/docs/jsgette/plans/skycache-unified-analysis-design-2026-10-28.md
+index f5be3fcc97..e0c7e650dc 100644
+--- a/docs/jsgette/plans/skycache-unified-analysis-design-2026-10-28.md
++++ b/docs/jsgette/plans/skycache-unified-analysis-design-2026-10-28.md
+@@ -227,6 +227,30 @@ Memory and scheduling require one controller. Reserve encoded buffers, decode ba
+ 
+ Papp, Böhnlein, and Yzelman’s ICPP 2025 model shows that choosing parallelization and memory management separately can be linearly worse than joint optimization. Its optimal solutions for small DAGs are not a practical million-node scheduler. Use bounded ready-frontier heuristics with critical-path urgency, release benefit, and starvation protection. The enforceable bound initially covers owned cache buffers and staging. The live evaluator graph, Java runtime, native memory, and page cache remain separately measured; a 512 MiB metadata setting or larger disk quota cannot establish a total-RSS bound. ([ICPP 2025](https://arxiv.org/html/2507.17411v1))
+ 
++## Reuse analysis while preserving action conflict checks
++
++An accepted analysis-cache hit returns a configured target or aspect with its action definitions. It bypasses that target's local construction, including the owner assignment and action checks performed by its builder. It does not establish that those actions are compatible with every other target requested in this build. When conflict checking is enabled, the current build still needs exact-output and path-prefix conflict checks across its restored and locally computed closure. The execution action cache has a different job: reuse valid outputs for an action definition, or execute that action. ([Retrieval return](../../../src/main/java/com/google/devtools/build/lib/skyframe/ConfiguredTargetFunction.java), [Aspect retrieval](../../../src/main/java/com/google/devtools/build/lib/skyframe/AspectFunction.java), [Builder checks](../../../src/main/java/com/google/devtools/build/lib/analysis/RuleConfiguredTargetBuilder.java), [Global conflicts](../../../src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java))
++
++```mermaid
++flowchart TD
++    D[Demanded target or aspect] --> H{Admissible analysis-cache hit?}
++    H -->|Yes| R[Restore validated analysis value\nIncluding action definitions]
++    H -->|No| L[Construct locally\nAssign owners and check target actions]
++    R --> C[Current build closure\nExact-output and path-prefix conflict checks]
++    L --> C
++    C -->|Conflict| F[Report error and prevent affected execution]
++    C -->|Accepted| E[Normal execution contracts\nAction-result cache and shared-action state]
++    E --> O[Reuse valid outputs or execute one producer]
++```
++
++**Figure 5. Analysis reuse and action execution remain separate decisions.** The middle check covers the actual combination of restored and computed actions; an individual hit cannot certify that combination. Existing execution sharing prevents a second producer from rewriting outputs while downstream actions read them.
++
++The selected changes remove two concrete repetitions without adding a long-lived action map. In `Actions.assignOwnersAndThrowIfConflictMaybeToleratingSharedActions`, skip the second compatibility check only when the previously seen output is the **same artifact object** just checked; retain the foreign-owner check and every check for a distinct artifact. In `IncrementalArtifactConflictFinder`, claim a starting root in the existing visited set so it is not traversed again after an earlier root or dependency visit. A pruned root still joins the ordered completion chain, waits for its predecessor, and reruns with fresh traversal state when a prior conflict requires its own report. `MapBasedActionGraph` already stops after proving that an alias shares all outputs. ([Owner assignment](../../../src/main/java/com/google/devtools/build/lib/actions/Actions.java), [Root traversal](../../../src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java), [Existing alias shortcut](../../../src/main/java/com/google/devtools/build/lib/actions/MapBasedActionGraph.java))
++
++General memoization of a positive action comparison would be unsafe here. For distinct derived artifacts, owner equality initially tolerates a matching target owner while a generating key is unset; once both keys are assigned, the action indexes participate in equality. Two nonshareable actions can therefore compare equal before the first assignment and conflict at a later output. The selected shortcut stays within one iteration with no intervening ownership change. Action definitions retain their evaluator lifetime; the existing per-build execution-sharing map clears at `executionOver`, and conflict-checking scratch state clears after analysis. These changes neither add an action-key cache nor alter those lifetimes. ([Artifact owner equality](../../../src/main/java/com/google/devtools/build/lib/actions/Artifact.java), [Retained action list](../../../src/main/java/com/google/devtools/build/lib/actions/BasicActionLookupValue.java), [Execution sharing and cleanup](../../../src/main/java/com/google/devtools/build/lib/skyframe/SkyframeActionExecutor.java), [Conflict-state cleanup](../../../src/main/java/com/google/devtools/build/lib/skyframe/SkyframeBuildView.java))
++
++A future certified conflict summary would need to bind the exact closure revision, output namespace and configuration, producer/equality semantics, and complete exact-path and prefix coverage. Internal conflict freedom of one cached closure does not prove compatibility with another closure or newly computed actions: every relevant intersection must be checked before admitting execution, with conservative fallback when coverage or revisions are uncertain. This remains proposed work. The selected repetitions and their regression/measurement evidence are recorded in [action-check evidence](../measurements/skycache-unified-analysis-2026-10-28/ACTIONS.md); no command-level speedup is claimed from the source changes alone.
++
+ ## Prove one useful slice before replacing broad interfaces
+ 
+ ### Gate 0: establish owners and costs
+diff --git a/docs/jsgette/plans/skycache-unified-analysis-implementation-2026-10-28.md b/docs/jsgette/plans/skycache-unified-analysis-implementation-2026-10-28.md
+index e235c3dc44..e0113bc35d 100644
+--- a/docs/jsgette/plans/skycache-unified-analysis-implementation-2026-10-28.md
++++ b/docs/jsgette/plans/skycache-unified-analysis-implementation-2026-10-28.md
+@@ -8,6 +8,7 @@ This plan targets `JSGette/bazel`, based on commit `4f5ab75ca9aeffbbf288de558220
+ 
+ ## Current implementation checkpoint
+ 
++- The [action-check increment](../measurements/skycache-unified-analysis-2026-10-28/ACTIONS.md) removes two demonstrated duplicate operations in existing analysis paths: repeated starting-root traversal and a second comparison of the same output object. The conflict and execution-sharing steps remain authoritative. Native red/green tests prove the operation reductions; action-heavy and mixed restored/local cohorts test the boundary separately from whole-command performance. This adds no persistent action cache and does not close the broader P00/P01/P02 gates.
+ - The [second increment](../measurements/skycache-unified-analysis-2026-10-28/RETENTION.md) fixes shared-decode callback retention with native red/green GC proof; 626 Java cases pass. Six fixed finalization timings survive Bazel's early profiler shutdown. Synthetic 4,096-node broad/sparse and retained-provider cohorts now produce exact output checks and cost/ownership CSVs. Thirty workload commands pass, but the observations do not establish an overall memory or latency improvement. Producer allocation/serialization remains the next cost investigation; no conditional optimization gate is waived.
+ - P00 now has a paired-run harness, fixture/evidence schemas and a deterministic native fixture. Baseline and instrumented executables each passed a producer plus four paired smoke commands with exact output digests. Broader workloads, action-key comparisons, idle-release/recovery and independent reproduction remain open.
+ - P01 now emits bounded scalar ownership snapshots before finish and after session close. Focused Java tests and real cache-hit diagnostics verify cleanup and retained-state distinctions. Exclusive phase costs, heap ownership and instrumentation overhead remain unproven.
+@@ -100,6 +101,12 @@ Record the exact source commit plus any patch digest, executable SHA-256, JDK, h
+ 
+ **Tests and acceptance.** Extend existing metric/lifecycle tests and the serialization/local-cache suites listed below. Verify counters on hit, miss, cancellation, timeout, failure, and command cleanup. A tiny fixture must reconcile known bytes/operations; disabling detailed instrumentation must remove its collection work. Compare instrumented and uninstrumented baseline overhead. Deliver `ownership.csv`, `phase-costs.csv`, and a ranked decision memo with exclusive-cost limitations. Select the next package only when its avoided work exceeds a credible estimate of added handles, bookkeeping, and synchronization.
+ 
++### Action work: reuse the existing checker first
++
++Keep three costs separate: per-target action construction/owner assignment (bypassed by an accepted configured-target hit), cross-target output conflict checking (still required), and execution sharing (still required). The delivered change claims each starting root in the existing conflict finder's visited set and avoids only a provably repeated same-object comparison during owner assignment. Conflict reruns keep fresh visited sets and predecessor completion ordering. The existing set can gain one entry per unique starting root; do not describe this as a guaranteed memory reduction.
++
++Measure disjoint and overlapping top-level closures with the action-heavy fixture. Require identical default-output hashes and cold, restored/local, restored/restored conflict cases. Avoid a global action-key memo: output owner identity changes during assignment, and action retention already has lifecycle owners. A future conflict-summary experiment must authenticate exact closure/action revisions and output namespace/configuration, then still check new composition boundaries for same-path and prefix conflicts. Do not skip those intersections based on a valid Skycache payload. This is an independent checker refinement, not completion of P03 publication reuse or P09 provenance migration.
++
+ ## P02 Make semantic eligibility executable
+ 
+ **Touchpoints.** Extend `BazelSkycacheIntegrationTest`, `SkyValueRetrieverTest`, `SharedValueDeserializationContextTest`, `AnalysisCacheInvalidatorTest`, and the provider-specific reproduction promoted in P00. Reuse existing codec eligibility/registration paths; do not infer safety solely from successful serialization.
+diff --git a/src/main/java/com/google/devtools/build/lib/actions/Actions.java b/src/main/java/com/google/devtools/build/lib/actions/Actions.java
+index 08a8a04004..becf6d8ec9 100644
+--- a/src/main/java/com/google/devtools/build/lib/actions/Actions.java
++++ b/src/main/java/com/google/devtools/build/lib/actions/Actions.java
+@@ -285,9 +285,12 @@ public final class Actions {
+                     action.prettyPrint(),
+                     oldKey.getActionLookupKey().getLabel()));
+           }
+-          // Key is already set: verify that the generating action and this action are compatible.
+-          verifyGeneratingActionKeys(
+-              output, generatingActionKey, allowSharedAction, actionKeyContext, actions);
++          // The same artifact was already checked above, without an intervening ownership change.
++          // A distinct artifact at this path can have a different generating action, so check it.
++          if (equalOutput != output) {
++            verifyGeneratingActionKeys(
++                output, generatingActionKey, allowSharedAction, actionKeyContext, actions);
++          }
+         }
+       }
+       actionIndex++;
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java b/src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java
+index 585212d422..4023b60090 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/IncrementalArtifactConflictFinder.java
+@@ -248,13 +248,15 @@ public final class IncrementalArtifactConflictFinder {
+           mySignal = new CountDownLatch(1);
+           nextSignalToWaitFor = mySignal;
+         }
+-        exclusivePool.execute(
+-            new CheckForConflictsUnderKey(
+-                actionLookupKey,
+-                actionCheckingFutures,
+-                temporaryBadActionMap,
+-                // While rerunning, we only keep a local set of visited ALKs.
+-                /* dedupSet= */ inRerun ? Sets.newConcurrentHashSet() : globalVisited));
++        // While rerunning, we only keep a local set of visited ALKs.
++        Set<ActionLookupKey> dedupSet = inRerun ? Sets.newConcurrentHashSet() : globalVisited;
++        // A root may already have been visited as another root or dependency. Even when it is
++        // pruned, this invocation must still join the ordered completion and rerun logic below.
++        if (dedupSet.add(actionLookupKey)) {
++          exclusivePool.execute(
++              new CheckForConflictsUnderKey(
++                  actionLookupKey, actionCheckingFutures, temporaryBadActionMap, dedupSet));
++        }
+         exclusivePool.awaitQuiescenceWithoutShutdown(true);
+       }
+     }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
+index 02b9b63c33..48f35888cc 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
+@@ -246,6 +246,24 @@ java_test(
+     ],
+ )
+ 
++java_test(
++    name = "IncrementalArtifactConflictFinderTest",
++    srcs = ["IncrementalArtifactConflictFinderTest.java"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/actions",
++        "//src/main/java/com/google/devtools/build/lib/actions:action_lookup_key",
++        "//src/main/java/com/google/devtools/build/lib/actions:artifacts",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:artifact_conflict_finder",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:incremental_artifact_conflict_finder",
++        "//src/main/java/com/google/devtools/build/skyframe",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
++        "//third_party/java/guava:collect",
++        "//third_party/java/junit",
++        "//third_party/java/mockito",
++        "//third_party/java/truth",
++    ],
++)
++
+ java_test(
+     name = "LocalDiffAwarenessIntegrationTest",
+     srcs = ["LocalDiffAwarenessIntegrationTest.java"],

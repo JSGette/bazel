@@ -1,0 +1,760 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/skyframe:SequencedSkyframeExecutorTest
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+.WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.google.devtools.build.lib.jni.JniLoader in an unnamed module (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/jni/libjni.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:key, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	... 8 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$7.execute(SequencedSkyframeExecutorTest.java:2191)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.skyframe.ParallelEvaluator waitForCompletionAndConstructResult
+INFO: Catastrophic exception in --keep_going mode while evaluating SkyKey: ActionLookupData{actionLookupKey=InjectedActionLookupKey:key, actionIndex=0}
+com.google.devtools.build.skyframe.SchedulerException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.skyframe.SchedulerException.ofError(SchedulerException.java:47)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:545)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$7.execute(SequencedSkyframeExecutorTest.java:2191)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+.Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:28 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+.Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating FILE:[/workspace]/[cyclesource]
+com.google.devtools.build.lib.skyframe.FileFunction$FileFunctionException: com.google.devtools.build.lib.io.FileSymlinkCycleException: Symlink cycle
+	at com.google.devtools.build.lib.skyframe.FileFunction.checkPathSeenDuringPartialResolutionInternal(FileFunction.java:389)
+	at com.google.devtools.build.lib.skyframe.FileFunction.checkPathSeenDuringPartialResolution(FileFunction.java:305)
+	at com.google.devtools.build.lib.skyframe.FileFunction.getSymlinkTargetRootedPath(FileFunction.java:284)
+	at com.google.devtools.build.lib.skyframe.FileFunction.compute(FileFunction.java:138)
+	at com.google.devtools.build.lib.skyframe.FileFunction.compute(FileFunction.java:61)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.io.FileSymlinkCycleException: Symlink cycle
+	at com.google.devtools.build.lib.skyframe.FileFunction.checkPathSeenDuringPartialResolutionInternal(FileFunction.java:350)
+	... 10 more
+
+.Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeActionExecutor reportMissingOutputFile
+WARNING: Error creating output 'missing' : missing does not exist
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:lc1, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: not all outputs were created or valid
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: not all outputs were created or valid
+	... 8 more
+
+.Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:29 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor decideKeepIncrementalState
+INFO: Set incremental state to false
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan skyframe graph checking for filesystem nodes of types [OUTPUT, EXTERNAL_OTHER]
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+.Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan skyframe graph checking for filesystem nodes of types [OUTPUT, EXTERNAL_OTHER]
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+.Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:30 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating @@rules_python+//command_line_option
+com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no such package '@@rules_python+//command_line_option': BUILD file not found in directory 'command_line_option' of external repository @@rules_python+. Add a BUILD file to a directory to mark it as a package.
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Builder.build(PackageFunction.java:1860)
+	at com.google.devtools.build.lib.skyframe.PackageFunction.compute(PackageFunction.java:460)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no such package '@@rules_python+//command_line_option': BUILD file not found in directory 'command_line_option' of external repository @@rules_python+. Add a BUILD file to a directory to mark it as a package.
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Type$2.create(PackageFunction.java:1740)
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Type$2.create(PackageFunction.java:1736)
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Builder.buildCause(PackageFunction.java:1855)
+	... 8 more
+
+.Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:lc1, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	... 8 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.skyframe.ParallelEvaluator waitForCompletionAndConstructResult
+INFO: Catastrophic exception in --keep_going mode while evaluating SkyKey: ActionLookupData{actionLookupKey=InjectedActionLookupKey:lc1, actionIndex=0}
+com.google.devtools.build.skyframe.SchedulerException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.skyframe.SchedulerException.ofError(SchedulerException.java:47)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:545)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+.Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+.Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor decideKeepIncrementalState
+INFO: Set incremental state to false
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan skyframe graph checking for filesystem nodes of types [OUTPUT, EXTERNAL_OTHER]
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+.Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:31 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor lambda$trackDiscardAnalysisCache$0
+INFO: Spent 0 milliseconds doing discarding analysis cache ANALYSIS_REFS_ONLY
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between null and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@599f1b7 for /workspace
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@599f1b7 and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@703fa45 for /workspace
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor decideKeepIncrementalState
+INFO: Set incremental state to false
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:lc1, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	... 8 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.skyframe.ParallelEvaluator waitForCompletionAndConstructResult
+INFO: Catastrophic exception in --keep_going mode while evaluating SkyKey: ActionLookupData{actionLookupKey=InjectedActionLookupKey:lc1, actionIndex=0}
+com.google.devtools.build.skyframe.SchedulerException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.skyframe.SchedulerException.ofError(SchedulerException.java:47)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:545)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:lc1, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	... 8 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:catastrophic, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	... 8 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.skyframe.ParallelEvaluator waitForCompletionAndConstructResult
+INFO: Catastrophic exception in --keep_going mode while evaluating SkyKey: ActionLookupData{actionLookupKey=InjectedActionLookupKey:catastrophic, actionIndex=0}
+com.google.devtools.build.skyframe.SchedulerException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.skyframe.SchedulerException.ofError(SchedulerException.java:47)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:545)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+.Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:32 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between null and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@7f6b7426 for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@7f6b7426 and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@781dbe44 for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 1 modified source files and directory listings: DIRECTORY_LISTING_STATE:[/external]/[foo]
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Accumulating dirty actions and batching them into shards
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.FilesystemValueChecker getDirtyActionValues
+INFO: Completed output file stat checks, no modified outputs found
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutor detectModifiedOutputFiles
+INFO: Found 0 modified files from last build
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating ActionLookupData{actionLookupKey=InjectedActionLookupKey:catastrophe, actionIndex=0}
+com.google.devtools.build.lib.skyframe.ActionExecutionFunction$ActionExecutionFunctionException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	... 8 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$6.execute(SequencedSkyframeExecutorTest.java:2075)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.skyframe.ParallelEvaluator waitForCompletionAndConstructResult
+INFO: Catastrophic exception in --keep_going mode while evaluating SkyKey: ActionLookupData{actionLookupKey=InjectedActionLookupKey:catastrophe, actionIndex=0}
+com.google.devtools.build.skyframe.SchedulerException: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.skyframe.SchedulerException.ofError(SchedulerException.java:47)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:545)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.actions.AlreadyReportedActionExecutionException: message
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:394)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.compute(ActionExecutionFunction.java:207)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	... 5 more
+Caused by: java.lang.Exception: just cause
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$CatastrophicAction.execute(SequencedSkyframeExecutorTest.java:1911)
+	at com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$6.execute(SequencedSkyframeExecutorTest.java:2075)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.executeAction(SkyframeActionExecutor.java:1373)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor$ActionRunner.run(SkyframeActionExecutor.java:1275)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.runStateMachine(ActionExecutionState.java:167)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionState.getResultOrDependOnFuture(ActionExecutionState.java:96)
+	at com.google.devtools.build.lib.skyframe.SkyframeActionExecutor.executeAction(SkyframeActionExecutor.java:758)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.checkCacheAndExecuteIfNeeded(ActionExecutionFunction.java:832)
+	at com.google.devtools.build.lib.skyframe.ActionExecutionFunction.computeInternal(ActionExecutionFunction.java:355)
+	... 7 more
+
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between null and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@25218a4d for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@25218a4d and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@59ec7020 for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 1 modified source files and directory listings: [/external]/[file]
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between null and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@1c00d406 for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager maybeGetDiffAwarenessState
+INFO: Using null DiffAwareness strategy for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.DiffAwarenessManager getDiff
+INFO: About to compute diff between com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@1c00d406 and com.google.devtools.build.lib.skyframe.SequencedSkyframeExecutorTest$2$1@45f9d394 for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings for /workspace
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleDiffsWithMissingDiffInformation
+INFO: About to scan 2 external files
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor logDiffInfo
+INFO: DiffAwareness found 0 modified source files and directory listings
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.packages.StarlarkNativeModule runGlobOperation
+WARNING: Exception processing includes=[**], excludes=[])
+com.google.devtools.build.lib.vfs.FileAccessException: /workspace/bad/dir (Permission denied)
+	at com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem$Errno.exception(InMemoryFileSystem.java:130)
+	at com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem.getDirectoryEntries(InMemoryFileSystem.java:550)
+	at com.google.devtools.build.lib.vfs.FileSystem.readdir(FileSystem.java:650)
+	at com.google.devtools.build.lib.vfs.Path.readdir(Path.java:313)
+	at com.google.devtools.build.lib.vfs.SyscallCache$1.readdir(SyscallCache.java:41)
+	at com.google.devtools.build.lib.packages.GlobCache$CountingFilesystemOps.readdir(GlobCache.java:411)
+	at com.google.devtools.build.lib.vfs.UnixGlob$GlobVisitor.reallyGlob(UnixGlob.java:792)
+	at com.google.devtools.build.lib.vfs.UnixGlob$GlobVisitor$1.run(UnixGlob.java:617)
+	at com.google.devtools.build.lib.vfs.UnixGlob$GlobVisitor.lambda$enqueue$0(UnixGlob.java:650)
+	at com.google.devtools.build.lib.packages.GlobCache.lambda$new$1(GlobCache.java:120)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1753)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1745)
+	at java.base/java.util.concurrent.ForkJoinTask$InterruptibleTask.exec(ForkJoinTask.java:1662)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.skyframe.SkyFunctionEnvironment commitAndGetParents
+INFO: Synthetic errorInfo for <GlobsKey packageRoot = /workspace, packageIdentifier = bad, globRequests = [GlobRequest: ** FILES]>
+com.google.devtools.build.lib.vfs.FileAccessException: /workspace/bad/dir (Permission denied)
+	at com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem$Errno.exception(InMemoryFileSystem.java:130)
+	at com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem.getDirectoryEntries(InMemoryFileSystem.java:550)
+	at com.google.devtools.build.lib.vfs.FileSystem.readdir(FileSystem.java:650)
+	at com.google.devtools.build.lib.vfs.Path.readdir(Path.java:313)
+	at com.google.devtools.build.lib.vfs.SyscallCache$1.readdir(SyscallCache.java:41)
+	at com.google.devtools.build.lib.skyframe.DirectoryListingStateFunction.compute(DirectoryListingStateFunction.java:66)
+	at com.google.devtools.build.lib.skyframe.DirectoryListingStateFunction.compute(DirectoryListingStateFunction.java:32)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.packages.StarlarkNativeModule runGlobOperation
+WARNING: Exception processing includes=[**], excludes=[])
+com.google.devtools.build.lib.vfs.FileAccessException: /workspace/bad/dir (Permission denied)
+	at com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem$Errno.exception(InMemoryFileSystem.java:130)
+	at com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem.getDirectoryEntries(InMemoryFileSystem.java:550)
+	at com.google.devtools.build.lib.vfs.FileSystem.readdir(FileSystem.java:650)
+	at com.google.devtools.build.lib.vfs.Path.readdir(Path.java:313)
+	at com.google.devtools.build.lib.vfs.SyscallCache$1.readdir(SyscallCache.java:41)
+	at com.google.devtools.build.lib.packages.GlobCache$CountingFilesystemOps.readdir(GlobCache.java:411)
+	at com.google.devtools.build.lib.vfs.UnixGlob$GlobVisitor.reallyGlob(UnixGlob.java:792)
+	at com.google.devtools.build.lib.vfs.UnixGlob$GlobVisitor$1.run(UnixGlob.java:617)
+	at com.google.devtools.build.lib.vfs.UnixGlob$GlobVisitor.lambda$enqueue$0(UnixGlob.java:650)
+	at com.google.devtools.build.lib.packages.GlobCache.lambda$new$1(GlobCache.java:120)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1753)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.compute(ForkJoinTask.java:1745)
+	at java.base/java.util.concurrent.ForkJoinTask$InterruptibleTask.exec(ForkJoinTask.java:1662)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate runCore
+WARNING: Aborting evaluation while evaluating @@rules_python+//command_line_option
+com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no such package '@@rules_python+//command_line_option': BUILD file not found in directory 'command_line_option' of external repository @@rules_python+. Add a BUILD file to a directory to mark it as a package.
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Builder.build(PackageFunction.java:1860)
+	at com.google.devtools.build.lib.skyframe.PackageFunction.compute(PackageFunction.java:460)
+	at com.google.devtools.build.skyframe.AbstractParallelEvaluator$Evaluate.runCore(AbstractParallelEvaluator.java:474)
+	at com.google.devtools.build.lib.concurrent.QuiescingTask.exec(QuiescingTask.java:78)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+Caused by: com.google.devtools.build.lib.packages.BuildFileNotFoundException: no such package '@@rules_python+//command_line_option': BUILD file not found in directory 'command_line_option' of external repository @@rules_python+. Add a BUILD file to a directory to mark it as a package.
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Type$2.create(PackageFunction.java:1740)
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Type$2.create(PackageFunction.java:1736)
+	at com.google.devtools.build.lib.skyframe.PackageFunction$PackageFunctionException$Builder.buildCause(PackageFunction.java:1855)
+	... 8 more
+
+.Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:33 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 28, 2026 10:09:34 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:34 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:34 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+I.Oct 28, 2026 10:09:34 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 28, 2026 10:09:34 AM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+
+Time: 7.517
+
+OK (36 tests)
+
+
+BazelTestRunner exiting with a return value of 0
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 10:09:34 --
+
