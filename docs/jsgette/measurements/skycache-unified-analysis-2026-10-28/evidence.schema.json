@@ -12,6 +12,14 @@
         "binary": {"type": "object", "required": ["path", "sha256"]},
         "harness_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "fixture_sha256": {"type": "object", "minProperties": 1},
+        "producer_fixture": {"$ref": "fixture.schema.json"},
+        "manifest_files": {
+          "type": "object", "required": ["consumer", "producer"],
+          "additionalProperties": {
+            "type": "object", "required": ["path", "name", "sha256"],
+            "properties": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+          }
+        },
         "environment": {"type": "object"},
         "platform": {"type": "object"},
         "settings": {"type": "object"},

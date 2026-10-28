@@ -1,0 +1,10 @@
+load(":analysis_dag.bzl", "analysis_dag")
+
+analysis_dag(
+    partitions = 8,
+    layers = 16,
+    width = 32,
+    fan_in = 4,
+    payload_fields = 32,
+    payload_chars = 128,
+)

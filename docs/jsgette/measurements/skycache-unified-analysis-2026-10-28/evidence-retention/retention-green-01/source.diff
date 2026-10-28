@@ -1,0 +1,359 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java
+index 0d58f96027..481434969d 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java
+@@ -387,7 +387,7 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+           .getExecutor()
+           .addCallback(
+               fingerprintValueService.get(fingerprint),
+-              new SharedBytesProcessor<>(fingerprint, codec, parent, setter, getOperation));
++              new SharedBytesProcessor<>(this, fingerprint, codec, parent, setter, getOperation));
+     } catch (IOException
+         // Avoids causing SettableFuture consumers to hang if when there are unexpected exceptions.
+         | RuntimeException
+@@ -400,7 +400,14 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+     }
+   }
+ 
+-  private class SharedBytesProcessor<T> implements FutureCallback<byte[]> {
++  // Retain only configuration, never the enclosing context's memo table or sibling read futures.
++  private static class SharedBytesProcessor<T> implements FutureCallback<byte[]> {
++    private final ObjectCodecRegistry registry;
++    private final ImmutableClassToInstanceMap<Object> dependencies;
++    private final CompressionService compressionService;
++    private final FingerprintValueService fingerprintValueService;
++    @Nullable private final SkyframeLookupCollector skyframeLookupCollector;
++    @Nullable private final DebugContext debugContext;
+     private final PackedFingerprint childFingerprint;
+     private final DeferredObjectCodec<?> codec;
+     private final T parent;
+@@ -408,11 +415,18 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+     private final SettableFuture<Object> getOperation;
+ 
+     private SharedBytesProcessor(
++        SharedValueDeserializationContext owner,
+         PackedFingerprint childFingerprint,
+         DeferredObjectCodec<?> codec,
+         T parent,
+         FieldSetter<? super T> setter,
+         SettableFuture<Object> getOperation) {
++      this.registry = owner.getRegistry();
++      this.dependencies = owner.getDependencies();
++      this.compressionService = owner.compressionService;
++      this.fingerprintValueService = owner.fingerprintValueService;
++      this.skyframeLookupCollector = owner.skyframeLookupCollector;
++      this.debugContext = owner.debugContext;
+       this.childFingerprint = childFingerprint;
+       this.codec = codec;
+       this.parent = parent;
+@@ -501,7 +515,17 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+ 
+     private void deserializeAndComplete(CodedInputStream input)
+         throws SerializationException, IOException {
+-      SharedValueDeserializationContext innerContext = getFreshContext(childFingerprint);
++      // Construct the fresh memo table only after bytes arrive, keeping misses inexpensive.
++      var innerContext =
++          new SharedValueDeserializationContext(
++              registry,
++              dependencies,
++              compressionService,
++              fingerprintValueService,
++              skyframeLookupCollector,
++              debugContext == null
++                  ? null
++                  : new DebugContext(childFingerprint, debugContext.edgeReceiver()));
+       DeferredValue<?> deferred = codec.deserializeDeferred(innerContext, input);
+       if (skyframeLookupCollector != null) {
+         // The codec above is responsible for calling `getSkyValue` so any SkyKey directly requested
+@@ -523,12 +547,16 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+         getOperation.set(result);
+         return;
+       }
++      // A pending completion needs the deferred value and setter, not this processor. Copy the
++      // fields so the callable cannot retain configuration and unrelated state through `this`.
++      T target = parent;
++      FieldSetter<? super T> fieldSetter = setter;
+       getOperation.setFuture(
+           Futures.whenAllSucceed(innerReadStatusFutures)
+               .call(
+                   () -> {
+                     Object result = deferred.call();
+-                    setter.set(parent, result);
++                    fieldSetter.set(target, result);
+                     return result;
+                   },
+                   directExecutor()));
+@@ -541,15 +569,15 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+       }
+       getOperation.setException(t);
+     }
+-  }
+ 
+-  private InputStream maybeDecompressBytes(byte[] bytes) throws IOException {
+-    ByteArrayInputStream byteArrayInputStream =
+-        new ByteArrayInputStream(bytes, 1, bytes.length - 1);
+-    if (bytes[0] == (byte) 0) {
+-      return byteArrayInputStream;
++    private InputStream maybeDecompressBytes(byte[] bytes) throws IOException {
++      ByteArrayInputStream byteArrayInputStream =
++          new ByteArrayInputStream(bytes, 1, bytes.length - 1);
++      if (bytes[0] == (byte) 0) {
++        return byteArrayInputStream;
++      }
++      return compressionService.newZstdInputStream(byteArrayInputStream);
+     }
+-    return compressionService.newZstdInputStream(byteArrayInputStream);
+   }
+ 
+   @Override
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 174806b422..864e7e0d8c 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -83,6 +83,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/concurrent/safeexecutor:safe_executor",
+         "//src/main/java/com/google/devtools/build/lib/events",
+         "//src/main/java/com/google/devtools/build/lib/packages",
++        "//src/main/java/com/google/devtools/build/lib/profiler",
+         "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_cluster",
+         "//src/main/java/com/google/devtools/build/lib/remote/options:options",
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+index 0919850787..146f3961a6 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+@@ -10,6 +10,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
+ 
+ import com.google.common.util.concurrent.ListenableFuture;
+ import com.google.common.util.concurrent.Striped;
++import com.google.devtools.build.lib.profiler.Profiler;
+ import com.google.devtools.build.lib.skyframe.serialization.FingerprintValueStore;
+ import com.google.devtools.build.lib.skyframe.serialization.KeyBytesProvider;
+ import com.google.devtools.build.lib.skyframe.serialization.StatsImpl;
+@@ -894,7 +895,9 @@ final class LocalCacheSession implements FingerprintValueStore {
+ 
+   boolean finish(boolean success) throws IOException {
+     lifecycle.writeLock().lock();
+-    try {
++    // Fixed-name scopes use the existing profiler; no per-key traces or counters are retained.
++    // Publication excludes the lock wait and cleanup, which is timed separately below.
++    try (var publicationScope = Profiler.instance().profile("local skycache publication")) {
+       if (closed) {
+         return false;
+       }
+@@ -922,12 +925,15 @@ final class LocalCacheSession implements FingerprintValueStore {
+           remoteParents.add(candidate.id());
+         }
+       }
+-      if (!inputs.isUnchanged()) {
+-        failure = "inputs changed during the invocation";
+-        return false;
++      try (var validationScope = Profiler.instance().profile("local skycache final validation")) {
++        if (!inputs.isUnchanged()) {
++          failure = "inputs changed during the invocation";
++          return false;
++        }
+       }
+       var buffer = new ByteArrayOutputStream();
+-      try (var out = new DataOutputStream(buffer)) {
++      try (var witnessScope = Profiler.instance().profile("local skycache witness manifest");
++          var out = new DataOutputStream(buffer)) {
+         out.writeInt(MAGIC);
+         out.writeUTF(id);
+         out.writeUTF(inputs.cacheNamespace());
+@@ -944,7 +950,9 @@ final class LocalCacheSession implements FingerprintValueStore {
+         throw new IOException("input manifest exceeds size limit");
+       }
+       // No manifest can reference private bytes that have not reached durable storage.
+-      privateStore.seal();
++      try (var sealScope = Profiler.instance().profile("local skycache seal")) {
++        privateStore.seal();
++      }
+       byte[] manifest =
+           com.google.common.primitives.Bytes.concat(
+               payload, HexFormat.of().parseHex(sha256(payload)));
+@@ -959,7 +967,8 @@ final class LocalCacheSession implements FingerprintValueStore {
+         remotePublished = true;
+         return false;
+       }
+-      try (var catalog = requireSharedCatalog()) {
++      try (var installScope = Profiler.instance().profile("local skycache install");
++          var catalog = requireSharedCatalog()) {
+         Path temporary =
+             Files.createTempFile(
+                 publications,
+@@ -982,7 +991,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+       }
+       return true;
+     } finally {
+-      try {
++      try (var closeScope = Profiler.instance().profile("local skycache close stores")) {
+         closeStores();
+       } finally {
+         lifecycle.writeLock().unlock();
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java
+index 36309b7456..f1aadc2d3a 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java
+@@ -15,6 +15,7 @@ package com.google.devtools.build.lib.skyframe.serialization;
+ 
+ import static com.google.common.base.Preconditions.checkNotNull;
+ import static com.google.common.truth.Truth.assertThat;
++import static com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor.safeDirectExecutor;
+ import static com.google.devtools.build.lib.skyframe.serialization.NotNestedSet.createRandomLeafArray;
+ import static com.google.devtools.build.lib.skyframe.serialization.testutils.Dumper.dumpStructureWithEquivalenceReduction;
+ import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
+@@ -24,8 +25,10 @@ import static org.junit.Assert.assertThrows;
+ 
+ import com.google.common.collect.ImmutableClassToInstanceMap;
+ import com.google.common.collect.ImmutableList;
++import com.google.common.testing.GcFinalization;
+ import com.google.common.util.concurrent.ListenableFuture;
+ import com.google.common.util.concurrent.ListenableFutureTask;
++import com.google.common.util.concurrent.SettableFuture;
+ import com.google.devtools.build.lib.compress.CompressionService;
+ import com.google.devtools.build.lib.compress.CompressionServiceImpl;
+ import com.google.devtools.build.lib.skyframe.serialization.NotNestedSet.NestedArrayCodec;
+@@ -42,7 +45,9 @@ import com.google.protobuf.CodedOutputStream;
+ import com.google.testing.junit.testparameterinjector.TestParameter;
+ import com.google.testing.junit.testparameterinjector.TestParameterInjector;
+ import com.google.testing.junit.testparameterinjector.TestParameters;
++import java.io.ByteArrayOutputStream;
+ import java.io.IOException;
++import java.lang.ref.WeakReference;
+ import java.util.ArrayList;
+ import java.util.Objects;
+ import java.util.Random;
+@@ -81,6 +86,132 @@ public final class SharedValueDeserializationContextTest {
+         .runTests();
+   }
+ 
++  @Test(timeout = 30000)
++  public void sharedDecodeDoesNotRetainUnrelatedMemoState(@TestParameter boolean finishFirstFetch)
++      throws Exception {
++    var pending = startMemoRetentionProbe();
++    var firstRequest = pending.store().takeFirstRequest();
++    GetRequest dependentRequest = null;
++    if (finishFirstFetch) {
++      firstRequest.complete();
++      dependentRequest = pending.store().takeFirstRequest();
++      assertThat(pending.childProbe().context).isNotNull();
++      assertThat(pending.result().isDone()).isFalse();
++      GcFinalization.awaitClear(pending.childProbe().context);
++      GcFinalization.awaitClear(pending.childProbe().memoValue);
++    }
++    GcFinalization.awaitClear(pending.context());
++    GcFinalization.awaitClear(pending.memoValue());
++    assertThat(pending.result().isDone()).isFalse();
++    if (dependentRequest == null) {
++      firstRequest.complete();
++      dependentRequest = pending.store().takeFirstRequest();
++    }
++    dependentRequest.complete();
++    assertThat(pending.result().get(WAIT_TIMEOUT_SECONDS, SECONDS))
++        .isSameInstanceAs(pending.first()[0]);
++    assertThat(pending.first()[0]).isSameInstanceAs(pending.second()[0]);
++    assertThat(((SharedElement) pending.first()[0]).value).isEqualTo(42);
++    // Both owners shared the root decode, which requested its dependency only once.
++    assertThat(pending.store().pollRequest()).isNull();
++  }
++
++  private record PendingMemoProbe(
++      GetRecordingStore store,
++      WeakReference<SharedValueDeserializationContext> context,
++      WeakReference<byte[]> memoValue,
++      MemoProbeCodec childProbe,
++      Object[] first,
++      Object[] second,
++      ListenableFuture<?> result) {}
++
++  private static PendingMemoProbe startMemoRetentionProbe() throws Exception {
++    var store = new GetRecordingStore();
++    var service =
++        new FingerprintValueService(
++            safeDirectExecutor(),
++            store,
++            new FingerprintValueCache(FingerprintValueCache.SyncMode.NOT_LINKED),
++            FingerprintValueService.NONPROD_FINGERPRINTER);
++    byte[] childBytes = {0, 42};
++    var childFingerprint = service.fingerprint(childBytes);
++    store.put(childFingerprint, childBytes).get();
++    var rootBytes = new byte[1 + childFingerprint.toBytes().length];
++    childFingerprint.copyTo(rootBytes, 1); // The first byte selects uncompressed decoding.
++    var rootFingerprint = service.fingerprint(rootBytes);
++    store.put(rootFingerprint, rootBytes).get();
++    var context =
++        SharedValueDeserializationContext.createForTesting(
++            AutoRegistry.get(),
++            ImmutableClassToInstanceMap.of(),
++            new CompressionServiceImpl(),
++            service);
++    var memoValue = addMemoOnlyValue(context);
++    var codec = new MemoProbeCodec();
++    var first = new Object[1];
++    var second = new Object[1];
++    for (Object[] target : new Object[][] {first, second}) {
++      context.getSharedValue(
++          CodedInputStream.newInstance(rootFingerprint.toBytes()),
++          null,
++          codec,
++          target,
++          (parent, value) -> parent[0] = value);
++    }
++    var result =
++        (ListenableFuture<?>)
++            service.getOrClaimGetOperation(rootFingerprint, null, SettableFuture.create());
++    return new PendingMemoProbe(
++        store, new WeakReference<>(context), memoValue, codec, first, second, result);
++  }
++
++  private static WeakReference<byte[]> addMemoOnlyValue(SharedValueDeserializationContext context)
++      throws SerializationException, IOException {
++    var bytes = new ByteArrayOutputStream();
++    var codedOut = CodedOutputStream.newInstance(bytes);
++    codedOut.writeUInt32NoTag(WireType.CodecWireType.UNSTABLE.getTypedTagNumber(1));
++    codedOut.writeByteArrayNoTag(new byte[1024]);
++    codedOut.flush();
++    byte[] memoValue =
++        context.deserializeLeaf(
++            CodedInputStream.newInstance(bytes.toByteArray()), new ByteArrayCodec());
++    return new WeakReference<>(memoValue);
++  }
++
++  private static final class MemoProbeCodec extends DeferredObjectCodec<SharedElement> {
++    private WeakReference<SharedValueDeserializationContext> context;
++    private WeakReference<byte[]> memoValue;
++
++    @Override
++    public Class<SharedElement> getEncodedClass() {
++      return SharedElement.class;
++    }
++
++    @Override
++    public boolean autoRegister() {
++      return false;
++    }
++
++    @Override
++    public void serialize(
++        SerializationContext context, SharedElement value, CodedOutputStream out) {
++      throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public DeferredValue<SharedElement> deserializeDeferred(
++        AsyncDeserializationContext context, CodedInputStream input)
++        throws SerializationException, IOException {
++      var sharedContext = (SharedValueDeserializationContext) context;
++      this.context = new WeakReference<>(sharedContext);
++      memoValue = addMemoOnlyValue(sharedContext);
++      var result = SimpleDeferredValue.<SharedElement>create();
++      context.getSharedValue(
++          input, null, DeferredSharedElementCodec.INSTANCE, result, SimpleDeferredValue::set);
++      return result;
++    }
++  }
++
+   @Test
+   public void getsShouldBeConcurrent() throws Exception {
+     // When deserializing a value, multiple calls to `FingerprintValueStore.get` may occur. These

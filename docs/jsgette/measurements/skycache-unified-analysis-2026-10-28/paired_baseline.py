@@ -314,7 +314,11 @@ def experiment(args):
     binary = args.bazel.resolve(strict=True)
     source = args.source_repo.resolve(strict=True)
     fixture = args.manifest.resolve(strict=True)
+    producer_fixture = (getattr(args, "producer_manifest", None) or fixture).resolve(strict=True)
+    if producer_fixture.parent != fixture.parent:
+        raise ValueError("producer and consumer manifests must share one fixture directory")
     spec = load_fixture(fixture)
+    producer_spec = load_fixture(producer_fixture)
     input_hashes = inventory(fixture.parent)
     provenance, patch = source_provenance(source, args.source_commit)
     root = args.run_dir.absolute()
@@ -338,7 +342,13 @@ def experiment(args):
         "baseline": "operator-declared source snapshot; cleanliness recorded; not the paper's v8 candidate",
         "binary": {"path": str(binary), "sha256": digest(binary)},
         "harness_sha256": digest(__file__), "fixture_sha256": input_hashes,
-        "fixture": spec, "environment": environment,
+        "fixture": spec, "producer_fixture": producer_spec,
+        "manifest_files": {
+            "consumer": {"path": str(fixture), "name": fixture.name, "sha256": digest(fixture)},
+            "producer": {"path": str(producer_fixture), "name": producer_fixture.name,
+                         "sha256": digest(producer_fixture)},
+        },
+        "environment": environment,
         "platform": host_description(), "settings": dict(SETTINGS, heap_mb=args.heap_mb),
         "order": [{"pair": pair, "arm": arm} for pair, arm in order],
         "method": "one separately timed producer excluded from paired estimates; independent seed copies; fresh batch JVM/output base per arm; shared warmed repository cache; OS pages uncontrolled",
@@ -357,8 +367,9 @@ def experiment(args):
             if label != "producer" and arm == "current-cache":
                 shutil.copytree(seed, cache, symlinks=False)
             run = root / "runs" / label
+            run_spec = producer_spec if label == "producer" else spec
             argv = command(binary, root, run, cache if arm == "current-cache" else None,
-                           spec["targets"], args.heap_mb)
+                           run_spec["targets"], args.heap_mb)
             metrics = run_command(run, argv, workspace, environment, args.timeout_seconds,
                                   manifest["harness_sha256"])
             row = {"label": label, "pair": pair, "arm": arm,
@@ -368,7 +379,7 @@ def experiment(args):
             save(root / "summary.json", summary)
             if metrics["exit_code"] != 0 or metrics["timed_out"]:
                 raise ValueError(f"{label}: command failed or timed out")
-            row["validation"] = validate_outputs(run / "build.bep.json", run / "output-base", spec)
+            row["validation"] = validate_outputs(run / "build.bep.json", run / "output-base", run_spec)
             if inventory(workspace) != input_hashes:
                 raise ValueError(f"{label}: fixture inputs changed during the experiment")
             if digest(binary) != manifest["binary"]["sha256"]:
@@ -404,6 +415,8 @@ def main():
     parser.add_argument("--source-commit", required=True, help="full expected source HEAD SHA")
     parser.add_argument("--run-dir", type=Path, required=True, help="new directory; existing parent")
     parser.add_argument("--manifest", type=Path, default=HERE / "fixture" / "manifest.json")
+    parser.add_argument("--producer-manifest", type=Path,
+                        help="optional seed producer targets/outputs; must share the consumer fixture directory")
     parser.add_argument("--pairs", type=int, default=2)
     parser.add_argument("--heap-mb", type=int, default=2048)
     parser.add_argument("--timeout-seconds", type=float, default=120)

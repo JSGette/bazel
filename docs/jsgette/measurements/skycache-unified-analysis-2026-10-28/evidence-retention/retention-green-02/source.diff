@@ -1,0 +1,600 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java
+index 0d58f96027..481434969d 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContext.java
+@@ -387,7 +387,7 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+           .getExecutor()
+           .addCallback(
+               fingerprintValueService.get(fingerprint),
+-              new SharedBytesProcessor<>(fingerprint, codec, parent, setter, getOperation));
++              new SharedBytesProcessor<>(this, fingerprint, codec, parent, setter, getOperation));
+     } catch (IOException
+         // Avoids causing SettableFuture consumers to hang if when there are unexpected exceptions.
+         | RuntimeException
+@@ -400,7 +400,14 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+     }
+   }
+ 
+-  private class SharedBytesProcessor<T> implements FutureCallback<byte[]> {
++  // Retain only configuration, never the enclosing context's memo table or sibling read futures.
++  private static class SharedBytesProcessor<T> implements FutureCallback<byte[]> {
++    private final ObjectCodecRegistry registry;
++    private final ImmutableClassToInstanceMap<Object> dependencies;
++    private final CompressionService compressionService;
++    private final FingerprintValueService fingerprintValueService;
++    @Nullable private final SkyframeLookupCollector skyframeLookupCollector;
++    @Nullable private final DebugContext debugContext;
+     private final PackedFingerprint childFingerprint;
+     private final DeferredObjectCodec<?> codec;
+     private final T parent;
+@@ -408,11 +415,18 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+     private final SettableFuture<Object> getOperation;
+ 
+     private SharedBytesProcessor(
++        SharedValueDeserializationContext owner,
+         PackedFingerprint childFingerprint,
+         DeferredObjectCodec<?> codec,
+         T parent,
+         FieldSetter<? super T> setter,
+         SettableFuture<Object> getOperation) {
++      this.registry = owner.getRegistry();
++      this.dependencies = owner.getDependencies();
++      this.compressionService = owner.compressionService;
++      this.fingerprintValueService = owner.fingerprintValueService;
++      this.skyframeLookupCollector = owner.skyframeLookupCollector;
++      this.debugContext = owner.debugContext;
+       this.childFingerprint = childFingerprint;
+       this.codec = codec;
+       this.parent = parent;
+@@ -501,7 +515,17 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+ 
+     private void deserializeAndComplete(CodedInputStream input)
+         throws SerializationException, IOException {
+-      SharedValueDeserializationContext innerContext = getFreshContext(childFingerprint);
++      // Construct the fresh memo table only after bytes arrive, keeping misses inexpensive.
++      var innerContext =
++          new SharedValueDeserializationContext(
++              registry,
++              dependencies,
++              compressionService,
++              fingerprintValueService,
++              skyframeLookupCollector,
++              debugContext == null
++                  ? null
++                  : new DebugContext(childFingerprint, debugContext.edgeReceiver()));
+       DeferredValue<?> deferred = codec.deserializeDeferred(innerContext, input);
+       if (skyframeLookupCollector != null) {
+         // The codec above is responsible for calling `getSkyValue` so any SkyKey directly requested
+@@ -523,12 +547,16 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+         getOperation.set(result);
+         return;
+       }
++      // A pending completion needs the deferred value and setter, not this processor. Copy the
++      // fields so the callable cannot retain configuration and unrelated state through `this`.
++      T target = parent;
++      FieldSetter<? super T> fieldSetter = setter;
+       getOperation.setFuture(
+           Futures.whenAllSucceed(innerReadStatusFutures)
+               .call(
+                   () -> {
+                     Object result = deferred.call();
+-                    setter.set(parent, result);
++                    fieldSetter.set(target, result);
+                     return result;
+                   },
+                   directExecutor()));
+@@ -541,15 +569,15 @@ public final class SharedValueDeserializationContext extends MemoizingDeserializ
+       }
+       getOperation.setException(t);
+     }
+-  }
+ 
+-  private InputStream maybeDecompressBytes(byte[] bytes) throws IOException {
+-    ByteArrayInputStream byteArrayInputStream =
+-        new ByteArrayInputStream(bytes, 1, bytes.length - 1);
+-    if (bytes[0] == (byte) 0) {
+-      return byteArrayInputStream;
++    private InputStream maybeDecompressBytes(byte[] bytes) throws IOException {
++      ByteArrayInputStream byteArrayInputStream =
++          new ByteArrayInputStream(bytes, 1, bytes.length - 1);
++      if (bytes[0] == (byte) 0) {
++        return byteArrayInputStream;
++      }
++      return compressionService.newZstdInputStream(byteArrayInputStream);
+     }
+-    return compressionService.newZstdInputStream(byteArrayInputStream);
+   }
+ 
+   @Override
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+index 174806b422..864e7e0d8c 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD
+@@ -83,6 +83,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/concurrent/safeexecutor:safe_executor",
+         "//src/main/java/com/google/devtools/build/lib/events",
+         "//src/main/java/com/google/devtools/build/lib/packages",
++        "//src/main/java/com/google/devtools/build/lib/profiler",
+         "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_cluster",
+         "//src/main/java/com/google/devtools/build/lib/remote/options:options",
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+index 0919850787..147c3ad359 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java
+@@ -61,6 +61,28 @@ final class LocalCacheSession implements FingerprintValueStore {
+   private static final int MAX_WITNESSES = 1_000_000;
+   private static final int MAX_VALIDATED_WITNESS_LISTS = 32;
+ 
++  private enum FinalizationPhase {
++    PUBLICATION("publication"),
++    FINAL_VALIDATION("final_validation"),
++    WITNESS_MANIFEST("witness_manifest"),
++    SEAL("seal"),
++    LOCAL_INSTALL("local_install"),
++    CLOSE_STORES("close_stores");
++
++    private final String jsonName;
++
++    FinalizationPhase(String jsonName) {
++      this.jsonName = jsonName;
++    }
++  }
++
++  private interface PhaseTimer extends AutoCloseable {
++    @Override
++    void close();
++  }
++
++  private static final PhaseTimer NO_PHASE_TIMER = () -> {};
++
+   record ReadLimits(int publications, long metadataBytes, int scanEntries) {
+     static final ReadLimits DEFAULT = new ReadLimits(64, 256L * 1024 * 1024, 4096);
+ 
+@@ -104,6 +126,9 @@ final class LocalCacheSession implements FingerprintValueStore {
+ 
+   private final LocalInputSnapshot inputs;
+   private final LongSupplier nanoTime;
++  // Null when profiling was disabled before the build. Six scalars, never per-key state.
++  // The lifecycle lock protects updates. -1 means that a phase has not completed.
++  private final long[] finalizationNanos;
+   private final ReadLimits limits;
+   private final Path objects;
+   private final Path publications;
+@@ -169,9 +194,24 @@ final class LocalCacheSession implements FingerprintValueStore {
+ 
+   LocalCacheSession(Path root, LocalInputSnapshot inputs, LongSupplier nanoTime, ReadLimits limits)
+       throws IOException {
++    this(root, inputs, nanoTime, limits, /* profileFinalization= */ false);
++  }
++
++  LocalCacheSession(
++      Path root,
++      LocalInputSnapshot inputs,
++      LongSupplier nanoTime,
++      ReadLimits limits,
++      boolean profileFinalization)
++      throws IOException {
+     this.limits = limits;
+     this.inputs = inputs;
+     this.nanoTime = nanoTime;
++    this.finalizationNanos =
++        profileFinalization ? new long[FinalizationPhase.values().length] : null;
++    if (finalizationNanos != null) {
++      Arrays.fill(finalizationNanos, -1);
++    }
+     Path managed = durableDirectory(root.toAbsolutePath().normalize().resolve(MANAGED_DIRECTORY));
+     this.objects = durableDirectory(managed.resolve("objects").resolve("segmented-v1"));
+     this.publications =
+@@ -181,6 +221,43 @@ final class LocalCacheSession implements FingerprintValueStore {
+     this.leases = LocalCacheLeaseManager.open(managed);
+   }
+ 
++  private PhaseTimer timeFinalization(FinalizationPhase phase) {
++    if (finalizationNanos == null || finalizationNanos[phase.ordinal()] >= 0) {
++      return NO_PHASE_TIMER;
++    }
++    long start = nanoTime.getAsLong();
++    return () -> finalizationNanos[phase.ordinal()] = nanoTime.getAsLong() - start;
++  }
++
++  /** Inclusive elapsed times, not CPU or exclusive attribution; read at command end. */
++  String finalizationPhasesJson() {
++    String header =
++        "{\"schema_version\":1,\"sampling\":\"boundary_command_end\","
++            + "\"unit\":\"nanoseconds\",\"semantics\":\"inclusive_elapsed_wall_not_cpu\"";
++    if (finalizationNanos == null) {
++      return header + ",\"enabled\":false}";
++    }
++    lifecycle.readLock().lock();
++    try {
++      var json = new StringBuilder(header).append(",\"enabled\":true,\"phases\":{");
++      for (FinalizationPhase phase : FinalizationPhase.values()) {
++        if (phase.ordinal() != 0) {
++          json.append(',');
++        }
++        long elapsed = finalizationNanos[phase.ordinal()];
++        json.append('"').append(phase.jsonName).append("\":");
++        if (elapsed < 0) {
++          json.append("null");
++        } else {
++          json.append(elapsed);
++        }
++      }
++      return json.append("}}").toString();
++    } finally {
++      lifecycle.readLock().unlock();
++    }
++  }
++
+   String cacheNamespace() {
+     return inputs.cacheNamespace();
+   }
+@@ -894,7 +971,10 @@ final class LocalCacheSession implements FingerprintValueStore {
+ 
+   boolean finish(boolean success) throws IOException {
+     lifecycle.writeLock().lock();
+-    try {
++    // The global trace profiler stops at BuildComplete, before this method runs. These six
++    // optional scalars use the profiling state captured before the build instead. Publication
++    // includes its nested phases but excludes the lock wait, cleanup and module-side remote export.
++    try (var publicationScope = timeFinalization(FinalizationPhase.PUBLICATION)) {
+       if (closed) {
+         return false;
+       }
+@@ -922,12 +1002,15 @@ final class LocalCacheSession implements FingerprintValueStore {
+           remoteParents.add(candidate.id());
+         }
+       }
+-      if (!inputs.isUnchanged()) {
+-        failure = "inputs changed during the invocation";
+-        return false;
++      try (var validationScope = timeFinalization(FinalizationPhase.FINAL_VALIDATION)) {
++        if (!inputs.isUnchanged()) {
++          failure = "inputs changed during the invocation";
++          return false;
++        }
+       }
+       var buffer = new ByteArrayOutputStream();
+-      try (var out = new DataOutputStream(buffer)) {
++      try (var witnessScope = timeFinalization(FinalizationPhase.WITNESS_MANIFEST);
++          var out = new DataOutputStream(buffer)) {
+         out.writeInt(MAGIC);
+         out.writeUTF(id);
+         out.writeUTF(inputs.cacheNamespace());
+@@ -944,7 +1027,9 @@ final class LocalCacheSession implements FingerprintValueStore {
+         throw new IOException("input manifest exceeds size limit");
+       }
+       // No manifest can reference private bytes that have not reached durable storage.
+-      privateStore.seal();
++      try (var sealScope = timeFinalization(FinalizationPhase.SEAL)) {
++        privateStore.seal();
++      }
+       byte[] manifest =
+           com.google.common.primitives.Bytes.concat(
+               payload, HexFormat.of().parseHex(sha256(payload)));
+@@ -959,7 +1044,8 @@ final class LocalCacheSession implements FingerprintValueStore {
+         remotePublished = true;
+         return false;
+       }
+-      try (var catalog = requireSharedCatalog()) {
++      try (var installScope = timeFinalization(FinalizationPhase.LOCAL_INSTALL);
++          var catalog = requireSharedCatalog()) {
+         Path temporary =
+             Files.createTempFile(
+                 publications,
+@@ -982,7 +1068,7 @@ final class LocalCacheSession implements FingerprintValueStore {
+       }
+       return true;
+     } finally {
+-      try {
++      try (var closeScope = timeFinalization(FinalizationPhase.CLOSE_STORES)) {
+         closeStores();
+       } finally {
+         lifecycle.writeLock().unlock();
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
+index 33138eed6c..f54591d645 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java
+@@ -16,6 +16,7 @@ import com.google.devtools.build.lib.buildtool.buildevent.BuildCompleteEvent;
+ import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor;
+ import com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutorOwner;
+ import com.google.devtools.build.lib.events.Event;
++import com.google.devtools.build.lib.profiler.Profiler;
+ import com.google.devtools.build.lib.remote.options.RemoteOptions;
+ import com.google.devtools.build.lib.runtime.BlazeRuntime;
+ import com.google.devtools.build.lib.runtime.CommandEnvironment;
+@@ -161,7 +162,9 @@ public final class LocalSkycacheModule extends SerializationModule {
+               inputs,
+               System::nanoTime,
+               new LocalCacheSession.ReadLimits(
+-                  options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096));
++                  options.getMaxPublications(), options.getMaxMetadataMb() * 1024L * 1024, 4096),
++              // BuildComplete stops the global profiler before afterCommand finalization.
++              /* profileFinalization= */ Profiler.instance().isActive());
+       services.session.setRemote(remoteSkyCache);
+       var remote = env.getOptions().getOptions(RemoteOptions.class);
+       services.executionValues =
+@@ -344,6 +347,9 @@ public final class LocalSkycacheModule extends SerializationModule {
+                 + ",\"after_session_close\":"
+                 + ownershipAfter
+                 + "}");
++        Files.writeString(
++            Path.of(env.getOutputBase().getPathString()).resolve("local-skycache-phases.json"),
++            session.finalizationPhasesJson());
+       } catch (IOException e) {
+         env.getReporter().handle(Event.warn("Could not write local SkyCache statistics"));
+       }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java
+index 36309b7456..f1aadc2d3a 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SharedValueDeserializationContextTest.java
+@@ -15,6 +15,7 @@ package com.google.devtools.build.lib.skyframe.serialization;
+ 
+ import static com.google.common.base.Preconditions.checkNotNull;
+ import static com.google.common.truth.Truth.assertThat;
++import static com.google.devtools.build.lib.concurrent.safeexecutor.SafeExecutor.safeDirectExecutor;
+ import static com.google.devtools.build.lib.skyframe.serialization.NotNestedSet.createRandomLeafArray;
+ import static com.google.devtools.build.lib.skyframe.serialization.testutils.Dumper.dumpStructureWithEquivalenceReduction;
+ import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
+@@ -24,8 +25,10 @@ import static org.junit.Assert.assertThrows;
+ 
+ import com.google.common.collect.ImmutableClassToInstanceMap;
+ import com.google.common.collect.ImmutableList;
++import com.google.common.testing.GcFinalization;
+ import com.google.common.util.concurrent.ListenableFuture;
+ import com.google.common.util.concurrent.ListenableFutureTask;
++import com.google.common.util.concurrent.SettableFuture;
+ import com.google.devtools.build.lib.compress.CompressionService;
+ import com.google.devtools.build.lib.compress.CompressionServiceImpl;
+ import com.google.devtools.build.lib.skyframe.serialization.NotNestedSet.NestedArrayCodec;
+@@ -42,7 +45,9 @@ import com.google.protobuf.CodedOutputStream;
+ import com.google.testing.junit.testparameterinjector.TestParameter;
+ import com.google.testing.junit.testparameterinjector.TestParameterInjector;
+ import com.google.testing.junit.testparameterinjector.TestParameters;
++import java.io.ByteArrayOutputStream;
+ import java.io.IOException;
++import java.lang.ref.WeakReference;
+ import java.util.ArrayList;
+ import java.util.Objects;
+ import java.util.Random;
+@@ -81,6 +86,132 @@ public final class SharedValueDeserializationContextTest {
+         .runTests();
+   }
+ 
++  @Test(timeout = 30000)
++  public void sharedDecodeDoesNotRetainUnrelatedMemoState(@TestParameter boolean finishFirstFetch)
++      throws Exception {
++    var pending = startMemoRetentionProbe();
++    var firstRequest = pending.store().takeFirstRequest();
++    GetRequest dependentRequest = null;
++    if (finishFirstFetch) {
++      firstRequest.complete();
++      dependentRequest = pending.store().takeFirstRequest();
++      assertThat(pending.childProbe().context).isNotNull();
++      assertThat(pending.result().isDone()).isFalse();
++      GcFinalization.awaitClear(pending.childProbe().context);
++      GcFinalization.awaitClear(pending.childProbe().memoValue);
++    }
++    GcFinalization.awaitClear(pending.context());
++    GcFinalization.awaitClear(pending.memoValue());
++    assertThat(pending.result().isDone()).isFalse();
++    if (dependentRequest == null) {
++      firstRequest.complete();
++      dependentRequest = pending.store().takeFirstRequest();
++    }
++    dependentRequest.complete();
++    assertThat(pending.result().get(WAIT_TIMEOUT_SECONDS, SECONDS))
++        .isSameInstanceAs(pending.first()[0]);
++    assertThat(pending.first()[0]).isSameInstanceAs(pending.second()[0]);
++    assertThat(((SharedElement) pending.first()[0]).value).isEqualTo(42);
++    // Both owners shared the root decode, which requested its dependency only once.
++    assertThat(pending.store().pollRequest()).isNull();
++  }
++
++  private record PendingMemoProbe(
++      GetRecordingStore store,
++      WeakReference<SharedValueDeserializationContext> context,
++      WeakReference<byte[]> memoValue,
++      MemoProbeCodec childProbe,
++      Object[] first,
++      Object[] second,
++      ListenableFuture<?> result) {}
++
++  private static PendingMemoProbe startMemoRetentionProbe() throws Exception {
++    var store = new GetRecordingStore();
++    var service =
++        new FingerprintValueService(
++            safeDirectExecutor(),
++            store,
++            new FingerprintValueCache(FingerprintValueCache.SyncMode.NOT_LINKED),
++            FingerprintValueService.NONPROD_FINGERPRINTER);
++    byte[] childBytes = {0, 42};
++    var childFingerprint = service.fingerprint(childBytes);
++    store.put(childFingerprint, childBytes).get();
++    var rootBytes = new byte[1 + childFingerprint.toBytes().length];
++    childFingerprint.copyTo(rootBytes, 1); // The first byte selects uncompressed decoding.
++    var rootFingerprint = service.fingerprint(rootBytes);
++    store.put(rootFingerprint, rootBytes).get();
++    var context =
++        SharedValueDeserializationContext.createForTesting(
++            AutoRegistry.get(),
++            ImmutableClassToInstanceMap.of(),
++            new CompressionServiceImpl(),
++            service);
++    var memoValue = addMemoOnlyValue(context);
++    var codec = new MemoProbeCodec();
++    var first = new Object[1];
++    var second = new Object[1];
++    for (Object[] target : new Object[][] {first, second}) {
++      context.getSharedValue(
++          CodedInputStream.newInstance(rootFingerprint.toBytes()),
++          null,
++          codec,
++          target,
++          (parent, value) -> parent[0] = value);
++    }
++    var result =
++        (ListenableFuture<?>)
++            service.getOrClaimGetOperation(rootFingerprint, null, SettableFuture.create());
++    return new PendingMemoProbe(
++        store, new WeakReference<>(context), memoValue, codec, first, second, result);
++  }
++
++  private static WeakReference<byte[]> addMemoOnlyValue(SharedValueDeserializationContext context)
++      throws SerializationException, IOException {
++    var bytes = new ByteArrayOutputStream();
++    var codedOut = CodedOutputStream.newInstance(bytes);
++    codedOut.writeUInt32NoTag(WireType.CodecWireType.UNSTABLE.getTypedTagNumber(1));
++    codedOut.writeByteArrayNoTag(new byte[1024]);
++    codedOut.flush();
++    byte[] memoValue =
++        context.deserializeLeaf(
++            CodedInputStream.newInstance(bytes.toByteArray()), new ByteArrayCodec());
++    return new WeakReference<>(memoValue);
++  }
++
++  private static final class MemoProbeCodec extends DeferredObjectCodec<SharedElement> {
++    private WeakReference<SharedValueDeserializationContext> context;
++    private WeakReference<byte[]> memoValue;
++
++    @Override
++    public Class<SharedElement> getEncodedClass() {
++      return SharedElement.class;
++    }
++
++    @Override
++    public boolean autoRegister() {
++      return false;
++    }
++
++    @Override
++    public void serialize(
++        SerializationContext context, SharedElement value, CodedOutputStream out) {
++      throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public DeferredValue<SharedElement> deserializeDeferred(
++        AsyncDeserializationContext context, CodedInputStream input)
++        throws SerializationException, IOException {
++      var sharedContext = (SharedValueDeserializationContext) context;
++      this.context = new WeakReference<>(sharedContext);
++      memoValue = addMemoOnlyValue(sharedContext);
++      var result = SimpleDeferredValue.<SharedElement>create();
++      context.getSharedValue(
++          input, null, DeferredSharedElementCodec.INSTANCE, result, SimpleDeferredValue::set);
++      return result;
++    }
++  }
++
+   @Test
+   public void getsShouldBeConcurrent() throws Exception {
+     // When deserializing a value, multiple calls to `FingerprintValueStore.get` may occur. These
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
+index 5fdc2824d1..fa266f26fb 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java
+@@ -63,6 +63,72 @@ public final class LocalCacheSessionTest {
+     }
+   }
+ 
++  @Test
++  public void disabledFinalizationTimingDoesNotReadClock() throws Exception {
++    Path workspace = temporary.newFolder("workspace").toPath();
++    Path output = temporary.newFolder("output").toPath();
++    Path cache = temporary.newFolder("cache").toPath();
++    var clock = new AtomicLong();
++    var writer = new LocalCacheSession(cache, snapshot(workspace, output), clock::getAndIncrement);
++    writer.put(new Key("entry"), new byte[] {7}).get();
++    long readsBeforeFinish = clock.get();
++    assertThat(writer.finish(true)).isTrue();
++    assertThat(writer.finalizationPhasesJson()).contains("\"enabled\":false");
++    assertThat(writer.finalizationPhasesJson()).doesNotContain("\"phases\"");
++    assertThat(clock.get()).isEqualTo(readsBeforeFinish);
++  }
++
++  @Test
++  public void finalizationTimingSeparatesInclusivePublicationFromCleanup() throws Exception {
++    Path workspace = temporary.newFolder("workspace").toPath();
++    Path output = temporary.newFolder("output").toPath();
++    Path cache = temporary.newFolder("cache").toPath();
++    var clock = new AtomicLong();
++    var writer =
++        new LocalCacheSession(
++            cache,
++            snapshot(workspace, output),
++            () -> clock.getAndAdd(10),
++            LocalCacheSession.ReadLimits.DEFAULT,
++            /* profileFinalization= */ true);
++    writer.put(new Key("entry"), new byte[] {7}).get();
++    clock.set(0);
++    assertThat(writer.finish(true)).isTrue();
++    String timings = writer.finalizationPhasesJson();
++    assertThat(timings).contains("\"enabled\":true");
++    assertThat(timings).contains("\"sampling\":\"boundary_command_end\"");
++    assertThat(timings).contains("\"unit\":\"nanoseconds\"");
++    // Publication includes the four nested phases, but closes before cleanup starts.
++    assertThat(timings)
++        .contains(
++            "\"phases\":{\"publication\":90,\"final_validation\":10,\"witness_manifest\":10,"
++                + "\"seal\":10,\"local_install\":10,\"close_stores\":10}");
++    assertThat(clock.get()).isEqualTo(120);
++    // A repeated finish must not replace the evidence from the original attempt.
++    assertThat(writer.finish(true)).isFalse();
++    assertThat(writer.finalizationPhasesJson()).isEqualTo(timings);
++    assertThat(clock.get()).isEqualTo(120);
++  }
++
++  @Test
++  public void finalizationTimingDistinguishesZeroDurationFromUnexecutedPhase() throws Exception {
++    Path workspace = temporary.newFolder("workspace").toPath();
++    Path output = temporary.newFolder("output").toPath();
++    Path cache = temporary.newFolder("cache").toPath();
++    var writer =
++        new LocalCacheSession(
++            cache,
++            snapshot(workspace, output),
++            () -> 0,
++            LocalCacheSession.ReadLimits.DEFAULT,
++            /* profileFinalization= */ true);
++    assertThat(writer.finish(false)).isFalse();
++    assertThat(writer.finalizationPhasesJson())
++        .contains(
++            "\"phases\":{\"publication\":0,\"final_validation\":null,\"witness_manifest\":null,"
++                + "\"seal\":null,\"local_install\":null,\"close_stores\":0}");
++  }
++
+   @Test
+   public void leasesProtectPrivateWriterAndReaderParentClosureUntilFinish() throws Exception {
+     Path workspace = temporary.newFolder("workspace").toPath();
+@@ -971,7 +1037,14 @@ public final class LocalCacheSessionTest {
+     Path workspace = temporary.newFolder("workspace").toPath();
+     Path output = temporary.newFolder("output").toPath();
+     Path cache = temporary.newFolder("cache").toPath();
+-    var writer = new LocalCacheSession(cache, snapshot(workspace, output));
++    var clock = new AtomicLong();
++    var writer =
++        new LocalCacheSession(
++            cache,
++            snapshot(workspace, output),
++            () -> clock.getAndAdd(10),
++            LocalCacheSession.ReadLimits.DEFAULT,
++            /* profileFinalization= */ true);
+     writer.put(new Key("entry"), new byte[] {7}).get();
+     try (var paths = Files.walk(cache.resolve("leased-v2/objects"))) {
+       Path pack =
+@@ -979,7 +1052,13 @@ public final class LocalCacheSessionTest {
+       Files.createDirectory(pack.getParent().resolve("index"));
+     }
+     assertThat(openPackDescriptors(cache)).isGreaterThan(0);
++    clock.set(0);
+     assertThrows(java.io.IOException.class, () -> writer.finish(true));
++    assertThat(writer.finalizationPhasesJson())
++        .contains(
++            "\"phases\":{\"publication\":70,\"final_validation\":10,\"witness_manifest\":10,"
++                + "\"seal\":10,\"local_install\":null,\"close_stores\":10}");
++    assertThat(clock.get()).isEqualTo(100);
+     assertThat(openPackDescriptors(cache)).isEqualTo(0);
+     try (var paths = Files.walk(cache)) {
+       assertThat(paths.anyMatch(p -> p.toString().endsWith(".manifest"))).isFalse();

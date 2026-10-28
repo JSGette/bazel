@@ -1,5 +1,9 @@
 # First implementation slice: evidence and remaining gates
 
+The [next implementation increment](RETENTION.md) adds a proven shared-decode
+retention correction, finalization timing and 4,096-node broad/sparse fixtures.
+The evidence below remains the original foundation checkpoint.
+
 28 October 2026. P00, P01 and P02 have working increments; none of their full
 implementation-plan acceptance gates is complete. This change establishes
 measurement and correctness infrastructure. It does not establish a speedup,

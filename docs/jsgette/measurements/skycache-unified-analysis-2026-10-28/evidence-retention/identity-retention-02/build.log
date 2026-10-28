@@ -1,0 +1,64 @@
+Starting local Bazel server (9.3.1) and connecting to it...
+INFO: Invocation ID: beceb297-91d5-4347-90a4-9e1834eb7f5a
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+Analyzing: target //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest (8 packages loaded, 6 targets configured)
+Analyzing: target //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest (8 packages loaded, 6 targets configured)
+
+Analyzing: target //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest (311 packages loaded, 18404 targets configured, 10 aspect applications)
+
+INFO: Analyzed target //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest (312 packages loaded, 18410 targets configured, 10 aspect applications).
+FAIL: //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest (Exit 1) (see /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/collect/nestedset/ProviderIdentityReproTest/test.log)
+[1,399 / 1,400] 1 / 1 tests, 1 failed; Testing //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest; 0s linux-sandbox
+INFO: From Testing //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest:
+==================== Test output for //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest:
+JUnit4 Test Runner
+.Oct 28, 2026 9:36:56 AM com.google.devtools.build.lib.skyframe.serialization.CodecScanner initializeCodecRegistry
+INFO: Building ObjectCodecRegistry
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.packages.StarlarkProviderIdentifier_KeyedIdentifier_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/packages/libprovider.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.packages.StarlarkProviderIdentifier_KeyedIdentifier_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+E...E
+Time: 0.34
+There were 2 failures:
+1) originalAndRestoredBranchesPreserveSharedProvider(com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest)
+SKYCACHE_PROVIDER_IDENTITY expected=3 actual=4
+value of    : iterable.size()
+expected    : 3
+but was     : 4
+iterable was: [struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "left.a", label = "left"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "right.a", label = "right")]
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.verifySharedProvider(ProviderIdentityReproTest.java:93)
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.originalAndRestoredBranchesPreserveSharedProvider(ProviderIdentityReproTest.java:73)
+2) independentRestoresPreserveSharedProvider(com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest)
+SKYCACHE_PROVIDER_IDENTITY expected=3 actual=4
+value of    : iterable.size()
+expected    : 3
+but was     : 4
+iterable was: [struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "left.a", label = "left"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "right.a", label = "right")]
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.verifySharedProvider(ProviderIdentityReproTest.java:93)
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.independentRestoresPreserveSharedProvider(ProviderIdentityReproTest.java:68)
+
+FAILURES!!!
+Tests run: 4,  Failures: 2
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 09:36:56 --
+
+================================================================================
+INFO: Found 1 test target...
+Target //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest up-to-date:
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/identity-retention-02/bazel-bin/src/test/java/com/google/devtools/build/lib/collect/nestedset/ProviderIdentityReproTest
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/identity-retention-02/bazel-bin/src/test/java/com/google/devtools/build/lib/collect/nestedset/ProviderIdentityReproTest.jar
+INFO: Elapsed time: 4.718s, Critical Path: 0.66s
+INFO: 5 processes: 1395 action cache hit, 1 remote cache hit, 2 internal, 2 linux-sandbox.
+INFO: Build completed, 1 test FAILED, 5 total actions
+//src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest FAILED in 0.5s
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/collect/nestedset/ProviderIdentityReproTest/test.log
+
+Executed 1 out of 1 test: 1 fails locally.

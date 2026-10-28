@@ -1,0 +1,67 @@
+Starting local Bazel server (9.3.1) and connecting to it...
+INFO: Invocation ID: d4d583b6-65e3-4b64-8849-bb41d7e55f66
+Computing main repo mapping: 
+Loading: 
+Loading: 3 packages loaded
+Analyzing: target //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests (8 packages loaded, 6 targets configured)
+Analyzing: target //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests (8 packages loaded, 6 targets configured)
+
+DEBUG: /home/jgett/REPOS/.work/skycache-analysis-foundation-build/external/grpc-java+/java_grpc_library.bzl:202:14: Multiple values in 'deps' is deprecated in build_bazel_remote_execution_v2_remote_execution_java_grpc
+WARNING: /home/jgett/REPOS/.work/skycache-analysis-foundation-2026-10-28/src/conditions/BUILD:128:15: in config_setting rule //src/conditions:darwin_arm64_flag: select() on cpu is deprecated. Use platform constraints instead: https://bazel.build/docs/configurable-attributes#platforms.
+Analyzing: target //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests (459 packages loaded, 21679 targets configured, 52 aspect applications)
+
+INFO: Analyzed target //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests (460 packages loaded, 21685 targets configured, 52 aspect applications).
+[644 / 3,269] [Prepa] Creating symlink external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/byte-buddy-agent-1.17.7.jar
+[3,266 / 3,269] Building src/test/java/com/google/devtools/build/lib/skyframe/serialization/libserialization-tests.jar (58 source files) and running annotation processors (AutoCodecProcessor, SerializationConstantProcessor); 0s remote-cache, multiplex-worker
+[3,267 / 3,269] [Prepa] Checking for one-version violations in //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests ... (2 actions, 0 running)
+[3,269 / 3,270] Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests; 1s linux-sandbox
+[3,269 / 3,270] Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests; 10s linux-sandbox
+FAIL: //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests (Exit 1) (see /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SerializationTests/test.log)
+[3,269 / 3,270] 1 / 1 tests, 1 failed; Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests; 21s linux-sandbox
+INFO: From Testing //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests:
+==================== Test output for //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests:
+JUnit4 Test Runner
+.WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/libresolution.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+E.E
+Time: 19.777
+There were 2 failures:
+1) sharedDecodeDoesNotRetainUnrelatedMemoState[finishFirstFetch=false](com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest)
+java.lang.RuntimeException: Predicate did not become true within 10 second timeout
+	at com.google.common.testing.GcFinalization.formatRuntimeException(GcFinalization.java:324)
+	at com.google.common.testing.GcFinalization.awaitDone(GcFinalization.java:190)
+	at com.google.common.testing.GcFinalization.awaitClear(GcFinalization.java:273)
+	at com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest.sharedDecodeDoesNotRetainUnrelatedMemoState(SharedValueDeserializationContextTest.java:103)
+2) sharedDecodeDoesNotRetainUnrelatedMemoState[finishFirstFetch=true](com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest)
+java.lang.RuntimeException: Predicate did not become true within 10 second timeout
+	at com.google.common.testing.GcFinalization.formatRuntimeException(GcFinalization.java:324)
+	at com.google.common.testing.GcFinalization.awaitDone(GcFinalization.java:190)
+	at com.google.common.testing.GcFinalization.awaitClear(GcFinalization.java:273)
+	at com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest.sharedDecodeDoesNotRetainUnrelatedMemoState(SharedValueDeserializationContextTest.java:100)
+
+FAILURES!!!
+Tests run: 2,  Failures: 2
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 09:12:00 --
+
+================================================================================
+INFO: Found 1 test target...
+Target //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests up-to-date:
+  bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SerializationTests
+  bazel-bin/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SerializationTests.jar
+INFO: Elapsed time: 31.728s, Critical Path: 25.87s
+INFO: 51 processes: 3219 action cache hit, 34 remote cache hit, 14 internal, 2 linux-sandbox, 1 worker.
+INFO: Build completed, 1 test FAILED, 51 total actions
+INFO: 
+//src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests FAILED in 21.2s
+  /home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/SerializationTests/test.log
+
+Executed 1 out of 1 test: 1 fails locally.
+INFO: Build Event Protocol files produced successfully.

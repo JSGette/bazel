@@ -1,0 +1,33 @@
+{
+  "head": "0127165a8822c98fdaf8cb31715ca3f4f8121139",
+  "command": [
+    "/home/jgett/.local/bin/bazel",
+    "--output_base=/home/jgett/REPOS/.work/skycache-analysis-foundation-build",
+    "--server_javabase=/home/jgett/REPOS/.tools/skycache-benchmark-jdk25",
+    "--host_jvm_args=-Xmx5g",
+    "--max_idle_secs=120",
+    "test",
+    "//src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests",
+    "//src:bazel-dev",
+    "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest",
+    "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest",
+    "//src/test/java/com/google/devtools/build/lib/collect/nestedset:NestedSetTests",
+    "--test_output=errors",
+    "--nocache_test_results",
+    "--flaky_test_attempts=1",
+    "--local_test_jobs=2",
+    "--jobs=6",
+    "--local_resources=memory=6144",
+    "--color=no",
+    "--curses=no",
+    "--disk_cache=",
+    "--remote_cache=grpc://10.55.0.1:8080",
+    "--remote_upload_local_results=false",
+    "--remote_max_connections=1",
+    "--remote_max_concurrency_per_connection=16",
+    "--remote_timeout=120",
+    "--remote_retries=1",
+    "--build_event_json_file=/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/retention-green-02/build.bep.json",
+    "--profile=/home/jgett/REPOS/.work/skycache-analysis-foundation-evidence/retention-green-02/build.profile.gz"
+  ]
+}

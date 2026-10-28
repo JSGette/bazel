@@ -1,0 +1,129 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/collect/nestedset:NestedSetCodecTest
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+.Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+Oct 28, 2026 9:13:37 AM com.google.devtools.build.lib.skyframe.serialization.CodecScanner initializeCodecRegistry
+INFO: Building ObjectCodecRegistry
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.packages.AspectDescriptor_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/packages/libpackages.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.packages.AspectDescriptor_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+...Oct 28, 2026 9:13:37 AM com.google.devtools.build.lib.skyframe.serialization.testutils.SerializationTester testSerializeDeserialize
+INFO: Flat total serialized bytes = 73, 11.19 ms
+......Oct 28, 2026 9:13:37 AM com.google.devtools.build.lib.collect.nestedset.NestedSetSerializationCache cancelPendingFetches
+INFO: Canceled 1 pending NestedSet fetch futures
+..Oct 28, 2026 9:13:37 AM com.google.common.util.concurrent.AbstractFuture executeListener
+SEVERE: RuntimeException while executing runnable CallbackListener{com.google.devtools.build.lib.collect.nestedset.NestedSetSerializationCache$1@630bf683} with executor MoreExecutors.directExecutor()
+java.lang.IllegalStateException: Bug reports in tests should crash: [], []
+	at com.google.devtools.build.lib.bugreport.BugReport.sendBugReportInternal(BugReport.java:241)
+	at com.google.devtools.build.lib.bugreport.BugReport.sendNonFatalBugReport(BugReport.java:233)
+	at com.google.devtools.build.lib.bugreport.BugReport$DefaultBugReporter.sendNonFatalBugReport(BugReport.java:497)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetSerializationCache$1.onFailure(NestedSetSerializationCache.java:175)
+	at com.google.common.util.concurrent.Futures$CallbackListener.run(Futures.java:1121)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:30)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1040)
+	at com.google.common.util.concurrent.AbstractFuture.complete(AbstractFuture.java:803)
+	at com.google.common.util.concurrent.AbstractFuture.setFuture(AbstractFuture.java:591)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetStore$DeserializationFuture.setFuture(NestedSetStore.java:320)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetStore.getContentsAndDeserialize(NestedSetStore.java:259)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetStore.getContentsAndDeserialize(NestedSetStore.java:241)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetCodecWithStore.deserialize(NestedSetCodecWithStore.java:109)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetCodecWithStore.deserialize(NestedSetCodecWithStore.java:33)
+	at com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContext.deserializeAndMaybeHandleDeferredValues(SharedValueDeserializationContext.java:634)
+	at com.google.devtools.build.lib.skyframe.serialization.MemoizingDeserializationContext.deserializeMemoAfterContent(MemoizingDeserializationContext.java:211)
+	at com.google.devtools.build.lib.skyframe.serialization.MemoizingDeserializationContext.deserializeAndMaybeMemoize(MemoizingDeserializationContext.java:141)
+	at com.google.devtools.build.lib.skyframe.serialization.DeserializationContext.processTagAndDeserialize(DeserializationContext.java:171)
+	at com.google.devtools.build.lib.skyframe.serialization.DeserializationContext.deserialize(DeserializationContext.java:50)
+	at com.google.devtools.build.lib.skyframe.serialization.ObjectCodecs.deserializeStreamFully(ObjectCodecs.java:323)
+	at com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContext.deserializeWithSharedValues(SharedValueDeserializationContext.java:143)
+	at com.google.devtools.build.lib.skyframe.serialization.ObjectCodecs.deserializeMemoizedAndBlocking(ObjectCodecs.java:252)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetCodecTest.exceptionOnGet_hiddenUntilNestedSetIsConsumed(NestedSetCodecTest.java:244)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+Caused by: java.lang.Exception: Something went wrong
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetCodecTest.exceptionOnGet_hiddenUntilNestedSetIsConsumed(NestedSetCodecTest.java:219)
+	... 24 more
+
+..Oct 28, 2026 9:13:37 AM com.google.devtools.build.lib.skyframe.serialization.testutils.SerializationTester testSerializeDeserialize
+INFO: Flat total serialized bytes = 88, 2.550 ms
+...Oct 28, 2026 9:13:37 AM com.google.common.util.concurrent.AggregateFuture log
+SEVERE: Got more than one input Future failure. Logging failures after the first
+com.google.devtools.build.lib.skyframe.serialization.SerializationException: Unknown wire type: 7
+	at com.google.devtools.build.lib.skyframe.serialization.ObjectCodecRegistry.maybeGetConstantByTag(ObjectCodecRegistry.java:247)
+	at com.google.devtools.build.lib.skyframe.serialization.DeserializationContext.processTagAndDeserialize(DeserializationContext.java:160)
+	at com.google.devtools.build.lib.skyframe.serialization.DeserializationContext.deserialize(DeserializationContext.java:50)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetStore.lambda$getContentsAndDeserialize$0(NestedSetStore.java:289)
+	at com.google.common.util.concurrent.AbstractTransformFuture$AsyncTransformFuture.doTransform(AbstractTransformFuture.java:226)
+	at com.google.common.util.concurrent.AbstractTransformFuture$AsyncTransformFuture.doTransform(AbstractTransformFuture.java:213)
+	at com.google.common.util.concurrent.AbstractTransformFuture.run(AbstractTransformFuture.java:126)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:30)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1040)
+	at com.google.common.util.concurrent.AbstractFuture.complete(AbstractFuture.java:803)
+	at com.google.common.util.concurrent.AbstractFuture.set(AbstractFuture.java:512)
+	at com.google.common.util.concurrent.SettableFuture.set(SettableFuture.java:48)
+	at com.google.devtools.build.lib.collect.nestedset.NestedSetCodecTest.testDeserializationInParallel(NestedSetCodecTest.java:398)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+
+Time: 1.167
+
+OK (17 tests)
+
+
+BazelTestRunner exiting with a return value of 0
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 09:13:37 --
+

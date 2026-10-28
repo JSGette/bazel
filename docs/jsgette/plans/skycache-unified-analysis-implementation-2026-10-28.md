@@ -8,6 +8,7 @@ This plan targets `JSGette/bazel`, based on commit `4f5ab75ca9aeffbbf288de558220
 
 ## Current implementation checkpoint
 
+- The [second increment](../measurements/skycache-unified-analysis-2026-10-28/RETENTION.md) fixes shared-decode callback retention with native red/green GC proof; 626 Java cases pass. Six fixed finalization timings survive Bazel's early profiler shutdown. Synthetic 4,096-node broad/sparse and retained-provider cohorts now produce exact output checks and cost/ownership CSVs. Thirty workload commands pass, but the observations do not establish an overall memory or latency improvement. Producer allocation/serialization remains the next cost investigation; no conditional optimization gate is waived.
 - P00 now has a paired-run harness, fixture/evidence schemas and a deterministic native fixture. Baseline and instrumented executables each passed a producer plus four paired smoke commands with exact output digests. Broader workloads, action-key comparisons, idle-release/recovery and independent reproduction remain open.
 - P01 now emits bounded scalar ownership snapshots before finish and after session close. Focused Java tests and real cache-hit diagnostics verify cleanup and retained-state distinctions. Exclusive phase costs, heap ownership and instrumentation overhead remain unproven.
 - P02 now has a manual provider identity conformance target and a strict known-failure runner. Both controls pass; the two cross-branch identity cases still fail with four leaves instead of three. Eligibility widening remains blocked on semantic proof.

@@ -1,6 +1,7 @@
 """Behavior tests for evidence capture and fail-closed fixture validation; no Bazel runs."""
 
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -196,6 +197,82 @@ class PairedBaselineTest(unittest.TestCase):
                 result, _ = harness.source_provenance(self.root, "expected")
             self.assertEqual(result["source_state"], "dirty" if status else "clean")
             self.assertIn("not verified", result["binary_source_binding"])
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "experiment requires Linux/WSL")
+    def test_producer_manifest_must_share_frozen_fixture_directory(self):
+        fixture = MODULE.parent / "fixture" / "manifest.json"
+        producer = self.root / "producer.json"
+        producer.write_bytes(fixture.read_bytes())
+        args = SimpleNamespace(pairs=2, bazel=self.output, source_repo=self.root,
+                               manifest=fixture, producer_manifest=producer)
+        with self.assertRaisesRegex(ValueError, "share one fixture directory"):
+            harness.experiment(args)
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "experiment requires Linux/WSL")
+    def test_producer_and_consumers_use_their_own_exact_targets_and_output_oracles(self):
+        fixture = self.root / "custom-fixture"
+        fixture.mkdir()
+        consumer_path, producer_path = fixture / "sparse.json", fixture / "broad.json"
+        content = {"fixture": b"skycache paired fixture\n", "extra": b"extra producer output\n"}
+        consumer = self.spec
+        producer = {"schema_version": 1, "targets": ["//:fixture", "//:extra"],
+                    "outputs": {key + ".txt": hashlib.sha256(data).hexdigest()
+                                for key, data in content.items()}}
+        harness.save(consumer_path, consumer)
+        harness.save(producer_path, producer)
+        calls = []
+
+        def simulated_command(directory, argv, workspace, environment, timeout, expected_harness_sha):
+            directory.mkdir()
+            base = directory / "output-base"
+            base.mkdir()
+            targets = argv[argv.index("--") + 1:]
+            calls.append(targets)
+            events = []
+            for index, target in enumerate(targets):
+                name = target.removeprefix("//:")
+                output = base / (name + ".txt")
+                output.write_bytes(content[name])
+                events.extend([
+                    {"id": {"namedSet": {"id": str(index)}}, "namedSetOfFiles": {
+                        "files": [{"name": output.name, "uri": output.as_uri()}]}},
+                    {"id": {"targetCompleted": {"label": target, "configuration": {"id": "cfg"}}},
+                     "completed": {"success": True, "outputGroup": [
+                         {"name": "default", "fileSets": [{"id": str(index)}]}]}},
+                ])
+            events.extend([
+                {"id": {"buildFinished": {}}, "finished": {"exitCode": {"name": "SUCCESS"}}},
+                {"id": {"buildMetrics": {}}, "buildMetrics": {}, "lastMessage": True},
+            ])
+            (directory / "build.bep.json").write_text("\n".join(map(json.dumps, events)))
+            cache = next(arg.split("=", 1)[1] for arg in argv
+                         if arg.startswith("--experimental_local_skycache="))
+            if cache:
+                Path(cache).mkdir(exist_ok=True)
+                (Path(cache) / "seed.manifest").write_text("simulated private seed")
+            return {"exit_code": 0, "timed_out": False, "elapsed_seconds": 0.01}
+
+        for use_broad in (False, True):
+            calls.clear()
+            args = SimpleNamespace(pairs=2, bazel=self.output, source_repo=self.root,
+                                   source_commit="declared", manifest=consumer_path,
+                                   producer_manifest=producer_path if use_broad else None,
+                                   run_dir=self.root / ("broad-seed" if use_broad else "same-seed"),
+                                   heap_mb=2048, timeout_seconds=1)
+            with patch.object(harness, "source_provenance", return_value=({}, b"")), \
+                    patch.object(harness, "run_command", side_effect=simulated_command):
+                result = harness.experiment(args)
+            expected_producer = producer if use_broad else consumer
+            self.assertEqual(calls, [expected_producer["targets"]] + [consumer["targets"]] * 4)
+            summary = json.loads((result / "summary.json").read_text())
+            self.assertEqual(summary["status"], "passed")
+            self.assertEqual(summary["runs"][0]["validation"]["output_sha256"], expected_producer["outputs"])
+            self.assertTrue(all(row["validation"]["output_sha256"] == consumer["outputs"]
+                                for row in summary["runs"][1:]))
+            manifest = json.loads((result / "manifest.json").read_text())
+            self.assertEqual(manifest["producer_fixture"], expected_producer)
+            self.assertEqual(manifest["manifest_files"]["producer"]["name"],
+                             "broad.json" if use_broad else "sparse.json")
 
     def test_harness_mutation_before_launch_prevents_worker_execution(self):
         with patch.object(harness, "digest", return_value="changed"), \

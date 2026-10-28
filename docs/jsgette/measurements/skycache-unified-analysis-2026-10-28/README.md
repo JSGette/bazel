@@ -2,6 +2,8 @@
 
 See [recorded implementation results](RESULTS.md) for native smoke evidence,
 test results, the known identity failure and the remaining acceptance gates.
+See the [retention and attribution increment](RETENTION.md) for the next code
+correction, broader workload results and its measured limitations.
 
 P00 provides a stdlib Python harness and a deterministic fixture. It implements
 no optimization and establishes no performance improvement. The committed
@@ -44,6 +46,15 @@ lists the exact target and expected output SHA-256. `--manifest` may select
 another equally small self-contained fixture directory. The harness copies the
 fixture, rejects input symlinks and verifies every copied input after each
 command. Original inputs and caches remain untouched.
+
+`--producer-manifest` optionally selects different seed-producer targets and
+expected outputs. It must be a manifest in the **same directory** as
+`--manifest`, preserving a single frozen input inventory. Both specs and their
+file identities are recorded. The producer validates its own complete outputs;
+all paired cache-off/current-cache consumers validate the `--manifest` outputs.
+When omitted, producer and consumer use the same manifest as before. The
+[bounded DAG fixtures](fixtures/README.md) support broad, sparse and disjoint
+demand, including broad-seed → sparse/disjoint comparisons.
 
 ## Comparison contract
 
@@ -100,6 +111,8 @@ and semantic output constraints directly without a JSON Schema dependency.
 
 - `manifest.json`: source, binary, harness and input identity; environment,
   machine/Python description, declared settings, method and full run order.
+  `fixture` is the consumer spec; `producer_fixture` is the seed-producer spec;
+  `manifest_files` records each selected filename, original path and SHA-256.
 - `source.diff`: tracked diff against the recorded commit. Untracked hashes are
   in the manifest; untracked contents remain in the source checkout.
 - `runs/producer/` and `runs/pNN-ARM/`: `command.json`, stdout/stderr,
@@ -134,6 +147,41 @@ The harness reuses retention/chain conventions: exact runtime and input
 identity, raw monotonic timing, separate producer/publication accounting,
 independent cache populations and complete output checks. It omits their
 workload-specific paths, external services, agent overlays and cleanup commands.
+
+## Cost and ownership extraction
+
+After a complete passing cohort, extract existing telemetry without another
+Bazel run:
+
+```sh
+python3 docs/jsgette/measurements/skycache-unified-analysis-2026-10-28/summarize_costs.py \
+  --run-dir /absolute/path/to/completed-run \
+  --out-dir /absolute/path/to/new-cost-report
+```
+
+The report writes `phase-costs.csv`, `ownership.csv` and `interpretation.json`.
+It requires successful output validation and verifies checksums for consumed
+metrics, BEPs, profiles and diagnostics. Failed/incomplete cohorts remain raw
+evidence and are rejected by this extractor.
+
+Retrieval/service histograms become conservative bounds on summed latency
+samples. They include overlap and waiting; they are not exclusive CPU time.
+JSON profile categories expose both the sum of observed spans (including
+nesting) and their wall-interval union within that category. Categories can
+still overlap and profiles may omit short events. Whole-command child rusage,
+BEP phase timings and heap metrics remain separately labeled. Absent telemetry
+is unavailable, never silently zero.
+
+`local-skycache-phases.json` covers finalization after Bazel has stopped its JSON
+trace. Six fixed scalar slots measure publication, final input validation,
+witness/manifest encoding, sealing, local installation and store cleanup.
+Collection is enabled only if the Bazel profiler was active when the session
+was constructed. Fully disabling collection requires both trace profiling and
+slow-operation profiling to be disabled. The disabled path reads no phase clock
+and allocates no per-session timing array. Unexecuted phases are null.
+Publication includes its subphases and remote-parent publication, excludes its
+lifecycle-lock wait and cleanup, and excludes the module's later remote export.
+These are elapsed wall times, not exclusive phase costs or CPU attribution.
 
 ## Unit tests
 

@@ -1,0 +1,40 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/collect/nestedset:ProviderIdentityReproTest
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+.Oct 28, 2026 9:36:56 AM com.google.devtools.build.lib.skyframe.serialization.CodecScanner initializeCodecRegistry
+INFO: Building ObjectCodecRegistry
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.packages.StarlarkProviderIdentifier_KeyedIdentifier_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/packages/libprovider.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.packages.StarlarkProviderIdentifier_KeyedIdentifier_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+E...E
+Time: 0.34
+There were 2 failures:
+1) originalAndRestoredBranchesPreserveSharedProvider(com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest)
+SKYCACHE_PROVIDER_IDENTITY expected=3 actual=4
+value of    : iterable.size()
+expected    : 3
+but was     : 4
+iterable was: [struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "left.a", label = "left"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "right.a", label = "right")]
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.verifySharedProvider(ProviderIdentityReproTest.java:93)
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.originalAndRestoredBranchesPreserveSharedProvider(ProviderIdentityReproTest.java:73)
+2) independentRestoresPreserveSharedProvider(com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest)
+SKYCACHE_PROVIDER_IDENTITY expected=3 actual=4
+value of    : iterable.size()
+expected    : 3
+but was     : 4
+iterable was: [struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "left.a", label = "left"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "shared.a", label = "shared"), struct(deps = depset(["libfirst.a", "libsecond.a"]), file = "right.a", label = "right")]
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.verifySharedProvider(ProviderIdentityReproTest.java:93)
+	at com.google.devtools.build.lib.collect.nestedset.ProviderIdentityReproTest.independentRestoresPreserveSharedProvider(ProviderIdentityReproTest.java:68)
+
+FAILURES!!!
+Tests run: 4,  Failures: 2
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 09:36:56 --
+

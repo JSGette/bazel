@@ -1,0 +1,34 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/skyframe/serialization:SerializationTests
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+.WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec (file:/home/jgett/REPOS/.work/skycache-analysis-foundation-build/execroot/_main/bazel-out/k8-fastbuild/bin/src/main/java/com/google/devtools/build/lib/bazel/bzlmod/libresolution.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue_Key_AutoCodec
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+E.E
+Time: 19.777
+There were 2 failures:
+1) sharedDecodeDoesNotRetainUnrelatedMemoState[finishFirstFetch=false](com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest)
+java.lang.RuntimeException: Predicate did not become true within 10 second timeout
+	at com.google.common.testing.GcFinalization.formatRuntimeException(GcFinalization.java:324)
+	at com.google.common.testing.GcFinalization.awaitDone(GcFinalization.java:190)
+	at com.google.common.testing.GcFinalization.awaitClear(GcFinalization.java:273)
+	at com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest.sharedDecodeDoesNotRetainUnrelatedMemoState(SharedValueDeserializationContextTest.java:103)
+2) sharedDecodeDoesNotRetainUnrelatedMemoState[finishFirstFetch=true](com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest)
+java.lang.RuntimeException: Predicate did not become true within 10 second timeout
+	at com.google.common.testing.GcFinalization.formatRuntimeException(GcFinalization.java:324)
+	at com.google.common.testing.GcFinalization.awaitDone(GcFinalization.java:190)
+	at com.google.common.testing.GcFinalization.awaitClear(GcFinalization.java:273)
+	at com.google.devtools.build.lib.skyframe.serialization.SharedValueDeserializationContextTest.sharedDecodeDoesNotRetainUnrelatedMemoState(SharedValueDeserializationContextTest.java:100)
+
+FAILURES!!!
+Tests run: 2,  Failures: 2
+
+
+BazelTestRunner exiting with a return value of 1
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-28 09:12:00 --
+
