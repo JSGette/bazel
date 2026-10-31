@@ -20,13 +20,13 @@ source "${CURRENT_DIR}/../integration_test_setup.sh" \
 function set_up() {
   shared_workspace="$(pwd -P)"
   shared_root="$TEST_TMPDIR/shared-$TEST_name"
-  shared_control="$shared_root/shared_servers/v2/prototype/control"
+  shared_control="$shared_root/shared_servers/v3/prototype/control"
   shared_args=()
 }
 
 function shared_bazel() {
   # Keep shell-launch context identical across foreground, background and
-  # command-substitution clients: v1 deliberately compares the full JVM env.
+  # command-substitution clients: the JVM environment is part of startup identity.
   env SHLVL=1 OLDPWD="$shared_workspace" bazel --output_user_root="$shared_root" --experimental_shared_server=prototype \
     "${shared_args[@]}" "$@"
 }
@@ -53,7 +53,7 @@ function test_shared_namespace_and_legacy_coexistence() {
   local shared_pid output legacy_pid
   shared_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
   output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
-  [[ "$output" == "$shared_root/shared_servers/v2/prototype/engines/"* ]] \
+  [[ "$output" == "$shared_root/shared_servers/v3/prototype/engines/"* ]] \
     || fail "Build state is outside the private engine namespace: $output"
   assert_equals "$shared_pid" "$(cat "$shared_control/server/server.pid.txt")"
   [[ ! -e "$output/server/server.pid.txt" ]] || fail "PID exposed in engine output base"
@@ -99,13 +99,17 @@ function test_shared_environment_mismatch() {
   assert_shared_pid "$pid"
 }
 
-function test_shared_other_workspace_cannot_shutdown() {
+function test_shared_other_workspace_shutdown_is_scoped() {
   local pid status=0
   pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
   mkdir -p "$shared_workspace/other"
   touch "$shared_workspace/other/MODULE.bazel"
+  local other_pid
+  other_pid=$(cd "$shared_workspace/other" && shared_bazel info server_pid 2>"$TEST_log") \
+    || fail "Second engine failed"
+  assert_equals "$pid" "$other_pid"
   (cd "$shared_workspace/other" && shared_bazel shutdown) >"$TEST_log" 2>&1 || status=$?
-  assert_equals 36 "$status"
+  assert_equals 0 "$status"
   assert_shared_pid "$pid"
 }
 
@@ -244,7 +248,7 @@ function test_shared_directory_identity_handles_non_ascii_paths() {
   touch MODULE.bazel
   shared_workspace="$(pwd -P)"
   shared_root="$shared_root/output-ü-空"
-  shared_control="$shared_root/shared_servers/v2/prototype/control"
+  shared_control="$shared_root/shared_servers/v3/prototype/control"
   local pid actual
   pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Non-ASCII startup failed"
   actual=$(shared_bazel info workspace 2>"$TEST_log") || fail "Non-ASCII info failed"
@@ -300,13 +304,13 @@ function test_shared_endpoint_rejects_incomplete_protocol() {
   assert_shared_pid "$pid"
 }
 
-function test_shared_v2_leaves_old_namespace_untouched() {
+function test_shared_v3_leaves_old_namespace_untouched() {
   local old="$shared_root/shared_servers/v1/prototype/control/server"
   mkdir -p "$old"
   echo old-profile-sentinel > "$old/startup_profile"
   echo old-pid-sentinel > "$old/server.pid.txt"
-  shared_bazel info server_pid >"$TEST_log" 2>&1 || fail "V2 startup failed"
-  shared_bazel shutdown >"$TEST_log" 2>&1 || fail "V2 shutdown failed"
+  shared_bazel info server_pid >"$TEST_log" 2>&1 || fail "V3 startup failed"
+  shared_bazel shutdown >"$TEST_log" 2>&1 || fail "V3 shutdown failed"
   assert_equals old-profile-sentinel "$(cat "$old/startup_profile")"
   assert_equals old-pid-sentinel "$(cat "$old/server.pid.txt")"
 }
@@ -335,9 +339,9 @@ function test_shared_ownership_rejects_other_namespace_output_alias() {
   local pid output other_control status=0
   pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
   output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
-  other_control="$shared_root/shared_servers/v2/other/control"
-  mkdir -p "$shared_root/shared_servers/v2/other/engines"
-  ln -s "$output" "$shared_root/shared_servers/v2/other/engines/$(basename "$output")"
+  other_control="$shared_root/shared_servers/v3/other/control"
+  mkdir -p "$shared_root/shared_servers/v3/other/engines"
+  ln -s "$output" "$shared_root/shared_servers/v3/other/engines/$(basename "$output")"
   shared_bazel --experimental_shared_server=other info server_pid >"$TEST_log" 2>&1 || status=$?
   assert_equals 36 "$status"
   expect_log 'Shared server ownership is held'

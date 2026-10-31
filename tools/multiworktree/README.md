@@ -1,3 +1,7 @@
+The native **single-JVM** MVP is documented in [NATIVE.md](NATIVE.md). The process
+supervisor below remains a separate operational fallback and does not provide
+cross-engine action sharing.
+
 # Concurrent worktree MVP (Linux)
 
 This is the implementation plan's **private-process fallback**: one local Python

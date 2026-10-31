@@ -104,6 +104,21 @@ std::unique_ptr<SharedServerOwnership> SharedServerOwnership::Acquire(
   return result;
 }
 
+std::unique_ptr<SharedServerOwnership> SharedServerOwnership::AcquireEngine(
+    const std::string& output, std::string* error) {
+  std::unique_ptr<SharedServerOwnership> result(new SharedServerOwnership());
+  if (!result->Reserve(output, error)) return nullptr;
+#ifdef __linux__
+  for (int fd : result->descriptors_) {
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0) {
+      *error = "Cannot protect engine ownership descriptor";
+      return nullptr;
+    }
+  }
+#endif
+  return result;
+}
+
 bool SharedServerOwnership::Reserve(const std::string& path,
                                     std::string* error) {
 #ifdef __linux__

@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.flogger.GoogleLogger;
+import com.google.common.hash.Hashing;
 import com.google.devtools.build.lib.bugreport.BugReport;
 import com.google.devtools.build.lib.clock.Clock;
 import com.google.devtools.build.lib.runtime.BlazeCommandResult;
@@ -72,7 +73,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -243,6 +249,187 @@ public class CommandServer implements GrpcCommandServer.Callback {
   private static final String RESPONSE_COOKIE_FILE = "response_cookie";
   private static final String SERVER_INFO_FILE = "server_info.rawproto";
 
+  /** Factory invoked under the admission lock before a workspace becomes visible. */
+  @FunctionalInterface
+  public interface EngineFactory {
+    HostedEngine create(PathFragment workspace, PathFragment output) throws IOException;
+  }
+
+  public record HostedEngine(
+      CommandDispatcher dispatcher, EngineDirectories directories, Runnable shutdown) {}
+
+  private static final class EngineSlot {
+    private final EngineRegistry.Key key;
+    private final EngineRegistry.Registration registration;
+    private final HostedEngine hosted;
+    private boolean cleanupStarted;
+
+    EngineSlot(
+        EngineRegistry.Key key, EngineRegistry.Registration registration, HostedEngine hosted) {
+      this.key = key;
+      this.registration = registration;
+      this.hosted = hosted;
+    }
+
+    EngineRegistry.Registration registration() {
+      return registration;
+    }
+
+    HostedEngine hosted() {
+      return hosted;
+    }
+  }
+
+  private final Map<EngineRegistry.Key, EngineSlot> sharedEngines = new HashMap<>();
+  private final Set<EngineRegistry.Key> failedEngines = new HashSet<>();
+  @Nullable private EngineFactory engineFactory;
+  private boolean daemonDraining;
+
+  public synchronized void setEngineFactory(EngineFactory factory) {
+    checkState(sharedServer && engineFactory == null);
+    engineFactory = factory;
+  }
+
+  private synchronized EngineSlot getOrCreateEngine(EngineRegistry.Key key) throws IOException {
+    if (daemonDraining) {
+      throw new IOException("Shared daemon is draining");
+    }
+    EngineSlot present = sharedEngines.get(key);
+    if (present != null) {
+      return present;
+    }
+    if (failedEngines.contains(key)) {
+      throw new IOException("Workspace initialization failed; restart the daemon before retrying");
+    }
+    if (sharedEngines.size() + failedEngines.size() >= 2) {
+      throw new IOException("Shared daemon supports at most two retained workspace engines");
+    }
+    PathFragment root = outputBase.getParentDirectory();
+    String expected =
+        Hashing.md5().hashBytes(key.workspace().getPathString().getBytes(ISO_8859_1)).toString();
+    if (!key.outputBase().equals(root.getRelative(expected)) || key.workspace().isEmpty()) {
+      throw new IOException("Engine output is outside the private workspace namespace");
+    }
+    EngineRegistry.Registration registration = engines.reserve(key);
+    try {
+      HostedEngine hosted = engineFactory.create(key.workspace(), key.outputBase());
+      registration.activate(hosted.dispatcher());
+      EngineSlot slot = new EngineSlot(key, registration, hosted);
+      sharedEngines.put(key, slot);
+      return slot;
+    } catch (IOException | RuntimeException e) {
+      failedEngines.add(key);
+      registration.close();
+      throw e;
+    }
+  }
+
+  private void runShared(RunRequest request, GrpcCommandServer.Responder responder) {
+    String command = request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8();
+    if (!request.hasEngineIdentity()) {
+      rejectRun(
+          responder,
+          "Shared daemon requires a workspace identity",
+          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+      return;
+    }
+    if (!request.getEngineInstanceId().equals(engine.instanceId()) || request.getPreemptible()) {
+      rejectRun(
+          responder,
+          "Invalid shared daemon identity or unsupported preemption",
+          GrpcServer.Code.ENGINE_UNAVAILABLE);
+      return;
+    }
+    if (!Set.of("build", "test", "info", "shutdown").contains(command)) {
+      rejectRun(
+          responder,
+          "Shared daemon supports build, test, info and shutdown",
+          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
+      return;
+    }
+    try {
+      EngineRegistry.Key key =
+          new EngineRegistry.Key(
+              PathFragment.create(
+                  platformBytesToInternalString(
+                      request.getEngineIdentity().getWorkspaceDirectory())),
+              PathFragment.create(
+                  platformBytesToInternalString(request.getEngineIdentity().getOutputBase())));
+      String expected =
+          Hashing.md5().hashBytes(key.workspace().getPathString().getBytes(ISO_8859_1)).toString();
+      if (key.workspace().isEmpty()
+          || !key.outputBase().equals(outputBase.getParentDirectory().getRelative(expected))) {
+        rejectRun(
+            responder,
+            "Shared engine identity is outside its private namespace",
+            GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+        return;
+      }
+      EngineSlot slot = getOrCreateEngine(key);
+      if (!slot.hosted().directories().canDispatch(command)) {
+        throw new IOException("Workspace directories changed; engine is fenced");
+      }
+      boolean shutdownRequested;
+      try (Lease lease = engines.acquire(key, slot.registration().instanceId())) {
+        if (lease == null) {
+          throw new IOException("Workspace engine has shut down; restart the daemon to reopen it");
+        }
+        shutdownRequested = execute(request, responder, lease.dispatcher());
+      }
+      if (shutdownRequested) {
+        shutdownSharedEngine(slot);
+        synchronized (this) {
+          if (sharedEngines.values().stream()
+              .allMatch(entry -> entry.registration().state() == EngineRegistry.State.CLOSED)) {
+            grpcCommandServer.shutdown();
+          }
+        }
+      }
+    } catch (IOException | IllegalArgumentException e) {
+      rejectRun(
+          responder,
+          "Cannot admit workspace engine: " + e.getMessage(),
+          GrpcServer.Code.ENGINE_UNAVAILABLE);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private synchronized boolean prepareSharedShutdown(RunRequest request) {
+    EngineRegistry.Key key =
+        new EngineRegistry.Key(
+            PathFragment.create(
+                platformBytesToInternalString(request.getEngineIdentity().getWorkspaceDirectory())),
+            PathFragment.create(
+                platformBytesToInternalString(request.getEngineIdentity().getOutputBase())));
+    sharedEngines.get(key).registration().beginDrain();
+    daemonDraining =
+        sharedEngines.values().stream()
+            .allMatch(slot -> slot.registration().state() != EngineRegistry.State.READY);
+    return daemonDraining;
+  }
+
+  private void shutdownSharedEngine(EngineSlot slot) throws InterruptedException {
+    // Serialize cleanup per engine, without holding the daemon admission lock while draining.
+    synchronized (slot) {
+      if (slot.registration().state() == EngineRegistry.State.CLOSED) {
+        return;
+      }
+      slot.registration().beginDrain();
+      slot.registration().awaitDrained();
+      checkState(slot.hosted().directories().canShutdown(), "Cannot clean replacement directories");
+      checkState(!slot.cleanupStarted, "Workspace cleanup previously failed");
+      slot.cleanupStarted = true;
+      slot.hosted().shutdown().run();
+      try {
+        slot.hosted().directories().close();
+      } catch (IOException e) {
+        throw new IllegalStateException("Cannot close engine directory handles", e);
+      }
+      slot.registration().close();
+    }
+  }
+
   private final GrpcCommandServer grpcCommandServer;
   private final CommandManager commandManager;
   private final EngineRegistry engines = new EngineRegistry();
@@ -308,6 +495,12 @@ public class CommandServer implements GrpcCommandServer.Callback {
 
     commandManager = new CommandManager(doIdleServerTasks, slowInterruptMessageSuffix);
     engine.activate(dispatcher);
+    if (sharedServer) {
+      sharedEngines.put(
+          engineKey,
+          new EngineSlot(
+              engineKey, engine, new HostedEngine(dispatcher, engineDirectories, engineShutdown)));
+    }
   }
 
   private static String generateCookie(SecureRandom random, int byteCount) {
@@ -407,7 +600,14 @@ public class CommandServer implements GrpcCommandServer.Callback {
   @VisibleForTesting
   void awaitTermination() throws InterruptedException {
     grpcCommandServer.awaitTermination();
-    shutdownEngine();
+    if (engineFactory == null) {
+      shutdownEngine();
+    } else {
+      for (EngineSlot slot : List.copyOf(sharedEngines.values())) {
+        shutdownSharedEngine(slot);
+      }
+      commandManager.shutdown();
+    }
   }
 
   private synchronized void shutdownEngine() throws InterruptedException {
@@ -509,6 +709,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
       return;
     }
 
+    if (engineFactory != null) {
+      runShared(request, responder);
+      return;
+    }
+
     // Validate ownership before preemption, command registration, or dispatch.
     // Only ordinary single-engine servers accept legacy clients/restart requests without identity.
     if (sharedServer && !request.hasEngineIdentity()) {
@@ -592,7 +797,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     }
   }
 
-  private void execute(
+  private boolean execute(
       RunRequest request, GrpcCommandServer.Responder responder, CommandDispatcher dispatcher) {
     String commandId;
     BlazeCommandResult result;
@@ -610,7 +815,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
               platformBytesToInternalString(option.getOption())));
     }
 
-    commandManager.preemptEligibleCommands();
+    if (engineFactory == null) {
+      commandManager.preemptEligibleCommands();
+    }
 
     try (RunningCommand command =
         request.getPreemptible()
@@ -685,12 +892,14 @@ public class CommandServer implements GrpcCommandServer.Callback {
               InterruptedFailureDetails.detailedExitCode("Command dispatch interrupted"));
       commandId = ""; // The default value, the client will ignore it
     }
+    boolean terminationExpected =
+        result.shutdown() && (engineFactory == null || prepareSharedShutdown(request));
     RunResponse.Builder response =
         RunResponse.newBuilder()
             .setCookie(responseCookie)
             .setCommandId(commandId)
             .setFinished(true)
-            .setTerminationExpected(result.shutdown());
+            .setTerminationExpected(terminationExpected);
 
     if (result.getExecRequest() != null) {
       response.setExitCode(result.getExitCode().getNumericExitCode());
@@ -713,9 +922,10 @@ public class CommandServer implements GrpcCommandServer.Callback {
     } catch (IOException e) {
       logger.atInfo().withCause(e).log("Error while sending RunResponse");
     }
-    if (result.shutdown()) {
+    if (result.shutdown() && engineFactory == null) {
       grpcCommandServer.shutdown();
     }
+    return result.shutdown();
   }
 
   @Override
@@ -727,6 +937,20 @@ public class CommandServer implements GrpcCommandServer.Callback {
     } catch (InvalidProtocolBufferException e) {
       // Programming error: the SC proto must remain backwards-compatible with the LC proto.
       throw new IllegalStateException(e);
+    }
+    if (engineFactory != null && isValidRequestCookie(request.getCookie())) {
+      try {
+        responder.onNext(
+            PingResponse.newBuilder()
+                .setCookie(responseCookie)
+                .setEngineInstanceId(engine.instanceId())
+                .build()
+                .toByteArray());
+        responder.onCompleted();
+      } catch (IOException e) {
+        logger.atInfo().withCause(e).log("Error sending shared daemon ping");
+      }
+      return;
     }
     try (Lease lease =
         isValidRequestCookie(request.getCookie()) ? engines.acquire(engineKey, "") : null) {
@@ -757,6 +981,20 @@ public class CommandServer implements GrpcCommandServer.Callback {
       throw new IllegalStateException(e);
     }
     logger.atInfo().log("Got CancelRequest for command id %s", request.getCommandId());
+    if (engineFactory != null) {
+      try {
+        if (isValidRequestCookie(request.getCookie())
+            && request.getEngineInstanceId().equals(engine.instanceId())) {
+          commandManager.doCancel(request);
+          responder.onNext(
+              CancelResponse.newBuilder().setCookie(responseCookie).build().toByteArray());
+        }
+        responder.onCompleted();
+      } catch (IOException e) {
+        logger.atInfo().withCause(e).log("Error sending shared cancel response");
+      }
+      return;
+    }
     try (Lease lease =
         isValidRequestCookie(request.getCookie())
                 && (!sharedServer || !request.getEngineInstanceId().isEmpty())
@@ -785,6 +1023,20 @@ public class CommandServer implements GrpcCommandServer.Callback {
       throw new IllegalStateException(e);
     }
     logger.atInfo().log("Got TerminalSizeRequest for command id %s", request.getCommandId());
+    if (engineFactory != null) {
+      try {
+        if (isValidRequestCookie(request.getCookie())
+            && request.getEngineInstanceId().equals(engine.instanceId())) {
+          commandManager.doUpdateTerminalSize(request);
+          responder.onNext(
+              TerminalSizeResponse.newBuilder().setCookie(responseCookie).build().toByteArray());
+        }
+        responder.onCompleted();
+      } catch (IOException e) {
+        logger.atInfo().withCause(e).log("Error sending shared resize response");
+      }
+      return;
+    }
     try (Lease lease =
         isValidRequestCookie(request.getCookie())
                 && (!sharedServer || !request.getEngineInstanceId().isEmpty())

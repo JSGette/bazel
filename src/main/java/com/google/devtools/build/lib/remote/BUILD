@@ -1007,7 +1007,10 @@ java_library(
 
 java_library(
     name = "remote_spawn_cache",
-    srcs = ["RemoteSpawnCache.java"],
+    srcs = [
+        "RemoteSpawnCache.java",
+        "SharedActionExecutionRegistry.java",
+    ],
     visibility = [
         "//src/main/java/com/google/devtools/build/lib:build_lib",
         "//src/tools/remote:__subpackages__",

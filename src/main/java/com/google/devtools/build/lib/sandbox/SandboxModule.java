@@ -74,7 +74,7 @@ public final class SandboxModule extends BlazeModule {
   private static final GoogleLogger logger = GoogleLogger.forEnclosingClass();
 
   /** Tracks whether we are issuing the very first build within this Bazel server instance. */
-  private static boolean firstBuild = true;
+  private boolean firstBuild = true;
 
   /** Environment for the running command. */
   @Nullable private CommandEnvironment env;

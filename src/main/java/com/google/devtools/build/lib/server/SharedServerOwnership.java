@@ -43,5 +43,8 @@ public final class SharedServerOwnership {
   private static native void adoptNative(int[] descriptors, String control, String output)
       throws IOException;
 
+  /** Reserves an additional engine until this process exits. */
+  public static native void acquireEngine(String output) throws IOException;
+
   private SharedServerOwnership() {}
 }

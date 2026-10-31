@@ -808,9 +808,9 @@ void StartupOptions::UpdateConfiguration(const string& install_md5,
              "--delete_output_base_on_shutdown";
     }
     // Older experimental launchers do not honor process-lifetime reservations.
-    // Keep their v1 outputs and daemon control metadata entirely separate.
+    // Keep v1/v2 outputs and daemon control metadata entirely separate.
     const auto group = output_user_root.GetRelative("shared_servers")
-                           .GetRelative("v2")
+                           .GetRelative("v3")
                            .GetRelative(experimental_shared_server);
     output_base = group.GetRelative("control");
     engine_output_base =

@@ -680,7 +680,8 @@ static void PrepareDirectories(StartupOptions *startup_options) {
 // Prepares the environment to be suitable to start a JVM.
 // Changes made to the environment in this function *will not* be part
 // of '--client_env'.
-static map<string, EnvVarValue> PrepareEnvironmentForJvm() {
+static map<string, EnvVarValue> PrepareEnvironmentForJvm(
+    const StartupOptions &startup_options) {
   map<string, EnvVarValue> result;
 
   // Make sure all existing environment variables appear as part of the
@@ -754,6 +755,12 @@ static map<string, EnvVarValue> PrepareEnvironmentForJvm() {
   }
 #endif
 
+  if (!startup_options.experimental_shared_server.empty()) {
+    // Shell location is invocation-local and already captured in --client_env.
+    // No server code uses these variables to select its workspace.
+    result["PWD"] = EnvVarValue(EnvVarAction::UNSET, "");
+    result["OLDPWD"] = EnvVarValue(EnvVarAction::UNSET, "");
+  }
   return result;
 }
 
@@ -798,7 +805,7 @@ static void RunServerMode(
                 startup_options.io_nice_level);
 
   {
-    WithEnvVars env_obj(PrepareEnvironmentForJvm());
+    WithEnvVars env_obj(PrepareEnvironmentForJvm(startup_options));
 #ifdef __linux__
     bool run_in_user_cgroup = startup_options.run_in_user_cgroup;
 #else
@@ -1126,7 +1133,7 @@ static void RunBatchMode(
                 startup_options.io_nice_level);
 
   {
-    WithEnvVars env_obj(PrepareEnvironmentForJvm());
+    WithEnvVars env_obj(PrepareEnvironmentForJvm(startup_options));
 #ifdef __linux__
     bool run_in_user_cgroup = startup_options.run_in_user_cgroup;
 #else
@@ -1332,7 +1339,7 @@ static void StartServerAndConnect(
   vector<string> launch_args = server_exe_args;
   server->AddOwnershipArguments(&launch_args);
   const int server_pid = ExecuteDaemon(
-      server_exe, launch_args, PrepareEnvironmentForJvm(),
+      server_exe, launch_args, PrepareEnvironmentForJvm(startup_options),
       server->ProcessInfo().jvm_log_file_,
       server->ProcessInfo().jvm_log_file_append_, startup_options.install_base,
       server_dir, startup_options, &server_startup);
@@ -1557,12 +1564,10 @@ static ATTRIBUTE_NORETURN void RunClientServerMode(
     // cases, it's better to assume that everything is alright if we can't get
     // the cwd.
 
-    if (!startup_options.experimental_shared_server.empty() &&
-        (server_cwd == nullptr || *server_cwd != blaze_util::Path(workspace) ||
-         server_cwd->Contains(" (deleted)"))) {
-      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
-          << "Shared server workspace identity cannot be verified; "
-             "refusing attachment";
+    if (!startup_options.experimental_shared_server.empty()) {
+      // Each runtime validates its own pinned workspace. The daemon's process
+      // cwd belongs to the first engine and cannot identify later engines.
+      break;
     }
     if (server_cwd != nullptr &&
         (*server_cwd != blaze_util::Path(workspace) ||  // changed
@@ -1706,24 +1711,25 @@ void PrintVersionInfo(const string& build_label, const string& product_name) {
   printf("%s %s\n", product_name.c_str(), build_label.c_str());
 }
 
-// Conservative v1 profile: preserve argument order and repetitions. Only the
-// display name and option provenance are client-local. Workspace and output
-// paths remain in the profile until multiple complete runtimes can be hosted.
+// Preserve argument order and repetitions. Workspace and output paths select
+// private runtimes; every other startup setting remains daemon-wide.
 static string SharedStartupProfile(const blaze_util::Path& server_exe,
                                    const vector<string>& server_args,
                                    const StartupOptions& options) {
-  vector<string> profile = {
-      "bazel-shared-startup-v1", server_exe.AsNativePath(),
-      options.java_logging_formatter,
-      blaze_util::ToString(options.batch_cpu_scheduling),
-      blaze_util::ToString(options.io_nice_level),
-      blaze_util::ToString(options.unlimit_coredumps)};
+  vector<string> profile = {"bazel-shared-startup-v2",
+                            server_exe.AsNativePath(),
+                            options.java_logging_formatter,
+                            blaze_util::ToString(options.batch_cpu_scheduling),
+                            blaze_util::ToString(options.io_nice_level),
+                            blaze_util::ToString(options.unlimit_coredumps)};
 #ifdef __linux__
   profile.push_back(options.cgroup_parent);
   profile.push_back(blaze_util::ToString(options.run_in_user_cgroup));
 #endif
   for (size_t i = 1; i < server_args.size(); ++i) {
-    if (server_args[i].compare(0, 17, "--option_sources=") != 0) {
+    if (server_args[i].compare(0, 17, "--option_sources=") != 0 &&
+        server_args[i].compare(0, 22, "--workspace_directory=") != 0 &&
+        server_args[i].compare(0, 14, "--output_base=") != 0) {
       profile.push_back(server_args[i]);
     }
   }
@@ -1733,7 +1739,8 @@ static string SharedStartupProfile(const blaze_util::Path& server_exe,
 // Linux exposes the environment passed to exec, which is what JVM startup
 // consumes. Compare it exactly without writing credentials to a profile file or
 // logging values. This intentionally rejects even harmless environment changes.
-static bool SharedServerEnvironmentMatches(int pid) {
+static bool SharedServerEnvironmentMatches(
+    int pid, const StartupOptions &startup_options) {
   string bytes;
   if (!blaze_util::ReadFile(
           blaze_util::Path("/proc/" + blaze_util::ToString(pid) + "/environ"),
@@ -1752,7 +1759,7 @@ static bool SharedServerEnvironmentMatches(int pid) {
     start = end + 1;
   }
   set<string> expected;
-  for (const auto& entry : PrepareEnvironmentForJvm()) {
+  for (const auto &entry : PrepareEnvironmentForJvm(startup_options)) {
     if (entry.second.action == EnvVarAction::SET) {
       expected.insert(entry.first + "=" + entry.second.value);
     }
@@ -1864,12 +1871,14 @@ static void RunLauncher(const string& self_path,
     const auto profile_path = server_dir.GetRelative("startup_profile");
     if (blaze_server->Connected()) {
       string existing;
-      if (!blaze_util::ReadFile(profile_path, &existing) || existing != requested ||
+      if (!blaze_util::ReadFile(profile_path, &existing) ||
+          existing != requested ||
           !SharedServerEnvironmentMatches(
-              blaze_server->ProcessInfo().server_pid_)) {
+              blaze_server->ProcessInfo().server_pid_, startup_options)) {
         BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
-            << "Shared server startup profile, workspace or environment is "
-               "incompatible; use another name or shut down with the original settings";
+            << "Shared server startup profile or environment is "
+               "incompatible; use another name or shut down with the original "
+               "settings";
       }
     } else {
       UpdateInstallationSymlink(startup_options);

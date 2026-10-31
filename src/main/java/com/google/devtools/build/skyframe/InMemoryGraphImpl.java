@@ -53,6 +53,12 @@ import javax.annotation.Nullable;
 public class InMemoryGraphImpl implements InMemoryGraph {
 
   private static final int PARALLELISM_THRESHOLD = 1024;
+  private static volatile boolean globalPoolingDisabled;
+
+  /** Call before constructing any graph in a daemon hosting multiple private evaluators. */
+  public static void disableGlobalPooling() {
+    globalPoolingDisabled = true;
+  }
 
   // Use ForwardingConcurrentMap as a live reference to nodeMap so that it's safe to mutate
   // nodeMap and not have callers see the stale map. See getValues, getDoneValues,
@@ -90,8 +96,8 @@ public class InMemoryGraphImpl implements InMemoryGraph {
     this.nodeMap = new ConcurrentHashMap<>(initialCapacity);
     this.getBatch = this::getIfPresent;
     this.createIfAbsentBatch = this::createIfAbsent;
-    this.usePooledInterning = usePooledInterning;
-    if (usePooledInterning) {
+    this.usePooledInterning = usePooledInterning && !globalPoolingDisabled;
+    if (this.usePooledInterning) {
       SkyKeyInterner.setGlobalPool(new SkyKeyPool());
       LabelInterner.setGlobalPool(new LabelPool());
     }
@@ -290,7 +296,6 @@ public class InMemoryGraphImpl implements InMemoryGraph {
   public InMemoryNodeEntry getIfPresent(SkyKey key) {
     return nodeMap.get(key);
   }
-
 
   static final class EdgelessInMemoryGraphImpl extends InMemoryGraphImpl {
 

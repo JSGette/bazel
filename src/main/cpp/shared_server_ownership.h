@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// Process-lifetime ownership for the Linux single-engine shared-server
+// Process-lifetime ownership for the Linux multi-engine shared-server
 // prototype.
 #ifndef BAZEL_SRC_MAIN_CPP_SHARED_SERVER_OWNERSHIP_H_
 #define BAZEL_SRC_MAIN_CPP_SHARED_SERVER_OWNERSHIP_H_
@@ -31,6 +31,8 @@ class SharedServerOwnership {
   static std::unique_ptr<SharedServerOwnership> Acquire(
       const std::string& control, const std::string& output,
       std::string* error);
+  static std::unique_ptr<SharedServerOwnership> AcquireEngine(
+      const std::string& output, std::string* error);
   ~SharedServerOwnership();
   SharedServerOwnership(const SharedServerOwnership&) = delete;
   SharedServerOwnership& operator=(const SharedServerOwnership&) = delete;

@@ -568,8 +568,10 @@ public final class RemoteModule extends BlazeModule {
     String buildRequestId = env.getBuildRequestId();
     env.getReporter().handle(Event.info(String.format("Invocation ID: %s", invocationId)));
 
-    RxJavaPlugins.setErrorHandler(
-        error -> env.getReporter().handle(Event.error(Throwables.getStackTraceAsString(error))));
+    if (!env.getRuntime().isSharedServer()) {
+      RxJavaPlugins.setErrorHandler(
+          error -> env.getReporter().handle(Event.error(Throwables.getStackTraceAsString(error))));
+    }
 
     Path logDir =
         env.getOutputBase().getRelative(env.getRuntime().getProductName() + "-remote-logs");

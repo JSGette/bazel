@@ -71,6 +71,7 @@ import com.google.devtools.build.lib.profiler.Profiler;
 import com.google.devtools.build.lib.profiler.ProfilerTask;
 import com.google.devtools.build.lib.profiler.SilentCloseable;
 import com.google.devtools.build.lib.profiler.SystemNetworkStatsService;
+import com.google.devtools.build.lib.profiler.TraceProfilerService;
 import com.google.devtools.build.lib.profiler.TraceProfilerService.Format;
 import com.google.devtools.build.lib.query2.QueryEnvironmentFactory;
 import com.google.devtools.build.lib.query2.engine.QueryEnvironment.QueryFunction;
@@ -122,6 +123,7 @@ import com.google.devtools.build.lib.vfs.PathFragment;
 import com.google.devtools.build.lib.vfs.Root;
 import com.google.devtools.build.lib.vfs.Symlinks;
 import com.google.devtools.build.lib.worker.WorkerProcessMetricsCollector;
+import com.google.devtools.build.skyframe.InMemoryGraphImpl;
 import com.google.devtools.common.options.CommandNameCache;
 import com.google.devtools.common.options.InvocationPolicyParser;
 import com.google.devtools.common.options.OptionDefinition;
@@ -396,6 +398,9 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       CommandEnvironment env,
       long execStartTimeNanos,
       long waitTimeInMs) {
+    if (isSharedServer()) {
+      return new ProfilerStartedEvent(null);
+    }
     BuildEventProtocolOptions bepOptions = options.getOptions(BuildEventProtocolOptions.class);
     CommonCommandOptions commandOptions = options.getOptions(CommonCommandOptions.class);
     OutputStream out = null;
@@ -704,7 +709,7 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
     } else if (this.lastSymlinkPrefix == null) {
       this.lastSymlinkPrefix = productName + "-";
     }
-    if (options.getMemoryProfilePath() != null) {
+    if (!isSharedServer() && options.getMemoryProfilePath() != null) {
       Path memoryProfilePath =
           env.getWorkingDirectory().getRelative(options.getMemoryProfilePath());
       MemoryProfiler.instance()
@@ -1030,6 +1035,15 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
     // Transform args into Bazel's internal string representation.
     args = Arrays.stream(args).map(StringEncoding::platformToInternal).toArray(String[]::new);
     setupUncaughtHandlerAtStartup(args);
+    boolean shared =
+        Arrays.stream(args).anyMatch(a -> a.startsWith("--experimental_shared_server="));
+    if (shared) {
+      InMemoryGraphImpl.disableGlobalPooling();
+      blazeModuleClasses =
+          Iterables.filter(blazeModuleClasses, BlazeRuntime::supportsSharedRuntime);
+      blazeServices =
+          Iterables.filter(blazeServices, service -> !(service instanceof TraceProfilerService));
+    }
     ImmutableList<BlazeModule> blazeModules = createBlazeModules(blazeModuleClasses);
     // blaze.cc will put --batch first if the user set it.
     if (args.length >= 1 && args[0].equals("--batch")) {
@@ -1049,6 +1063,29 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       BugReport.handleCrash(crash, CrashContext.keepAlive().withArgs(args));
       exit(crash.getDetailedExitCode().getExitCode().getNumericExitCode());
     }
+  }
+
+  private static boolean supportsSharedRuntime(Class<? extends BlazeModule> type) {
+    return !ImmutableSet.of(
+            "CommandProfilerModule",
+            "CpuProfilerModule",
+            "AllocationTrackerModule",
+            "SystemMemoryPressureModule",
+            "SystemSuspensionModule",
+            "StarlarkDebuggerModule",
+            "WorkerModule",
+            "DynamicExecutionModule",
+            "PackageMetricsModule",
+            "PostGCMemoryUseRecorderModule",
+            "GcAfterBuildModule")
+        .contains(type.getSimpleName());
+  }
+
+  public boolean isSharedServer() {
+    return !startupOptionsProvider
+        .getOptions(BlazeServerStartupOptions.class)
+        .getExperimentalSharedServer()
+        .isEmpty();
   }
 
   @SuppressWarnings("SystemExitOutsideMain")
@@ -1415,8 +1452,50 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
                 serverPid,
                 startupOptions.getMaxIdleSeconds(),
                 startupOptions.getShutdownOnLowSysMem(),
-                startupOptions.getIdleServerTasks(),
+                !runtime.isSharedServer() && startupOptions.getIdleServerTasks(),
                 getSlowInterruptMessageSuffix(blazeModules));
+        if (runtime.isSharedServer()) {
+          commandServer.setEngineFactory(
+              (workspace, output) -> {
+                ImmutableList<Class<? extends BlazeModule>> classes =
+                    ImmutableList.copyOf(Iterables.transform(blazeModules, BlazeModule::getClass));
+                ImmutableList<BlazeModule> modules = createBlazeModules(classes);
+                ArrayList<String> engineArgs = new ArrayList<>(Arrays.asList(args));
+                engineArgs.removeIf(
+                    a -> a.startsWith("--workspace_directory=") || a.startsWith("--output_base="));
+                engineArgs.add("--workspace_directory=" + workspace.getPathString());
+                engineArgs.add("--output_base=" + output.getPathString());
+                SharedServerOwnership.acquireEngine(output.getPathString());
+                EngineDirectories directories =
+                    EngineDirectories.open(
+                        java.nio.file.Path.of(
+                            StringEncoding.internalToPlatform(workspace.getPathString())),
+                        java.nio.file.Path.of(
+                            StringEncoding.internalToPlatform(output.getPathString())));
+                try {
+                  BlazeRuntime other =
+                      newRuntime(
+                          modules,
+                          blazeServices,
+                          parseStartupOptions(Iterables.concat(modules, blazeServices), engineArgs),
+                          delayedJniLinkingError,
+                          prepareForAbruptShutdown,
+                          true);
+                  BlazeCommandDispatcher otherDispatcher =
+                      new BlazeCommandDispatcher(other, serverPid, directories);
+                  return new CommandServer.HostedEngine(
+                      otherDispatcher,
+                      directories,
+                      () -> {
+                        other.shutdown();
+                        otherDispatcher.shutdown();
+                      });
+                } catch (AbruptExitException | OptionsParsingException | RuntimeException e) {
+                  directories.close();
+                  throw new IOException("Cannot initialize workspace engine", e);
+                }
+              });
+        }
         commandServerRef.set(commandServer);
 
         // Register the signal handler.
@@ -1489,9 +1568,9 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
   /**
    * Creates a new blaze runtime, given the install and output base directories.
    *
-   * <p>Note: This method can and should only be called once per startup, as it also creates the
-   * filesystem object that will be used for the runtime. So it should only ever be called from the
-   * main method of the Blaze program.
+   * <p>This entry point initializes process-wide services once during startup. The shared-server
+   * engine factory uses the additional-engine overload to create private filesystem and runtime
+   * state without reinstalling process-wide hooks.
    *
    * @param args Blaze startup options.
    * @return a new BlazeRuntime instance initialized with the given filesystem and directories, and
@@ -1520,6 +1599,18 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       @Nullable Throwable delayedJniLinkingError,
       @Nullable Runnable abruptShutdownHandler)
       throws AbruptExitException, OptionsParsingException {
+    return newRuntime(
+        blazeModules, blazeServices, options, delayedJniLinkingError, abruptShutdownHandler, false);
+  }
+
+  private static BlazeRuntime newRuntime(
+      Iterable<BlazeModule> blazeModules,
+      Iterable<BlazeService> blazeServices,
+      OptionsParsingResult options,
+      @Nullable Throwable delayedJniLinkingError,
+      @Nullable Runnable abruptShutdownHandler,
+      boolean additionalEngine)
+      throws AbruptExitException, OptionsParsingException {
     BlazeServerStartupOptions startupOptions = options.getOptions(BlazeServerStartupOptions.class);
 
     // Set up the failure detail path first, so that it can communicate problems with other flags
@@ -1529,11 +1620,15 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       throw new IllegalArgumentException(
           "Bad --failure_detail_out option specified: '" + failureDetailOut + "'");
     }
-    CustomFailureDetailPublisher.setFailureDetailFilePath(failureDetailOut.getPathString());
+    if (!additionalEngine) {
+      CustomFailureDetailPublisher.setFailureDetailFilePath(failureDetailOut.getPathString());
+    }
 
     for (BlazeService service : blazeServices) {
       try {
-        service.globalInit(options, blazeServices);
+        if (!additionalEngine) {
+          service.globalInit(options, blazeServices);
+        }
       } catch (SerializedAbruptExitException e) {
         throw AbruptExitException.fromSerialized(e);
       }
@@ -1615,7 +1710,7 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
     FileSystem fs = MoreObjects.firstNonNull(maybeFsForBuildArtifacts, nativeFs);
 
     FileSystemLock installBaseLock = null;
-    if (startupOptions.getLockInstallBase()) {
+    if (!additionalEngine && startupOptions.getLockInstallBase()) {
       // Acquire a shared lock on the install base to prevent it from being garbage collected by
       // another server while this server is running. Note that the client must already hold a
       // shared lock on the install base at this time (which it will release once it successfully
@@ -1660,31 +1755,34 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       }
     }
     SubscriberExceptionHandler subscriberExceptionHandler = currentHandlerValue;
-    Thread.setDefaultUncaughtExceptionHandler(
-        new Thread.UncaughtExceptionHandler() {
-          @SuppressWarnings("NullArgumentForNonNullParameter")
-          @Override
-          public void uncaughtException(Thread thread, Throwable throwable) {
-            subscriberExceptionHandler.handleException(throwable, null);
-          }
-        });
+    if (!additionalEngine) {
+      Thread.setDefaultUncaughtExceptionHandler(
+          new Thread.UncaughtExceptionHandler() {
+            @SuppressWarnings("NullArgumentForNonNullParameter")
+            @Override
+            public void uncaughtException(Thread thread, Throwable throwable) {
+              subscriberExceptionHandler.handleException(throwable, null);
+            }
+          });
 
-    // Set the hook used to display Starlark source lines in a stack trace.
-    EvalException.setSourceReaderSupplier(
-        () ->
-            loc -> {
-              try {
-                // TODO(adonovan): opt: cache seen files, as the stack often repeats the same files.
-                Path path = fs.getPath(PathFragment.create(loc.file()));
-                // Reading the file as Latin-1 is equivalent to reading raw bytes, which matches
-                // Bazel's internal encoding for strings (see StringEncoding).
-                ImmutableList<String> lines = FileSystemUtils.readLinesAsLatin1(path);
-                return lines.size() >= loc.line() ? lines.get(loc.line() - 1) : null;
-              } catch (Throwable unused) {
-                // ignore any failure (e.g. ENOENT, security manager rejecting I/O)
-              }
-              return null;
-            });
+      // Set the hook used to display Starlark source lines in a stack trace.
+      EvalException.setSourceReaderSupplier(
+          () ->
+              loc -> {
+                try {
+                  // TODO(adonovan): opt: cache seen files, as the stack often repeats the same
+                  // files.
+                  Path path = fs.getPath(PathFragment.create(loc.file()));
+                  // Reading the file as Latin-1 is equivalent to reading raw bytes, which matches
+                  // Bazel's internal encoding for strings (see StringEncoding).
+                  ImmutableList<String> lines = FileSystemUtils.readLinesAsLatin1(path);
+                  return lines.size() >= loc.line() ? lines.get(loc.line() - 1) : null;
+                } catch (Throwable unused) {
+                  // ignore any failure (e.g. ENOENT, security manager rejecting I/O)
+                }
+                return null;
+              });
+    }
 
     Path outputUserRootPath = fs.getPath(outputUserRoot);
     Path installBasePath = fs.getPath(installBase);
@@ -1716,7 +1814,9 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
             .setEventBusExceptionHandler(subscriberExceptionHandler)
             .setInstallBaseLock(installBaseLock);
 
-    if (TestType.isInTest() && System.getenv("NO_CRASH_ON_LOGGING_IN_TEST") == null) {
+    if (!additionalEngine
+        && TestType.isInTest()
+        && System.getenv("NO_CRASH_ON_LOGGING_IN_TEST") == null) {
       LoggingUtil.installRemoteLogger(getTestCrashLogger());
     }
 
@@ -1730,13 +1830,15 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
 
     BlazeRuntime runtime = runtimeBuilder.build();
 
-    CustomExitCodePublisher.setAbruptExitStatusFileDir(
-        serverDirectory == null
-            ? serverDirectories.getOutputBase().getPathString()
-            : serverDirectory.getParentDirectory().getPathString());
-    // Delete the previous file, if any, in case this server is reusing an existing output base
-    // from a previous server that had an abrupt exit.
-    CustomExitCodePublisher.maybeDeleteAbruptExitStatusFile();
+    if (!additionalEngine) {
+      CustomExitCodePublisher.setAbruptExitStatusFileDir(
+          serverDirectory == null
+              ? serverDirectories.getOutputBase().getPathString()
+              : serverDirectory.getParentDirectory().getPathString());
+      // Delete the previous file, if any, in case this server is reusing an existing output base
+      // from a previous server that had an abrupt exit.
+      CustomExitCodePublisher.maybeDeleteAbruptExitStatusFile();
+    }
 
     BlazeDirectories directories =
         new BlazeDirectories(serverDirectories, workspaceDirectoryPath, productName);
@@ -1993,7 +2095,11 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
               installBaseLock,
               deleteOutputBaseOnShutdown,
               forcedGcAction);
-      BugReport.setRuntime(runtime);
+      if (runtime.isSharedServer()) {
+        BugReport.addRuntime(runtime);
+      } else {
+        BugReport.setRuntime(runtime);
+      }
       return runtime;
     }
 
@@ -2207,9 +2313,7 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
     Path workspaceDir = workspace.getWorkspace();
     if (symlinkPrefix != null && workspaceDir != null) {
       OutputDirectoryLinksUtils.removeOutputDirectoryLinks(
-          workspaceDir,
-          event -> logger.atWarning().log("%s", event.getMessage()),
-          symlinkPrefix);
+          workspaceDir, event -> logger.atWarning().log("%s", event.getMessage()), symlinkPrefix);
     }
 
     boolean isWindows = OS.getCurrent() == OS.WINDOWS;

@@ -39,6 +39,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -114,6 +115,41 @@ public final class BugReport {
     Preconditions.checkState(
         runtime == null || TestType.isInTest(), "runtime already set: %s, %s", runtime, newRuntime);
     runtime = newRuntime;
+  }
+
+  /** Adds an isolated workspace runtime to the process-wide crash owner. */
+  public static synchronized void addRuntime(BlazeRuntimeInterface engine) {
+    if (runtime == null) {
+      runtime = new MultiRuntime();
+    }
+    Preconditions.checkState(runtime instanceof MultiRuntime, "mixed runtime ownership");
+    ((MultiRuntime) runtime).engines.add(engine);
+  }
+
+  private static final class MultiRuntime implements BlazeRuntimeInterface {
+    private final CopyOnWriteArrayList<BlazeRuntimeInterface> engines =
+        new CopyOnWriteArrayList<>();
+
+    @Override
+    public String getProductName() {
+      return engines.getFirst().getProductName();
+    }
+
+    @Override
+    public void fillInCrashContext(CrashContext ctx) {
+      engines.getFirst().fillInCrashContext(ctx);
+    }
+
+    @Override
+    public void cleanUpForCrash(DetailedExitCode exitCode) {
+      for (BlazeRuntimeInterface engine : engines) {
+        try {
+          engine.cleanUpForCrash(exitCode);
+        } catch (RuntimeException e) {
+          logger.atSevere().withCause(e).log("Workspace crash cleanup failed");
+        }
+      }
+    }
   }
 
   private static String getProductName() {
@@ -214,7 +250,7 @@ public final class BugReport {
    * report} without additional arguments.
    */
   public static void sendBugReport(Throwable exception) {
-    sendBugReport(exception, /*args=*/ ImmutableList.of());
+    sendBugReport(exception, /* args= */ ImmutableList.of());
   }
 
   /**
@@ -225,12 +261,12 @@ public final class BugReport {
    * @param values Additional string values to clarify the exception.
    */
   public static void sendBugReport(Throwable exception, List<String> args, String... values) {
-    sendBugReportInternal(exception, /*isFatal=*/ true, filterArgs(args), values);
+    sendBugReportInternal(exception, /* isFatal= */ true, filterArgs(args), values);
   }
 
   /** Logs the bug report, indicating it is not a crash. */
   public static void sendNonFatalBugReport(Throwable exception) {
-    sendBugReportInternal(exception, /*isFatal=*/ false, /*args=*/ ImmutableList.of());
+    sendBugReportInternal(exception, /* isFatal= */ false, /* args= */ ImmutableList.of());
   }
 
   private static void sendBugReportInternal(
@@ -430,7 +466,7 @@ public final class BugReport {
             ManagementFactory.getPlatformMBeanServer(),
             "com.sun.management:type=HotSpotDiagnostic",
             HotSpotDiagnosticMXBean.class);
-    mxBean.dumpHeap(path, /*live=*/ true);
+    mxBean.dumpHeap(path, /* live= */ true);
   }
 
   /**

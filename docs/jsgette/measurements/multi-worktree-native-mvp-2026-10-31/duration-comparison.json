@@ -1,0 +1,91 @@
+{
+  "target": "//pkg/util/strings:strings_test",
+  "rounds": [
+    {
+      "round": 1,
+      "vanilla_seconds": 37.124396822,
+      "shared_a_seconds": 38.62738797,
+      "shared_b_seconds": 38.617870303,
+      "shared_pair_seconds": 38.62749226,
+      "vanilla_bazel_seconds": 36.368,
+      "shared_a_bazel_seconds": 37.775,
+      "shared_b_bazel_seconds": 37.788,
+      "shared_server_pid": 22375,
+      "vanilla_server_pid": 12044,
+      "shared_a_local_actions": 15,
+      "shared_b_local_actions": 0
+    },
+    {
+      "round": 2,
+      "vanilla_seconds": 35.175176396,
+      "shared_a_seconds": 38.366813386,
+      "shared_b_seconds": 38.373322142,
+      "shared_pair_seconds": 38.373322142,
+      "vanilla_bazel_seconds": 33.858,
+      "shared_a_bazel_seconds": 37.53,
+      "shared_b_bazel_seconds": 37.516,
+      "shared_server_pid": 34030,
+      "vanilla_server_pid": 45569,
+      "shared_a_local_actions": 13,
+      "shared_b_local_actions": 2
+    },
+    {
+      "round": 3,
+      "vanilla_seconds": 35.215955822,
+      "shared_a_seconds": 38.465928113,
+      "shared_b_seconds": 38.452171112,
+      "shared_pair_seconds": 38.466034004,
+      "vanilla_bazel_seconds": 34.464,
+      "shared_a_bazel_seconds": 37.602,
+      "shared_b_bazel_seconds": 37.596,
+      "shared_server_pid": 66203,
+      "vanilla_server_pid": 55927,
+      "shared_a_local_actions": 0,
+      "shared_b_local_actions": 15
+    }
+  ],
+  "medians": {
+    "vanilla_seconds": 35.215955822,
+    "shared_a_seconds": 38.465928113,
+    "shared_b_seconds": 38.452171112,
+    "shared_pair_seconds": 38.466034004
+  },
+  "ratios_to_vanilla": {
+    "shared_a_seconds": 1.092286925489885,
+    "shared_b_seconds": 1.0918962786742903,
+    "shared_pair_seconds": 1.09228993239393
+  },
+  "range_seconds": {
+    "vanilla_seconds": [
+      35.175176396,
+      37.124396822
+    ],
+    "shared_a_seconds": [
+      38.366813386,
+      38.62738797
+    ],
+    "shared_b_seconds": [
+      38.373322142,
+      38.617870303
+    ],
+    "shared_pair_seconds": [
+      38.373322142,
+      38.62749226
+    ]
+  },
+  "all_builds_and_test_binaries_passed": true,
+  "all_outputs_identical": true,
+  "shared_actions_per_pair": 15,
+  "vanilla_actions_per_build": 15,
+  "worktrees_clean": true,
+  "measured_daemons_stopped": true,
+  "clock": "client wall time including JVM startup, excludes later validation/shutdown",
+  "cache_state": "cold action caches, outputs, and JVM graphs; downloaded repositories and OS page cache retained",
+  "resources": "same 4 CPU affinity and 4 GiB daemon heap; vanilla 4 jobs, shared 2 jobs per engine",
+  "baseline": "unmodified upstream source-built control, same original source revision as feature branch",
+  "excluded_runs": [
+    "untimed preparation builds",
+    "failed preparation before disk cleanup",
+    "adapter validation preparation with incorrect mode; rejected before timed rounds"
+  ]
+}

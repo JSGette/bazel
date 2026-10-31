@@ -53,6 +53,7 @@ import java.util.concurrent.ConcurrentHashMap;
 final class RemoteSpawnCache implements SpawnCache {
 
   private final RemoteOptions options;
+  private final boolean shareAcrossWorkspaces;
   private final RemoteExecutionService remoteExecutionService;
   private final DigestUtil digestUtil;
   private final boolean verboseFailures;
@@ -64,6 +65,20 @@ final class RemoteSpawnCache implements SpawnCache {
       boolean verboseFailures,
       RemoteExecutionService remoteExecutionService,
       DigestUtil digestUtil) {
+    this(options, verboseFailures, remoteExecutionService, digestUtil, false);
+  }
+
+  RemoteSpawnCache(
+      RemoteOptions options,
+      boolean verboseFailures,
+      RemoteExecutionService remoteExecutionService,
+      DigestUtil digestUtil,
+      boolean shareAcrossWorkspaces) {
+    this.shareAcrossWorkspaces = shareAcrossWorkspaces;
+    if (shareAcrossWorkspaces
+        && (options.getRemoteCacheAsync() || options.getDiskCache() == null)) {
+      throw new IllegalArgumentException("Shared execution requires synchronous private disk CAS");
+    }
     this.options = options;
     this.verboseFailures = verboseFailures;
     this.remoteExecutionService = remoteExecutionService;
@@ -104,6 +119,71 @@ final class RemoteSpawnCache implements SpawnCache {
       }
       throw createExecExceptionFromRemoteExecutionCapabilitiesException(e);
     }
+    if (!shareAcrossWorkspaces || !shouldAcceptCachedResult || !shouldUploadLocalResults) {
+      return lookupAction(
+          spawn, context, action, shouldAcceptCachedResult, shouldUploadLocalResults, totalTime);
+    }
+    String flightKey =
+        options.getDiskCache().getPathString()
+            + "\n"
+            + digestUtil.getDigestFunction()
+            + "\n"
+            + action.getActionKey().digest().getHash()
+            + ":"
+            + action.getActionKey().digest().getSizeBytes();
+    SharedActionExecutionRegistry.Lease flight =
+        SharedActionExecutionRegistry.INSTANCE.acquire(flightKey);
+    try {
+      CacheHandle handle = lookupAction(spawn, context, action, true, true, totalTime);
+      if (handle.hasResult() || !handle.willStore()) {
+        flight.close();
+        return handle;
+      }
+      return new CacheHandle() {
+        @Override
+        public boolean hasResult() {
+          return handle.hasResult();
+        }
+
+        @Override
+        public SpawnResult getResult() {
+          return handle.getResult();
+        }
+
+        @Override
+        public boolean willStore() {
+          return handle.willStore();
+        }
+
+        @Override
+        public void store(SpawnResult result)
+            throws ExecException, InterruptedException, IOException {
+          handle.store(result);
+        }
+
+        @Override
+        public void close() {
+          try {
+            handle.close();
+          } finally {
+            flight.close();
+          }
+        }
+      };
+    } catch (InterruptedException | IOException | ExecException | RuntimeException | Error e) {
+      flight.close();
+      throw e;
+    }
+  }
+
+  private CacheHandle lookupAction(
+      Spawn spawn,
+      SpawnExecutionContext context,
+      RemoteAction action,
+      boolean shouldAcceptCachedResult,
+      boolean shouldUploadLocalResults,
+      Stopwatch totalTime)
+      throws InterruptedException, IOException, ExecException {
     SpawnMetrics.Builder spawnMetrics =
         SpawnMetrics.Builder.forRemoteExec()
             .setInputBytes(action.getInputBytes())

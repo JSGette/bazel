@@ -1303,4 +1303,21 @@ Java_com_google_devtools_build_lib_server_SharedServerOwnership_adoptNative(
   }
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_devtools_build_lib_server_SharedServerOwnership_acquireEngine(
+    JNIEnv* env, jclass, jstring output) {
+  JStringLatin1Holder output_path(env, output);
+  if (env->ExceptionCheck()) return;
+  std::string error;
+  auto owner = blaze::SharedServerOwnership::AcquireEngine(
+      std::string(static_cast<const char*>(output_path)), &error);
+  if (!owner) {
+    PostException(env, "java/io/IOException", error);
+    return;
+  }
+  // Deliberately retained until process exit, including after engine shutdown.
+  // The MVP never transfers an output base while its daemon is alive.
+  (void)owner.release();
+}
+
 }  // namespace blaze_jni

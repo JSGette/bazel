@@ -81,16 +81,16 @@ message RunRequest {
   optional int64 block_for_lock_timeout_ms = 10;
 
   // Engine selected by the client after workspace discovery and output-base
-  // canonicalization. A server must reject a present identity that does not
-  // belong to its dispatcher before admitting or preempting commands. Absence
+  // canonicalization. A server must validate and route a present identity before
+  // admitting commands. Absence
   // retains the legacy single-engine protocol. Shared servers require it,
   // including for shutdown, and reject its absence before command registration.
   EngineIdentity engine_identity = 11;
 
-  // Opaque registration ID returned by Ping. Reject a nonempty ID after that
-  // registration has drained or been replaced, even if its paths are unchanged.
-  // Shared servers require a nonempty ID. Empty is accepted only by ordinary
-  // single-engine servers for legacy clients.
+  // Opaque generation ID returned by Ping. For shared servers this identifies
+  // the daemon lifetime; workspace registration is selected by engine_identity.
+  // Reject stale IDs even when paths are unchanged. Shared servers require a
+  // nonempty ID. Ordinary single-engine servers accept empty legacy IDs.
   string engine_instance_id = 12;
 }
 
@@ -218,8 +218,9 @@ message CancelRequest {
   // The id of the command to cancel.
   string command_id = 2;
 
-  // Registration owning the command. Shared servers ignore requests with an
-  // empty or stale ID. Ordinary servers accept empty IDs for legacy clients.
+  // Server generation owning the command. Shared servers ignore requests with
+  // an empty or stale ID. Command IDs are unique across the daemon. Ordinary
+  // servers accept empty generation IDs for legacy clients.
   string engine_instance_id = 3;
 }
 
@@ -244,8 +245,9 @@ message TerminalSizeRequest {
   // but is included so the RPC can carry the complete terminal size.
   int32 rows = 4;
 
-  // Registration owning the command. Shared servers ignore requests with an
-  // empty or stale ID. Ordinary servers accept empty IDs for legacy clients.
+  // Server generation owning the command. Shared servers ignore requests with
+  // an empty or stale ID. Command IDs are unique across the daemon. Ordinary
+  // servers accept empty generation IDs for legacy clients.
   string engine_instance_id = 5;
 }
 
@@ -264,8 +266,8 @@ message PingResponse {
   // The server response cookie (see RunResponse.cookie).
   string cookie = 1;
 
-  // Registration served by this single-engine endpoint. Only returned after
-  // authenticating the request. This is not a filesystem object identity.
+  // Generation served by this endpoint, stable for the shared daemon lifetime.
+  // Only returned after authenticating the request. Not a filesystem identity.
   string engine_instance_id = 2;
 }
 

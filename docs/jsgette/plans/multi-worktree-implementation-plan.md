@@ -2,13 +2,14 @@
 
 Date: 2026-10-31
 
-Status: staged implementation plan; see execution reports for implemented subsets.
-The [concurrent private-process MVP](../../../tools/multiworktree/README.md) now
-provides simultaneous build/test through a local supervisor and retained worker
-JVMs. This is the explicitly allowed operational fallback, not completion of
-in-process stages 3–5 or immutable sharing stages 2/6. Native multi-runtime global
-state remains unresolved; no memory/performance qualification is claimed. See the
-[MVP execution report](multi-worktree-mvp-2026-10-31.md) for acceptance evidence.
+Status: the [native single-JVM MVP](../../../tools/multiworktree/NATIVE.md) now
+implements two private concurrent runtimes plus action-digest single-flight through
+an immutable disk CAS. The user's acceptance requirement supersedes the original
+plan's deferral of in-flight sharing, specifically for eligible action execution.
+This does not implement arbitrary graph sharing or the Starlark compilation memo.
+The earlier process supervisor remains an operational fallback. See the
+[native execution report](multi-worktree-native-mvp-2026-10-31.md) for evidence and
+supported scope; no memory/performance qualification is claimed.
 
 Initial supported commands: `build` and `test`
 

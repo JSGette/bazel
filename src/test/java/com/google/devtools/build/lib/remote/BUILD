@@ -78,6 +78,7 @@ java_library(
             "DiskCacheIntegrationTest.java",
             "RemoteCircuitBreakerRecoveryIntegrationTest.java",
             "RemoteModuleIntegrationTest.java",
+            "SharedActionExecutionRegistryTest.java",
         ],
     ),
     deps = [
@@ -563,5 +564,14 @@ java_test(
         "//third_party/java/testparameterinjector",
         "//third_party/java/truth",
         "@remoteapis//:build_bazel_remote_execution_v2_remote_execution_java_proto",
+    ],
+)
+
+java_test(
+    name = "SharedActionExecutionRegistryTest",
+    srcs = ["SharedActionExecutionRegistryTest.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/remote:remote_spawn_cache",
+        "//third_party/java/junit",
     ],
 )

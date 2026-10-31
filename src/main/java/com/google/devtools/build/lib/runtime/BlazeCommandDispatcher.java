@@ -54,6 +54,8 @@ import com.google.devtools.build.lib.profiler.SilentCloseable;
 import com.google.devtools.build.lib.runtime.BlazeOptionHandler.DetailedParseResults;
 import com.google.devtools.build.lib.runtime.InstrumentationOutputFactory.DestinationRelativeTo;
 import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
+import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.SetValue;
+import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.UseDefault;
 import com.google.devtools.build.lib.server.EngineDirectories;
 import com.google.devtools.build.lib.server.FailureDetails;
 import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
@@ -91,6 +93,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -220,6 +223,9 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
       TerminalSizeMonitor terminalSizeMonitor)
       throws InterruptedException {
     Preconditions.checkNotNull(clientDescription);
+    if (runtime.isSharedServer()) {
+      invocationPolicy = sharedInvocationPolicy(invocationPolicy);
+    }
     if (args.isEmpty()) { // Default to help command if no arguments specified.
       args = HELP_COMMAND;
     }
@@ -503,7 +509,7 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
     OutErr.SystemPatcher systemOutErrPatcher = reporter.getOutErr().getSystemPatcher();
     try {
       // Keep profiling setup inside the cleanup scope, including initialization failures.
-      if (!commonOptions.getStarlarkCpuProfile().isEmpty()) {
+      if (!runtime.isSharedServer() && !commonOptions.getStarlarkCpuProfile().isEmpty()) {
         OutputStream out;
         try {
           InstrumentationOutput starlarkCpuProfile =
@@ -684,7 +690,9 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
 
       // While a Blaze command is active, direct all errors to the client's event handler (and
       // out/err streams).
-      systemOutErrPatcher.start();
+      if (!runtime.isSharedServer()) {
+        systemOutErrPatcher.start();
+      }
 
       try (SilentCloseable closeable = Profiler.instance().profile("CommandEnv.beforeCommand")) {
         // Notify the BlazeRuntime, so it can do some initial setup.
@@ -931,10 +939,80 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
       Flushables.flushQuietly(outErr.getOutputStream());
       Flushables.flushQuietly(outErr.getErrorStream());
 
-      systemOutErrPatcher.close();
+      if (!runtime.isSharedServer()) {
+        systemOutErrPatcher.close();
+      }
 
       env.getTimestampGranularityMonitor().waitForTimestampGranularity(outErr);
     }
+  }
+
+  private InvocationPolicy sharedInvocationPolicy(InvocationPolicy clientPolicy) {
+    InvocationPolicy.Builder policy = clientPolicy.toBuilder();
+    Map<String, String> values =
+        Map.ofEntries(
+            Map.entry("jobs", "2"),
+            Map.entry("loading_phase_threads", "2"),
+            Map.entry("local_test_jobs", "2"),
+            Map.entry("spawn_strategy", "sandboxed,local"),
+            Map.entry("genrule_strategy", "sandboxed,local"),
+            Map.entry("reuse_sandbox_directories", "false"),
+            Map.entry("remote_executor", ""),
+            Map.entry("remote_cache", ""),
+            Map.entry(
+                "disk_cache",
+                runtime
+                    .getServerDirectory()
+                    .getParentDirectory()
+                    .getRelative("action-cache")
+                    .getPathString()),
+            Map.entry("remote_accept_cached", "true"),
+            Map.entry("remote_upload_local_results", "true"),
+            Map.entry("remote_cache_async", "false"),
+            Map.entry(
+                "repo_contents_cache",
+                runtime
+                    .getWorkspace()
+                    .getDirectories()
+                    .getOutputBase()
+                    .getRelative("repo-contents-cache")
+                    .getPathString()),
+            Map.entry("remote_download_outputs", "all"),
+            Map.entry("guard_against_concurrent_changes", "full"),
+            Map.entry("cache_computed_file_digests", "0"),
+            Map.entry("experimental_non_deterministic_memory_optimizations", "false"),
+            Map.entry("generate_json_trace_profile", "no"));
+    values.forEach(
+        (name, value) ->
+            policy
+                .addFlagPoliciesBuilder()
+                .setFlagName(name)
+                .getSetValueBuilder()
+                .addFlagValue(value)
+                .setBehavior(SetValue.Behavior.FINAL_VALUE_IGNORE_OVERRIDES));
+    policy
+        .addFlagPoliciesBuilder()
+        .setFlagName("local_resources")
+        .getSetValueBuilder()
+        .addFlagValue("cpu=2")
+        .addFlagValue("memory=1920")
+        .setBehavior(SetValue.Behavior.FINAL_VALUE_IGNORE_OVERRIDES);
+    for (String name :
+        List.of(
+            "strategy",
+            "strategy_regexp",
+            "allowed_strategies_by_exec_platform",
+            "profile",
+            "memory_profile",
+            "starlark_cpu_profile",
+            "experimental_remote_downloader",
+            "experimental_remote_output_service")) {
+      policy
+          .addFlagPoliciesBuilder()
+          .setFlagName(name)
+          .setUseDefault(UseDefault.getDefaultInstance());
+    }
+    return policy.build();
   }
 
   private static class RemoteCacheTransientErrorException extends IOException {

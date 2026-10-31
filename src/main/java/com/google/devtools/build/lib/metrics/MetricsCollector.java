@@ -152,7 +152,9 @@ class MetricsCollector {
     this.numBuilds = numBuilds;
     this.instanceId = env.getRuntime().getInstanceId().toString();
     env.getEventBus().register(this);
-    WorkerProcessMetricsCollector.instance().setClock(env.getClock());
+    if (!env.getRuntime().isSharedServer()) {
+      WorkerProcessMetricsCollector.instance().setClock(env.getClock());
+    }
     this.buildAccountedFor = new AtomicBoolean();
     this.executionStarted = new AtomicBoolean();
   }
@@ -352,7 +354,9 @@ class MetricsCollector {
 
   private BuildMetrics createBuildMetrics() {
     ImmutableList<WorkerProcessMetrics> workerProcessMetrics =
-        WorkerProcessMetricsCollector.instance().collectMetrics();
+        env.getRuntime().isSharedServer()
+            ? ImmutableList.of()
+            : WorkerProcessMetricsCollector.instance().collectMetrics();
     // Restrict the number of WorkerMetrics that we report based on a predefined prioritization so
     // that we don't spam the BEP in the event that something like a kill-create cycle happens.
     ImmutableList<WorkerMetrics> workerMetrics =
@@ -369,7 +373,10 @@ class MetricsCollector {
     BuildMetrics.Builder buildMetrics =
         BuildMetrics.newBuilder()
             .setActionSummary(finishActionSummary())
-            .setMemoryMetrics(createMemoryMetrics())
+            .setMemoryMetrics(
+                env.getRuntime().isSharedServer()
+                    ? MemoryMetrics.getDefaultInstance()
+                    : createMemoryMetrics())
             .setTargetMetrics(targetMetrics.build())
             .setPackageMetrics(packageMetrics.build())
             .setBzlMetrics(bzlMetrics.build())
@@ -382,7 +389,10 @@ class MetricsCollector {
             .setDynamicExecutionMetrics(dynamicExecutionStats.toMetrics())
             .setRemoteAnalysisCacheStatistics(remoteAnalysisCacheStatistics);
 
-    NetworkMetrics networkMetrics = NetworkMetricsCollector.instance().collectMetrics();
+    NetworkMetrics networkMetrics =
+        env.getRuntime().isSharedServer()
+            ? null
+            : NetworkMetricsCollector.instance().collectMetrics();
     if (networkMetrics != null) {
       buildMetrics.setNetworkMetrics(networkMetrics);
     }
