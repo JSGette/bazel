@@ -152,3 +152,15 @@ cc_test(
 )
 
 test_suite(name = "all_tests")
+
+cc_test(
+    name = "shared_server_ownership_test",
+    size = "small",
+    srcs = ["shared_server_ownership_test.cc"],
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = [
+        "//src/main/cpp:shared_server_ownership",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

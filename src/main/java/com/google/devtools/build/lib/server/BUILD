@@ -238,3 +238,9 @@ java_library(
         "//third_party/java/guava:annotations",
     ],
 )
+
+java_library(
+    name = "shared_server_ownership",
+    srcs = ["SharedServerOwnership.java"],
+    deps = ["//src/main/java/com/google/devtools/build/lib/jni"],
+)

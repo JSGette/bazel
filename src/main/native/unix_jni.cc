@@ -38,6 +38,7 @@
 #include <string>
 #include <vector>
 
+#include "src/main/cpp/shared_server_ownership.h"
 #include "src/main/cpp/util/logging.h"
 #include "src/main/native/latin1_jni_path.h"
 
@@ -1280,6 +1281,26 @@ extern "C" JNIEXPORT jint JNICALL
 Java_com_google_devtools_build_lib_platform_PlatformNativeDepsServiceImpl_cpuSpeedNative(
     JNIEnv* env, jclass) {
   return portable_cpu_speed();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_devtools_build_lib_server_SharedServerOwnership_adoptNative(
+    JNIEnv* env, jclass, jintArray descriptors, jstring control,
+    jstring output) {
+  jsize count = env->GetArrayLength(descriptors);
+  std::vector<jint> fds(count);
+  env->GetIntArrayRegion(descriptors, 0, count, fds.data());
+  if (env->ExceptionCheck()) return;
+  JStringLatin1Holder control_path(env, control);
+  JStringLatin1Holder output_path(env, output);
+  if (env->ExceptionCheck()) return;
+  std::string error;
+  if (!blaze::SharedServerOwnership::Adopt(
+          std::vector<int>(fds.begin(), fds.end()),
+          std::string(static_cast<const char*>(control_path)),
+          std::string(static_cast<const char*>(output_path)), &error)) {
+    PostException(env, "java/io/IOException", error);
+  }
 }
 
 }  // namespace blaze_jni

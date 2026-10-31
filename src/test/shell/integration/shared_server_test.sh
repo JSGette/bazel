@@ -20,7 +20,7 @@ source "${CURRENT_DIR}/../integration_test_setup.sh" \
 function set_up() {
   shared_workspace="$(pwd -P)"
   shared_root="$TEST_TMPDIR/shared-$TEST_name"
-  shared_control="$shared_root/shared_servers/v1/prototype/control"
+  shared_control="$shared_root/shared_servers/v2/prototype/control"
   shared_args=()
 }
 
@@ -53,7 +53,7 @@ function test_shared_namespace_and_legacy_coexistence() {
   local shared_pid output legacy_pid
   shared_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
   output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
-  [[ "$output" == "$shared_root/shared_servers/v1/prototype/engines/"* ]] \
+  [[ "$output" == "$shared_root/shared_servers/v2/prototype/engines/"* ]] \
     || fail "Build state is outside the private engine namespace: $output"
   assert_equals "$shared_pid" "$(cat "$shared_control/server/server.pid.txt")"
   [[ ! -e "$output/server/server.pid.txt" ]] || fail "PID exposed in engine output base"
@@ -244,7 +244,7 @@ function test_shared_directory_identity_handles_non_ascii_paths() {
   touch MODULE.bazel
   shared_workspace="$(pwd -P)"
   shared_root="$shared_root/output-ü-空"
-  shared_control="$shared_root/shared_servers/v1/prototype/control"
+  shared_control="$shared_root/shared_servers/v2/prototype/control"
   local pid actual
   pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Non-ASCII startup failed"
   actual=$(shared_bazel info workspace 2>"$TEST_log") || fail "Non-ASCII info failed"
@@ -254,7 +254,7 @@ function test_shared_directory_identity_handles_non_ascii_paths() {
 
 function test_shared_rejects_unsupported_options() {
   local option status
-  for option in --batch --output_base="$TEST_TMPDIR/explicit-engine" \
+  for option in --batch --run_in_user_cgroup --output_base="$TEST_TMPDIR/explicit-engine" \
       --delete_output_base_on_shutdown; do
     status=0
     shared_bazel "$option" info >"$TEST_log" 2>&1 || status=$?
@@ -297,6 +297,75 @@ function test_shared_endpoint_rejects_incomplete_protocol() {
     >"$TEST_log" 2>&1 || fail "Shared protocol probe failed"
   expect_log '8 raw Run requests rejected; engine registration unchanged'
   assert_equals preserve-engine-output "$(cat "$output/protocol-sentinel")"
+  assert_shared_pid "$pid"
+}
+
+function test_shared_v2_leaves_old_namespace_untouched() {
+  local old="$shared_root/shared_servers/v1/prototype/control/server"
+  mkdir -p "$old"
+  echo old-profile-sentinel > "$old/startup_profile"
+  echo old-pid-sentinel > "$old/server.pid.txt"
+  shared_bazel info server_pid >"$TEST_log" 2>&1 || fail "V2 startup failed"
+  shared_bazel shutdown >"$TEST_log" 2>&1 || fail "V2 shutdown failed"
+  assert_equals old-profile-sentinel "$(cat "$old/startup_profile")"
+  assert_equals old-pid-sentinel "$(cat "$old/server.pid.txt")"
+}
+
+function test_shared_ownership_survives_missing_control_metadata() {
+  local pid status=0 shutdown_status=0
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
+  # Suspend the PID watcher while all control metadata is absent. A second
+  # launcher must reject before creating a profile or spawning another daemon.
+  kill -STOP "$pid"
+  mv "$shared_control" "$shared_control.saved"
+  shared_bazel info server_pid >"$TEST_TMPDIR/ownership-reject.log" 2>&1 || status=$?
+  shared_bazel shutdown >"$TEST_TMPDIR/ownership-shutdown.log" 2>&1 || shutdown_status=$?
+  mv "$shared_control" "$shared_control.replacement"
+  mv "$shared_control.saved" "$shared_control"
+  kill -CONT "$pid"
+  assert_equals 36 "$status"
+  assert_equals 36 "$shutdown_status"
+  assert_contains 'Shared server ownership is held' "$TEST_TMPDIR/ownership-reject.log"
+  [[ ! -e "$shared_control.replacement/server/startup_profile" ]] || fail "Replaced live profile"
+  [[ ! -e "$shared_control.replacement/server/server.pid.txt" ]] || fail "Spawned another daemon"
+  assert_shared_pid "$pid"
+}
+
+function test_shared_ownership_rejects_other_namespace_output_alias() {
+  local pid output other_control status=0
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
+  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
+  other_control="$shared_root/shared_servers/v2/other/control"
+  mkdir -p "$shared_root/shared_servers/v2/other/engines"
+  ln -s "$output" "$shared_root/shared_servers/v2/other/engines/$(basename "$output")"
+  shared_bazel --experimental_shared_server=other info server_pid >"$TEST_log" 2>&1 || status=$?
+  assert_equals 36 "$status"
+  expect_log 'Shared server ownership is held'
+  [[ ! -e "$other_control/server/startup_profile" ]] || fail "Initialized colliding engine"
+  assert_shared_pid "$pid"
+}
+
+function test_shared_ownership_released_after_process_death() {
+  local pid next_pid
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
+  kill -KILL "$pid"
+  # The PID may remain as a zombie under the test environment. Its kernel
+  # reservations must still be released, without trusting/deleting lock files.
+  for ((i=0; i<200; i++)); do
+    [[ ! -e "/proc/$pid/stat" ]] && break
+    [[ "$(awk '{print $3}' "/proc/$pid/stat")" == Z ]] && break
+    sleep 0.05
+  done
+  next_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Crash recovery failed"
+  assert_not_equals "$pid" "$next_pid"
+}
+
+function test_shared_ownership_released_after_failed_startup() {
+  local status=0 pid
+  shared_bazel --host_jvm_args=-XX:DefinitelyInvalidSharedOwnershipOption \
+    info server_pid >"$TEST_log" 2>&1 || status=$?
+  [[ "$status" != 0 ]] || fail "Invalid JVM option succeeded"
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Failed startup retained ownership"
   assert_shared_pid "$pid"
 }
 

@@ -164,6 +164,15 @@ public abstract class BlazeServerStartupOptions extends OptionsBase {
   public abstract PathFragment getExperimentalServerDirectory();
 
   @Option(
+      name = "experimental_shared_server_ownership_fds",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.UNKNOWN},
+      metadataTags = {OptionMetadataTag.HIDDEN},
+      help = "Internal process-lifetime ownership handoff from the Linux launcher.")
+  public abstract String getExperimentalSharedServerOwnershipFds();
+
+  @Option(
       name = "output_user_root",
       defaultValue = "null", // NOTE: only for documentation, value is always passed by the client.
       documentationCategory = OptionDocumentationCategory.BAZEL_CLIENT_OPTIONS,

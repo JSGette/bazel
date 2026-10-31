@@ -1193,6 +1193,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
         "//src/main/java/com/google/devtools/build/lib/server:install_base_garbage_collector",
         "//src/main/java/com/google/devtools/build/lib/server:pid_file_watcher",
+        "//src/main/java/com/google/devtools/build/lib/server:shared_server_ownership",
         "//src/main/java/com/google/devtools/build/lib/server:shutdown_hooks",
         "//src/main/java/com/google/devtools/build/lib/server:terminal_size_monitor",
         "//src/main/java/com/google/devtools/build/lib/server/signal",

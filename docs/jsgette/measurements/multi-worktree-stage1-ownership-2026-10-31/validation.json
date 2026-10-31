@@ -1,0 +1,672 @@
+{
+  "suites": [
+    {
+      "target": "//src/test/cpp:shared_server_ownership_test",
+      "passed": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "CollisionAndPartialAcquisitionRollback"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "OutputPathAndPhysicalObjectRemainReservedAfterRename"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "ControlPathAndPhysicalObjectRemainReservedAfterRename"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "RejectsUnpinnablePathsAndRollsBack"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "AdoptionValidatesHandoffAndSetsCloseOnExec"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "AdoptionRejectsMissingDuplicateAndWrongDescriptors"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "ParentReleaseDoesNotReleaseInheritedOwnership"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "AbruptOwnerDeathReleasesReservation"
+        },
+        {
+          "classname": "SharedServerOwnershipTest",
+          "name": "ExecutedChildrenDoNotRetainOwnership"
+        }
+      ]
+    },
+    {
+      "target": "//src/test/cpp:startup_options_test",
+      "passed": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "classname": "StartupOptionsTest",
+          "name": "SharedServerNameValidation"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "SharedServerSeparatesControlAndEngineDirectories"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "ProductName"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "JavaLoggingOptions"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "OutputUserRootTildeExpansion"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "EmptyFlagsAreInvalidTest"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "ProcessSpaceSeparatedArgsTest"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "ProcessEqualsSeparatedArgsTest"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "ProcessIncorrectArgValueTest"
+        },
+        {
+          "classname": "StartupOptionsTest",
+          "name": "ProcessArgsWithMultipleArgstest"
+        }
+      ]
+    },
+    {
+      "target": "//src/test/java/com/google/devtools/build/lib/server:ServerTests",
+      "passed": 99,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandManagerTest",
+          "name": "testIdleTasksDisabled"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandManagerTest",
+          "name": "testNotifiesOnBusyAndIdle"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_missingIdentityCannotDispatchOrShutdown"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "unparseableInvocationPolicy"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineIdentity_wrongWorkspaceIsRejectedBeforeDispatch"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_cancellationRequiresCurrentRegistration"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineInstance_staleRequestDoesNotPreemptExistingCommand"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testClosingClientShouldInterrupt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "cleanupCannotRunAgainstReplacementDirectories"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineIdentity_mismatchDoesNotPreemptExistingCommand"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_staleRegistrationCannotDispatchOrShutdown"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "badCookie"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_wrongWorkspaceCannotShutdown"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineCleanup_waitsForFinalResponseAndRunsOnce"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "symlinkToOriginalDirectoryDoesNotRemoveFence"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "outputBaseCannotBeOwnedByTwoWorkspaces"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "creationCannotDispatchAndFailureReleasesReservation"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "interruptedDrainKeepsOutputBaseReserved"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "drainRetainsLeasedDispatcherAndDoesNotAffectOtherEngine"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverIgnoresOnNextAfterCompletion"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserver"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverInterruptsOnceEvenIfOwnWaitWasInterrupted"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.IdleTaskManagerTest",
+          "name": "registeredTask_multipleTasks"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.IdleTaskManagerTest",
+          "name": "registeredTask_taskNotStarted"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "onlyOwnInstallBase_notCollected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "otherInstallBase_notStaleAndUnlocked_notCollected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.PidFileWatcherTest",
+          "name": "testMissingPidFileHaltsProgram"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.PidFileWatcherTest",
+          "name": "testEmptyPidFileCountsAsChanged"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.PidFileWatcherTest",
+          "name": "testPidFileTrailingWhitespaceNotTolerated"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "runHighAbsoluteLowPercentageMemoryCheck"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "testCommandDuringLowMemoryCheckSkipsShutdownAndResetsIdleTimeout"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ShutdownHooksTest",
+          "name": "testRunsFinalCleanupAfterDeletingRegisteredPaths"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ShutdownHooksTest",
+          "name": "testSkipHooksIfDisabled"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandManagerTest",
+          "name": "testIdleTasksEnabled"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandManagerTest",
+          "name": "shutdownRequiresDrainedCommandsAndStopsIdleTasks"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testMultiPreeempt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_legacyRequestCannotDispatchOrShutdown"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineInstance_staleResizeIsIgnoredAndCurrentResizeWorks"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineIdentity_relativeOutputBaseIsRejectedBeforeDispatch"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testSendingSimpleMessage"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "updateTerminalSize_updatesRunningCommandMonitor"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineInstance_pingAuthenticatesAndPinsRegistration"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testPreeempt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "emptyClientDescription"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testCommandCanFinishAfterClosingClient"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_supportedCommandsWithCurrentIdentityDispatch"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineIdentity_emptyOutputBaseIsRejectedBeforeDispatch"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_missingRegistrationCannotDispatchOrShutdown"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testStream"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "outputReplacementPermanentlyFencesOrdinaryCommands"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "deletionAndRecreationCannotReusePinnedIdentity"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "closeIsIdempotentAndDisallowsDispatchAndCleanup"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "cannotCaptureMissingOrNoncanonicalDirectory"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "lifecycleCannotBeReactivated"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverInterruptsOnceOnClientCancel"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverInterrupt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverClientCancel"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.IdleTaskManagerTest",
+          "name": "registeredTask_taskSuccessful"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.IdleTaskManagerTest",
+          "name": "registeredTask_taskFailed"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "otherInstallBase_staleAndLocked_notCollected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "otherFilesAndDirectories_notCollected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.PidFileWatcherTest",
+          "name": "testGarbagePidFileCountsAsChanged"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.PidFileWatcherTest",
+          "name": "testPidFileChangeAfterShutdownNotificationStopsWatcher"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "runLowAbsoluteHighPercentageMemoryCheck"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "testCompletedCommandDuringWaitResetsIdleTimeout"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "testBasicIdleCheck"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandManagerTest",
+          "name": "testBasicOperationsOnSingleThread"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testIdleTasks"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testReceiveStreamingCommandExtensions"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_resizeRequiresCurrentRegistration"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineInstance_staleCancellationIsIgnoredAndCurrentCancellationWorks"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_unsupportedCommandCannotDispatchOrPreempt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineCleanup_failureIsNotRetried"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testNoPreeempt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testInterruptStream"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "sharedServer_missingCommandCannotDispatchOrPreempt"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineIdentity_legacyRequestWithoutIdentityStillDispatches"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "engineIdentity_wrongOutputBaseIsRejectedBeforeDispatch"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "directoryReplacementDuringInitializationDoesNotExposeEndpoint"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "testCancel"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.CommandServerTest",
+          "name": "replacedDirectoriesDoNotPreemptExistingCommand"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "missingPathFencesEvenIfRestoredBeforeNextCommand"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "childEditsDoNotChangeDirectoryIdentity"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineDirectoriesTest",
+          "name": "workspaceReplacementIsNotTheSameEngine"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "concurrentCreationHasExactlyOneOwner"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "staleRegistrationCannotAcquireOrRemoveReplacement"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.EngineRegistryTest",
+          "name": "pathsMustBeAbsoluteExceptOutsideWorkspace"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverIgnoresCancelAfterCompletion"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.GrpcCommandServerImplTest",
+          "name": "testBlockingStreamObserverInterruptsOnFirstWriteAfterCancel"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.IdleTaskManagerTest",
+          "name": "registeredTask_taskInterrupted"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "otherInstallBase_staleAndUnlocked_collected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "incompleteDeletion_collected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.InstallBaseGarbageCollectorTest",
+          "name": "otherInstallBase_notStaleAndLocked_notCollected"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.PidFileWatcherTest",
+          "name": "testPidFileContinuesExecution"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "runLowAbsoluteLowPercentageMemoryCheck"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "testCommandClosingBetweenIsEmptyAndWaitForChangeDoesNotHang"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ServerWatcherRunnableTest",
+          "name": "testshutdownOnLowSysMemDisabled"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ShutdownHooksTest",
+          "name": "testDeletesRegisteredPaths"
+        },
+        {
+          "classname": "com.google.devtools.build.lib.server.ShutdownHooksTest",
+          "name": "testSkipFinalCleanupIfDisabled"
+        }
+      ]
+    },
+    {
+      "target": "//src/test/shell/integration:shared_server_test",
+      "passed": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "classname": "",
+          "name": "test_shared_build_and_test"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_damaged_start_time_does_not_replace_live_process"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_environment_mismatch"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_missing_profile_does_not_restart"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_other_workspace_cannot_shutdown"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_ownership_released_after_failed_startup"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_rejects_unsupported_options"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_concurrent_startup"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_directory_identity_handles_non_ascii_paths"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_installation_mismatch"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_namespace_and_legacy_coexistence"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_output_replacement_fences_until_restart"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_ownership_released_after_process_death"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_unavailable_server_is_not_replaced"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_control_and_output_locks"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_endpoint_rejects_incomplete_protocol"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_missing_output_recreated_by_client_is_fenced"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_ordered_jvm_options"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_ownership_rejects_other_namespace_output_alias"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_ownership_survives_missing_control_metadata"
+        },
+        {
+          "classname": "",
+          "name": "test_shared_v2_leaves_old_namespace_untouched"
+        }
+      ]
+    },
+    {
+      "target": "//src/test/shell/integration:client_test",
+      "passed": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "classname": "",
+          "name": "test_block_for_lock_released_before_timeout"
+        },
+        {
+          "classname": "",
+          "name": "test_server_restart_due_to_startup_options"
+        },
+        {
+          "classname": "",
+          "name": "test_engine_identity_canonical_aliases"
+        },
+        {
+          "classname": "",
+          "name": "test_shutdown"
+        },
+        {
+          "classname": "",
+          "name": "test_engine_identity_explicit_output_base_nested_workspace"
+        },
+        {
+          "classname": "",
+          "name": "test_shutdown_different_options"
+        },
+        {
+          "classname": "",
+          "name": "test_engine_identity_outside_workspace"
+        },
+        {
+          "classname": "",
+          "name": "test_engine_identity_preserves_explicit_failure_detail_path"
+        },
+        {
+          "classname": "",
+          "name": "test_multiple_requests_same_server"
+        },
+        {
+          "classname": "",
+          "name": "test_no_server_restart_if_options_order_changes"
+        },
+        {
+          "classname": "",
+          "name": "test_noblock_for_lock_reuse_server"
+        }
+      ]
+    },
+    {
+      "target": "//src/test/shell/integration:client_sigint_test",
+      "passed": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "classname": "",
+          "name": "test_sigint_server_mode"
+        }
+      ]
+    }
+  ],
+  "passed": 151,
+  "skipped": 0,
+  "smoke": "smoke.json",
+  "formatting": [
+    "clang-format 20.1.8 new C++ files / changed C++ regions",
+    "google-java-format 1.30.0 new and changed Java",
+    "buildifier 8.2.1 changed BUILD files",
+    "bash -n shared_server_test.sh",
+    "git diff --check -- src docs/jsgette/plans"
+  ]
+}

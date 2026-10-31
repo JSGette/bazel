@@ -1,0 +1,30 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/cpp:shared_server_ownership_test
+-----------------------------------------------------------------------------
+Running main() from gmock_main.cc
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from SharedServerOwnershipTest
+[ RUN      ] SharedServerOwnershipTest.CollisionAndPartialAcquisitionRollback
+[       OK ] SharedServerOwnershipTest.CollisionAndPartialAcquisitionRollback (153 ms)
+[ RUN      ] SharedServerOwnershipTest.OutputPathAndPhysicalObjectRemainReservedAfterRename
+[       OK ] SharedServerOwnershipTest.OutputPathAndPhysicalObjectRemainReservedAfterRename (152 ms)
+[ RUN      ] SharedServerOwnershipTest.ControlPathAndPhysicalObjectRemainReservedAfterRename
+[       OK ] SharedServerOwnershipTest.ControlPathAndPhysicalObjectRemainReservedAfterRename (71 ms)
+[ RUN      ] SharedServerOwnershipTest.RejectsUnpinnablePathsAndRollsBack
+[       OK ] SharedServerOwnershipTest.RejectsUnpinnablePathsAndRollsBack (81 ms)
+[ RUN      ] SharedServerOwnershipTest.AdoptionValidatesHandoffAndSetsCloseOnExec
+[       OK ] SharedServerOwnershipTest.AdoptionValidatesHandoffAndSetsCloseOnExec (43 ms)
+[ RUN      ] SharedServerOwnershipTest.AdoptionRejectsMissingDuplicateAndWrongDescriptors
+[       OK ] SharedServerOwnershipTest.AdoptionRejectsMissingDuplicateAndWrongDescriptors (40 ms)
+[ RUN      ] SharedServerOwnershipTest.ParentReleaseDoesNotReleaseInheritedOwnership
+[       OK ] SharedServerOwnershipTest.ParentReleaseDoesNotReleaseInheritedOwnership (91 ms)
+[ RUN      ] SharedServerOwnershipTest.AbruptOwnerDeathReleasesReservation
+[       OK ] SharedServerOwnershipTest.AbruptOwnerDeathReleasesReservation (91 ms)
+[ RUN      ] SharedServerOwnershipTest.ExecutedChildrenDoNotRetainOwnership
+[       OK ] SharedServerOwnershipTest.ExecutedChildrenDoNotRetainOwnership (81 ms)
+[----------] 9 tests from SharedServerOwnershipTest (808 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (808 ms total)
+[  PASSED  ] 9 tests.

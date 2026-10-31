@@ -69,6 +69,7 @@
 #include "src/main/cpp/blaze_util_platform.h"
 #include "src/main/cpp/option_processor.h"
 #include "src/main/cpp/server_process_info.h"
+#include "src/main/cpp/shared_server_ownership.h"
 #include "src/main/cpp/startup_options.h"
 #include "src/main/cpp/util/bazel_log_handler.h"
 #include "src/main/cpp/util/errors.h"
@@ -944,6 +945,28 @@ class BlazeServer final {
   // is in connected state.
   void KillRunningServer();
 
+  void ReserveSharedOwnership(const StartupOptions &options) {
+    std::string error;
+    startup_ownership_ = SharedServerOwnership::Acquire(
+        options.output_base.AsNativePath(),
+        options.engine_output_base.AsNativePath(), &error);
+    if (!startup_ownership_) {
+      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR) << error;
+    }
+  }
+
+  void AddOwnershipArguments(vector<string> *args) {
+    if (!startup_ownership_) return;
+    string fds;
+    for (int fd : startup_ownership_->descriptors()) {
+      if (!fds.empty()) fds += ",";
+      fds += std::to_string(fd);
+    }
+    args->push_back("--experimental_shared_server_ownership_fds=" + fds);
+  }
+
+  void ReleaseStartupOwnership() { startup_ownership_.reset(); }
+
   // Cancel the currently running command. If there is no command currently
   // running, the result is unspecified. When called, this object must be in
   // connected state.
@@ -971,6 +994,7 @@ class BlazeServer final {
   std::string response_cookie_;
   std::string command_id_;
   std::string engine_instance_id_;
+  std::unique_ptr<SharedServerOwnership> startup_ownership_;
 
   // protects command_id_ . Although we always set it before making the cancel
   // thread do something with it, the mutex is still useful because it provides
@@ -1305,11 +1329,14 @@ static void StartServerAndConnect(
                   << " server (" << build_label << ")"
                   << " and connecting to it...";
   BlazeServerStartup *server_startup;
+  vector<string> launch_args = server_exe_args;
+  server->AddOwnershipArguments(&launch_args);
   const int server_pid = ExecuteDaemon(
-      server_exe, server_exe_args, PrepareEnvironmentForJvm(),
+      server_exe, launch_args, PrepareEnvironmentForJvm(),
       server->ProcessInfo().jvm_log_file_,
       server->ProcessInfo().jvm_log_file_append_, startup_options.install_base,
       server_dir, startup_options, &server_startup);
+  server->ReleaseStartupOwnership();
 
   ConnectOrDie(option_processor, startup_options, server_pid, server_startup,
                server);
@@ -1790,6 +1817,10 @@ static void RunLauncher(const string& self_path,
                                  command_extension_adder, std::move(client_locks));
 
   blaze_server->Connect();
+  if (!startup_options.experimental_shared_server.empty() &&
+      !blaze_server->Connected()) {
+    blaze_server->ReserveSharedOwnership(startup_options);
+  }
 
   if (!startup_options.batch && "shutdown" == option_processor.GetCommand() &&
       !blaze_server->Connected()) {
@@ -1932,6 +1963,10 @@ int Main(int argc, const char *const *argv, WorkspaceLayout *workspace_layout,
   StartupOptions *startup_options = option_processor->GetParsedStartupOptions();
   startup_options->MaybeLogStartupOptionWarnings();
   if (!startup_options->experimental_shared_server.empty()) {
+    if (startup_options->run_in_user_cgroup) {
+      BAZEL_DIE(blaze_exit_code::BAD_ARGV)
+          << "Shared server ownership does not support --run_in_user_cgroup";
+    }
     const string& command = option_processor->GetCommand();
     if (command != "build" && command != "test" && command != "info" &&
         command != "shutdown") {

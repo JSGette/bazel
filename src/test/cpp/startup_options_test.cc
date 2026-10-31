@@ -113,10 +113,14 @@ TEST_F(StartupOptionsTest, SharedServerSeparatesControlAndEngineDirectories) {
   startup_options_->UpdateConfiguration("install", "/workspace-a", false);
   const auto control = startup_options_->output_base;
   const auto engine_a = startup_options_->engine_output_base;
-  EXPECT_EQ(blaze_util::Path("/shared-test-root/shared_servers/v1/team/control"), control);
-  EXPECT_EQ(blaze::GetHashedBaseDir(
-                blaze_util::Path("/shared-test-root/shared_servers/v1/team/engines"), "/workspace-a"),
-            engine_a);
+  EXPECT_EQ(
+      blaze_util::Path("/shared-test-root/shared_servers/v2/team/control"),
+      control);
+  EXPECT_EQ(
+      blaze::GetHashedBaseDir(
+          blaze_util::Path("/shared-test-root/shared_servers/v2/team/engines"),
+          "/workspace-a"),
+      engine_a);
   ReinitStartupOptions();
   startup_options_->output_user_root = blaze_util::Path("/shared-test-root");
   startup_options_->experimental_shared_server = "team";

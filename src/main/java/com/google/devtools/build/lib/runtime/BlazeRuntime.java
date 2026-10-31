@@ -94,6 +94,7 @@ import com.google.devtools.build.lib.server.GrpcCommandServerService;
 import com.google.devtools.build.lib.server.IdleTask;
 import com.google.devtools.build.lib.server.InstallBaseGarbageCollectorIdleTask;
 import com.google.devtools.build.lib.server.PidFileWatcher;
+import com.google.devtools.build.lib.server.SharedServerOwnership;
 import com.google.devtools.build.lib.server.ShutdownHooks;
 import com.google.devtools.build.lib.server.signal.InterruptSignalHandler;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -1339,6 +1340,18 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
           parseStartupOptions(Iterables.concat(blazeModules, blazeServices), Arrays.asList(args));
       BlazeServerStartupOptions parsedOptions =
           parsedStartup.getOptions(BlazeServerStartupOptions.class);
+      if (!parsedOptions.getExperimentalSharedServer().isEmpty()) {
+        PathFragment control = parsedOptions.getExperimentalServerDirectory();
+        if (control == null || control.getParentDirectory() == null) {
+          throw new IOException("Shared ownership requires a control directory");
+        }
+        SharedServerOwnership.adopt(
+            parsedOptions.getExperimentalSharedServerOwnershipFds(),
+            control.getParentDirectory().getPathString(),
+            parsedOptions.getOutputBase().getPathString());
+      } else if (!parsedOptions.getExperimentalSharedServerOwnershipFds().isEmpty()) {
+        throw new IOException("Ownership handoff is only valid for shared servers");
+      }
       try (EngineDirectories engineDirectories =
           parsedOptions.getExperimentalSharedServer().isEmpty()
               ? null
@@ -1420,7 +1433,7 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
         return ExitCode.SUCCESS.getNumericExitCode();
       }
     } catch (IOException e) {
-      outErr.printErrLn("Cannot retain shared engine directory identity: " + e.getMessage());
+      outErr.printErrLn("Cannot establish shared engine ownership: " + e.getMessage());
       return ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode();
     } catch (OptionsParsingException e) {
       outErr.printErrLn(e.getMessage());

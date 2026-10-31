@@ -101,6 +101,7 @@ cc_binary(
     deps = [
         ":blake3_jni",
         ":latin1_jni_path",
+        "//src/main/cpp:shared_server_ownership",
         "//src/main/cpp/util:logging",
     ],
 )

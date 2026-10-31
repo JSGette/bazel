@@ -170,6 +170,7 @@ cc_binary(
         ":blaze_util",
         ":command_extension_adder",
         ":option_processor",
+        ":shared_server_ownership",
         ":startup_interceptor",
         ":startup_options",
         ":workspace_layout",
@@ -374,4 +375,11 @@ filegroup(
     name = "srcs",
     srcs = glob(["**"]) + ["//src/main/cpp/util:srcs"],
     visibility = ["//src:__pkg__"],
+)
+
+cc_library(
+    name = "shared_server_ownership",
+    srcs = ["shared_server_ownership.cc"],
+    hdrs = ["shared_server_ownership.h"],
+    deps = ["//src/main/cpp/util:md5"],
 )

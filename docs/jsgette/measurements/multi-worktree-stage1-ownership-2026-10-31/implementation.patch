@@ -1,0 +1,948 @@
+diff --git a/src/main/cpp/BUILD b/src/main/cpp/BUILD
+index fa9698f0..1faa67f4 100644
+--- a/src/main/cpp/BUILD
++++ b/src/main/cpp/BUILD
+@@ -170,6 +170,7 @@ cc_binary(
+         ":blaze_util",
+         ":command_extension_adder",
+         ":option_processor",
++        ":shared_server_ownership",
+         ":startup_interceptor",
+         ":startup_options",
+         ":workspace_layout",
+@@ -375,3 +376,10 @@ filegroup(
+     srcs = glob(["**"]) + ["//src/main/cpp/util:srcs"],
+     visibility = ["//src:__pkg__"],
+ )
++
++cc_library(
++    name = "shared_server_ownership",
++    srcs = ["shared_server_ownership.cc"],
++    hdrs = ["shared_server_ownership.h"],
++    deps = ["//src/main/cpp/util:md5"],
++)
+diff --git a/src/main/cpp/blaze.cc b/src/main/cpp/blaze.cc
+index 21f8eeec..a3a8edcb 100644
+--- a/src/main/cpp/blaze.cc
++++ b/src/main/cpp/blaze.cc
+@@ -69,6 +69,7 @@
+ #include "src/main/cpp/blaze_util_platform.h"
+ #include "src/main/cpp/option_processor.h"
+ #include "src/main/cpp/server_process_info.h"
++#include "src/main/cpp/shared_server_ownership.h"
+ #include "src/main/cpp/startup_options.h"
+ #include "src/main/cpp/util/bazel_log_handler.h"
+ #include "src/main/cpp/util/errors.h"
+@@ -944,6 +945,28 @@ class BlazeServer final {
+   // is in connected state.
+   void KillRunningServer();
+ 
++  void ReserveSharedOwnership(const StartupOptions &options) {
++    std::string error;
++    startup_ownership_ = SharedServerOwnership::Acquire(
++        options.output_base.AsNativePath(),
++        options.engine_output_base.AsNativePath(), &error);
++    if (!startup_ownership_) {
++      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR) << error;
++    }
++  }
++
++  void AddOwnershipArguments(vector<string> *args) {
++    if (!startup_ownership_) return;
++    string fds;
++    for (int fd : startup_ownership_->descriptors()) {
++      if (!fds.empty()) fds += ",";
++      fds += std::to_string(fd);
++    }
++    args->push_back("--experimental_shared_server_ownership_fds=" + fds);
++  }
++
++  void ReleaseStartupOwnership() { startup_ownership_.reset(); }
++
+   // Cancel the currently running command. If there is no command currently
+   // running, the result is unspecified. When called, this object must be in
+   // connected state.
+@@ -971,6 +994,7 @@ class BlazeServer final {
+   std::string response_cookie_;
+   std::string command_id_;
+   std::string engine_instance_id_;
++  std::unique_ptr<SharedServerOwnership> startup_ownership_;
+ 
+   // protects command_id_ . Although we always set it before making the cancel
+   // thread do something with it, the mutex is still useful because it provides
+@@ -1305,11 +1329,14 @@ static void StartServerAndConnect(
+                   << " server (" << build_label << ")"
+                   << " and connecting to it...";
+   BlazeServerStartup *server_startup;
++  vector<string> launch_args = server_exe_args;
++  server->AddOwnershipArguments(&launch_args);
+   const int server_pid = ExecuteDaemon(
+-      server_exe, server_exe_args, PrepareEnvironmentForJvm(),
++      server_exe, launch_args, PrepareEnvironmentForJvm(),
+       server->ProcessInfo().jvm_log_file_,
+       server->ProcessInfo().jvm_log_file_append_, startup_options.install_base,
+       server_dir, startup_options, &server_startup);
++  server->ReleaseStartupOwnership();
+ 
+   ConnectOrDie(option_processor, startup_options, server_pid, server_startup,
+                server);
+@@ -1790,6 +1817,10 @@ static void RunLauncher(const string& self_path,
+                                  command_extension_adder, std::move(client_locks));
+ 
+   blaze_server->Connect();
++  if (!startup_options.experimental_shared_server.empty() &&
++      !blaze_server->Connected()) {
++    blaze_server->ReserveSharedOwnership(startup_options);
++  }
+ 
+   if (!startup_options.batch && "shutdown" == option_processor.GetCommand() &&
+       !blaze_server->Connected()) {
+@@ -1932,6 +1963,10 @@ int Main(int argc, const char *const *argv, WorkspaceLayout *workspace_layout,
+   StartupOptions *startup_options = option_processor->GetParsedStartupOptions();
+   startup_options->MaybeLogStartupOptionWarnings();
+   if (!startup_options->experimental_shared_server.empty()) {
++    if (startup_options->run_in_user_cgroup) {
++      BAZEL_DIE(blaze_exit_code::BAD_ARGV)
++          << "Shared server ownership does not support --run_in_user_cgroup";
++    }
+     const string& command = option_processor->GetCommand();
+     if (command != "build" && command != "test" && command != "info" &&
+         command != "shutdown") {
+diff --git a/src/main/cpp/shared_server_ownership.cc b/src/main/cpp/shared_server_ownership.cc
+new file mode 100644
+index 00000000..bd1ac849
+--- /dev/null
++++ b/src/main/cpp/shared_server_ownership.cc
+@@ -0,0 +1,188 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++#include "src/main/cpp/shared_server_ownership.h"
++
++#include <set>
++
++#ifdef __linux__
++#include <errno.h>
++#include <fcntl.h>
++#include <stddef.h>
++#include <stdint.h>
++#include <string.h>
++#include <sys/socket.h>
++#include <sys/stat.h>
++#include <sys/un.h>
++#include <unistd.h>
++
++#include "src/main/cpp/util/md5.h"
++#endif
++
++namespace blaze {
++#ifdef __linux__
++namespace {
++
++std::string PathKey(const std::string& path) {
++  blaze_util::Md5Digest digest;
++  digest.Update(path.data(), path.size());
++  unsigned char bytes[blaze_util::Md5Digest::kDigestLength];
++  digest.Finish(bytes);
++  return "path:" + digest.String();
++}
++
++std::string ObjectKey(const struct stat& st) {
++  return "object:" + std::to_string(static_cast<uint64_t>(st.st_dev)) + ":" +
++         std::to_string(static_cast<uint64_t>(st.st_ino));
++}
++
++socklen_t Address(const std::string& key, struct sockaddr_un* address) {
++  *address = {};
++  address->sun_family = AF_UNIX;
++  const std::string name = "bazel-shared-owner-v1:" + key;
++  // Both key encodings have a fixed bound below sun_path's capacity.
++  memcpy(address->sun_path + 1, name.data(), name.size());
++  return offsetof(struct sockaddr_un, sun_path) + 1 + name.size();
++}
++
++bool MatchesSocket(int fd, const std::string& key) {
++  struct sockaddr_un expected, actual;
++  socklen_t expected_size = Address(key, &expected);
++  socklen_t actual_size = sizeof(actual);
++  return getsockname(fd, reinterpret_cast<struct sockaddr*>(&actual),
++                     &actual_size) == 0 &&
++         actual_size == expected_size &&
++         memcmp(&actual, &expected, actual_size) == 0;
++}
++
++int ReserveSocket(const std::string& key, std::string* error) {
++  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
++  if (fd < 0) {
++    *error = "Cannot create shared ownership socket: " +
++             std::string(strerror(errno));
++    return -1;
++  }
++  struct sockaddr_un address;
++  socklen_t size = Address(key, &address);
++  if (bind(fd, reinterpret_cast<struct sockaddr*>(&address), size) != 0) {
++    *error = errno == EADDRINUSE ? "Shared server ownership is held; refusing "
++                                   "to replace its control or engine state"
++                                 : "Cannot reserve shared ownership: " +
++                                       std::string(strerror(errno));
++    close(fd);
++    return -1;
++  }
++  return fd;
++}
++
++bool DirectoryMatches(int fd, const std::string& path, struct stat* pinned) {
++  struct stat current;
++  return fstat(fd, pinned) == 0 && S_ISDIR(pinned->st_mode) &&
++         lstat(path.c_str(), &current) == 0 && S_ISDIR(current.st_mode) &&
++         pinned->st_dev == current.st_dev && pinned->st_ino == current.st_ino;
++}
++
++}  // namespace
++#endif
++
++std::unique_ptr<SharedServerOwnership> SharedServerOwnership::Acquire(
++    const std::string& control, const std::string& output, std::string* error) {
++  std::unique_ptr<SharedServerOwnership> result(new SharedServerOwnership());
++  if (!result->Reserve(control, error) || !result->Reserve(output, error)) {
++    return nullptr;
++  }
++  return result;
++}
++
++bool SharedServerOwnership::Reserve(const std::string& path,
++                                    std::string* error) {
++#ifdef __linux__
++  if (path.empty() || path[0] != '/') {
++    *error = "Shared ownership requires absolute directory paths";
++    return false;
++  }
++  int logical = ReserveSocket(PathKey(path), error);
++  if (logical < 0) return false;
++  descriptors_.push_back(logical);
++  int directory = open(path.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
++  if (directory < 0) {
++    *error = "Cannot pin shared ownership directory: " +
++             std::string(strerror(errno));
++    return false;
++  }
++  descriptors_.push_back(directory);
++  struct stat pinned;
++  if (!DirectoryMatches(directory, path, &pinned)) {
++    *error = "Shared ownership directory changed while opening";
++    return false;
++  }
++  int physical = ReserveSocket(ObjectKey(pinned), error);
++  if (physical < 0) return false;
++  descriptors_.push_back(physical);
++  return true;
++#else
++  *error = "Shared server ownership is supported only on Linux";
++  return false;
++#endif
++}
++
++SharedServerOwnership::~SharedServerOwnership() {
++#ifdef __linux__
++  for (int fd : descriptors_) close(fd);
++#endif
++}
++
++bool SharedServerOwnership::Adopt(const std::vector<int>& descriptors,
++                                  const std::string& control,
++                                  const std::string& output,
++                                  std::string* error) {
++#ifdef __linux__
++  if (descriptors.size() != 6 ||
++      std::set<int>(descriptors.begin(), descriptors.end()).size() != 6) {
++    *error = "Shared ownership handoff requires six distinct descriptors";
++    return false;
++  }
++  for (int fd : descriptors) {
++    if (fd < 3) {
++      *error = "Invalid shared ownership descriptor";
++      return false;
++    }
++  }
++  const std::string paths[] = {control, output};
++  for (int i = 0; i < 2; ++i) {
++    struct stat pinned;
++    if (!DirectoryMatches(descriptors[3 * i + 1], paths[i], &pinned) ||
++        !MatchesSocket(descriptors[3 * i], PathKey(paths[i])) ||
++        !MatchesSocket(descriptors[3 * i + 2], ObjectKey(pinned))) {
++      *error =
++          "Shared ownership handoff does not match its directory paths/objects";
++      return false;
++    }
++  }
++  for (int fd : descriptors) {
++    int flags = fcntl(fd, F_GETFD);
++    if (flags < 0 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
++      *error = "Cannot prevent shared ownership inheritance by actions";
++      return false;
++    }
++  }
++  // Intentionally retain these descriptors until process exit, including failed
++  // initialization, cleanup and JVM shutdown hooks. No successful engine
++  // disposal is inferred from a Java resource scope ending.
++  return true;
++#else
++  *error = "Shared server ownership is supported only on Linux";
++  return false;
++#endif
++}
++}  // namespace blaze
+diff --git a/src/main/cpp/shared_server_ownership.h b/src/main/cpp/shared_server_ownership.h
+new file mode 100644
+index 00000000..75ea81e1
+--- /dev/null
++++ b/src/main/cpp/shared_server_ownership.h
+@@ -0,0 +1,53 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++// Process-lifetime ownership for the Linux single-engine shared-server
++// prototype.
++#ifndef BAZEL_SRC_MAIN_CPP_SHARED_SERVER_OWNERSHIP_H_
++#define BAZEL_SRC_MAIN_CPP_SHARED_SERVER_OWNERSHIP_H_
++
++#include <memory>
++#include <string>
++#include <vector>
++
++namespace blaze {
++
++// Reserves both paths and pinned directory objects using Linux abstract
++// sockets. No lock file can be unlinked to bypass this reservation.
++// Coordination is local to one network namespace; this is not a cross-host or
++// security boundary.
++class SharedServerOwnership {
++ public:
++  static std::unique_ptr<SharedServerOwnership> Acquire(
++      const std::string& control, const std::string& output,
++      std::string* error);
++  ~SharedServerOwnership();
++  SharedServerOwnership(const SharedServerOwnership&) = delete;
++  SharedServerOwnership& operator=(const SharedServerOwnership&) = delete;
++
++  // Descriptors intentionally survive daemonize/JVM exec. The launcher closes
++  // its copies after spawn. Adopt validates them and prevents action
++  // inheritance.
++  const std::vector<int>& descriptors() const { return descriptors_; }
++  static bool Adopt(const std::vector<int>& descriptors,
++                    const std::string& control, const std::string& output,
++                    std::string* error);
++
++ private:
++  SharedServerOwnership() = default;
++  bool Reserve(const std::string& path, std::string* error);
++  std::vector<int> descriptors_;
++};
++
++}  // namespace blaze
++#endif  // BAZEL_SRC_MAIN_CPP_SHARED_SERVER_OWNERSHIP_H_
+diff --git a/src/main/cpp/startup_options.cc b/src/main/cpp/startup_options.cc
+index 32830ae1..df649b8a 100644
+--- a/src/main/cpp/startup_options.cc
++++ b/src/main/cpp/startup_options.cc
+@@ -807,8 +807,10 @@ void StartupOptions::UpdateConfiguration(const string& install_md5,
+              "support --batch, exec-server, --output_base or "
+              "--delete_output_base_on_shutdown";
+     }
++    // Older experimental launchers do not honor process-lifetime reservations.
++    // Keep their v1 outputs and daemon control metadata entirely separate.
+     const auto group = output_user_root.GetRelative("shared_servers")
+-                           .GetRelative("v1")
++                           .GetRelative("v2")
+                            .GetRelative(experimental_shared_server);
+     output_base = group.GetRelative("control");
+     engine_output_base =
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BUILD b/src/main/java/com/google/devtools/build/lib/runtime/BUILD
+index f78e73c7..c186d8f1 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BUILD
+@@ -1193,6 +1193,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+         "//src/main/java/com/google/devtools/build/lib/server:install_base_garbage_collector",
+         "//src/main/java/com/google/devtools/build/lib/server:pid_file_watcher",
++        "//src/main/java/com/google/devtools/build/lib/server:shared_server_ownership",
+         "//src/main/java/com/google/devtools/build/lib/server:shutdown_hooks",
+         "//src/main/java/com/google/devtools/build/lib/server:terminal_size_monitor",
+         "//src/main/java/com/google/devtools/build/lib/server/signal",
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+index 16308df2..ee31953c 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+@@ -94,6 +94,7 @@ import com.google.devtools.build.lib.server.GrpcCommandServerService;
+ import com.google.devtools.build.lib.server.IdleTask;
+ import com.google.devtools.build.lib.server.InstallBaseGarbageCollectorIdleTask;
+ import com.google.devtools.build.lib.server.PidFileWatcher;
++import com.google.devtools.build.lib.server.SharedServerOwnership;
+ import com.google.devtools.build.lib.server.ShutdownHooks;
+ import com.google.devtools.build.lib.server.signal.InterruptSignalHandler;
+ import com.google.devtools.build.lib.shell.CommandException;
+@@ -1339,6 +1340,18 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+           parseStartupOptions(Iterables.concat(blazeModules, blazeServices), Arrays.asList(args));
+       BlazeServerStartupOptions parsedOptions =
+           parsedStartup.getOptions(BlazeServerStartupOptions.class);
++      if (!parsedOptions.getExperimentalSharedServer().isEmpty()) {
++        PathFragment control = parsedOptions.getExperimentalServerDirectory();
++        if (control == null || control.getParentDirectory() == null) {
++          throw new IOException("Shared ownership requires a control directory");
++        }
++        SharedServerOwnership.adopt(
++            parsedOptions.getExperimentalSharedServerOwnershipFds(),
++            control.getParentDirectory().getPathString(),
++            parsedOptions.getOutputBase().getPathString());
++      } else if (!parsedOptions.getExperimentalSharedServerOwnershipFds().isEmpty()) {
++        throw new IOException("Ownership handoff is only valid for shared servers");
++      }
+       try (EngineDirectories engineDirectories =
+           parsedOptions.getExperimentalSharedServer().isEmpty()
+               ? null
+@@ -1420,7 +1433,7 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+         return ExitCode.SUCCESS.getNumericExitCode();
+       }
+     } catch (IOException e) {
+-      outErr.printErrLn("Cannot retain shared engine directory identity: " + e.getMessage());
++      outErr.printErrLn("Cannot establish shared engine ownership: " + e.getMessage());
+       return ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode();
+     } catch (OptionsParsingException e) {
+       outErr.printErrLn(e.getMessage());
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
+index 791bf680..7bdc7c87 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
+@@ -163,6 +163,15 @@ public abstract class BlazeServerStartupOptions extends OptionsBase {
+       help = "Client-selected control directory for the shared-server prototype.")
+   public abstract PathFragment getExperimentalServerDirectory();
+ 
++  @Option(
++      name = "experimental_shared_server_ownership_fds",
++      defaultValue = "",
++      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
++      effectTags = {OptionEffectTag.UNKNOWN},
++      metadataTags = {OptionMetadataTag.HIDDEN},
++      help = "Internal process-lifetime ownership handoff from the Linux launcher.")
++  public abstract String getExperimentalSharedServerOwnershipFds();
++
+   @Option(
+       name = "output_user_root",
+       defaultValue = "null", // NOTE: only for documentation, value is always passed by the client.
+diff --git a/src/main/java/com/google/devtools/build/lib/server/BUILD b/src/main/java/com/google/devtools/build/lib/server/BUILD
+index f8b3e65b..8319d1ee 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/server/BUILD
+@@ -238,3 +238,9 @@ java_library(
+         "//third_party/java/guava:annotations",
+     ],
+ )
++
++java_library(
++    name = "shared_server_ownership",
++    srcs = ["SharedServerOwnership.java"],
++    deps = ["//src/main/java/com/google/devtools/build/lib/jni"],
++)
+diff --git a/src/main/java/com/google/devtools/build/lib/server/SharedServerOwnership.java b/src/main/java/com/google/devtools/build/lib/server/SharedServerOwnership.java
+new file mode 100644
+index 00000000..1349b61d
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/server/SharedServerOwnership.java
+@@ -0,0 +1,47 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package com.google.devtools.build.lib.server;
++
++import com.google.devtools.build.lib.jni.JniLoader;
++import java.io.IOException;
++
++/** Validates the launcher's Linux process-lifetime ownership handoff before runtime creation. */
++public final class SharedServerOwnership {
++  public static void adopt(String descriptors, String control, String output) throws IOException {
++    Throwable loadError = JniLoader.getJniLoadError();
++    if (loadError != null) {
++      throw new IOException("Shared ownership requires native support", loadError);
++    }
++    String[] values = descriptors.split(",", -1);
++    if (values.length != 6) {
++      throw new IOException("Missing or invalid shared ownership handoff");
++    }
++    int[] fds = new int[6];
++    try {
++      for (int i = 0; i < fds.length; i++) {
++        fds[i] = Integer.parseInt(values[i]);
++      }
++    } catch (NumberFormatException e) {
++      throw new IOException("Invalid shared ownership descriptor", e);
++    }
++    adoptNative(fds, control, output);
++  }
++
++  // Paths use Bazel's internal Latin-1 byte encoding, like other JNI filesystem calls.
++  private static native void adoptNative(int[] descriptors, String control, String output)
++      throws IOException;
++
++  private SharedServerOwnership() {}
++}
+diff --git a/src/main/native/BUILD b/src/main/native/BUILD
+index 04200f79..b2c0d71e 100644
+--- a/src/main/native/BUILD
++++ b/src/main/native/BUILD
+@@ -101,6 +101,7 @@ cc_binary(
+     deps = [
+         ":blake3_jni",
+         ":latin1_jni_path",
++        "//src/main/cpp:shared_server_ownership",
+         "//src/main/cpp/util:logging",
+     ],
+ )
+diff --git a/src/main/native/unix_jni.cc b/src/main/native/unix_jni.cc
+index 65606529..1585552f 100644
+--- a/src/main/native/unix_jni.cc
++++ b/src/main/native/unix_jni.cc
+@@ -38,6 +38,7 @@
+ #include <string>
+ #include <vector>
+ 
++#include "src/main/cpp/shared_server_ownership.h"
+ #include "src/main/cpp/util/logging.h"
+ #include "src/main/native/latin1_jni_path.h"
+ 
+@@ -1282,4 +1283,24 @@ Java_com_google_devtools_build_lib_platform_PlatformNativeDepsServiceImpl_cpuSpe
+   return portable_cpu_speed();
+ }
+ 
++extern "C" JNIEXPORT void JNICALL
++Java_com_google_devtools_build_lib_server_SharedServerOwnership_adoptNative(
++    JNIEnv* env, jclass, jintArray descriptors, jstring control,
++    jstring output) {
++  jsize count = env->GetArrayLength(descriptors);
++  std::vector<jint> fds(count);
++  env->GetIntArrayRegion(descriptors, 0, count, fds.data());
++  if (env->ExceptionCheck()) return;
++  JStringLatin1Holder control_path(env, control);
++  JStringLatin1Holder output_path(env, output);
++  if (env->ExceptionCheck()) return;
++  std::string error;
++  if (!blaze::SharedServerOwnership::Adopt(
++          std::vector<int>(fds.begin(), fds.end()),
++          std::string(static_cast<const char*>(control_path)),
++          std::string(static_cast<const char*>(output_path)), &error)) {
++    PostException(env, "java/io/IOException", error);
++  }
++}
++
+ }  // namespace blaze_jni
+diff --git a/src/test/cpp/BUILD b/src/test/cpp/BUILD
+index 439e8a0c..d5a72bca 100644
+--- a/src/test/cpp/BUILD
++++ b/src/test/cpp/BUILD
+@@ -152,3 +152,15 @@ cc_test(
+ )
+ 
+ test_suite(name = "all_tests")
++
++cc_test(
++    name = "shared_server_ownership_test",
++    size = "small",
++    srcs = ["shared_server_ownership_test.cc"],
++    target_compatible_with = ["@platforms//os:linux"],
++    deps = [
++        "//src/main/cpp:shared_server_ownership",
++        "@com_google_googletest//:gtest",
++        "@com_google_googletest//:gtest_main",
++    ],
++)
+diff --git a/src/test/cpp/shared_server_ownership_test.cc b/src/test/cpp/shared_server_ownership_test.cc
+new file mode 100644
+index 00000000..5f9825c4
+--- /dev/null
++++ b/src/test/cpp/shared_server_ownership_test.cc
+@@ -0,0 +1,218 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++#include "src/main/cpp/shared_server_ownership.h"
++
++#include <fcntl.h>
++#include <signal.h>
++#include <sys/stat.h>
++#include <sys/wait.h>
++#include <unistd.h>
++
++#include <cstdlib>
++#include <filesystem>
++#include <string>
++#include <vector>
++
++#include "googletest/include/gtest/gtest.h"
++
++namespace blaze {
++namespace {
++class SharedServerOwnershipTest : public testing::Test {
++ protected:
++  void SetUp() override {
++    std::string pattern =
++        std::string(getenv("TEST_TMPDIR")) + "/ownership-XXXXXX";
++    std::vector<char> temp(pattern.begin(), pattern.end());
++    temp.push_back(0);
++    ASSERT_NE(mkdtemp(temp.data()), nullptr);
++    root = temp.data();
++    control = Directory("control");
++    output = Directory("output");
++  }
++  void TearDown() override { std::filesystem::remove_all(root); }
++  std::string Directory(const std::string& name) {
++    std::string path = root + "/" + name;
++    std::filesystem::create_directory(path);
++    return path;
++  }
++  std::unique_ptr<SharedServerOwnership> Acquire(const std::string& c,
++                                                 const std::string& o) {
++    return SharedServerOwnership::Acquire(c, o, &error);
++  }
++  std::string root, control, output, error;
++};
++
++TEST_F(SharedServerOwnershipTest, CollisionAndPartialAcquisitionRollback) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  std::string other_control = Directory("other-control");
++  std::string other_output = Directory("other-output");
++  EXPECT_EQ(Acquire(control, other_output), nullptr);
++  EXPECT_EQ(Acquire(other_control, output), nullptr);
++  auto independent = Acquire(other_control, other_output);
++  EXPECT_NE(independent, nullptr) << error;
++  owner.reset();
++  EXPECT_NE(Acquire(control, output), nullptr) << error;
++}
++
++TEST_F(SharedServerOwnershipTest,
++       OutputPathAndPhysicalObjectRemainReservedAfterRename) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  std::string moved = root + "/moved-output";
++  std::filesystem::rename(output, moved);
++  std::filesystem::create_directory(output);
++  std::string other_control = Directory("other-control");
++  EXPECT_EQ(Acquire(other_control, output), nullptr);
++  EXPECT_EQ(Acquire(other_control, moved), nullptr);
++  owner.reset();
++  EXPECT_NE(Acquire(other_control, moved), nullptr) << error;
++}
++
++TEST_F(SharedServerOwnershipTest,
++       ControlPathAndPhysicalObjectRemainReservedAfterRename) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  std::string moved = root + "/moved-control";
++  std::filesystem::rename(control, moved);
++  std::filesystem::create_directory(control);
++  std::string other_output = Directory("other-output");
++  EXPECT_EQ(Acquire(control, other_output), nullptr);
++  EXPECT_EQ(Acquire(moved, other_output), nullptr);
++}
++
++TEST_F(SharedServerOwnershipTest, RejectsUnpinnablePathsAndRollsBack) {
++  EXPECT_EQ(Acquire("relative", output), nullptr);
++  EXPECT_EQ(Acquire(control, root + "/missing"), nullptr);
++  std::string alias = root + "/alias";
++  ASSERT_EQ(symlink(control.c_str(), alias.c_str()), 0);
++  EXPECT_EQ(Acquire(alias, output), nullptr);
++  EXPECT_NE(Acquire(control, output), nullptr) << error;
++}
++
++TEST_F(SharedServerOwnershipTest, AdoptionValidatesHandoffAndSetsCloseOnExec) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  for (int fd : owner->descriptors())
++    EXPECT_EQ(fcntl(fd, F_GETFD) & FD_CLOEXEC, 0);
++  ASSERT_TRUE(SharedServerOwnership::Adopt(owner->descriptors(), control,
++                                           output, &error))
++      << error;
++  for (int fd : owner->descriptors())
++    EXPECT_NE(fcntl(fd, F_GETFD) & FD_CLOEXEC, 0);
++  EXPECT_EQ(Acquire(control, output), nullptr);
++}
++
++TEST_F(SharedServerOwnershipTest,
++       AdoptionRejectsMissingDuplicateAndWrongDescriptors) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  EXPECT_FALSE(SharedServerOwnership::Adopt({}, control, output, &error));
++  auto duplicate = owner->descriptors();
++  duplicate[0] = duplicate[1];
++  EXPECT_FALSE(
++      SharedServerOwnership::Adopt(duplicate, control, output, &error));
++  EXPECT_FALSE(SharedServerOwnership::Adopt(owner->descriptors(), output,
++                                            control, &error));
++  std::filesystem::rename(output, root + "/old-output");
++  std::filesystem::create_directory(output);
++  EXPECT_FALSE(SharedServerOwnership::Adopt(owner->descriptors(), control,
++                                            output, &error));
++}
++
++TEST_F(SharedServerOwnershipTest,
++       ParentReleaseDoesNotReleaseInheritedOwnership) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  int barrier[2];
++  ASSERT_EQ(pipe(barrier), 0);
++  pid_t child = fork();
++  ASSERT_GE(child, 0);
++  if (child == 0) {
++    close(barrier[1]);
++    char token;
++    read(barrier[0], &token, 1);
++    _exit(0);
++  }
++  close(barrier[0]);
++  owner.reset();
++  bool blocked = Acquire(control, output) == nullptr;
++  close(barrier[1]);
++  int status;
++  ASSERT_EQ(waitpid(child, &status, 0), child);
++  EXPECT_EQ(status, 0);
++  EXPECT_TRUE(blocked);
++  EXPECT_NE(Acquire(control, output), nullptr) << error;
++}
++
++TEST_F(SharedServerOwnershipTest, AbruptOwnerDeathReleasesReservation) {
++  int barrier[2];
++  ASSERT_EQ(pipe(barrier), 0);
++  pid_t child = fork();
++  ASSERT_GE(child, 0);
++  if (child == 0) {
++    close(barrier[0]);
++    auto owner = Acquire(control, output);
++    char token = owner ? 'y' : 'n';
++    write(barrier[1], &token, 1);
++    close(barrier[1]);
++    for (;;) pause();
++  }
++  close(barrier[1]);
++  char token = 0;
++  ssize_t count = read(barrier[0], &token, 1);
++  close(barrier[0]);
++  bool blocked = Acquire(control, output) == nullptr;
++  kill(child, SIGKILL);
++  int status;
++  ASSERT_EQ(waitpid(child, &status, 0), child);
++  EXPECT_EQ(count, 1);
++  EXPECT_EQ(token, 'y');
++  EXPECT_TRUE(blocked);
++  EXPECT_TRUE(WIFSIGNALED(status));
++  EXPECT_NE(Acquire(control, output), nullptr) << error;
++}
++
++TEST_F(SharedServerOwnershipTest, ExecutedChildrenDoNotRetainOwnership) {
++  auto owner = Acquire(control, output);
++  ASSERT_NE(owner, nullptr) << error;
++  ASSERT_TRUE(SharedServerOwnership::Adopt(owner->descriptors(), control,
++                                           output, &error));
++  int barrier[2];
++  ASSERT_EQ(pipe2(barrier, O_CLOEXEC), 0);
++  pid_t child = fork();
++  ASSERT_GE(child, 0);
++  if (child == 0) {
++    close(barrier[0]);
++    execl("/bin/sleep", "sleep", "30", nullptr);
++    _exit(127);
++  }
++  close(barrier[1]);
++  char token;
++  ssize_t count =
++      read(barrier[0], &token, 1);  // EOF after exec closes the pipe.
++  close(barrier[0]);
++  owner.reset();
++  auto replacement = Acquire(control, output);
++  bool child_alive = kill(child, 0) == 0;
++  kill(child, SIGKILL);
++  int status;
++  ASSERT_EQ(waitpid(child, &status, 0), child);
++  EXPECT_EQ(count, 0);
++  EXPECT_TRUE(child_alive);
++  EXPECT_TRUE(WIFSIGNALED(status));
++  EXPECT_NE(replacement, nullptr) << error;
++}
++}  // namespace
++}  // namespace blaze
+diff --git a/src/test/cpp/startup_options_test.cc b/src/test/cpp/startup_options_test.cc
+index 277de578..40d47ab7 100644
+--- a/src/test/cpp/startup_options_test.cc
++++ b/src/test/cpp/startup_options_test.cc
+@@ -113,10 +113,14 @@ TEST_F(StartupOptionsTest, SharedServerSeparatesControlAndEngineDirectories) {
+   startup_options_->UpdateConfiguration("install", "/workspace-a", false);
+   const auto control = startup_options_->output_base;
+   const auto engine_a = startup_options_->engine_output_base;
+-  EXPECT_EQ(blaze_util::Path("/shared-test-root/shared_servers/v1/team/control"), control);
+-  EXPECT_EQ(blaze::GetHashedBaseDir(
+-                blaze_util::Path("/shared-test-root/shared_servers/v1/team/engines"), "/workspace-a"),
+-            engine_a);
++  EXPECT_EQ(
++      blaze_util::Path("/shared-test-root/shared_servers/v2/team/control"),
++      control);
++  EXPECT_EQ(
++      blaze::GetHashedBaseDir(
++          blaze_util::Path("/shared-test-root/shared_servers/v2/team/engines"),
++          "/workspace-a"),
++      engine_a);
+   ReinitStartupOptions();
+   startup_options_->output_user_root = blaze_util::Path("/shared-test-root");
+   startup_options_->experimental_shared_server = "team";
+diff --git a/src/test/shell/integration/shared_server_test.sh b/src/test/shell/integration/shared_server_test.sh
+index 71c65355..bdc9d2df 100755
+--- a/src/test/shell/integration/shared_server_test.sh
++++ b/src/test/shell/integration/shared_server_test.sh
+@@ -20,7 +20,7 @@ source "${CURRENT_DIR}/../integration_test_setup.sh" \
+ function set_up() {
+   shared_workspace="$(pwd -P)"
+   shared_root="$TEST_TMPDIR/shared-$TEST_name"
+-  shared_control="$shared_root/shared_servers/v1/prototype/control"
++  shared_control="$shared_root/shared_servers/v2/prototype/control"
+   shared_args=()
+ }
+ 
+@@ -53,7 +53,7 @@ function test_shared_namespace_and_legacy_coexistence() {
+   local shared_pid output legacy_pid
+   shared_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
+   output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
+-  [[ "$output" == "$shared_root/shared_servers/v1/prototype/engines/"* ]] \
++  [[ "$output" == "$shared_root/shared_servers/v2/prototype/engines/"* ]] \
+     || fail "Build state is outside the private engine namespace: $output"
+   assert_equals "$shared_pid" "$(cat "$shared_control/server/server.pid.txt")"
+   [[ ! -e "$output/server/server.pid.txt" ]] || fail "PID exposed in engine output base"
+@@ -244,7 +244,7 @@ function test_shared_directory_identity_handles_non_ascii_paths() {
+   touch MODULE.bazel
+   shared_workspace="$(pwd -P)"
+   shared_root="$shared_root/output-ü-空"
+-  shared_control="$shared_root/shared_servers/v1/prototype/control"
++  shared_control="$shared_root/shared_servers/v2/prototype/control"
+   local pid actual
+   pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Non-ASCII startup failed"
+   actual=$(shared_bazel info workspace 2>"$TEST_log") || fail "Non-ASCII info failed"
+@@ -254,7 +254,7 @@ function test_shared_directory_identity_handles_non_ascii_paths() {
+ 
+ function test_shared_rejects_unsupported_options() {
+   local option status
+-  for option in --batch --output_base="$TEST_TMPDIR/explicit-engine" \
++  for option in --batch --run_in_user_cgroup --output_base="$TEST_TMPDIR/explicit-engine" \
+       --delete_output_base_on_shutdown; do
+     status=0
+     shared_bazel "$option" info >"$TEST_log" 2>&1 || status=$?
+@@ -300,4 +300,73 @@ function test_shared_endpoint_rejects_incomplete_protocol() {
+   assert_shared_pid "$pid"
+ }
+ 
++function test_shared_v2_leaves_old_namespace_untouched() {
++  local old="$shared_root/shared_servers/v1/prototype/control/server"
++  mkdir -p "$old"
++  echo old-profile-sentinel > "$old/startup_profile"
++  echo old-pid-sentinel > "$old/server.pid.txt"
++  shared_bazel info server_pid >"$TEST_log" 2>&1 || fail "V2 startup failed"
++  shared_bazel shutdown >"$TEST_log" 2>&1 || fail "V2 shutdown failed"
++  assert_equals old-profile-sentinel "$(cat "$old/startup_profile")"
++  assert_equals old-pid-sentinel "$(cat "$old/server.pid.txt")"
++}
++
++function test_shared_ownership_survives_missing_control_metadata() {
++  local pid status=0 shutdown_status=0
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  # Suspend the PID watcher while all control metadata is absent. A second
++  # launcher must reject before creating a profile or spawning another daemon.
++  kill -STOP "$pid"
++  mv "$shared_control" "$shared_control.saved"
++  shared_bazel info server_pid >"$TEST_TMPDIR/ownership-reject.log" 2>&1 || status=$?
++  shared_bazel shutdown >"$TEST_TMPDIR/ownership-shutdown.log" 2>&1 || shutdown_status=$?
++  mv "$shared_control" "$shared_control.replacement"
++  mv "$shared_control.saved" "$shared_control"
++  kill -CONT "$pid"
++  assert_equals 36 "$status"
++  assert_equals 36 "$shutdown_status"
++  assert_contains 'Shared server ownership is held' "$TEST_TMPDIR/ownership-reject.log"
++  [[ ! -e "$shared_control.replacement/server/startup_profile" ]] || fail "Replaced live profile"
++  [[ ! -e "$shared_control.replacement/server/server.pid.txt" ]] || fail "Spawned another daemon"
++  assert_shared_pid "$pid"
++}
++
++function test_shared_ownership_rejects_other_namespace_output_alias() {
++  local pid output other_control status=0
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
++  other_control="$shared_root/shared_servers/v2/other/control"
++  mkdir -p "$shared_root/shared_servers/v2/other/engines"
++  ln -s "$output" "$shared_root/shared_servers/v2/other/engines/$(basename "$output")"
++  shared_bazel --experimental_shared_server=other info server_pid >"$TEST_log" 2>&1 || status=$?
++  assert_equals 36 "$status"
++  expect_log 'Shared server ownership is held'
++  [[ ! -e "$other_control/server/startup_profile" ]] || fail "Initialized colliding engine"
++  assert_shared_pid "$pid"
++}
++
++function test_shared_ownership_released_after_process_death() {
++  local pid next_pid
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  kill -KILL "$pid"
++  # The PID may remain as a zombie under the test environment. Its kernel
++  # reservations must still be released, without trusting/deleting lock files.
++  for ((i=0; i<200; i++)); do
++    [[ ! -e "/proc/$pid/stat" ]] && break
++    [[ "$(awk '{print $3}' "/proc/$pid/stat")" == Z ]] && break
++    sleep 0.05
++  done
++  next_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Crash recovery failed"
++  assert_not_equals "$pid" "$next_pid"
++}
++
++function test_shared_ownership_released_after_failed_startup() {
++  local status=0 pid
++  shared_bazel --host_jvm_args=-XX:DefinitelyInvalidSharedOwnershipOption \
++    info server_pid >"$TEST_log" 2>&1 || status=$?
++  [[ "$status" != 0 ]] || fail "Invalid JVM option succeeded"
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Failed startup retained ownership"
++  assert_shared_pid "$pid"
++}
++
+ run_suite "Shared server startup and control namespace"

@@ -137,9 +137,12 @@ callback from using replacement objects. The [shared endpoint admission continua
 requires workspace/output and current registration identity on shared Run requests,
 requires current registrations for cancellation/resize, and enforces supported
 commands at the endpoint while retaining ordinary-mode legacy compatibility.
-Durable cross-process engine ownership,
+The [Linux process-lifetime ownership continuation](multi-worktree-stage1-ownership-2026-10-31.md)
+reserves canonical paths and pinned control/output objects across launcher/JVM
+handoff, rejects replacement even with missing metadata, and uses a new `v2`
+namespace to remain separate from older prototypes. Ownership of background/orphaned work,
 full startup compatibility, complete filesystem lifetime fencing and multi-engine
-shutdown scope remain open; this stage is not complete.
+shutdown/transfer remain open; this stage is not complete.
 
 **Depends on:** stage 0 and the architectural contract above. Stage 0 supplies the pinned baseline, workload and compatibility evidence; no later performance claim may bypass its qualification requirements.
 
