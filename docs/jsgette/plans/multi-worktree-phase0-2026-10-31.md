@@ -192,6 +192,76 @@ the control's provenance records the source-build command. The next Phase 0 work
 is executing the pinned DataDog tests, profiling representative loading/analysis
 and memory, and collecting controlled repeated observations.
 
+### Representative DataDog execution and measurement
+
+The exact workload pin `a83c9fa5161b775ed24b1df825db4817ea562a89` now executes on
+the source-built control. The unmodified repository wrapper runs through Bazelisk
+with an explicit `USE_BAZEL_VERSION` override. Repository rc files remain active;
+system/home rc files are disabled, the environment is allowlisted, and canonical
+BEP command options confirm empty remote-cache and remote-executor settings.
+The three selected targets contain **85 passing cases**: strings 4, cache 1,
+metrics 80, with no skipped cases.
+
+The [preflight](../measurements/multi-worktree-phase0-2026-10-31/wsl-representative-preflight/)
+first ran strings and then all three targets. The
+[pilot matrix](../measurements/multi-worktree-phase0-2026-10-31/wsl-representative/summary.json)
+passed 239 commands and eight shutdowns. Its timing path used Python's
+`Popen.wait(timeout=...)`, which polls at intervals up to 50 ms on this Linux
+runtime. That can materially inflate a short command's observed latency. The
+pilot remains correctness evidence and is excluded from latency conclusions;
+the earlier synthetic smoke timings use the same polling method and are likewise
+unsuitable for fine-grained latency comparisons.
+
+The new `harness/representative.py` runner uses blocking waitpid with a separate
+timeout watchdog. Its **27-test** suite covers timeout/exit handling, missing or
+failed test targets, cached-only results in execution-required cohorts, empty or
+all-skipped XML, retained artifact integrity, and the original synthetic checks.
+It creates separate worktrees/output bases with experiment-owned caches and HOME.
+The inherited CPU affinity is four logical CPUs; aggregate jobs are four,
+aggregate estimated action-memory resources are 6 GiB, and each JVM is capped at
+2 GiB with one loading thread per command. These are not hard OS memory quotas.
+
+The [corrected matrix](../measurements/multi-worktree-phase0-2026-10-31/wsl-representative-verified/summary.json)
+passed **253 commands in 109 cohorts**, with **8 successful shutdowns**. It starts
+from new state and caches, primes dependencies/tests, and covers 1/2/4 worktrees,
+cold graphs with primed action caches, uncached tests, one excluded warmup,
+30 warm batches per group, different requested target sets, restoration to all
+three targets, and separate diagnostics. Across these commands, BEP verifies
+**57 executed test-target runs and 690 cached test-target runs**. XML case
+identities match across worktrees. The pinned reference checkout is clean after
+archiving the preflight's generated module lock; each worker's generated lock is
+also retained. All 16 pilot/corrected server identities were absent after cleanup.
+
+[Derived observations](../measurements/multi-worktree-phase0-2026-10-31/wsl-representative-observations.json)
+retain chronological observations, BEP graph/phase metrics, trace categories,
+PSS/RSS samples, and live class histograms. Warm latency disables tracing,
+forced-GC profiles and the process sampler; it retains BEP and wrapper overhead.
+Diagnostics enable full profiler data, force GC for heap metrics, and sample
+observed clients/servers/descendants at approximately 200 ms intervals. Live
+class histograms are captured after latency batches and before server shutdown.
+
+| Worktrees | Warm batches / command observations | Median command latency | Observed command range | Live histogram shallow bytes, summed (MiB) | Warm diagnostic process-tree peak PSS (MiB) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 30 / 30 | 0.184 s | 0.168–0.260 s | 126 | 1,114 |
+| 2 | 30 / 60 | 0.260 s | 0.213–0.467 s | 249 | 1,856 |
+| 4 | 30 / 120 | 0.428 s | 0.334–0.858 s | 497 | 3,743 |
+
+These are descriptive baseline observations. Commands within a batch contend
+for the same four CPUs and are correlated. Groups run in fixed order; common
+caches accumulate state. A warm graph does not imply a warmed JIT: the retained
+series visibly changes over the early batches. There is no p95 claim, matched
+candidate arm, or demonstrated improvement. Freeze a warmup policy before paired
+candidate/control qualification; do not retrospectively discard slow samples.
+
+The single-server histogram includes about 18 MiB of shallow objects in Starlark
+classes and about 3.3 MiB in the core Skyframe class namespace. Arrays, strings,
+and shared support objects are not attributed to those owners. These counts
+establish an inspection starting point, not deep retained size or shareable
+payload size. Trace spans are inclusive and may overlap; parser/BZL loading spans
+do not isolate pure compilation CPU. Whole-process-tree CPU accounting and deeper
+ownership attribution remain open. The selected three Go tests exercise real
+repository/toolchain loading but do not stand in for a complete production build.
+
 ## Completion checklist
 
 - [x] Pin implementation source and stock smoke executable; distinguish their identities.
@@ -203,10 +273,15 @@ and memory, and collecting controlled repeated observations.
 - [x] Exercise synthetic module/repository-mapping/toolchain/action-environment/configuration divergence and baseline restores.
 - [ ] Extend context coverage to production toolchains/repository rules and the broader mutation/lifecycle matrix.
 - [x] Build and hash a stock control from the pinned implementation source.
-- [ ] Pin and execute representative DataDog build and test cohorts.
-- [ ] Attribute loading/compilation, ordinary analysis, execution and retained memory on representative commands.
+- [x] Pin and execute the selected representative DataDog build/test cohort, including uncached execution and mixed target sets.
+- [x] Capture representative loading/analysis/execution traces, graph metrics, process PSS/RSS, post-GC heap metrics and live class histograms.
+- [ ] Complete exclusive compilation/deep-retention attribution and whole-process-tree CPU accounting.
 - [x] Reproduce the core setup and two-worktree path from the saved harness in fresh experiment directories.
-- [ ] Independently reproduce the full mutation and representative-workload matrices.
-- [ ] Collect enough repeated observations for performance conclusions.
+- [x] Reproduce the synthetic mutation and selected representative-workload matrices in fresh state directories.
+- [x] Collect 30 warm batches per concurrency group with low-overhead timing and preserve the observed variation.
+- [ ] Complete matched, interleaved candidate/control qualification before performance conclusions.
 
-Phase 0 remains open while any required gate above is outstanding. The next implementation work should not rely on a speedup, memory reduction or source-built baseline that this record has not established.
+Phase 0 remains open while required baseline coverage and attribution above are
+outstanding. This record establishes the source-built control and reproducible
+synthetic/public test baselines. It does not establish a shared-daemon speedup or
+memory reduction; candidate qualification remains a later stage.

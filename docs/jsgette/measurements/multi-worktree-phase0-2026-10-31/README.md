@@ -3,7 +3,7 @@
 The [Phase 0 execution report](../../plans/multi-worktree-phase0-2026-10-31.md) records status, acceptance criteria and limitations. The [implementation plan](../../plans/multi-worktree-implementation-plan.md) is a separate document.
 
 - `baseline-lock.json` pins the reviewed implementation source, official stock executable, checksum and host limits. The release executable is not a build of the implementation source.
-- `representative-workload.json` pins the inspected DataDog source and target cohort. Its tests have not yet been run.
+- `representative-workload.json` pins the DataDog source and executed target cohort.
 - `harness/` contains the deterministic fixture, Python runner and focused harness tests.
 - `smoke/` preserves the failed bootstrap attempt (registry TLS failure and container zombie-reaping timeout), including the original runner matching its manifest checksum. It is excluded from build-time comparisons.
 - `preflight/` preserves the failed fixture preflight after the environment fixes. Its empty optional-file glob was corrected with explicit `allow_empty = True`; this attempt is also excluded from timing comparisons.
@@ -13,6 +13,10 @@ The [Phase 0 execution report](../../plans/multi-worktree-phase0-2026-10-31.md) 
 - `wsl-context-smoke/` and `wsl-context-smoke-observations.json` contain the expanded 1/2/4-worktree release-binary matrix: 253 builds including context divergence and baseline restores.
 - `wsl-control-build/` contains the successful pinned-source control build log, provenance, rc, and module lock.
 - `wsl-control-smoke/` and `wsl-control-smoke-observations.json` contain the fresh source-control reproduction: 169 builds across the full 1/2/4-worktree mutation/restore matrix.
+- `wsl-representative-preflight/` contains the first strings-only and three-target DataDog executions.
+- `wsl-representative/` contains the successful 239-command pilot. Its polling-based timing is excluded from latency conclusions.
+- `wsl-representative-verified/` contains the corrected 253-command matrix, mixed target sets, live heap histograms, diagnostic profiles, and 30 low-overhead warm batches per 1/2/4-worktree group.
+- `wsl-representative-observations.json` contains independently verified test counts and descriptive timing/memory observations. Use `harness/representative_observations.py` to regenerate it.
 
 ## Reproduce the smoke cohort
 
@@ -49,8 +53,11 @@ Adjust only machine-specific paths. Never point the harness at existing personal
 
 The two repetitions per case are pipeline smoke checks. They combine a first invocation after an edit with a warm repeat and must not be pooled as a statistically qualified latency comparison. Groups share increasingly populated caches and resetting a case may restore a previous edit; these are not matched edit-cost arms. A command-overlap interval is not a claim about simultaneous CPU execution. Server-RSS samples exclude clients and action children.
 
-The local WSL continuation adds a source-built control and synthetic context
-divergence. Qualification still requires representative build/test runs, broader
-context/lifecycle coverage and memory attribution, and repeated observations under
-the predeclared acceptance criteria. The release-binary WSL run overlapped the
-control build; its timings must not be used for a performance comparison.
+The WSL continuation adds a source-built control, synthetic context divergence,
+and real DataDog test baselines. Qualification still requires broader
+context/lifecycle coverage, deeper attribution/CPU accounting, and matched
+candidate/control observations under the predeclared acceptance criteria. The
+release-binary synthetic run overlapped the control build; its timings must not
+be used for a performance comparison. Synthetic runs and the representative
+pilot also used polling-based waits, which add up to 50 ms of exit-detection
+latency; only the corrected representative run uses the blocking wait.

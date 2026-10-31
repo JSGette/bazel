@@ -1,0 +1,251 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //pkg/metrics:metrics_test
+-----------------------------------------------------------------------------
+=== RUN   TestCheckMetrics
+--- PASS: TestCheckMetrics (0.01s)
+=== NAME  
+=== RUN   TestCheckMetricsNoExpiry
+--- PASS: TestCheckMetricsNoExpiry (0.01s)
+=== NAME  
+=== RUN   TestFlushAndClearSingleContextMetrics
+--- PASS: TestFlushAndClearSingleContextMetrics (0.01s)
+=== NAME  
+=== RUN   TestFlushAndClear
+--- PASS: TestFlushAndClear (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsGaugeSampling
+--- PASS: TestContextMetricsGaugeSampling (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsGaugeSamplingNoSample
+--- PASS: TestContextMetricsGaugeSamplingNoSample (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsGaugeSamplingInvalidSamples
+--- PASS: TestContextMetricsGaugeSamplingInvalidSamples (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsSingleRateSampling
+--- PASS: TestContextMetricsSingleRateSampling (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsNegativeRateSampling
+--- PASS: TestContextMetricsNegativeRateSampling (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsCountSampling
+--- PASS: TestContextMetricsCountSampling (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsMonotonicCountSampling
+--- PASS: TestContextMetricsMonotonicCountSampling (0.01s)
+=== NAME  
+=== RUN   TestContextMetricsHistogramSampling
+--- PASS: TestContextMetricsHistogramSampling (0.00s)
+=== NAME  
+=== RUN   TestContextMetricsHistorateSampling
+--- PASS: TestContextMetricsHistorateSampling (0.00s)
+=== NAME  
+=== RUN   TestContextMetricsGaugeWithTimestampSampling
+--- PASS: TestContextMetricsGaugeWithTimestampSampling (0.00s)
+=== NAME  
+=== RUN   TestContextMetricsCountWithTimestampSampling
+--- PASS: TestContextMetricsCountWithTimestampSampling (0.00s)
+=== NAME  
+=== RUN   TestCountSampling
+--- PASS: TestCountSampling (0.00s)
+=== NAME  
+=== RUN   TestCounterEmptyFlush
+--- PASS: TestCounterEmptyFlush (0.00s)
+=== NAME  
+=== RUN   TestCounterAddSample
+--- PASS: TestCounterAddSample (0.00s)
+=== NAME  
+=== RUN   TestGaugeSampling
+--- PASS: TestGaugeSampling (0.00s)
+=== NAME  
+=== RUN   TestHistogramConf
+--- PASS: TestHistogramConf (0.00s)
+=== NAME  
+=== RUN   TestHistogramConfError
+1793452571184426702 [Error] Could not parse 'test' from 'histogram_percentiles' (skipping): strconv.ParseFloat: parsing "test": invalid syntax
+1793452571184507249 [Error] Could not parse '0.12test' from 'histogram_percentiles' (skipping): strconv.ParseFloat: parsing "0.12test": invalid syntax
+1793452571184525616 [Error] histogram_percentiles must be between 0 and 1: skipping 200.000000
+1793452571184536365 [Error] histogram_percentiles must be between 0 and 1: skipping -50.000000
+--- PASS: TestHistogramConfError (0.00s)
+=== NAME  
+=== RUN   TestConfigureDefault
+--- PASS: TestConfigureDefault (0.00s)
+=== NAME  
+=== RUN   TestConfigure
+--- PASS: TestConfigure (0.01s)
+=== NAME  
+=== RUN   TestNewHistogramConcurrent
+--- PASS: TestNewHistogramConcurrent (0.00s)
+=== NAME  
+=== RUN   TestDefaultHistogramSampling
+--- PASS: TestDefaultHistogramSampling (0.00s)
+=== NAME  
+=== RUN   TestCustomHistogramSampling
+1793452571208471626 [Info] Configured aggregate 'invalid' is not implemented, skipping
+--- PASS: TestCustomHistogramSampling (0.00s)
+=== NAME  
+=== RUN   TestHistogramPercentiles
+--- PASS: TestHistogramPercentiles (0.01s)
+=== NAME  
+=== RUN   TestHistogramNaNSample
+--- PASS: TestHistogramNaNSample (0.01s)
+=== NAME  
+=== RUN   TestHistogramSampleRate
+--- PASS: TestHistogramSampleRate (0.00s)
+=== NAME  
+=== RUN   TestHistogramReset
+--- PASS: TestHistogramReset (0.00s)
+=== NAME  
+=== RUN   TestHistogramAverageExtremeScale
+--- PASS: TestHistogramAverageExtremeScale (0.01s)
+=== NAME  
+=== RUN   TestHistogramNonReciprocalSampleRate
+--- PASS: TestHistogramNonReciprocalSampleRate (0.00s)
+=== NAME  
+=== RUN   TestHistogramUnitPropagation
+--- PASS: TestHistogramUnitPropagation (0.00s)
+=== NAME  
+=== RUN   TestHistorateEmptyFlush
+--- PASS: TestHistorateEmptyFlush (0.00s)
+=== NAME  
+=== RUN   TestHistorateAddSampleOnce
+--- PASS: TestHistorateAddSampleOnce (0.00s)
+=== NAME  
+=== RUN   TestHistorateAddSample
+### starting testin of TestHistorateAddSample
+--- PASS: TestHistorateAddSample (0.01s)
+=== NAME  
+=== RUN   TestIterableSeries
+--- PASS: TestIterableSeries (0.00s)
+=== NAME  
+=== RUN   TestIterableSeriesCallback
+--- PASS: TestIterableSeriesCallback (0.00s)
+=== NAME  
+=== RUN   TestIterableSeriesReceiverStopped
+1793452571258241407 [Error] Cannot append a metric in a closed buffered channel
+--- PASS: TestIterableSeriesReceiverStopped (0.00s)
+=== NAME  
+=== RUN   TestIterableSeriesSeveralValues
+--- PASS: TestIterableSeriesSeveralValues (0.00s)
+=== NAME  
+=== RUN   TestIterableSketchesDistributions
+--- PASS: TestIterableSketchesDistributions (0.00s)
+=== NAME  
+=== RUN   TestMetricSampleCopy
+--- PASS: TestMetricSampleCopy (0.00s)
+=== NAME  
+=== RUN   TestAPIMetricTypeMarshal
+=== RUN   TestAPIMetricTypeMarshal/{"type":"gauge"}
+--- PASS: TestAPIMetricTypeMarshal/{"type":"gauge"} (0.00s)
+=== NAME  TestAPIMetricTypeMarshal
+=== RUN   TestAPIMetricTypeMarshal/{"type":"count"}
+--- PASS: TestAPIMetricTypeMarshal/{"type":"count"} (0.00s)
+=== NAME  TestAPIMetricTypeMarshal
+=== RUN   TestAPIMetricTypeMarshal/{"type":"rate"}
+--- PASS: TestAPIMetricTypeMarshal/{"type":"rate"} (0.00s)
+=== NAME  TestAPIMetricTypeMarshal
+--- PASS: TestAPIMetricTypeMarshal (0.00s)
+=== NAME  
+=== RUN   TestMetricWithTimestampGauge
+--- PASS: TestMetricWithTimestampGauge (0.00s)
+=== NAME  
+=== RUN   TestMetricWithTimestampCount
+--- PASS: TestMetricWithTimestampCount (0.00s)
+=== NAME  
+=== RUN   TestMetricSourceAWSMicroVMString
+--- PASS: TestMetricSourceAWSMicroVMString (0.00s)
+=== NAME  
+=== RUN   TestCheckNameToMetricSourceGPUChecks
+--- PASS: TestCheckNameToMetricSourceGPUChecks (0.00s)
+=== NAME  
+=== RUN   TestMonotonicCountSampling
+--- PASS: TestMonotonicCountSampling (0.00s)
+=== NAME  
+=== RUN   TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/1:_Flush_after_first_sample_and_FlushFirstValue_enabled:_flush_value_as-is
+--- PASS: TestMonotonicCount_FlushFirstValue/1:_Flush_after_first_sample_and_FlushFirstValue_enabled:_flush_value_as-is (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_lower_value_and_FlushFirstValue_enabled:_flush_the_lower_value_as-is
+--- PASS: TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_lower_value_and_FlushFirstValue_enabled:_flush_the_lower_value_as-is (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_higher_value_and_FlushFirstValue_enabled:_flush_diff
+--- PASS: TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_higher_value_and_FlushFirstValue_enabled:_flush_diff (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_the_same_value_and_FlushFirstValue_enabled:_flush_0
+--- PASS: TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_the_same_value_and_FlushFirstValue_enabled:_flush_0 (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_lower_value_and_FlushFirstValue_disabled:_flush_0
+--- PASS: TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_lower_value_and_FlushFirstValue_disabled:_flush_0 (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_higher_value_and_FlushFirstValue_disabled:_flush_diff
+--- PASS: TestMonotonicCount_FlushFirstValue/1:_Flush_after_another_sample_with_a_higher_value_and_FlushFirstValue_disabled:_flush_diff (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/2:_Flush_after_first_sample_and_FlushFirstValue_disabled:_error,_flush_nothing
+--- PASS: TestMonotonicCount_FlushFirstValue/2:_Flush_after_first_sample_and_FlushFirstValue_disabled:_error,_flush_nothing (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/2:_Flush_after_another_sample_with_a_higher_value_and_FlushFirstValue_enabled:_flush_diff
+--- PASS: TestMonotonicCount_FlushFirstValue/2:_Flush_after_another_sample_with_a_higher_value_and_FlushFirstValue_enabled:_flush_diff (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+=== RUN   TestMonotonicCount_FlushFirstValue/2:_Flush_after_another_sample_with_a_lower_value_and_FlushFirstValue_enabled:_flush_value_as-is
+--- PASS: TestMonotonicCount_FlushFirstValue/2:_Flush_after_another_sample_with_a_lower_value_and_FlushFirstValue_enabled:_flush_value_as-is (0.00s)
+=== NAME  TestMonotonicCount_FlushFirstValue
+--- PASS: TestMonotonicCount_FlushFirstValue (0.00s)
+=== NAME  
+=== RUN   TestRateSampling
+--- PASS: TestRateSampling (0.00s)
+=== NAME  
+=== RUN   TestRateSamplingMultipleSamplesInSameFlush
+--- PASS: TestRateSamplingMultipleSamplesInSameFlush (0.00s)
+=== NAME  
+=== RUN   TestRateSamplingNoSampleForOneFlush
+--- PASS: TestRateSamplingNoSampleForOneFlush (0.00s)
+=== NAME  
+=== RUN   TestRateSamplingSamplesAtSameTimestamp
+--- PASS: TestRateSamplingSamplesAtSameTimestamp (0.00s)
+=== NAME  
+=== RUN   TestRateSamplingNegativeRate
+--- PASS: TestRateSamplingNegativeRate (0.00s)
+=== NAME  
+=== RUN   TestSetEmptyFlush
+--- PASS: TestSetEmptyFlush (0.00s)
+=== NAME  
+=== RUN   TestSetAddSample
+--- PASS: TestSetAddSample (0.00s)
+=== NAME  
+=== RUN   TestString
+--- PASS: TestString (0.00s)
+=== NAME  
+=== RUN   TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Name
+--- PASS: TestAssertSketchSeriesEqual/Name (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Tags_same_len
+--- PASS: TestAssertSketchSeriesEqual/Tags_same_len (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Tags/diff_len
+--- PASS: TestAssertSketchSeriesEqual/Tags/diff_len (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Tags/exp=nil
+--- PASS: TestAssertSketchSeriesEqual/Tags/exp=nil (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Tags/act=nil
+--- PASS: TestAssertSketchSeriesEqual/Tags/act=nil (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Host
+--- PASS: TestAssertSketchSeriesEqual/Host (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Points/same_len/diff_sketch
+--- PASS: TestAssertSketchSeriesEqual/Points/same_len/diff_sketch (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Points/same_len/diff_sketch#01
+--- PASS: TestAssertSketchSeriesEqual/Points/same_len/diff_sketch#01 (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Points/equal
+--- PASS: TestAssertSketchSeriesEqual/Points/equal (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+=== RUN   TestAssertSketchSeriesEqual/Points/equal/unsorted_ts
+--- PASS: TestAssertSketchSeriesEqual/Points/equal/unsorted_ts (0.00s)
+=== NAME  TestAssertSketchSeriesEqual
+--- PASS: TestAssertSketchSeriesEqual (0.00s)
+=== NAME  
+PASS

@@ -1,6 +1,9 @@
 {
   "schema_version": 1,
-  "status": "selected-not-executed",
+  "status": "executed-source-control-baseline",
+  "source_control_sha256": "9b2fdd2e5c4a8a8474197a1e20608ddd710b5258eb55280fad687b5be57b59a2",
+  "execution_evidence": "wsl-representative-verified/summary.json",
+  "verified_observations": "wsl-representative-observations.json",
   "repository": "https://github.com/DataDog/datadog-agent.git",
   "commit": "a83c9fa5161b775ed24b1df825db4817ea562a89",
   "bazel_version": "9.3.1",
@@ -29,7 +32,7 @@
     "pkg/util/cache/BUILD.bazel", "pkg/metrics/BUILD.bazel"
   ],
   "limitations": [
-    "Source and target definitions were inspected; no representative build/test was run in this step.",
+    "The selected tests passed on the pinned source-built control via an explicit Bazelisk override; this is a baseline, not a shared-daemon comparison.",
     "These test targets do not yet constitute a broad production binary build cohort.",
     "//cmd/trace-agent:trace-agent exists but its BUILD file reports full Bazel validation TODO; it is not an initial success criterion."
   ]
