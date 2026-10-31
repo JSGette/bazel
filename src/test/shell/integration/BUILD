@@ -343,7 +343,10 @@ sh_test(
     size = "medium",
     timeout = "long",
     srcs = ["shared_server_test.sh"],
-    data = [":test-deps"],
+    data = [
+        ":test-deps",
+        "//src/test/java/com/google/devtools/build/lib/server:shared_server_protocol_probe",
+    ],
     shard_count = 3,
     tags = [
         "no_macos",

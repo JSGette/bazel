@@ -1,4 +1,4 @@
-load("@rules_java//java:defs.bzl", "java_library", "java_test")
+load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
 
 package(
     default_applicable_licenses = ["//:license"],
@@ -15,7 +15,10 @@ filegroup(
 
 java_library(
     name = "ServerTests_lib",
-    srcs = glob(["*.java"]),
+    srcs = glob(
+        ["*.java"],
+        exclude = ["SharedServerProtocolProbe.java"],
+    ),
     deps = [
         "//src/main/java/com/google/devtools/build/lib/clock",
         "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_result",
@@ -72,5 +75,20 @@ java_test(
     runtime_deps = [
         ":ServerTests_lib",
         "//src/test/java/com/google/devtools/build/lib:AllTests",
+    ],
+)
+
+java_binary(
+    name = "shared_server_protocol_probe",
+    srcs = ["SharedServerProtocolProbe.java"],
+    main_class = "com.google.devtools.build.lib.server.SharedServerProtocolProbe",
+    visibility = ["//src/test/shell/integration:__pkg__"],
+    deps = [
+        "//src/main/protobuf:command_server_java_grpc",
+        "//src/main/protobuf:command_server_java_proto",
+        "//src/main/protobuf:failure_details_java_proto",
+        "//third_party/java/grpc:core",
+        "//third_party/java/grpc:stub",
+        "//third_party/java/protobuf:protobuf_lite",
     ],
 )

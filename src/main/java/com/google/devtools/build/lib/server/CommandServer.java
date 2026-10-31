@@ -102,6 +102,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
       PathFragment workspaceDirectory,
       PathFragment outputBase,
       @Nullable EngineDirectories engineDirectories,
+      boolean sharedServer,
       int serverPid,
       int maxIdleSeconds,
       boolean shutdownOnLowSysMem,
@@ -122,6 +123,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
         workspaceDirectory,
         outputBase,
         engineDirectories,
+        sharedServer,
         serverPid,
         maxIdleSeconds,
         shutdownOnLowSysMem,
@@ -248,6 +250,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
   private final EngineRegistry.Registration engine;
   private final Runnable engineShutdown;
   @Nullable private final EngineDirectories engineDirectories;
+  private final boolean sharedServer;
   // Guarded by this; cleanup must never be retried after a partial failure.
   private boolean engineCleanupStarted;
   private final ShutdownHooks shutdownHooks;
@@ -278,6 +281,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
       PathFragment workspaceDirectory,
       PathFragment outputBase,
       @Nullable EngineDirectories engineDirectories,
+      boolean sharedServer,
       int serverPid,
       int maxIdleSeconds,
       boolean shutdownOnLowSysMem,
@@ -288,6 +292,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     this.engine = engines.reserve(engineKey);
     this.engineShutdown = engineShutdown;
     this.engineDirectories = engineDirectories;
+    this.sharedServer = sharedServer;
     this.shutdownHooks = shutdownHooks;
     this.pidFileWatcher = pidFileWatcher;
     this.clock = clock;
@@ -505,7 +510,14 @@ public class CommandServer implements GrpcCommandServer.Callback {
     }
 
     // Validate ownership before preemption, command registration, or dispatch.
-    // Legacy clients and legacy restart requests omit the identity.
+    // Only ordinary single-engine servers accept legacy clients/restart requests without identity.
+    if (sharedServer && !request.hasEngineIdentity()) {
+      rejectRun(
+          responder,
+          "Invalid RunRequest: shared servers require engine identity",
+          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+      return;
+    }
     if (request.hasEngineIdentity()
         && (!workspaceDirectory.equals(
                 PathFragment.create(
@@ -521,9 +533,28 @@ public class CommandServer implements GrpcCommandServer.Callback {
       return;
     }
 
-    if (engineDirectories != null
-        && !engineDirectories.canDispatch(
-            request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8())) {
+    if (sharedServer && request.getEngineInstanceId().isEmpty()) {
+      rejectRun(
+          responder,
+          "Invalid RunRequest: shared servers require an engine registration ID",
+          GrpcServer.Code.ENGINE_UNAVAILABLE);
+      return;
+    }
+
+    String command = request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8();
+    if (sharedServer
+        && !command.equals("build")
+        && !command.equals("test")
+        && !command.equals("info")
+        && !command.equals("shutdown")) {
+      rejectRun(
+          responder,
+          "Invalid RunRequest: shared servers support only build, test, info and shutdown",
+          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
+      return;
+    }
+
+    if (engineDirectories != null && !engineDirectories.canDispatch(command)) {
       rejectRun(
           responder,
           "Shared engine directories changed or cannot be verified; engine is fenced",
@@ -728,6 +759,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     logger.atInfo().log("Got CancelRequest for command id %s", request.getCommandId());
     try (Lease lease =
         isValidRequestCookie(request.getCookie())
+                && (!sharedServer || !request.getEngineInstanceId().isEmpty())
             ? engines.acquire(engineKey, request.getEngineInstanceId())
             : null) {
       if (lease != null) {
@@ -755,6 +787,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     logger.atInfo().log("Got TerminalSizeRequest for command id %s", request.getCommandId());
     try (Lease lease =
         isValidRequestCookie(request.getCookie())
+                && (!sharedServer || !request.getEngineInstanceId().isEmpty())
             ? engines.acquire(engineKey, request.getEngineInstanceId())
             : null) {
       if (lease != null) {

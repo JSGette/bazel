@@ -1,0 +1,73 @@
+[
+  {
+    "log": "protocol-final.log",
+    "cwd": "/home/jgett/bazel-multiworktree-20261031/bazel",
+    "argv": [
+      "/home/jgett/bazel-multiworktree-20261031/local-tools/bazel-9.3.1",
+      "--nosystem_rc",
+      "--nohome_rc",
+      "--output_base=/home/jgett/bazel-multiworktree-20261031/control/output-base",
+      "--host_jvm_args=-Xmx4g",
+      "test",
+      "//src:bazel-dev",
+      "//src/test/java/com/google/devtools/build/lib/server:ServerTests",
+      "//src/test/shell/integration:shared_server_test",
+      "--jobs=6",
+      "--local_resources=memory=8192",
+      "--repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache",
+      "--test_output=errors"
+    ]
+  },
+  {
+    "log": "protocol-legacy.log",
+    "cwd": "/home/jgett/bazel-multiworktree-20261031/bazel",
+    "argv": [
+      "/home/jgett/bazel-multiworktree-20261031/local-tools/bazel-9.3.1",
+      "--nosystem_rc",
+      "--nohome_rc",
+      "--output_base=/home/jgett/bazel-multiworktree-20261031/control/output-base",
+      "--host_jvm_args=-Xmx4g",
+      "test",
+      "//src/test/shell/integration:client_test",
+      "//src/test/shell/integration:client_sigint_test",
+      "--test_filter=test_engine_identity_*:test_shutdown:test_shutdown_different_options:test_noblock_for_lock_reuse_server:test_block_for_lock_released_before_timeout:test_multiple_requests_same_server:test_sigint_server_mode:test_server_restart_due_to_startup_options:test_no_server_restart_if_options_order_changes",
+      "--jobs=6",
+      "--local_resources=memory=8192",
+      "--repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache",
+      "--test_output=errors"
+    ]
+  },
+  {
+    "log": "protocol-probe-build.log",
+    "cwd": "/home/jgett/bazel-multiworktree-20261031/bazel",
+    "argv": [
+      "/home/jgett/bazel-multiworktree-20261031/local-tools/bazel-9.3.1",
+      "--nosystem_rc",
+      "--nohome_rc",
+      "--output_base=/home/jgett/bazel-multiworktree-20261031/control/output-base",
+      "--host_jvm_args=-Xmx4g",
+      "build",
+      "//src/test/java/com/google/devtools/build/lib/server:shared_server_protocol_probe",
+      "--jobs=6",
+      "--local_resources=memory=8192",
+      "--repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache"
+    ]
+  },
+  {
+    "cwd": "/home/jgett/bazel-multiworktree-20261031/bazel",
+    "argv": [
+      "python3",
+      "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-stage1-protocol-2026-10-31/smoke.py",
+      "--bazel",
+      "/home/jgett/bazel-multiworktree-20261031/stage1-protocol/bazel-stage1-protocol",
+      "--probe",
+      "/home/jgett/bazel-multiworktree-20261031/bazel/bazel-bin/src/test/java/com/google/devtools/build/lib/server/shared_server_protocol_probe",
+      "--repository-cache",
+      "/home/jgett/bazel-multiworktree-20261031/control/repository-cache",
+      "--root",
+      "/home/jgett/bazel-multiworktree-20261031/stage1-protocol/smoke-final",
+      "--result",
+      "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-stage1-protocol-2026-10-31/smoke.json"
+    ]
+  }
+]

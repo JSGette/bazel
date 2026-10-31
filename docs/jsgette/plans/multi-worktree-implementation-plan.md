@@ -133,7 +133,11 @@ conservative startup rejection without restarting the live server. It still
 admits only one workspace. The [physical-directory admission continuation](multi-worktree-stage1-directories-2026-10-31.md)
 pins workspace/output objects before initialization, fences replaced directories
 before RPC dispatch and after command-lock waits, and prevents the runtime cleanup
-callback from using replacement objects. Durable cross-process engine ownership,
+callback from using replacement objects. The [shared endpoint admission continuation](multi-worktree-stage1-protocol-2026-10-31.md)
+requires workspace/output and current registration identity on shared Run requests,
+requires current registrations for cancellation/resize, and enforces supported
+commands at the endpoint while retaining ordinary-mode legacy compatibility.
+Durable cross-process engine ownership,
 full startup compatibility, complete filesystem lifetime fencing and multi-engine
 shutdown scope remain open; this stage is not complete.
 

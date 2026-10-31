@@ -34,7 +34,8 @@ message RunRequest {
   // rudimentary form of mutual authentication.
   string cookie = 1;
 
-  // Command and command arguments. Does not include startup arguments.
+  // Command and command arguments. Does not include startup arguments. Shared
+  // servers currently accept only build, test, info and shutdown.
   repeated bytes arg = 2;
 
   // Tells the server whether or not the client is willing to wait for any
@@ -82,12 +83,14 @@ message RunRequest {
   // Engine selected by the client after workspace discovery and output-base
   // canonicalization. A server must reject a present identity that does not
   // belong to its dispatcher before admitting or preempting commands. Absence
-  // retains the legacy single-engine protocol; it is not valid shared routing.
+  // retains the legacy single-engine protocol. Shared servers require it,
+  // including for shutdown, and reject its absence before command registration.
   EngineIdentity engine_identity = 11;
 
   // Opaque registration ID returned by Ping. Reject a nonempty ID after that
   // registration has drained or been replaced, even if its paths are unchanged.
-  // Empty retains legacy single-engine behavior.
+  // Shared servers require a nonempty ID. Empty is accepted only by ordinary
+  // single-engine servers for legacy clients.
   string engine_instance_id = 12;
 }
 
@@ -215,7 +218,8 @@ message CancelRequest {
   // The id of the command to cancel.
   string command_id = 2;
 
-  // Registration owning the command. Empty is accepted for legacy clients.
+  // Registration owning the command. Shared servers ignore requests with an
+  // empty or stale ID. Ordinary servers accept empty IDs for legacy clients.
   string engine_instance_id = 3;
 }
 
@@ -240,7 +244,8 @@ message TerminalSizeRequest {
   // but is included so the RPC can carry the complete terminal size.
   int32 rows = 4;
 
-  // Registration owning the command. Empty is accepted for legacy clients.
+  // Registration owning the command. Shared servers ignore requests with an
+  // empty or stale ID. Ordinary servers accept empty IDs for legacy clients.
   string engine_instance_id = 5;
 }
 

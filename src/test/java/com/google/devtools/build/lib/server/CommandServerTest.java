@@ -72,7 +72,9 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
@@ -106,6 +108,20 @@ public final class CommandServerTest {
   private ServerAndStub createServerAndStub(
       CommandDispatcher dispatcher, Runnable engineShutdown, EngineDirectories engineDirectories)
       throws Exception {
+    return createServerAndStub(dispatcher, engineShutdown, engineDirectories, false);
+  }
+
+  private ServerAndStub createServerAndStub(CommandDispatcher dispatcher, boolean sharedServer)
+      throws Exception {
+    return createServerAndStub(dispatcher, () -> {}, null, sharedServer);
+  }
+
+  private ServerAndStub createServerAndStub(
+      CommandDispatcher dispatcher,
+      Runnable engineShutdown,
+      EngineDirectories engineDirectories,
+      boolean sharedServer)
+      throws Exception {
     Path serverDirectory = fileSystem.getPath("/bazel_server_directory");
     serverDirectory.createDirectoryAndParents();
 
@@ -138,6 +154,7 @@ public final class CommandServerTest {
             PathFragment.create("/workspace"),
             PathFragment.create("/output-base"),
             engineDirectories,
+            sharedServer,
             SERVER_PID,
             /* maxIdleSeconds= */ 1000,
             /* shutdownOnLowSysMem= */ false,
@@ -742,6 +759,134 @@ public final class CommandServerTest {
         GrpcServer.Code.ENGINE_UNAVAILABLE);
   }
 
+  private static RunRequest pinEngine(ServerAndStub server, RunRequest request) {
+    return request.toBuilder()
+        .setEngineInstanceId(ping(server, REQUEST_COOKIE).getEngineInstanceId())
+        .build();
+  }
+
+  private void assertSharedRequestDoesNotPreempt(
+      UnaryOperator<RunRequest.Builder> mutation, GrpcServer.Code expectedCode) throws Exception {
+    assertRejectedRequestDoesNotPreempt(
+        server -> mutation.apply(pinEngine(server, createRequest("info")).toBuilder()).build(),
+        expectedCode,
+        true,
+        null,
+        () -> null,
+        () -> null);
+  }
+
+  @Test
+  public void sharedServer_missingIdentityCannotDispatchOrShutdown() throws Exception {
+    for (String command : ImmutableList.of("build", "shutdown")) {
+      assertSharedRequestDoesNotPreempt(
+          request ->
+              request.clearArg().addArg(ByteString.copyFromUtf8(command)).clearEngineIdentity(),
+          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+    }
+  }
+
+  @Test
+  public void sharedServer_missingRegistrationCannotDispatchOrShutdown() throws Exception {
+    for (String command : ImmutableList.of("build", "shutdown")) {
+      assertSharedRequestDoesNotPreempt(
+          request ->
+              request.clearArg().addArg(ByteString.copyFromUtf8(command)).clearEngineInstanceId(),
+          GrpcServer.Code.ENGINE_UNAVAILABLE);
+    }
+  }
+
+  @Test
+  public void sharedServer_legacyRequestCannotDispatchOrShutdown() throws Exception {
+    assertSharedRequestDoesNotPreempt(
+        request ->
+            request
+                .clearArg()
+                .addArg(ByteString.copyFromUtf8("shutdown"))
+                .clearEngineIdentity()
+                .clearEngineInstanceId(),
+        GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+  }
+
+  @Test
+  public void sharedServer_staleRegistrationCannotDispatchOrShutdown() throws Exception {
+    for (String command : ImmutableList.of("build", "shutdown")) {
+      assertSharedRequestDoesNotPreempt(
+          request ->
+              request
+                  .clearArg()
+                  .addArg(ByteString.copyFromUtf8(command))
+                  .setEngineInstanceId("stale"),
+          GrpcServer.Code.ENGINE_UNAVAILABLE);
+    }
+  }
+
+  @Test
+  public void sharedServer_wrongWorkspaceCannotShutdown() throws Exception {
+    assertSharedRequestDoesNotPreempt(
+        request -> {
+          request.clearArg().addArg(ByteString.copyFromUtf8("shutdown"));
+          request
+              .getEngineIdentityBuilder()
+              .setWorkspaceDirectory(ByteString.copyFromUtf8("/other"));
+          return request;
+        },
+        GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+  }
+
+  @Test
+  public void sharedServer_unsupportedCommandCannotDispatchOrPreempt() throws Exception {
+    for (String command : ImmutableList.of("clean", "run", "query", "help", "", "build\u0000")) {
+      assertSharedRequestDoesNotPreempt(
+          request -> request.clearArg().addArg(ByteString.copyFromUtf8(command)),
+          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
+    }
+  }
+
+  @Test
+  public void sharedServer_missingCommandCannotDispatchOrPreempt() throws Exception {
+    assertSharedRequestDoesNotPreempt(
+        RunRequest.Builder::clearArg, GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
+  }
+
+  @Test
+  public void sharedServer_supportedCommandsWithCurrentIdentityDispatch() throws Exception {
+    List<String> commands = new ArrayList<>();
+    CommandDispatcher dispatcher =
+        (policy,
+            args,
+            outErr,
+            timeout,
+            verbosity,
+            client,
+            start,
+            options,
+            idle,
+            extensions,
+            reporter) -> {
+          commands.add(args.getFirst());
+          return BlazeCommandResult.success();
+        };
+    ServerAndStub server = createServerAndStub(dispatcher, true);
+    try {
+      for (String command : ImmutableList.of("build", "test", "info", "shutdown")) {
+        CountDownLatch done = new CountDownLatch(1);
+        List<RunResponse> responses = new ArrayList<>();
+        server
+            .stub()
+            .run(
+                pinEngine(server, createRequest(command)), createResponseObserver(responses, done));
+        assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+        assertThat(responses.getLast().getFinished()).isTrue();
+        assertThat(responses.getLast().getExitCode()).isEqualTo(0);
+      }
+    } finally {
+      server.server().shutdown();
+      server.server().awaitTermination();
+    }
+    assertThat(commands).containsExactly("build", "test", "info", "shutdown").inOrder();
+  }
+
   @Test
   public void replacedDirectoriesDoNotPreemptExistingCommand() throws Exception {
     assumeTrue(System.getProperty("os.name").equals("Linux"));
@@ -809,6 +954,23 @@ public final class CommandServerTest {
       java.util.concurrent.Callable<Void> beforeRejectedRequest,
       java.util.concurrent.Callable<Void> beforeCleanup)
       throws Exception {
+    assertRejectedRequestDoesNotPreempt(
+        unused -> rejectedRequest,
+        expectedCode,
+        false,
+        directories,
+        beforeRejectedRequest,
+        beforeCleanup);
+  }
+
+  private void assertRejectedRequestDoesNotPreempt(
+      Function<ServerAndStub, RunRequest> rejectedRequest,
+      GrpcServer.Code expectedCode,
+      boolean sharedServer,
+      EngineDirectories directories,
+      java.util.concurrent.Callable<Void> beforeRejectedRequest,
+      java.util.concurrent.Callable<Void> beforeCleanup)
+      throws Exception {
     CountDownLatch started = new CountDownLatch(1);
     CountDownLatch proceed = new CountDownLatch(1);
     AtomicInteger calls = new AtomicInteger();
@@ -829,22 +991,30 @@ public final class CommandServerTest {
           proceed.await();
           return BlazeCommandResult.success();
         };
-    ServerAndStub serverAndStub = createServerAndStub(dispatcher, () -> {}, directories);
+    ServerAndStub serverAndStub =
+        createServerAndStub(dispatcher, () -> {}, directories, sharedServer);
+    RunRequest firstRequest = createRequest("build").toBuilder().setPreemptible(true).build();
+    if (sharedServer) {
+      firstRequest = pinEngine(serverAndStub, firstRequest);
+    }
     CountDownLatch firstDone = new CountDownLatch(1);
     List<RunResponse> firstResponses = new ArrayList<>();
-    serverAndStub
-        .stub()
-        .run(
-            createRequest("Foo").toBuilder().setPreemptible(true).build(),
-            createResponseObserver(firstResponses, firstDone));
+    serverAndStub.stub().run(firstRequest, createResponseObserver(firstResponses, firstDone));
     try {
       assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
       beforeRejectedRequest.call();
       CountDownLatch rejected = new CountDownLatch(1);
       List<RunResponse> responses = new ArrayList<>();
-      serverAndStub.stub().run(rejectedRequest, createResponseObserver(responses, rejected));
+      serverAndStub
+          .stub()
+          .run(rejectedRequest.apply(serverAndStub), createResponseObserver(responses, rejected));
       assertThat(rejected.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
       assertThat(responses).hasSize(1);
+      assertThat(responses.getFirst().getCookie()).isEqualTo(RESPONSE_COOKIE);
+      assertThat(responses.getFirst().getCommandId()).isEmpty();
+      assertThat(responses.getFirst().getTerminationExpected()).isFalse();
+      assertThat(responses.getFirst().getFinished()).isTrue();
+      assertThat(responses.getFirst().getExitCode()).isEqualTo(36);
       assertThat(responses.getFirst().getFailureDetail().getGrpcServer().getCode())
           .isEqualTo(expectedCode);
     } finally {
@@ -1017,6 +1187,15 @@ public final class CommandServerTest {
   }
 
   private void checkCancellation(boolean includeInstanceId) throws Exception {
+    checkCancellation(includeInstanceId, false);
+  }
+
+  @Test
+  public void sharedServer_cancellationRequiresCurrentRegistration() throws Exception {
+    checkCancellation(true, true);
+  }
+
+  private void checkCancellation(boolean includeInstanceId, boolean sharedServer) throws Exception {
     CommandDispatcher dispatcher =
         new CommandDispatcher() {
           @Override
@@ -1041,7 +1220,7 @@ public final class CommandServerTest {
           }
         };
 
-    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
+    ServerAndStub serverAndStub = createServerAndStub(dispatcher, sharedServer);
     CommandServer server = serverAndStub.server();
     CommandServerStub stub = serverAndStub.stub();
 
@@ -1050,8 +1229,12 @@ public final class CommandServerTest {
     AtomicReference<RunResponse> secondResponse = new AtomicReference<>();
     CountDownLatch gotSecondResponse = new CountDownLatch(1);
 
+    RunRequest request = createRequest("build");
+    if (sharedServer) {
+      request = pinEngine(serverAndStub, request);
+    }
     stub.run(
-        createRequest("Foo"),
+        request,
         new StreamObserver<RunResponse>() {
           @Override
           public void onNext(RunResponse value) {
@@ -1078,10 +1261,17 @@ public final class CommandServerTest {
         CancelRequest.newBuilder().setCookie(REQUEST_COOKIE).setCommandId(commandId.get());
     if (includeInstanceId) {
       AtomicInteger completed = new AtomicInteger();
+      if (sharedServer) {
+        server.cancel(cancelRequestBuilder.build().toByteArray(), noValueResponder(completed));
+        assertThat(completed.get()).isEqualTo(1);
+        assertThat(gotSecondResponse.getCount()).isEqualTo(1);
+        completed.set(0);
+      }
       server.cancel(
           cancelRequestBuilder.setEngineInstanceId("stale").build().toByteArray(),
           noValueResponder(completed));
       assertThat(completed.get()).isEqualTo(1);
+      assertThat(gotSecondResponse.getCount()).isEqualTo(1);
       cancelRequestBuilder.setEngineInstanceId(
           ping(serverAndStub, REQUEST_COOKIE).getEngineInstanceId());
     }
@@ -1124,6 +1314,15 @@ public final class CommandServerTest {
   }
 
   private void checkTerminalSize(boolean includeInstanceId) throws Exception {
+    checkTerminalSize(includeInstanceId, false);
+  }
+
+  @Test
+  public void sharedServer_resizeRequiresCurrentRegistration() throws Exception {
+    checkTerminalSize(true, true);
+  }
+
+  private void checkTerminalSize(boolean includeInstanceId, boolean sharedServer) throws Exception {
     CountDownLatch execStarted = new CountDownLatch(1);
     CountDownLatch allowListenerRegistration = new CountDownLatch(1);
     CountDownLatch resizeSeen = new CountDownLatch(1);
@@ -1176,15 +1375,19 @@ public final class CommandServerTest {
           }
         };
 
-    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
+    ServerAndStub serverAndStub = createServerAndStub(dispatcher, sharedServer);
     CommandServer server = serverAndStub.server();
     CommandServerStub stub = serverAndStub.stub();
 
     AtomicReference<String> commandId = new AtomicReference<>();
     CountDownLatch gotCommandId = new CountDownLatch(1);
     CountDownLatch commandDone = new CountDownLatch(1);
+    RunRequest request = createRequest("build");
+    if (sharedServer) {
+      request = pinEngine(serverAndStub, request);
+    }
     stub.run(
-        createRequest("Foo"),
+        request,
         new StreamObserver<RunResponse>() {
           @Override
           public void onNext(RunResponse value) {
@@ -1218,6 +1421,13 @@ public final class CommandServerTest {
             .build();
     if (includeInstanceId) {
       AtomicInteger completed = new AtomicInteger();
+      if (sharedServer) {
+        server.updateTerminalSize(
+            terminalSizeRequest.toBuilder().setColumns(99).build().toByteArray(),
+            noValueResponder(completed));
+        assertThat(completed.get()).isEqualTo(1);
+        completed.set(0);
+      }
       server.updateTerminalSize(
           terminalSizeRequest.toBuilder().setEngineInstanceId("stale").build().toByteArray(),
           noValueResponder(completed));

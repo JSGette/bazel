@@ -1,0 +1,753 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+index 3c10e4cd..16308df2 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+@@ -1398,6 +1398,7 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+                 startupOptions.getWorkspaceDirectory(),
+                 startupOptions.getOutputBase(),
+                 engineDirectories,
++                !startupOptions.getExperimentalSharedServer().isEmpty(),
+                 serverPid,
+                 startupOptions.getMaxIdleSeconds(),
+                 startupOptions.getShutdownOnLowSysMem(),
+diff --git a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+index cb9e7449..89e8cc5e 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
++++ b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+@@ -102,6 +102,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       PathFragment workspaceDirectory,
+       PathFragment outputBase,
+       @Nullable EngineDirectories engineDirectories,
++      boolean sharedServer,
+       int serverPid,
+       int maxIdleSeconds,
+       boolean shutdownOnLowSysMem,
+@@ -122,6 +123,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+         workspaceDirectory,
+         outputBase,
+         engineDirectories,
++        sharedServer,
+         serverPid,
+         maxIdleSeconds,
+         shutdownOnLowSysMem,
+@@ -248,6 +250,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   private final EngineRegistry.Registration engine;
+   private final Runnable engineShutdown;
+   @Nullable private final EngineDirectories engineDirectories;
++  private final boolean sharedServer;
+   // Guarded by this; cleanup must never be retried after a partial failure.
+   private boolean engineCleanupStarted;
+   private final ShutdownHooks shutdownHooks;
+@@ -278,6 +281,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       PathFragment workspaceDirectory,
+       PathFragment outputBase,
+       @Nullable EngineDirectories engineDirectories,
++      boolean sharedServer,
+       int serverPid,
+       int maxIdleSeconds,
+       boolean shutdownOnLowSysMem,
+@@ -288,6 +292,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     this.engine = engines.reserve(engineKey);
+     this.engineShutdown = engineShutdown;
+     this.engineDirectories = engineDirectories;
++    this.sharedServer = sharedServer;
+     this.shutdownHooks = shutdownHooks;
+     this.pidFileWatcher = pidFileWatcher;
+     this.clock = clock;
+@@ -505,7 +510,14 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     }
+ 
+     // Validate ownership before preemption, command registration, or dispatch.
+-    // Legacy clients and legacy restart requests omit the identity.
++    // Only ordinary single-engine servers accept legacy clients/restart requests without identity.
++    if (sharedServer && !request.hasEngineIdentity()) {
++      rejectRun(
++          responder,
++          "Invalid RunRequest: shared servers require engine identity",
++          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++      return;
++    }
+     if (request.hasEngineIdentity()
+         && (!workspaceDirectory.equals(
+                 PathFragment.create(
+@@ -521,9 +533,28 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       return;
+     }
+ 
+-    if (engineDirectories != null
+-        && !engineDirectories.canDispatch(
+-            request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8())) {
++    if (sharedServer && request.getEngineInstanceId().isEmpty()) {
++      rejectRun(
++          responder,
++          "Invalid RunRequest: shared servers require an engine registration ID",
++          GrpcServer.Code.ENGINE_UNAVAILABLE);
++      return;
++    }
++
++    String command = request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8();
++    if (sharedServer
++        && !command.equals("build")
++        && !command.equals("test")
++        && !command.equals("info")
++        && !command.equals("shutdown")) {
++      rejectRun(
++          responder,
++          "Invalid RunRequest: shared servers support only build, test, info and shutdown",
++          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
++      return;
++    }
++
++    if (engineDirectories != null && !engineDirectories.canDispatch(command)) {
+       rejectRun(
+           responder,
+           "Shared engine directories changed or cannot be verified; engine is fenced",
+@@ -728,6 +759,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     logger.atInfo().log("Got CancelRequest for command id %s", request.getCommandId());
+     try (Lease lease =
+         isValidRequestCookie(request.getCookie())
++                && (!sharedServer || !request.getEngineInstanceId().isEmpty())
+             ? engines.acquire(engineKey, request.getEngineInstanceId())
+             : null) {
+       if (lease != null) {
+@@ -755,6 +787,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     logger.atInfo().log("Got TerminalSizeRequest for command id %s", request.getCommandId());
+     try (Lease lease =
+         isValidRequestCookie(request.getCookie())
++                && (!sharedServer || !request.getEngineInstanceId().isEmpty())
+             ? engines.acquire(engineKey, request.getEngineInstanceId())
+             : null) {
+       if (lease != null) {
+diff --git a/src/main/protobuf/command_server.proto b/src/main/protobuf/command_server.proto
+index f40ca43d..d57f2b9a 100644
+--- a/src/main/protobuf/command_server.proto
++++ b/src/main/protobuf/command_server.proto
+@@ -34,7 +34,8 @@ message RunRequest {
+   // rudimentary form of mutual authentication.
+   string cookie = 1;
+ 
+-  // Command and command arguments. Does not include startup arguments.
++  // Command and command arguments. Does not include startup arguments. Shared
++  // servers currently accept only build, test, info and shutdown.
+   repeated bytes arg = 2;
+ 
+   // Tells the server whether or not the client is willing to wait for any
+@@ -82,12 +83,14 @@ message RunRequest {
+   // Engine selected by the client after workspace discovery and output-base
+   // canonicalization. A server must reject a present identity that does not
+   // belong to its dispatcher before admitting or preempting commands. Absence
+-  // retains the legacy single-engine protocol; it is not valid shared routing.
++  // retains the legacy single-engine protocol. Shared servers require it,
++  // including for shutdown, and reject its absence before command registration.
+   EngineIdentity engine_identity = 11;
+ 
+   // Opaque registration ID returned by Ping. Reject a nonempty ID after that
+   // registration has drained or been replaced, even if its paths are unchanged.
+-  // Empty retains legacy single-engine behavior.
++  // Shared servers require a nonempty ID. Empty is accepted only by ordinary
++  // single-engine servers for legacy clients.
+   string engine_instance_id = 12;
+ }
+ 
+@@ -215,7 +218,8 @@ message CancelRequest {
+   // The id of the command to cancel.
+   string command_id = 2;
+ 
+-  // Registration owning the command. Empty is accepted for legacy clients.
++  // Registration owning the command. Shared servers ignore requests with an
++  // empty or stale ID. Ordinary servers accept empty IDs for legacy clients.
+   string engine_instance_id = 3;
+ }
+ 
+@@ -240,7 +244,8 @@ message TerminalSizeRequest {
+   // but is included so the RPC can carry the complete terminal size.
+   int32 rows = 4;
+ 
+-  // Registration owning the command. Empty is accepted for legacy clients.
++  // Registration owning the command. Shared servers ignore requests with an
++  // empty or stale ID. Ordinary servers accept empty IDs for legacy clients.
+   string engine_instance_id = 5;
+ }
+ 
+diff --git a/src/main/protobuf/failure_details.proto b/src/main/protobuf/failure_details.proto
+index 66690385..c09672e7 100644
+--- a/src/main/protobuf/failure_details.proto
++++ b/src/main/protobuf/failure_details.proto
+@@ -659,6 +659,7 @@ message GrpcServer {
+     ENGINE_IDENTITY_MISMATCH = 6 [(metadata) = { exit_code: 36 }];
+     ENGINE_UNAVAILABLE = 7 [(metadata) = { exit_code: 36 }];
+     ENGINE_DIRECTORIES_CHANGED = 8 [(metadata) = { exit_code: 36 }];
++    SHARED_SERVER_COMMAND_UNSUPPORTED = 9 [(metadata) = { exit_code: 36 }];
+   }
+ 
+   Code code = 1;
+diff --git a/src/test/java/com/google/devtools/build/lib/server/BUILD b/src/test/java/com/google/devtools/build/lib/server/BUILD
+index f37b62b4..761a4873 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/server/BUILD
+@@ -1,4 +1,4 @@
+-load("@rules_java//java:defs.bzl", "java_library", "java_test")
++load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
+ 
+ package(
+     default_applicable_licenses = ["//:license"],
+@@ -15,7 +15,10 @@ filegroup(
+ 
+ java_library(
+     name = "ServerTests_lib",
+-    srcs = glob(["*.java"]),
++    srcs = glob(
++        ["*.java"],
++        exclude = ["SharedServerProtocolProbe.java"],
++    ),
+     deps = [
+         "//src/main/java/com/google/devtools/build/lib/clock",
+         "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_result",
+@@ -74,3 +77,18 @@ java_test(
+         "//src/test/java/com/google/devtools/build/lib:AllTests",
+     ],
+ )
++
++java_binary(
++    name = "shared_server_protocol_probe",
++    srcs = ["SharedServerProtocolProbe.java"],
++    main_class = "com.google.devtools.build.lib.server.SharedServerProtocolProbe",
++    visibility = ["//src/test/shell/integration:__pkg__"],
++    deps = [
++        "//src/main/protobuf:command_server_java_grpc",
++        "//src/main/protobuf:command_server_java_proto",
++        "//src/main/protobuf:failure_details_java_proto",
++        "//third_party/java/grpc:core",
++        "//third_party/java/grpc:stub",
++        "//third_party/java/protobuf:protobuf_lite",
++    ],
++)
+diff --git a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+index fe2adaf3..5c2e4a51 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
++++ b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+@@ -72,7 +72,9 @@ import java.util.Optional;
+ import java.util.concurrent.CountDownLatch;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
++import java.util.function.Function;
+ import java.util.function.Supplier;
++import java.util.function.UnaryOperator;
+ import java.util.stream.Collectors;
+ import org.junit.Rule;
+ import org.junit.Test;
+@@ -106,6 +108,20 @@ public final class CommandServerTest {
+   private ServerAndStub createServerAndStub(
+       CommandDispatcher dispatcher, Runnable engineShutdown, EngineDirectories engineDirectories)
+       throws Exception {
++    return createServerAndStub(dispatcher, engineShutdown, engineDirectories, false);
++  }
++
++  private ServerAndStub createServerAndStub(CommandDispatcher dispatcher, boolean sharedServer)
++      throws Exception {
++    return createServerAndStub(dispatcher, () -> {}, null, sharedServer);
++  }
++
++  private ServerAndStub createServerAndStub(
++      CommandDispatcher dispatcher,
++      Runnable engineShutdown,
++      EngineDirectories engineDirectories,
++      boolean sharedServer)
++      throws Exception {
+     Path serverDirectory = fileSystem.getPath("/bazel_server_directory");
+     serverDirectory.createDirectoryAndParents();
+ 
+@@ -138,6 +154,7 @@ public final class CommandServerTest {
+             PathFragment.create("/workspace"),
+             PathFragment.create("/output-base"),
+             engineDirectories,
++            sharedServer,
+             SERVER_PID,
+             /* maxIdleSeconds= */ 1000,
+             /* shutdownOnLowSysMem= */ false,
+@@ -742,6 +759,134 @@ public final class CommandServerTest {
+         GrpcServer.Code.ENGINE_UNAVAILABLE);
+   }
+ 
++  private static RunRequest pinEngine(ServerAndStub server, RunRequest request) {
++    return request.toBuilder()
++        .setEngineInstanceId(ping(server, REQUEST_COOKIE).getEngineInstanceId())
++        .build();
++  }
++
++  private void assertSharedRequestDoesNotPreempt(
++      UnaryOperator<RunRequest.Builder> mutation, GrpcServer.Code expectedCode) throws Exception {
++    assertRejectedRequestDoesNotPreempt(
++        server -> mutation.apply(pinEngine(server, createRequest("info")).toBuilder()).build(),
++        expectedCode,
++        true,
++        null,
++        () -> null,
++        () -> null);
++  }
++
++  @Test
++  public void sharedServer_missingIdentityCannotDispatchOrShutdown() throws Exception {
++    for (String command : ImmutableList.of("build", "shutdown")) {
++      assertSharedRequestDoesNotPreempt(
++          request ->
++              request.clearArg().addArg(ByteString.copyFromUtf8(command)).clearEngineIdentity(),
++          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++    }
++  }
++
++  @Test
++  public void sharedServer_missingRegistrationCannotDispatchOrShutdown() throws Exception {
++    for (String command : ImmutableList.of("build", "shutdown")) {
++      assertSharedRequestDoesNotPreempt(
++          request ->
++              request.clearArg().addArg(ByteString.copyFromUtf8(command)).clearEngineInstanceId(),
++          GrpcServer.Code.ENGINE_UNAVAILABLE);
++    }
++  }
++
++  @Test
++  public void sharedServer_legacyRequestCannotDispatchOrShutdown() throws Exception {
++    assertSharedRequestDoesNotPreempt(
++        request ->
++            request
++                .clearArg()
++                .addArg(ByteString.copyFromUtf8("shutdown"))
++                .clearEngineIdentity()
++                .clearEngineInstanceId(),
++        GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++  }
++
++  @Test
++  public void sharedServer_staleRegistrationCannotDispatchOrShutdown() throws Exception {
++    for (String command : ImmutableList.of("build", "shutdown")) {
++      assertSharedRequestDoesNotPreempt(
++          request ->
++              request
++                  .clearArg()
++                  .addArg(ByteString.copyFromUtf8(command))
++                  .setEngineInstanceId("stale"),
++          GrpcServer.Code.ENGINE_UNAVAILABLE);
++    }
++  }
++
++  @Test
++  public void sharedServer_wrongWorkspaceCannotShutdown() throws Exception {
++    assertSharedRequestDoesNotPreempt(
++        request -> {
++          request.clearArg().addArg(ByteString.copyFromUtf8("shutdown"));
++          request
++              .getEngineIdentityBuilder()
++              .setWorkspaceDirectory(ByteString.copyFromUtf8("/other"));
++          return request;
++        },
++        GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++  }
++
++  @Test
++  public void sharedServer_unsupportedCommandCannotDispatchOrPreempt() throws Exception {
++    for (String command : ImmutableList.of("clean", "run", "query", "help", "", "build\u0000")) {
++      assertSharedRequestDoesNotPreempt(
++          request -> request.clearArg().addArg(ByteString.copyFromUtf8(command)),
++          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
++    }
++  }
++
++  @Test
++  public void sharedServer_missingCommandCannotDispatchOrPreempt() throws Exception {
++    assertSharedRequestDoesNotPreempt(
++        RunRequest.Builder::clearArg, GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
++  }
++
++  @Test
++  public void sharedServer_supportedCommandsWithCurrentIdentityDispatch() throws Exception {
++    List<String> commands = new ArrayList<>();
++    CommandDispatcher dispatcher =
++        (policy,
++            args,
++            outErr,
++            timeout,
++            verbosity,
++            client,
++            start,
++            options,
++            idle,
++            extensions,
++            reporter) -> {
++          commands.add(args.getFirst());
++          return BlazeCommandResult.success();
++        };
++    ServerAndStub server = createServerAndStub(dispatcher, true);
++    try {
++      for (String command : ImmutableList.of("build", "test", "info", "shutdown")) {
++        CountDownLatch done = new CountDownLatch(1);
++        List<RunResponse> responses = new ArrayList<>();
++        server
++            .stub()
++            .run(
++                pinEngine(server, createRequest(command)), createResponseObserver(responses, done));
++        assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++        assertThat(responses.getLast().getFinished()).isTrue();
++        assertThat(responses.getLast().getExitCode()).isEqualTo(0);
++      }
++    } finally {
++      server.server().shutdown();
++      server.server().awaitTermination();
++    }
++    assertThat(commands).containsExactly("build", "test", "info", "shutdown").inOrder();
++  }
++
+   @Test
+   public void replacedDirectoriesDoNotPreemptExistingCommand() throws Exception {
+     assumeTrue(System.getProperty("os.name").equals("Linux"));
+@@ -809,6 +954,23 @@ public final class CommandServerTest {
+       java.util.concurrent.Callable<Void> beforeRejectedRequest,
+       java.util.concurrent.Callable<Void> beforeCleanup)
+       throws Exception {
++    assertRejectedRequestDoesNotPreempt(
++        unused -> rejectedRequest,
++        expectedCode,
++        false,
++        directories,
++        beforeRejectedRequest,
++        beforeCleanup);
++  }
++
++  private void assertRejectedRequestDoesNotPreempt(
++      Function<ServerAndStub, RunRequest> rejectedRequest,
++      GrpcServer.Code expectedCode,
++      boolean sharedServer,
++      EngineDirectories directories,
++      java.util.concurrent.Callable<Void> beforeRejectedRequest,
++      java.util.concurrent.Callable<Void> beforeCleanup)
++      throws Exception {
+     CountDownLatch started = new CountDownLatch(1);
+     CountDownLatch proceed = new CountDownLatch(1);
+     AtomicInteger calls = new AtomicInteger();
+@@ -829,22 +991,30 @@ public final class CommandServerTest {
+           proceed.await();
+           return BlazeCommandResult.success();
+         };
+-    ServerAndStub serverAndStub = createServerAndStub(dispatcher, () -> {}, directories);
++    ServerAndStub serverAndStub =
++        createServerAndStub(dispatcher, () -> {}, directories, sharedServer);
++    RunRequest firstRequest = createRequest("build").toBuilder().setPreemptible(true).build();
++    if (sharedServer) {
++      firstRequest = pinEngine(serverAndStub, firstRequest);
++    }
+     CountDownLatch firstDone = new CountDownLatch(1);
+     List<RunResponse> firstResponses = new ArrayList<>();
+-    serverAndStub
+-        .stub()
+-        .run(
+-            createRequest("Foo").toBuilder().setPreemptible(true).build(),
+-            createResponseObserver(firstResponses, firstDone));
++    serverAndStub.stub().run(firstRequest, createResponseObserver(firstResponses, firstDone));
+     try {
+       assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+       beforeRejectedRequest.call();
+       CountDownLatch rejected = new CountDownLatch(1);
+       List<RunResponse> responses = new ArrayList<>();
+-      serverAndStub.stub().run(rejectedRequest, createResponseObserver(responses, rejected));
++      serverAndStub
++          .stub()
++          .run(rejectedRequest.apply(serverAndStub), createResponseObserver(responses, rejected));
+       assertThat(rejected.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+       assertThat(responses).hasSize(1);
++      assertThat(responses.getFirst().getCookie()).isEqualTo(RESPONSE_COOKIE);
++      assertThat(responses.getFirst().getCommandId()).isEmpty();
++      assertThat(responses.getFirst().getTerminationExpected()).isFalse();
++      assertThat(responses.getFirst().getFinished()).isTrue();
++      assertThat(responses.getFirst().getExitCode()).isEqualTo(36);
+       assertThat(responses.getFirst().getFailureDetail().getGrpcServer().getCode())
+           .isEqualTo(expectedCode);
+     } finally {
+@@ -1017,6 +1187,15 @@ public final class CommandServerTest {
+   }
+ 
+   private void checkCancellation(boolean includeInstanceId) throws Exception {
++    checkCancellation(includeInstanceId, false);
++  }
++
++  @Test
++  public void sharedServer_cancellationRequiresCurrentRegistration() throws Exception {
++    checkCancellation(true, true);
++  }
++
++  private void checkCancellation(boolean includeInstanceId, boolean sharedServer) throws Exception {
+     CommandDispatcher dispatcher =
+         new CommandDispatcher() {
+           @Override
+@@ -1041,7 +1220,7 @@ public final class CommandServerTest {
+           }
+         };
+ 
+-    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
++    ServerAndStub serverAndStub = createServerAndStub(dispatcher, sharedServer);
+     CommandServer server = serverAndStub.server();
+     CommandServerStub stub = serverAndStub.stub();
+ 
+@@ -1050,8 +1229,12 @@ public final class CommandServerTest {
+     AtomicReference<RunResponse> secondResponse = new AtomicReference<>();
+     CountDownLatch gotSecondResponse = new CountDownLatch(1);
+ 
++    RunRequest request = createRequest("build");
++    if (sharedServer) {
++      request = pinEngine(serverAndStub, request);
++    }
+     stub.run(
+-        createRequest("Foo"),
++        request,
+         new StreamObserver<RunResponse>() {
+           @Override
+           public void onNext(RunResponse value) {
+@@ -1078,10 +1261,17 @@ public final class CommandServerTest {
+         CancelRequest.newBuilder().setCookie(REQUEST_COOKIE).setCommandId(commandId.get());
+     if (includeInstanceId) {
+       AtomicInteger completed = new AtomicInteger();
++      if (sharedServer) {
++        server.cancel(cancelRequestBuilder.build().toByteArray(), noValueResponder(completed));
++        assertThat(completed.get()).isEqualTo(1);
++        assertThat(gotSecondResponse.getCount()).isEqualTo(1);
++        completed.set(0);
++      }
+       server.cancel(
+           cancelRequestBuilder.setEngineInstanceId("stale").build().toByteArray(),
+           noValueResponder(completed));
+       assertThat(completed.get()).isEqualTo(1);
++      assertThat(gotSecondResponse.getCount()).isEqualTo(1);
+       cancelRequestBuilder.setEngineInstanceId(
+           ping(serverAndStub, REQUEST_COOKIE).getEngineInstanceId());
+     }
+@@ -1124,6 +1314,15 @@ public final class CommandServerTest {
+   }
+ 
+   private void checkTerminalSize(boolean includeInstanceId) throws Exception {
++    checkTerminalSize(includeInstanceId, false);
++  }
++
++  @Test
++  public void sharedServer_resizeRequiresCurrentRegistration() throws Exception {
++    checkTerminalSize(true, true);
++  }
++
++  private void checkTerminalSize(boolean includeInstanceId, boolean sharedServer) throws Exception {
+     CountDownLatch execStarted = new CountDownLatch(1);
+     CountDownLatch allowListenerRegistration = new CountDownLatch(1);
+     CountDownLatch resizeSeen = new CountDownLatch(1);
+@@ -1176,15 +1375,19 @@ public final class CommandServerTest {
+           }
+         };
+ 
+-    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
++    ServerAndStub serverAndStub = createServerAndStub(dispatcher, sharedServer);
+     CommandServer server = serverAndStub.server();
+     CommandServerStub stub = serverAndStub.stub();
+ 
+     AtomicReference<String> commandId = new AtomicReference<>();
+     CountDownLatch gotCommandId = new CountDownLatch(1);
+     CountDownLatch commandDone = new CountDownLatch(1);
++    RunRequest request = createRequest("build");
++    if (sharedServer) {
++      request = pinEngine(serverAndStub, request);
++    }
+     stub.run(
+-        createRequest("Foo"),
++        request,
+         new StreamObserver<RunResponse>() {
+           @Override
+           public void onNext(RunResponse value) {
+@@ -1218,6 +1421,13 @@ public final class CommandServerTest {
+             .build();
+     if (includeInstanceId) {
+       AtomicInteger completed = new AtomicInteger();
++      if (sharedServer) {
++        server.updateTerminalSize(
++            terminalSizeRequest.toBuilder().setColumns(99).build().toByteArray(),
++            noValueResponder(completed));
++        assertThat(completed.get()).isEqualTo(1);
++        completed.set(0);
++      }
+       server.updateTerminalSize(
+           terminalSizeRequest.toBuilder().setEngineInstanceId("stale").build().toByteArray(),
+           noValueResponder(completed));
+diff --git a/src/test/java/com/google/devtools/build/lib/server/SharedServerProtocolProbe.java b/src/test/java/com/google/devtools/build/lib/server/SharedServerProtocolProbe.java
+new file mode 100644
+index 00000000..696f25ad
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/server/SharedServerProtocolProbe.java
+@@ -0,0 +1,136 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package com.google.devtools.build.lib.server;
++
++import com.google.devtools.build.lib.server.CommandProtos.EngineIdentity;
++import com.google.devtools.build.lib.server.CommandProtos.PingRequest;
++import com.google.devtools.build.lib.server.CommandProtos.PingResponse;
++import com.google.devtools.build.lib.server.CommandProtos.RunRequest;
++import com.google.devtools.build.lib.server.CommandProtos.RunResponse;
++import com.google.devtools.build.lib.server.CommandProtos.ServerInfo;
++import com.google.devtools.build.lib.server.CommandServerGrpc.CommandServerBlockingStub;
++import com.google.devtools.build.lib.server.FailureDetails.GrpcServer;
++import com.google.protobuf.ByteString;
++import io.grpc.ManagedChannel;
++import io.grpc.ManagedChannelBuilder;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.Iterator;
++import java.util.concurrent.TimeUnit;
++
++/** Sends requests directly to a live shared endpoint, bypassing launcher validation. */
++public final class SharedServerProtocolProbe {
++  public static void main(String[] args) throws Exception {
++    ServerInfo info = ServerInfo.parseFrom(Files.readAllBytes(Path.of(args[0])));
++    ManagedChannel channel =
++        ManagedChannelBuilder.forTarget(info.getAddress()).usePlaintext().build();
++    try {
++      CommandServerBlockingStub stub = CommandServerGrpc.newBlockingStub(channel);
++      PingRequest ping = PingRequest.newBuilder().setCookie(info.getRequestCookie()).build();
++      PingResponse registration = stub.withDeadlineAfter(10, TimeUnit.SECONDS).ping(ping);
++      if (!registration.getCookie().equals(info.getResponseCookie())
++          || registration.getEngineInstanceId().isEmpty()) {
++        throw new AssertionError("Shared endpoint did not authenticate a registration");
++      }
++      RunRequest request =
++          RunRequest.newBuilder()
++              .setCookie(info.getRequestCookie())
++              .setClientDescription("shared protocol integration probe")
++              .setEngineIdentity(
++                  EngineIdentity.newBuilder()
++                      .setWorkspaceDirectory(ByteString.copyFromUtf8(args[1]))
++                      .setOutputBase(ByteString.copyFromUtf8(args[2])))
++              .setEngineInstanceId(registration.getEngineInstanceId())
++              .addArg(ByteString.copyFromUtf8("shutdown"))
++              .build();
++      reject(
++          stub,
++          info,
++          request.toBuilder().clearEngineIdentity().build(),
++          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++      reject(
++          stub,
++          info,
++          request.toBuilder().clearEngineInstanceId().build(),
++          GrpcServer.Code.ENGINE_UNAVAILABLE);
++      reject(
++          stub,
++          info,
++          request.toBuilder().clearEngineIdentity().clearEngineInstanceId().build(),
++          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++      reject(
++          stub,
++          info,
++          request.toBuilder().setEngineInstanceId("stale-registration").build(),
++          GrpcServer.Code.ENGINE_UNAVAILABLE);
++      for (boolean changeWorkspace : new boolean[] {true, false}) {
++        EngineIdentity.Builder wrongIdentity = request.getEngineIdentity().toBuilder();
++        if (changeWorkspace) {
++          wrongIdentity.setWorkspaceDirectory(ByteString.copyFromUtf8(args[1] + "/other"));
++        } else {
++          wrongIdentity.setOutputBase(ByteString.copyFromUtf8(args[2] + "/other"));
++        }
++        reject(
++            stub,
++            info,
++            request.toBuilder().setEngineIdentity(wrongIdentity).build(),
++            GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++      }
++      reject(
++          stub,
++          info,
++          request.toBuilder()
++              .clearArg()
++              .addArg(ByteString.copyFromUtf8("clean"))
++              .addArg(ByteString.copyFromUtf8("--expunge"))
++              .build(),
++          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
++      reject(
++          stub,
++          info,
++          request.toBuilder().clearArg().build(),
++          GrpcServer.Code.SHARED_SERVER_COMMAND_UNSUPPORTED);
++      if (!stub.withDeadlineAfter(10, TimeUnit.SECONDS).ping(ping).equals(registration)) {
++        throw new AssertionError("Rejected requests changed the engine registration");
++      }
++      System.out.println("8 raw Run requests rejected; engine registration unchanged");
++    } finally {
++      channel.shutdownNow();
++      if (!channel.awaitTermination(10, TimeUnit.SECONDS)) {
++        throw new AssertionError("Probe channel did not terminate");
++      }
++    }
++  }
++
++  private static void reject(
++      CommandServerBlockingStub stub, ServerInfo info, RunRequest request, GrpcServer.Code code) {
++    Iterator<RunResponse> responses = stub.withDeadlineAfter(10, TimeUnit.SECONDS).run(request);
++    if (!responses.hasNext()) {
++      throw new AssertionError("No rejection response");
++    }
++    RunResponse response = responses.next();
++    if (!response.getCookie().equals(info.getResponseCookie())
++        || !response.getFinished()
++        || response.getExitCode() != 36
++        || !response.getCommandId().isEmpty()
++        || response.getTerminationExpected()
++        || response.getFailureDetail().getGrpcServer().getCode() != code
++        || responses.hasNext()) {
++      throw new AssertionError("Request was not rejected before dispatch: " + code);
++    }
++  }
++
++  private SharedServerProtocolProbe() {}
++}
+diff --git a/src/test/shell/integration/BUILD b/src/test/shell/integration/BUILD
+index ce85bdb8..71ce7666 100644
+--- a/src/test/shell/integration/BUILD
++++ b/src/test/shell/integration/BUILD
+@@ -343,7 +343,10 @@ sh_test(
+     size = "medium",
+     timeout = "long",
+     srcs = ["shared_server_test.sh"],
+-    data = [":test-deps"],
++    data = [
++        ":test-deps",
++        "//src/test/java/com/google/devtools/build/lib/server:shared_server_protocol_probe",
++    ],
+     shard_count = 3,
+     tags = [
+         "no_macos",
+diff --git a/src/test/shell/integration/shared_server_test.sh b/src/test/shell/integration/shared_server_test.sh
+index 2d391d18..71c65355 100755
+--- a/src/test/shell/integration/shared_server_test.sh
++++ b/src/test/shell/integration/shared_server_test.sh
+@@ -287,4 +287,17 @@ EOF
+   assert_shared_pid "$pid"
+ }
+ 
++function test_shared_endpoint_rejects_incomplete_protocol() {
++  local pid output
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
++  echo preserve-engine-output > "$output/protocol-sentinel"
++  "$(rlocation io_bazel/src/test/java/com/google/devtools/build/lib/server/shared_server_protocol_probe)" \
++    "$shared_control/server/server_info.rawproto" "$shared_workspace" "$output" \
++    >"$TEST_log" 2>&1 || fail "Shared protocol probe failed"
++  expect_log '8 raw Run requests rejected; engine registration unchanged'
++  assert_equals preserve-engine-output "$(cat "$output/protocol-sentinel")"
++  assert_shared_pid "$pid"
++}
++
+ run_suite "Shared server startup and control namespace"

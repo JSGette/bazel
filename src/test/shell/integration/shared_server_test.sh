@@ -287,4 +287,17 @@ EOF
   assert_shared_pid "$pid"
 }
 
+function test_shared_endpoint_rejects_incomplete_protocol() {
+  local pid output
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
+  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
+  echo preserve-engine-output > "$output/protocol-sentinel"
+  "$(rlocation io_bazel/src/test/java/com/google/devtools/build/lib/server/shared_server_protocol_probe)" \
+    "$shared_control/server/server_info.rawproto" "$shared_workspace" "$output" \
+    >"$TEST_log" 2>&1 || fail "Shared protocol probe failed"
+  expect_log '8 raw Run requests rejected; engine registration unchanged'
+  assert_equals preserve-engine-output "$(cat "$output/protocol-sentinel")"
+  assert_shared_pid "$pid"
+}
+
 run_suite "Shared server startup and control namespace"
