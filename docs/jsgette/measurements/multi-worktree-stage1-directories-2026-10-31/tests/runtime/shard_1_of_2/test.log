@@ -1,0 +1,680 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/runtime:RuntimeTests
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+......WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.google.devtools.build.lib.jni.JniLoader in an unnamed module (file:/home/jgett/bazel-multiworktree-20261031/control/output-base/sandbox/linux-sandbox/4845/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/runtime/RuntimeTests.runfiles/_main/src/main/java/com/google/devtools/build/lib/jni/libjni.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.util.DebugLoggerConfigurator setupLogging
+INFO: Log level: INFO
+.....Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeRuntime cleanUpForCrash
+INFO: Cleaning up in crash: DetailedExitCode{exitCode=OOM_ERROR, failureDetail=message: "crash oom message"
+crash {
+  code: CRASH_OOM
+}
+}
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=OOM_ERROR, failureDetail=message: "crash oom message"
+crash {
+  code: CRASH_OOM
+}
+}
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.UiStateTracker logAndGetInflightActions
+INFO: Total number of actions in flight: 0. Most frequent mnemonics: []
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeRuntime shutDownModulesOnCrash
+INFO: Shutting down modules on crash: [, ]
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeRuntime shutDownModulesOnCrash
+INFO: Shutting down  on crash
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeRuntime shutDownModulesOnCrash
+INFO: Shutting down  on crash
+.....Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=BUILD_FAILURE, failureDetail=spawn {
+  code: NON_ZERO_EXIT
+}
+}
+.Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeOptionHandler parseOptionsInternal
+INFO: Error parsing options
+com.google.devtools.common.options.OptionsParsingException: Config value 'UNDEFINED_CONFIG_VALUE' is not defined in any .rc file
+	at com.google.devtools.build.lib.runtime.ConfigExpander.getExpansion(ConfigExpander.java:358)
+	at com.google.devtools.build.lib.runtime.ConfigExpander.getExpansion(ConfigExpander.java:250)
+	at com.google.devtools.build.lib.runtime.ConfigExpander.expandConfigOptions(ConfigExpander.java:118)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.expandConfigOptions(BlazeOptionHandler.java:614)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseArgsAndConfigs(BlazeOptionHandler.java:338)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsInternal(BlazeOptionHandler.java:531)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsAndGetConfigDefinitions(BlazeOptionHandler.java:505)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively(BlazeCommandDispatcher.java:433)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:336)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:191)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:388)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest.useFirstExitCodeIfAllHaveEquivalentPriority(BlazeCommandDispatcherTest.java:929)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher execExclusively
+INFO: Error in 
+com.google.devtools.build.lib.util.AbruptExitException: This error message should be overrwritten.
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest$6.beforeCommand(BlazeCommandDispatcherTest.java:917)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively(BlazeCommandDispatcher.java:550)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:336)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:191)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:388)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest.useFirstExitCodeIfAllHaveEquivalentPriority(BlazeCommandDispatcherTest.java:929)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher execExclusively
+INFO: Error in 
+com.google.devtools.build.lib.util.AbruptExitException: This error message should be overwritten.
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest$7.beforeCommand(BlazeCommandDispatcherTest.java:923)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively(BlazeCommandDispatcher.java:550)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:336)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:191)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:388)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest.useFirstExitCodeIfAllHaveEquivalentPriority(BlazeCommandDispatcherTest.java:929)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher execExclusively
+WARNING: afterCommand yielded different result: BlazeCommandResult{exitCode=COMMAND_LINE_ERROR, failureDetail=message: "Error parsing options: Config value \'UNDEFINED_CONFIG_VALUE\' is not defined in any .rc file"
+command {
+  code: OPTIONS_PARSE_FAILURE
+}
+, execDescription=null, shutdown=false, responseExtensions=[]} BlazeCommandResult{exitCode=COMMAND_LINE_ERROR, failureDetail=message: "Error parsing options: Config value \'UNDEFINED_CONFIG_VALUE\' is not defined in any .rc file"
+command {
+  code: OPTIONS_PARSE_FAILURE
+}
+, execDescription=null, shutdown=false, responseExtensions=[]}
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=COMMAND_LINE_ERROR, failureDetail=message: "Error parsing options: Config value \'UNDEFINED_CONFIG_VALUE\' is not defined in any .rc file"
+command {
+  code: OPTIONS_PARSE_FAILURE
+}
+}
+.Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeRuntime afterCommand
+WARNING: While running afterCommand() on 
+com.google.devtools.build.lib.util.AbruptExitException: afterCommandError
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest.testAfterCommandCanModifyExitStatus(BlazeCommandDispatcherTest.java:429)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=PUBLISH_ERROR, failureDetail=message: "afterCommandError"
+build_progress {
+  code: BES_UPLOAD_LOCAL_FILE_ERROR
+}
+}
+..Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=BUILD_FAILURE, failureDetail=spawn {
+  code: NON_ZERO_EXIT
+}
+}
+.Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeOptionHandler parseOptionsInternal
+INFO: Error parsing options
+com.google.devtools.common.options.UnrecognizedOptionException: Unrecognized option: --not_a_valid_option
+	at com.google.devtools.common.options.OptionsParserImpl.identifyOptionAndPossibleArgument(OptionsParserImpl.java:808)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:540)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:465)
+	at com.google.devtools.common.options.OptionsParser.parseWithSourceFunction(OptionsParser.java:665)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseArgsAndConfigs(BlazeOptionHandler.java:321)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsInternal(BlazeOptionHandler.java:531)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsAndGetConfigDefinitions(BlazeOptionHandler.java:505)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.execExclusively(BlazeCommandDispatcher.java:433)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:336)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:191)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcher.exec(BlazeCommandDispatcher.java:388)
+	at com.google.devtools.build.lib.runtime.BlazeCommandDispatcherTest.testIllegalOptions(BlazeCommandDispatcherTest.java:690)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher execExclusively
+WARNING: afterCommand yielded different result: BlazeCommandResult{exitCode=COMMAND_LINE_ERROR, failureDetail=message: "Error parsing options: Unrecognized option: --not_a_valid_option"
+command {
+  code: OPTIONS_PARSE_FAILURE
+}
+, execDescription=null, shutdown=false, responseExtensions=[]} BlazeCommandResult{exitCode=COMMAND_LINE_ERROR, failureDetail=message: "Error parsing options: Unrecognized option: --not_a_valid_option"
+command {
+  code: OPTIONS_PARSE_FAILURE
+}
+, execDescription=null, shutdown=false, responseExtensions=[]}
+Oct 31, 2026 3:01:02 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=COMMAND_LINE_ERROR, failureDetail=message: "Error parsing options: Unrecognized option: --not_a_valid_option"
+command {
+  code: OPTIONS_PARSE_FAILURE
+}
+}
+....................Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeOptionHandler parseOptionsInternal
+INFO: Error parsing options
+com.google.devtools.common.options.OptionsParsingException: Config expansion has a cycle: config value foo expands to itself, see inheritance chain [foo, bar]
+	at com.google.devtools.build.lib.runtime.ConfigExpander.getExpansion(ConfigExpander.java:333)
+	at com.google.devtools.build.lib.runtime.ConfigExpander.getExpansion(ConfigExpander.java:344)
+	at com.google.devtools.build.lib.runtime.ConfigExpander.getExpansion(ConfigExpander.java:250)
+	at com.google.devtools.build.lib.runtime.ConfigExpander.expandConfigOptions(ConfigExpander.java:118)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.expandConfigOptions(BlazeOptionHandler.java:614)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseArgsAndConfigs(BlazeOptionHandler.java:338)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsInternal(BlazeOptionHandler.java:531)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptions(BlazeOptionHandler.java:488)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandlerTest.testParseOptions_configCycleLength2(BlazeOptionHandlerTest.java:1119)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+......Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/bazel-multiworktree-20261031/control/output-base/sandbox/linux-sandbox/4845/execroot/_main/bazel-out/k8-fastbuild/bin/src/test/java/com/google/devtools/build/lib/runtime/RuntimeTests.runfiles/_main/../rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeRuntime deleteOutputBase
+INFO: Starting deletion of output base on shutdown: /output
+..Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeRuntime deleteOutputBase
+SEVERE: Output base / has no parent directory (is root); refusing to delete.
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeRuntime deleteOutputBase
+INFO: Starting deletion of output base on shutdown: /output
+......Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeRuntime deleteOutputBase
+INFO: Starting deletion of output base on shutdown: /output
+...Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeRuntime deleteOutputBase
+INFO: Starting deletion of output base on shutdown: /output
+...................Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.LoadingPhaseThreadsOption$LoadingPhaseThreadCountConverter checkAndLimit
+INFO: Running under a test; loading_phase_threads capped at 20
+............................Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=NO_TESTS_FOUND, failureDetail=test_command {
+  code: NO_TEST_TARGETS
+}
+}
+....Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.BlazeCommandDispatcher exec
+INFO: Exit status was DetailedExitCode{exitCode=BLAZE_INTERNAL_ERROR, failureDetail=message: "crash"
+crash {
+}
+}
+......................Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+.Oct 31, 2026 3:01:03 PM com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter run
+WARNING: Failure writing action dump
+java.io.IOException: Simulated close failure
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModuleTest$FailingOutputStreamFactory$1$1.close(ExecutionGraphModuleTest.java:480)
+	at com.google.devtools.build.lib.runtime.ExecutionGraphModule$ActionDumpWriter.run(ExecutionGraphModule.java:922)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+........................................................Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.BlazeOptionHandler parseOptionsInternal
+INFO: Error parsing options
+com.google.devtools.common.options.UnrecognizedOptionException: Unrecognized option: --foo=7
+	at com.google.devtools.common.options.OptionsParserImpl.identifyOptionAndPossibleArgument(OptionsParserImpl.java:808)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:540)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:465)
+	at com.google.devtools.common.options.OptionsParser.parseWithSourceFunction(OptionsParser.java:665)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseArgsAndConfigs(BlazeOptionHandler.java:321)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsInternal(BlazeOptionHandler.java:531)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptions(BlazeOptionHandler.java:488)
+	at com.google.devtools.build.lib.runtime.FlagAliasTest.useAliasBeforeSettingOnCommandLine(FlagAliasTest.java:225)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+
+...Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.BlazeOptionHandler parseOptionsInternal
+INFO: Error parsing options
+com.google.devtools.common.options.OptionsParsingException: While parsing option --flag_alias=bad$foo=//bar: bad$foo should only consist of word characters to be a valid alias name.
+	at com.google.devtools.common.options.ParsedOptionDescription.getConvertedValue(ParsedOptionDescription.java:215)
+	at com.google.devtools.common.options.OptionValueDescription$RepeatableOptionValueDescription.addOptionInstance(OptionValueDescription.java:355)
+	at com.google.devtools.common.options.OptionsParserImpl.setOptionValue(OptionsParserImpl.java:693)
+	at com.google.devtools.common.options.OptionsParserImpl.handleNewParsedOption(OptionsParserImpl.java:654)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:552)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:465)
+	at com.google.devtools.common.options.OptionsParser.parseWithSourceFunction(OptionsParser.java:665)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseArgsAndConfigs(BlazeOptionHandler.java:321)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsInternal(BlazeOptionHandler.java:531)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptions(BlazeOptionHandler.java:488)
+	at com.google.devtools.build.lib.runtime.FlagAliasTest.useAliasWithInvalidName(FlagAliasTest.java:89)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+Caused by: com.google.devtools.common.options.OptionsParsingException: bad$foo should only consist of word characters to be a valid alias name.
+	at com.google.devtools.build.lib.analysis.config.CoreOptionConverters$FlagAliasConverter.convert(CoreOptionConverters.java:395)
+	at com.google.devtools.build.lib.analysis.config.CoreOptionConverters$FlagAliasConverter.convert(CoreOptionConverters.java:379)
+	at com.google.devtools.common.options.ParsedOptionDescription.getConvertedValue(ParsedOptionDescription.java:211)
+	... 44 more
+
+..Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.BlazeOptionHandler parseOptionsInternal
+INFO: Error parsing options
+com.google.devtools.common.options.OptionsParsingException: While parsing option --flag_alias=foo=bar: --flag_alias only supports Starlark build settings.
+	at com.google.devtools.common.options.ParsedOptionDescription.getConvertedValue(ParsedOptionDescription.java:215)
+	at com.google.devtools.common.options.OptionValueDescription$RepeatableOptionValueDescription.addOptionInstance(OptionValueDescription.java:355)
+	at com.google.devtools.common.options.OptionsParserImpl.setOptionValue(OptionsParserImpl.java:693)
+	at com.google.devtools.common.options.OptionsParserImpl.handleNewParsedOption(OptionsParserImpl.java:654)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:552)
+	at com.google.devtools.common.options.OptionsParserImpl.parse(OptionsParserImpl.java:465)
+	at com.google.devtools.common.options.OptionsParser.parseWithSourceFunction(OptionsParser.java:665)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseArgsAndConfigs(BlazeOptionHandler.java:321)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptionsInternal(BlazeOptionHandler.java:531)
+	at com.google.devtools.build.lib.runtime.BlazeOptionHandler.parseOptions(BlazeOptionHandler.java:488)
+	at com.google.devtools.build.lib.runtime.FlagAliasTest.useAliasWithNonStarlarkFlag(FlagAliasTest.java:63)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at com.google.testing.junit.runner.internal.junit4.CancellableRequestFactory$CancellableRunner.run(CancellableRequestFactory.java:104)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at com.google.testing.junit.runner.junit4.JUnit4Runner.run(JUnit4Runner.java:106)
+	at com.google.testing.junit.runner.BazelTestRunner.runTestsInSuite(BazelTestRunner.java:169)
+	at com.google.testing.junit.runner.BazelTestRunner.main(BazelTestRunner.java:95)
+Caused by: com.google.devtools.common.options.OptionsParsingException: --flag_alias only supports Starlark build settings.
+	at com.google.devtools.build.lib.analysis.config.CoreOptionConverters$FlagAliasConverter.convert(CoreOptionConverters.java:407)
+	at com.google.devtools.build.lib.analysis.config.CoreOptionConverters$FlagAliasConverter.convert(CoreOptionConverters.java:379)
+	at com.google.devtools.common.options.ParsedOptionDescription.getConvertedValue(ParsedOptionDescription.java:211)
+	... 44 more
+
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT0.001S invocationWallTimeDuration=PT0.002S gcFraction=0.500
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT30S invocationWallTimeDuration=PT1M gcFraction=0.500
+Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT50S invocationWallTimeDuration=PT1M30S gcFraction=0.556
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT15S invocationWallTimeDuration=PT30S gcFraction=0.500
+Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT29S invocationWallTimeDuration=PT59S gcFraction=0.492
+Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT30S invocationWallTimeDuration=PT1M gcFraction=0.500
+Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: Calling handleCrash
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT0.001S invocationWallTimeDuration=PT0.001S gcFraction=1.000
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT1M invocationWallTimeDuration=PT3M gcFraction=0.333
+Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: cumulativeFullGcDuration=PT2M invocationWallTimeDuration=PT4M gcFraction=0.500
+Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcChurningDetector handle
+INFO: Calling handleCrash
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.GcThrashingDetector$SingleLimitTracker overThresholdGc
+INFO: Calling handleCrash
+............Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.LoadingPhaseThreadsOption$LoadingPhaseThreadCountConverter checkAndLimit
+INFO: Running under a test; loading_phase_threads capped at 0
+.Oct 31, 2026 3:01:04 PM com.google.devtools.build.lib.runtime.LoadingPhaseThreadsOption$LoadingPhaseThreadCountConverter checkAndLimit
+INFO: Running under a test; loading_phase_threads capped at 7
+...............................Oct 31, 2026 3:01:05 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:05 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 31, 2026 3:01:05 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:05 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 31, 2026 3:01:05 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:05 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.I..........................................................................................................................................Oct 31, 2026 3:01:06 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:06 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 31, 2026 3:01:06 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:06 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 31, 2026 3:01:06 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:06 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 31, 2026 3:01:07 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:07 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.Oct 31, 2026 3:01:07 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+Oct 31, 2026 3:01:07 PM com.google.devtools.build.lib.skyframe.SkyframeExecutor handleAnalysisInvalidatingChange
+INFO: Dropping configured target data
+.............
+Time: 5.279
+
+OK (409 tests)
+
+
+BazelTestRunner exiting with a return value of 0
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-31 15:01:07 --
+

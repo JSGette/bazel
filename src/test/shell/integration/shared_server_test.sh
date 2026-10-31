@@ -198,6 +198,60 @@ PY
   done
 }
 
+function test_shared_output_replacement_fences_until_restart() {
+  local pid output first_status=0 shutdown_status=0 restored_status=0 next_pid
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
+  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
+  mv "$output" "$output.original"
+  mkdir "$output"
+  echo replacement-owned > "$output/sentinel"
+  shared_bazel info server_pid >"$TEST_TMPDIR/fenced.log" 2>&1 || first_status=$?
+  shared_bazel shutdown >"$TEST_TMPDIR/fenced-shutdown.log" 2>&1 || shutdown_status=$?
+  # Restore original objects before assertions so ordinary teardown is possible.
+  mv "$output" "$output.replacement"
+  mv "$output.original" "$output"
+  assert_equals 36 "$first_status"
+  assert_equals 36 "$shutdown_status"
+  assert_contains 'engine is fenced' "$TEST_TMPDIR/fenced.log"
+  assert_equals replacement-owned "$(cat "$output.replacement/sentinel")"
+  [[ ! -e "$output.replacement/command.log" ]] || fail "Dispatched against replacement output"
+  [[ ! -e "$output.replacement/execroot" ]] || fail "Initialized replacement output"
+  shared_bazel info server_pid >"$TEST_log" 2>&1 || restored_status=$?
+  assert_equals 36 "$restored_status"
+  expect_log 'engine is fenced'
+  # Shutdown is allowed only with the original directory objects restored.
+  shared_bazel shutdown >"$TEST_log" 2>&1 || fail "Restored engine shutdown failed"
+  next_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Fresh engine failed"
+  assert_not_equals "$pid" "$next_pid"
+}
+
+function test_shared_missing_output_recreated_by_client_is_fenced() {
+  local output status=0
+  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Startup failed"
+  mv "$output" "$output.original"
+  # The launcher creates a new directory at the old path. It cannot reuse the engine.
+  shared_bazel info workspace >"$TEST_TMPDIR/recreated.log" 2>&1 || status=$?
+  mv "$output" "$output.replacement"
+  mv "$output.original" "$output"
+  assert_equals 36 "$status"
+  assert_contains 'engine is fenced' "$TEST_TMPDIR/recreated.log"
+  [[ ! -e "$output.replacement/command.log" ]] || fail "Dispatched against recreated output"
+}
+
+function test_shared_directory_identity_handles_non_ascii_paths() {
+  mkdir -p "$shared_workspace/workspace-ü-空"
+  cd "$shared_workspace/workspace-ü-空"
+  touch MODULE.bazel
+  shared_workspace="$(pwd -P)"
+  shared_root="$shared_root/output-ü-空"
+  shared_control="$shared_root/shared_servers/v1/prototype/control"
+  local pid actual
+  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Non-ASCII startup failed"
+  actual=$(shared_bazel info workspace 2>"$TEST_log") || fail "Non-ASCII info failed"
+  assert_equals "$shared_workspace" "$actual"
+  assert_shared_pid "$pid"
+}
+
 function test_shared_rejects_unsupported_options() {
   local option status
   for option in --batch --output_base="$TEST_TMPDIR/explicit-engine" \

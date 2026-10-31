@@ -130,9 +130,12 @@ before dispatch/preemption and drains RPC leases before cleanup. The
 [control namespace/startup continuation](multi-worktree-stage1-startup-2026-10-31.md)
 adds a Linux opt-in named namespace, separate control/private-output locks and
 conservative startup rejection without restarting the live server. It still
-admits only one workspace. Durable cross-process engine ownership, full startup
-compatibility, filesystem lifetime fencing and multi-engine shutdown scope remain
-open; this stage is not complete.
+admits only one workspace. The [physical-directory admission continuation](multi-worktree-stage1-directories-2026-10-31.md)
+pins workspace/output objects before initialization, fences replaced directories
+before RPC dispatch and after command-lock waits, and prevents the runtime cleanup
+callback from using replacement objects. Durable cross-process engine ownership,
+full startup compatibility, complete filesystem lifetime fencing and multi-engine
+shutdown scope remain open; this stage is not complete.
 
 **Depends on:** stage 0 and the architectural contract above. Stage 0 supplies the pinned baseline, workload and compatibility evidence; no later performance claim may bypass its qualification requirements.
 

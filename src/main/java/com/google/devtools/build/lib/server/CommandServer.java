@@ -101,6 +101,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
       Path serverDirectory,
       PathFragment workspaceDirectory,
       PathFragment outputBase,
+      @Nullable EngineDirectories engineDirectories,
       int serverPid,
       int maxIdleSeconds,
       boolean shutdownOnLowSysMem,
@@ -120,6 +121,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
         serverDirectory,
         workspaceDirectory,
         outputBase,
+        engineDirectories,
         serverPid,
         maxIdleSeconds,
         shutdownOnLowSysMem,
@@ -245,6 +247,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
   private final EngineRegistry.Key engineKey;
   private final EngineRegistry.Registration engine;
   private final Runnable engineShutdown;
+  @Nullable private final EngineDirectories engineDirectories;
   // Guarded by this; cleanup must never be retried after a partial failure.
   private boolean engineCleanupStarted;
   private final ShutdownHooks shutdownHooks;
@@ -274,6 +277,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
       Path serverDirectory,
       PathFragment workspaceDirectory,
       PathFragment outputBase,
+      @Nullable EngineDirectories engineDirectories,
       int serverPid,
       int maxIdleSeconds,
       boolean shutdownOnLowSysMem,
@@ -283,6 +287,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     this.engineKey = new EngineRegistry.Key(workspaceDirectory, outputBase);
     this.engine = engines.reserve(engineKey);
     this.engineShutdown = engineShutdown;
+    this.engineDirectories = engineDirectories;
     this.shutdownHooks = shutdownHooks;
     this.pidFileWatcher = pidFileWatcher;
     this.clock = clock;
@@ -378,6 +383,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
   @VisibleForTesting
   @CanIgnoreReturnValue
   SocketAddress serve() throws IOException {
+    if (engineDirectories != null && !engineDirectories.isValid()) {
+      throw new IOException("Engine directories changed during initialization");
+    }
     return grpcCommandServer.serve(port, this);
   }
 
@@ -406,6 +414,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
     checkState(!engineCleanupStarted, "engine cleanup previously failed");
     engineCleanupStarted = true;
     commandManager.shutdown();
+    checkState(
+        engineDirectories == null || engineDirectories.canShutdown(),
+        "Cannot clean up an engine against replacement directories");
     engineShutdown.run();
     engine.close();
   }
@@ -507,6 +518,16 @@ public class CommandServer implements GrpcCommandServer.Callback {
           responder,
           "Invalid RunRequest: engine identity does not match this server",
           GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+      return;
+    }
+
+    if (engineDirectories != null
+        && !engineDirectories.canDispatch(
+            request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8())) {
+      rejectRun(
+          responder,
+          "Shared engine directories changed or cannot be verified; engine is fenced",
+          GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED);
       return;
     }
 

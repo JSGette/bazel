@@ -137,10 +137,16 @@ java_library(
 )
 
 java_library(
+    name = "engine_directories",
+    srcs = ["EngineDirectories.java"],
+)
+
+java_library(
     name = "command_server",
     srcs = ["CommandServer.java"],
     deps = [
         ":command_manager",
+        ":engine_directories",
         ":engine_registry",
         ":grpc_command_server",
         ":pid_file_watcher",

@@ -19,6 +19,7 @@ import static com.google.devtools.build.lib.bazel.BazelServices.BAZEL_SERVICES;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -37,6 +38,7 @@ import com.google.devtools.build.lib.profiler.MemoryProfiler;
 import com.google.devtools.build.lib.profiler.Profiler;
 import com.google.devtools.build.lib.runtime.CommandDispatcher.UiVerbosity;
 import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
+import com.google.devtools.build.lib.server.EngineDirectories;
 import com.google.devtools.build.lib.server.FailureDetails;
 import com.google.devtools.build.lib.server.FailureDetails.BuildProgress;
 import com.google.devtools.build.lib.server.FailureDetails.BuildProgress.Code;
@@ -63,6 +65,7 @@ import com.google.devtools.common.options.OptionsParsingResult;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.ref.WeakReference;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -73,13 +76,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /** Tests {@link BlazeCommandDispatcher}. */
 @RunWith(JUnit4.class)
 public final class BlazeCommandDispatcherTest {
+  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
   private final Scratch scratch = new Scratch();
   private BlazeRuntime runtime;
   private final RecordingOutErr outErr = new RecordingOutErr();
@@ -511,6 +517,62 @@ public final class BlazeCommandDispatcherTest {
       // We don't care what happened on the threads, don't assert state to make sure we join both.
       blockCommandThread.join();
       blockedCommandThread.join();
+    }
+  }
+
+  @Test
+  public void queuedCommandRechecksDirectoriesBeforeExecuting() throws Exception {
+    assumeTrue(System.getProperty("os.name").equals("Linux"));
+    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
+    java.nio.file.Path output = temporary.newFolder("output").toPath();
+    BlockCommand block = new BlockCommand();
+    runtime.overrideCommands(ImmutableList.of(block, bar));
+    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
+      BlazeCommandDispatcher dispatch = new BlazeCommandDispatcher(runtime, 42, directories);
+      TestThread running =
+          new TestThread(
+              () -> dispatch.exec(ImmutableList.of("block"), "running", new RecordingOutErr()));
+      AtomicReference<BlazeCommandResult> queuedResult = new AtomicReference<>();
+      TestThread queued =
+          new TestThread(
+              () ->
+                  queuedResult.set(
+                      dispatch.exec(
+                          InvocationPolicy.getDefaultInstance(),
+                          ImmutableList.of("bar"),
+                          outErr,
+                          Duration.ofSeconds(30),
+                          UiVerbosity.NORMAL,
+                          "queued",
+                          runtime.getClock().currentTimeMillis(),
+                          Optional.empty(),
+                          () -> {
+                            throw new AssertionError("Fenced request consumed idle results");
+                          },
+                          ImmutableList.of(),
+                          ext -> {})));
+      try {
+        running.start();
+        assertThat(block.started.await(10, SECONDS)).isTrue();
+        queued.start();
+        long deadline = System.nanoTime() + SECONDS.toNanos(10);
+        while (!outErr.errAsLatin1().contains("Another command") && System.nanoTime() < deadline) {
+          Thread.sleep(10);
+        }
+        assertThat(outErr.errAsLatin1()).contains("Another command");
+        Files.move(output, output.resolveSibling("original"));
+        Files.createDirectory(output);
+      } finally {
+        block.unblock();
+        running.joinAndAssertState(10000);
+        queued.joinAndAssertState(10000);
+      }
+      assertThat(queuedResult.get().getFailureDetail().getGrpcServer().getCode())
+          .isEqualTo(FailureDetails.GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED);
+      assertThat(outErr.outAsLatin1()).doesNotContain("Hello, bar.");
+      // The rejected queued command must also release the dispatcher lock.
+      assertThat(dispatch.exec(ImmutableList.of("bar"), "next", outErr).getExitCode())
+          .isEqualTo(ExitCode.LOCAL_ENVIRONMENTAL_ERROR);
     }
   }
 

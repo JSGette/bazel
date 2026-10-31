@@ -138,6 +138,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/runtime:ui_state_tracker",
         "//src/main/java/com/google/devtools/build/lib/runtime/commands",
         "//src/main/java/com/google/devtools/build/lib/runtime/events",
+        "//src/main/java/com/google/devtools/build/lib/server:engine_directories",
         "//src/main/java/com/google/devtools/build/lib/server:gc_and_interner_shrinking_idle_task",
         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
         "//src/main/java/com/google/devtools/build/lib/server:install_base_garbage_collector",

@@ -1,0 +1,1051 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BUILD b/src/main/java/com/google/devtools/build/lib/runtime/BUILD
+index 366d6ced..f78e73c7 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BUILD
+@@ -1187,6 +1187,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/sandbox/cgroups",
+         "//src/main/java/com/google/devtools/build/lib/sandbox/cgroups/proto:cgroups_info_java_proto",
+         "//src/main/java/com/google/devtools/build/lib/server:command_server",
++        "//src/main/java/com/google/devtools/build/lib/server:engine_directories",
+         "//src/main/java/com/google/devtools/build/lib/server:gc_and_interner_shrinking_idle_task",
+         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server_service",
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcher.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcher.java
+index 320b325c..c052d1d0 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcher.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcher.java
+@@ -54,6 +54,7 @@ import com.google.devtools.build.lib.profiler.SilentCloseable;
+ import com.google.devtools.build.lib.runtime.BlazeOptionHandler.DetailedParseResults;
+ import com.google.devtools.build.lib.runtime.InstrumentationOutputFactory.DestinationRelativeTo;
+ import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
++import com.google.devtools.build.lib.server.EngineDirectories;
+ import com.google.devtools.build.lib.server.FailureDetails;
+ import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
+ import com.google.devtools.build.lib.server.IdleTask;
+@@ -115,6 +116,7 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
+       ImmutableSet.of("--help", "-help", "-h");
+ 
+   private final BlazeRuntime runtime;
++  @Nullable private final EngineDirectories engineDirectories;
+   private final int serverPid;
+   private final BugReporter bugReporter;
+   private final Object commandLock;
+@@ -151,7 +153,20 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
+     this(runtime, UNKNOWN_SERVER_PID, bugReporter);
+   }
+ 
++  BlazeCommandDispatcher(BlazeRuntime runtime, int serverPid, EngineDirectories engineDirectories) {
++    this(runtime, serverPid, runtime.getBugReporter(), engineDirectories);
++  }
++
+   private BlazeCommandDispatcher(BlazeRuntime runtime, int serverPid, BugReporter bugReporter) {
++    this(runtime, serverPid, bugReporter, null);
++  }
++
++  private BlazeCommandDispatcher(
++      BlazeRuntime runtime,
++      int serverPid,
++      BugReporter bugReporter,
++      @Nullable EngineDirectories engineDirectories) {
++    this.engineDirectories = engineDirectories;
+     this.runtime = runtime;
+     this.serverPid = serverPid;
+     this.bugReporter = bugReporter;
+@@ -286,13 +301,24 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
+     long waitTimeInMs =
+         !multipleAttempts ? 0 : (BlazeClock.nanoTime() - clockBefore) / (1000L * 1000L);
+ 
+-    // Retrieve information about idle tasks that ran during a previous idle period.
+-    // We do this after obtaining the lock so that a non-blocking command doesn't cause this
+-    // information to be lost (instead, it will be forwarded to the next command).
+-    ImmutableList<IdleTask.Result> idleTaskResultsFromPreviousIdlePeriod =
+-        idleTaskResultsSupplier.get();
+-
+     try {
++      // A directory can change while this request waits behind another command.
++      // Recheck before idle task consumption, module callbacks or command setup.
++      if (engineDirectories != null && !engineDirectories.canDispatch(commandName)) {
++        String message =
++            "Shared engine directories changed or cannot be verified; engine is fenced";
++        outErr.printErrLn(message);
++        return BlazeCommandResult.failureDetail(
++            FailureDetail.newBuilder()
++                .setMessage(message)
++                .setGrpcServer(
++                    FailureDetails.GrpcServer.newBuilder()
++                        .setCode(FailureDetails.GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED))
++                .build());
++      }
++      // Consume prior idle-task results only after obtaining the lock and admission.
++      ImmutableList<IdleTask.Result> idleTaskResultsFromPreviousIdlePeriod =
++          idleTaskResultsSupplier.get();
+       String retrievedShutdownReason = this.shutdownReason.get();
+       if (retrievedShutdownReason != null) {
+         outErr.printErrLn(retrievedShutdownReason);
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+index 5ef2f08b..3c10e4cd 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+@@ -85,6 +85,7 @@ import com.google.devtools.build.lib.sandbox.cgroups.proto.CgroupsInfoProtos.Cgr
+ import com.google.devtools.build.lib.server.CommandProtos.EnvironmentVariable;
+ import com.google.devtools.build.lib.server.CommandProtos.ExecRequest;
+ import com.google.devtools.build.lib.server.CommandServer;
++import com.google.devtools.build.lib.server.EngineDirectories;
+ import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
+ import com.google.devtools.build.lib.server.FailureDetails.Filesystem;
+ import com.google.devtools.build.lib.server.FailureDetails.JniLinking;
+@@ -1334,70 +1335,92 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+       @Nullable Throwable delayedJniLinkingError) {
+     InterruptSignalHandler sigintHandler = null;
+     try {
+-      AtomicReference<CommandServer> commandServerRef = new AtomicReference<>();
+-      Runnable prepareForAbruptShutdown = () -> commandServerRef.get().prepareForAbruptShutdown();
+-      BlazeRuntime runtime =
+-          newRuntime(
+-              blazeModules,
+-              blazeServices,
+-              Arrays.asList(args),
+-              delayedJniLinkingError,
+-              prepareForAbruptShutdown);
+-
+-      // server.pid was written in the C++ launcher after fork() but before exec(). The client only
+-      // accesses the pid file after connecting to the socket which ensures that it gets the correct
+-      // pid value.
+-      Path pidFile = runtime.getServerDirectory().getRelative("server.pid.txt");
+-      int serverPid = readPidFile(pidFile);
+-      PidFileWatcher pidFileWatcher = new PidFileWatcher(pidFile, serverPid);
+-      pidFileWatcher.start();
+-
+-      ShutdownHooks shutdownHooks = ShutdownHooks.createAndRegister();
+-      shutdownHooks.cleanupPidFile(pidFile, pidFileWatcher);
+-      if (runtime.deleteOutputBaseOnShutdown) {
+-        shutdownHooks.runLastAtExit(runtime::deleteOutputBase);
+-      }
++      OptionsParsingResult parsedStartup =
++          parseStartupOptions(Iterables.concat(blazeModules, blazeServices), Arrays.asList(args));
++      BlazeServerStartupOptions parsedOptions =
++          parsedStartup.getOptions(BlazeServerStartupOptions.class);
++      try (EngineDirectories engineDirectories =
++          parsedOptions.getExperimentalSharedServer().isEmpty()
++              ? null
++              : EngineDirectories.open(
++                  java.nio.file.Path.of(
++                      StringEncoding.internalToPlatform(
++                          parsedOptions.getWorkspaceDirectory().getPathString())),
++                  java.nio.file.Path.of(
++                      StringEncoding.internalToPlatform(
++                          parsedOptions.getOutputBase().getPathString())))) {
++        AtomicReference<CommandServer> commandServerRef = new AtomicReference<>();
++        Runnable prepareForAbruptShutdown = () -> commandServerRef.get().prepareForAbruptShutdown();
++        BlazeRuntime runtime =
++            newRuntime(
++                blazeModules,
++                blazeServices,
++                parsedStartup,
++                delayedJniLinkingError,
++                prepareForAbruptShutdown);
++
++        // server.pid was written in the C++ launcher after fork() but before exec(). The client
++        // only
++        // accesses the pid file after connecting to the socket which ensures that it gets the
++        // correct
++        // pid value.
++        Path pidFile = runtime.getServerDirectory().getRelative("server.pid.txt");
++        int serverPid = readPidFile(pidFile);
++        PidFileWatcher pidFileWatcher = new PidFileWatcher(pidFile, serverPid);
++        pidFileWatcher.start();
++
++        ShutdownHooks shutdownHooks = ShutdownHooks.createAndRegister();
++        shutdownHooks.cleanupPidFile(pidFile, pidFileWatcher);
++        if (runtime.deleteOutputBaseOnShutdown) {
++          shutdownHooks.runLastAtExit(runtime::deleteOutputBase);
++        }
+ 
+-      GrpcCommandServerService grpcCommandServerService =
+-          Preconditions.checkNotNull(runtime.getBlazeService(GrpcCommandServerService.class));
+-
+-      BlazeCommandDispatcher dispatcher = new BlazeCommandDispatcher(runtime, serverPid);
+-      BlazeServerStartupOptions startupOptions =
+-          runtime.startupOptionsProvider.getOptions(BlazeServerStartupOptions.class);
+-      CommandServer commandServer =
+-          CommandServer.create(
+-              grpcCommandServerService.getGrpcCommandServer(),
+-              dispatcher,
+-              () -> {
+-                runtime.shutdown();
+-                dispatcher.shutdown();
+-              },
+-              shutdownHooks,
+-              pidFileWatcher,
+-              runtime.clock,
+-              startupOptions.getCommandPort(),
+-              runtime.getServerDirectory(),
+-              startupOptions.getWorkspaceDirectory(),
+-              startupOptions.getOutputBase(),
+-              serverPid,
+-              startupOptions.getMaxIdleSeconds(),
+-              startupOptions.getShutdownOnLowSysMem(),
+-              startupOptions.getIdleServerTasks(),
+-              getSlowInterruptMessageSuffix(blazeModules));
+-      commandServerRef.set(commandServer);
+-
+-      // Register the signal handler.
+-      sigintHandler =
+-          new InterruptSignalHandler() {
+-            @Override
+-            public void run() {
+-              logger.atSevere().log("User interrupt");
+-              commandServer.interrupt();
+-            }
+-          };
++        GrpcCommandServerService grpcCommandServerService =
++            Preconditions.checkNotNull(runtime.getBlazeService(GrpcCommandServerService.class));
++
++        BlazeCommandDispatcher dispatcher =
++            new BlazeCommandDispatcher(runtime, serverPid, engineDirectories);
++        BlazeServerStartupOptions startupOptions =
++            runtime.startupOptionsProvider.getOptions(BlazeServerStartupOptions.class);
++        CommandServer commandServer =
++            CommandServer.create(
++                grpcCommandServerService.getGrpcCommandServer(),
++                dispatcher,
++                () -> {
++                  runtime.shutdown();
++                  dispatcher.shutdown();
++                },
++                shutdownHooks,
++                pidFileWatcher,
++                runtime.clock,
++                startupOptions.getCommandPort(),
++                runtime.getServerDirectory(),
++                startupOptions.getWorkspaceDirectory(),
++                startupOptions.getOutputBase(),
++                engineDirectories,
++                serverPid,
++                startupOptions.getMaxIdleSeconds(),
++                startupOptions.getShutdownOnLowSysMem(),
++                startupOptions.getIdleServerTasks(),
++                getSlowInterruptMessageSuffix(blazeModules));
++        commandServerRef.set(commandServer);
++
++        // Register the signal handler.
++        sigintHandler =
++            new InterruptSignalHandler() {
++              @Override
++              public void run() {
++                logger.atSevere().log("User interrupt");
++                commandServer.interrupt();
++              }
++            };
+ 
+-      commandServer.serveAndAwaitTermination();
+-      return ExitCode.SUCCESS.getNumericExitCode();
++        commandServer.serveAndAwaitTermination();
++        return ExitCode.SUCCESS.getNumericExitCode();
++      }
++    } catch (IOException e) {
++      outErr.printErrLn("Cannot retain shared engine directory identity: " + e.getMessage());
++      return ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode();
+     } catch (OptionsParsingException e) {
+       outErr.printErrLn(e.getMessage());
+       return ExitCode.COMMAND_LINE_ERROR.getNumericExitCode();
+@@ -1468,8 +1491,21 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+       @Nullable Throwable delayedJniLinkingError,
+       @Nullable Runnable abruptShutdownHandler)
+       throws AbruptExitException, OptionsParsingException {
+-    OptionsParsingResult options =
+-        parseStartupOptions(Iterables.concat(blazeModules, blazeServices), args);
++    return newRuntime(
++        blazeModules,
++        blazeServices,
++        parseStartupOptions(Iterables.concat(blazeModules, blazeServices), args),
++        delayedJniLinkingError,
++        abruptShutdownHandler);
++  }
++
++  private static BlazeRuntime newRuntime(
++      Iterable<BlazeModule> blazeModules,
++      Iterable<BlazeService> blazeServices,
++      OptionsParsingResult options,
++      @Nullable Throwable delayedJniLinkingError,
++      @Nullable Runnable abruptShutdownHandler)
++      throws AbruptExitException, OptionsParsingException {
+     BlazeServerStartupOptions startupOptions = options.getOptions(BlazeServerStartupOptions.class);
+ 
+     // Set up the failure detail path first, so that it can communicate problems with other flags
+diff --git a/src/main/java/com/google/devtools/build/lib/server/BUILD b/src/main/java/com/google/devtools/build/lib/server/BUILD
+index 7a33e60a..f8b3e65b 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/server/BUILD
+@@ -136,11 +136,17 @@ java_library(
+     ],
+ )
+ 
++java_library(
++    name = "engine_directories",
++    srcs = ["EngineDirectories.java"],
++)
++
+ java_library(
+     name = "command_server",
+     srcs = ["CommandServer.java"],
+     deps = [
+         ":command_manager",
++        ":engine_directories",
+         ":engine_registry",
+         ":grpc_command_server",
+         ":pid_file_watcher",
+diff --git a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+index 5ed30cbb..cb9e7449 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
++++ b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+@@ -101,6 +101,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       Path serverDirectory,
+       PathFragment workspaceDirectory,
+       PathFragment outputBase,
++      @Nullable EngineDirectories engineDirectories,
+       int serverPid,
+       int maxIdleSeconds,
+       boolean shutdownOnLowSysMem,
+@@ -120,6 +121,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+         serverDirectory,
+         workspaceDirectory,
+         outputBase,
++        engineDirectories,
+         serverPid,
+         maxIdleSeconds,
+         shutdownOnLowSysMem,
+@@ -245,6 +247,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   private final EngineRegistry.Key engineKey;
+   private final EngineRegistry.Registration engine;
+   private final Runnable engineShutdown;
++  @Nullable private final EngineDirectories engineDirectories;
+   // Guarded by this; cleanup must never be retried after a partial failure.
+   private boolean engineCleanupStarted;
+   private final ShutdownHooks shutdownHooks;
+@@ -274,6 +277,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       Path serverDirectory,
+       PathFragment workspaceDirectory,
+       PathFragment outputBase,
++      @Nullable EngineDirectories engineDirectories,
+       int serverPid,
+       int maxIdleSeconds,
+       boolean shutdownOnLowSysMem,
+@@ -283,6 +287,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     this.engineKey = new EngineRegistry.Key(workspaceDirectory, outputBase);
+     this.engine = engines.reserve(engineKey);
+     this.engineShutdown = engineShutdown;
++    this.engineDirectories = engineDirectories;
+     this.shutdownHooks = shutdownHooks;
+     this.pidFileWatcher = pidFileWatcher;
+     this.clock = clock;
+@@ -378,6 +383,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   @VisibleForTesting
+   @CanIgnoreReturnValue
+   SocketAddress serve() throws IOException {
++    if (engineDirectories != null && !engineDirectories.isValid()) {
++      throw new IOException("Engine directories changed during initialization");
++    }
+     return grpcCommandServer.serve(port, this);
+   }
+ 
+@@ -406,6 +414,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     checkState(!engineCleanupStarted, "engine cleanup previously failed");
+     engineCleanupStarted = true;
+     commandManager.shutdown();
++    checkState(
++        engineDirectories == null || engineDirectories.canShutdown(),
++        "Cannot clean up an engine against replacement directories");
+     engineShutdown.run();
+     engine.close();
+   }
+@@ -510,6 +521,16 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       return;
+     }
+ 
++    if (engineDirectories != null
++        && !engineDirectories.canDispatch(
++            request.getArgCount() == 0 ? "" : request.getArg(0).toStringUtf8())) {
++      rejectRun(
++          responder,
++          "Shared engine directories changed or cannot be verified; engine is fenced",
++          GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED);
++      return;
++    }
++
+     try (Lease lease = engines.acquire(engineKey, request.getEngineInstanceId())) {
+       if (lease == null) {
+         rejectRun(
+diff --git a/src/main/java/com/google/devtools/build/lib/server/EngineDirectories.java b/src/main/java/com/google/devtools/build/lib/server/EngineDirectories.java
+new file mode 100644
+index 00000000..40d5c344
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/server/EngineDirectories.java
+@@ -0,0 +1,158 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package com.google.devtools.build.lib.server;
++
++import java.io.IOException;
++import java.nio.file.DirectoryStream;
++import java.nio.file.Files;
++import java.nio.file.LinkOption;
++import java.nio.file.Path;
++import java.nio.file.SecureDirectoryStream;
++import java.nio.file.attribute.BasicFileAttributeView;
++import java.nio.file.attribute.BasicFileAttributes;
++
++/**
++ * Pins the physical workspace and output directories for the Linux shared-server prototype.
++ *
++ * <p>Capture before runtime initialization and retain through drained runtime cleanup. Open
++ * directory handles prevent inode reuse while this owner exists. Every dispatch checks the current
++ * path against the handle's identity; a mismatch or observation failure permanently fences ordinary
++ * commands. This is an admission check, not a snapshot or a lock against concurrent filesystem
++ * mutations.
++ */
++public final class EngineDirectories implements AutoCloseable {
++  private final PinnedDirectory workspace;
++  private final PinnedDirectory outputBase;
++  private boolean fenced;
++  private boolean closed;
++
++  public static EngineDirectories open(Path workspace, Path outputBase) throws IOException {
++    PinnedDirectory workspaceHandle = PinnedDirectory.open(workspace);
++    try {
++      return new EngineDirectories(workspaceHandle, PinnedDirectory.open(outputBase));
++    } catch (IOException | RuntimeException e) {
++      try {
++        workspaceHandle.close();
++      } catch (IOException cleanupFailure) {
++        e.addSuppressed(cleanupFailure);
++      }
++      throw e;
++    }
++  }
++
++  private EngineDirectories(PinnedDirectory workspace, PinnedDirectory outputBase) {
++    this.workspace = workspace;
++    this.outputBase = outputBase;
++  }
++
++  /** Applies the same admission rule before RPC dispatch and after waiting for the command lock. */
++  public synchronized boolean canDispatch(String command) {
++    return isValid() || (command.equals("shutdown") && canShutdown());
++  }
++
++  /** Fencing is sticky, even if the original directory is subsequently restored. */
++  public synchronized boolean isValid() {
++    if (!fenced && !originalDirectoriesPresent()) {
++      fenced = true;
++    }
++    return !fenced;
++  }
++
++  /**
++   * Cleanup may run after restoring the original objects, but never against replacement
++   * directories. This does not remove the fence or permit subsequent ordinary commands.
++   */
++  public synchronized boolean canShutdown() {
++    return originalDirectoriesPresent();
++  }
++
++  private boolean originalDirectoriesPresent() {
++    if (closed) {
++      return false;
++    }
++    try {
++      return workspace.matches() && outputBase.matches();
++    } catch (IOException | SecurityException e) {
++      return false;
++    }
++  }
++
++  @Override
++  public synchronized void close() throws IOException {
++    if (closed) {
++      return;
++    }
++    closed = true;
++    fenced = true;
++    try {
++      outputBase.close();
++    } finally {
++      workspace.close();
++    }
++  }
++
++  private static final class PinnedDirectory implements AutoCloseable {
++    private final Path path;
++    private final DirectoryStream<Path> handle;
++    private final Object identity;
++
++    private PinnedDirectory(Path path, DirectoryStream<Path> handle, Object identity) {
++      this.path = path;
++      this.handle = handle;
++      this.identity = identity;
++    }
++
++    static PinnedDirectory open(Path path) throws IOException {
++      if (!path.isAbsolute()) {
++        throw new IOException("Engine directory must be absolute: " + path);
++      }
++      DirectoryStream<Path> handle = Files.newDirectoryStream(path);
++      try {
++        if (!(handle instanceof SecureDirectoryStream<Path> secure)) {
++          throw new IOException("Engine directory provider cannot pin identity: " + path);
++        }
++        BasicFileAttributes attributes =
++            secure.getFileAttributeView(BasicFileAttributeView.class).readAttributes();
++        Object identity = attributes.fileKey();
++        if (!attributes.isDirectory() || identity == null) {
++          throw new IOException("Engine directory has no stable file identity: " + path);
++        }
++        PinnedDirectory result = new PinnedDirectory(path, handle, identity);
++        if (!result.matches()) {
++          throw new IOException("Engine directory changed while opening: " + path);
++        }
++        return result;
++      } catch (IOException | RuntimeException e) {
++        try {
++          handle.close();
++        } catch (IOException cleanupFailure) {
++          e.addSuppressed(cleanupFailure);
++        }
++        throw e;
++      }
++    }
++
++    boolean matches() throws IOException {
++      BasicFileAttributes current =
++          Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
++      return current.isDirectory() && identity.equals(current.fileKey());
++    }
++
++    @Override
++    public void close() throws IOException {
++      handle.close();
++    }
++  }
++}
+diff --git a/src/main/protobuf/failure_details.proto b/src/main/protobuf/failure_details.proto
+index 75b26155..66690385 100644
+--- a/src/main/protobuf/failure_details.proto
++++ b/src/main/protobuf/failure_details.proto
+@@ -658,6 +658,7 @@ message GrpcServer {
+     reserved 5; // For internal use
+     ENGINE_IDENTITY_MISMATCH = 6 [(metadata) = { exit_code: 36 }];
+     ENGINE_UNAVAILABLE = 7 [(metadata) = { exit_code: 36 }];
++    ENGINE_DIRECTORIES_CHANGED = 8 [(metadata) = { exit_code: 36 }];
+   }
+ 
+   Code code = 1;
+diff --git a/src/test/java/com/google/devtools/build/lib/runtime/BUILD b/src/test/java/com/google/devtools/build/lib/runtime/BUILD
+index 28f70c8d..a49039d7 100644
+--- a/src/test/java/com/google/devtools/build/lib/runtime/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/runtime/BUILD
+@@ -138,6 +138,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/runtime:ui_state_tracker",
+         "//src/main/java/com/google/devtools/build/lib/runtime/commands",
+         "//src/main/java/com/google/devtools/build/lib/runtime/events",
++        "//src/main/java/com/google/devtools/build/lib/server:engine_directories",
+         "//src/main/java/com/google/devtools/build/lib/server:gc_and_interner_shrinking_idle_task",
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+         "//src/main/java/com/google/devtools/build/lib/server:install_base_garbage_collector",
+diff --git a/src/test/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcherTest.java b/src/test/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcherTest.java
+index c0decbc6..ab13a1f3 100644
+--- a/src/test/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcherTest.java
++++ b/src/test/java/com/google/devtools/build/lib/runtime/BlazeCommandDispatcherTest.java
+@@ -19,6 +19,7 @@ import static com.google.devtools.build.lib.bazel.BazelServices.BAZEL_SERVICES;
+ import static java.nio.charset.StandardCharsets.US_ASCII;
+ import static java.util.Arrays.asList;
+ import static java.util.concurrent.TimeUnit.SECONDS;
++import static org.junit.Assume.assumeTrue;
+ 
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Lists;
+@@ -37,6 +38,7 @@ import com.google.devtools.build.lib.profiler.MemoryProfiler;
+ import com.google.devtools.build.lib.profiler.Profiler;
+ import com.google.devtools.build.lib.runtime.CommandDispatcher.UiVerbosity;
+ import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
++import com.google.devtools.build.lib.server.EngineDirectories;
+ import com.google.devtools.build.lib.server.FailureDetails;
+ import com.google.devtools.build.lib.server.FailureDetails.BuildProgress;
+ import com.google.devtools.build.lib.server.FailureDetails.BuildProgress.Code;
+@@ -63,6 +65,7 @@ import com.google.devtools.common.options.OptionsParsingResult;
+ import java.io.IOException;
+ import java.io.PrintStream;
+ import java.lang.ref.WeakReference;
++import java.nio.file.Files;
+ import java.time.Duration;
+ import java.util.Arrays;
+ import java.util.List;
+@@ -73,13 +76,16 @@ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Supplier;
+ import org.junit.After;
+ import org.junit.Before;
++import org.junit.Rule;
+ import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
+ import org.junit.runner.RunWith;
+ import org.junit.runners.JUnit4;
+ 
+ /** Tests {@link BlazeCommandDispatcher}. */
+ @RunWith(JUnit4.class)
+ public final class BlazeCommandDispatcherTest {
++  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
+   private final Scratch scratch = new Scratch();
+   private BlazeRuntime runtime;
+   private final RecordingOutErr outErr = new RecordingOutErr();
+@@ -514,6 +520,62 @@ public final class BlazeCommandDispatcherTest {
+     }
+   }
+ 
++  @Test
++  public void queuedCommandRechecksDirectoriesBeforeExecuting() throws Exception {
++    assumeTrue(System.getProperty("os.name").equals("Linux"));
++    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
++    java.nio.file.Path output = temporary.newFolder("output").toPath();
++    BlockCommand block = new BlockCommand();
++    runtime.overrideCommands(ImmutableList.of(block, bar));
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      BlazeCommandDispatcher dispatch = new BlazeCommandDispatcher(runtime, 42, directories);
++      TestThread running =
++          new TestThread(
++              () -> dispatch.exec(ImmutableList.of("block"), "running", new RecordingOutErr()));
++      AtomicReference<BlazeCommandResult> queuedResult = new AtomicReference<>();
++      TestThread queued =
++          new TestThread(
++              () ->
++                  queuedResult.set(
++                      dispatch.exec(
++                          InvocationPolicy.getDefaultInstance(),
++                          ImmutableList.of("bar"),
++                          outErr,
++                          Duration.ofSeconds(30),
++                          UiVerbosity.NORMAL,
++                          "queued",
++                          runtime.getClock().currentTimeMillis(),
++                          Optional.empty(),
++                          () -> {
++                            throw new AssertionError("Fenced request consumed idle results");
++                          },
++                          ImmutableList.of(),
++                          ext -> {})));
++      try {
++        running.start();
++        assertThat(block.started.await(10, SECONDS)).isTrue();
++        queued.start();
++        long deadline = System.nanoTime() + SECONDS.toNanos(10);
++        while (!outErr.errAsLatin1().contains("Another command") && System.nanoTime() < deadline) {
++          Thread.sleep(10);
++        }
++        assertThat(outErr.errAsLatin1()).contains("Another command");
++        Files.move(output, output.resolveSibling("original"));
++        Files.createDirectory(output);
++      } finally {
++        block.unblock();
++        running.joinAndAssertState(10000);
++        queued.joinAndAssertState(10000);
++      }
++      assertThat(queuedResult.get().getFailureDetail().getGrpcServer().getCode())
++          .isEqualTo(FailureDetails.GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED);
++      assertThat(outErr.outAsLatin1()).doesNotContain("Hello, bar.");
++      // The rejected queued command must also release the dispatcher lock.
++      assertThat(dispatch.exec(ImmutableList.of("bar"), "next", outErr).getExitCode())
++          .isEqualTo(ExitCode.LOCAL_ENVIRONMENTAL_ERROR);
++    }
++  }
++
+   @Test
+   public void testBlockForLockTimeoutExpires() throws Exception {
+     BlockCommand blockCommand = new BlockCommand();
+diff --git a/src/test/java/com/google/devtools/build/lib/server/BUILD b/src/test/java/com/google/devtools/build/lib/server/BUILD
+index 9e10eec7..f37b62b4 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/server/BUILD
+@@ -22,6 +22,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/runtime:command_dispatcher",
+         "//src/main/java/com/google/devtools/build/lib/server:command_manager",
+         "//src/main/java/com/google/devtools/build/lib/server:command_server",
++        "//src/main/java/com/google/devtools/build/lib/server:engine_directories",
+         "//src/main/java/com/google/devtools/build/lib/server:engine_registry",
+         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server",
+         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server_impl",
+diff --git a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+index ae2ffe37..fe2adaf3 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
++++ b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+@@ -17,6 +17,7 @@ import static com.google.common.truth.Truth.assertThat;
+ import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
+ import static java.util.concurrent.TimeUnit.SECONDS;
+ import static org.junit.Assert.assertThrows;
++import static org.junit.Assume.assumeTrue;
+ 
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Iterables;
+@@ -62,6 +63,7 @@ import io.grpc.inprocess.InProcessServerBuilder;
+ import io.grpc.stub.StreamObserver;
+ import java.io.IOException;
+ import java.io.OutputStream;
++import java.nio.file.Files;
+ import java.time.Duration;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+@@ -72,7 +74,9 @@ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Supplier;
+ import java.util.stream.Collectors;
++import org.junit.Rule;
+ import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
+ import org.junit.runner.RunWith;
+ import org.junit.runners.JUnit4;
+ 
+@@ -80,6 +84,8 @@ import org.junit.runners.JUnit4;
+ @RunWith(JUnit4.class)
+ public final class CommandServerTest {
+ 
++  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
++
+   private static final int SERVER_PID = 42;
+   private static final String REQUEST_COOKIE = "request-cookie";
+   private static final String RESPONSE_COOKIE = "response-cookie";
+@@ -94,6 +100,12 @@ public final class CommandServerTest {
+ 
+   private ServerAndStub createServerAndStub(CommandDispatcher dispatcher, Runnable engineShutdown)
+       throws Exception {
++    return createServerAndStub(dispatcher, engineShutdown, null);
++  }
++
++  private ServerAndStub createServerAndStub(
++      CommandDispatcher dispatcher, Runnable engineShutdown, EngineDirectories engineDirectories)
++      throws Exception {
+     Path serverDirectory = fileSystem.getPath("/bazel_server_directory");
+     serverDirectory.createDirectoryAndParents();
+ 
+@@ -125,6 +137,7 @@ public final class CommandServerTest {
+             serverDirectory,
+             PathFragment.create("/workspace"),
+             PathFragment.create("/output-base"),
++            engineDirectories,
+             SERVER_PID,
+             /* maxIdleSeconds= */ 1000,
+             /* shutdownOnLowSysMem= */ false,
+@@ -729,8 +742,73 @@ public final class CommandServerTest {
+         GrpcServer.Code.ENGINE_UNAVAILABLE);
+   }
+ 
++  @Test
++  public void replacedDirectoriesDoNotPreemptExistingCommand() throws Exception {
++    assumeTrue(System.getProperty("os.name").equals("Linux"));
++    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
++    java.nio.file.Path output = temporary.newFolder("output").toPath();
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      assertRejectedRequestDoesNotPreempt(
++          createRequest("Bar"),
++          GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED,
++          directories,
++          () -> {
++            Files.move(output, output.resolveSibling("original"));
++            Files.createDirectory(output);
++            return null;
++          },
++          () -> {
++            Files.delete(output);
++            Files.move(output.resolveSibling("original"), output);
++            return null;
++          });
++    }
++  }
++
++  @Test
++  public void cleanupCannotRunAgainstReplacementDirectories() throws Exception {
++    assumeTrue(System.getProperty("os.name").equals("Linux"));
++    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
++    java.nio.file.Path output = temporary.newFolder("output").toPath();
++    AtomicInteger cleanupCalls = new AtomicInteger();
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      ServerAndStub server =
++          createServerAndStub(throwingDispatcher(), cleanupCalls::incrementAndGet, directories);
++      Files.move(output, output.resolveSibling("original"));
++      Files.createDirectory(output);
++      server.server().shutdown();
++      assertThrows(IllegalStateException.class, server.server()::awaitTermination);
++      assertThat(cleanupCalls.get()).isEqualTo(0);
++    }
++  }
++
++  @Test
++  public void directoryReplacementDuringInitializationDoesNotExposeEndpoint() throws Exception {
++    assumeTrue(System.getProperty("os.name").equals("Linux"));
++    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
++    java.nio.file.Path output = temporary.newFolder("output").toPath();
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Files.delete(output);
++      Files.createDirectory(output);
++      assertThrows(
++          IOException.class,
++          () -> createServerAndStub(throwingDispatcher(), () -> {}, directories));
++    }
++  }
++
+   private void assertRejectedRequestDoesNotPreempt(
+       RunRequest rejectedRequest, GrpcServer.Code expectedCode) throws Exception {
++    assertRejectedRequestDoesNotPreempt(
++        rejectedRequest, expectedCode, null, () -> null, () -> null);
++  }
++
++  private void assertRejectedRequestDoesNotPreempt(
++      RunRequest rejectedRequest,
++      GrpcServer.Code expectedCode,
++      EngineDirectories directories,
++      java.util.concurrent.Callable<Void> beforeRejectedRequest,
++      java.util.concurrent.Callable<Void> beforeCleanup)
++      throws Exception {
+     CountDownLatch started = new CountDownLatch(1);
+     CountDownLatch proceed = new CountDownLatch(1);
+     AtomicInteger calls = new AtomicInteger();
+@@ -751,7 +829,7 @@ public final class CommandServerTest {
+           proceed.await();
+           return BlazeCommandResult.success();
+         };
+-    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
++    ServerAndStub serverAndStub = createServerAndStub(dispatcher, () -> {}, directories);
+     CountDownLatch firstDone = new CountDownLatch(1);
+     List<RunResponse> firstResponses = new ArrayList<>();
+     serverAndStub
+@@ -761,6 +839,7 @@ public final class CommandServerTest {
+             createResponseObserver(firstResponses, firstDone));
+     try {
+       assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++      beforeRejectedRequest.call();
+       CountDownLatch rejected = new CountDownLatch(1);
+       List<RunResponse> responses = new ArrayList<>();
+       serverAndStub.stub().run(rejectedRequest, createResponseObserver(responses, rejected));
+@@ -771,6 +850,7 @@ public final class CommandServerTest {
+     } finally {
+       proceed.countDown();
+       assertThat(firstDone.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++      beforeCleanup.call();
+       serverAndStub.server().shutdown();
+       serverAndStub.server().awaitTermination();
+     }
+diff --git a/src/test/java/com/google/devtools/build/lib/server/EngineDirectoriesTest.java b/src/test/java/com/google/devtools/build/lib/server/EngineDirectoriesTest.java
+new file mode 100644
+index 00000000..97a28a44
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/server/EngineDirectoriesTest.java
+@@ -0,0 +1,135 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package com.google.devtools.build.lib.server;
++
++import static com.google.common.truth.Truth.assertThat;
++import static org.junit.Assert.assertThrows;
++import static org.junit.Assume.assumeTrue;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import org.junit.Before;
++import org.junit.Rule;
++import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++@RunWith(JUnit4.class)
++public final class EngineDirectoriesTest {
++  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
++  private Path workspace;
++  private Path output;
++
++  @Before
++  public void setUp() throws Exception {
++    assumeTrue(System.getProperty("os.name").equals("Linux"));
++    workspace = temporary.newFolder("workspace").toPath();
++    output = temporary.newFolder("output").toPath();
++  }
++
++  @Test
++  public void childEditsDoNotChangeDirectoryIdentity() throws Exception {
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Files.writeString(workspace.resolve("source"), "new source");
++      Files.createDirectory(output.resolve("execroot"));
++      Files.writeString(output.resolve("log"), "new log");
++      assertThat(directories.isValid()).isTrue();
++      assertThat(directories.canShutdown()).isTrue();
++    }
++  }
++
++  @Test
++  public void outputReplacementPermanentlyFencesOrdinaryCommands() throws Exception {
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Path original = output.resolveSibling("original-output");
++      Files.move(output, original);
++      Files.createDirectory(output);
++      assertThat(directories.isValid()).isFalse();
++      assertThat(directories.canShutdown()).isFalse();
++      Files.delete(output);
++      Files.move(original, output);
++      assertThat(directories.isValid()).isFalse();
++      assertThat(directories.canShutdown()).isTrue();
++      assertThat(directories.isValid()).isFalse();
++    }
++    try (EngineDirectories replacement = EngineDirectories.open(workspace, output)) {
++      assertThat(replacement.isValid()).isTrue();
++    }
++  }
++
++  @Test
++  public void workspaceReplacementIsNotTheSameEngine() throws Exception {
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Files.move(workspace, workspace.resolveSibling("original-workspace"));
++      Files.createDirectory(workspace);
++      assertThat(directories.isValid()).isFalse();
++      assertThat(directories.canShutdown()).isFalse();
++    }
++  }
++
++  @Test
++  public void deletionAndRecreationCannotReusePinnedIdentity() throws Exception {
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Files.delete(output);
++      Files.createDirectory(output);
++      assertThat(directories.isValid()).isFalse();
++      assertThat(directories.canShutdown()).isFalse();
++    }
++  }
++
++  @Test
++  public void missingPathFencesEvenIfRestoredBeforeNextCommand() throws Exception {
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Path original = output.resolveSibling("original");
++      Files.move(output, original);
++      assertThat(directories.isValid()).isFalse();
++      Files.move(original, output);
++      assertThat(directories.isValid()).isFalse();
++      assertThat(directories.canShutdown()).isTrue();
++    }
++  }
++
++  @Test
++  public void symlinkToOriginalDirectoryDoesNotRemoveFence() throws Exception {
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      Path original = output.resolveSibling("original");
++      Files.move(output, original);
++      Files.createSymbolicLink(output, original);
++      assertThat(directories.isValid()).isFalse();
++      assertThat(directories.canShutdown()).isFalse();
++    }
++  }
++
++  @Test
++  public void cannotCaptureMissingOrNoncanonicalDirectory() throws Exception {
++    assertThrows(
++        IOException.class, () -> EngineDirectories.open(workspace, output.resolve("missing")));
++    Path alias = output.resolveSibling("alias");
++    Files.createSymbolicLink(alias, output);
++    assertThrows(IOException.class, () -> EngineDirectories.open(workspace, alias));
++    assertThrows(IOException.class, () -> EngineDirectories.open(Path.of("relative"), output));
++  }
++
++  @Test
++  public void closeIsIdempotentAndDisallowsDispatchAndCleanup() throws Exception {
++    EngineDirectories directories = EngineDirectories.open(workspace, output);
++    directories.close();
++    directories.close();
++    assertThat(directories.isValid()).isFalse();
++    assertThat(directories.canShutdown()).isFalse();
++  }
++}
+diff --git a/src/test/shell/integration/shared_server_test.sh b/src/test/shell/integration/shared_server_test.sh
+index 7a1f5e57..2d391d18 100755
+--- a/src/test/shell/integration/shared_server_test.sh
++++ b/src/test/shell/integration/shared_server_test.sh
+@@ -198,6 +198,60 @@ PY
+   done
+ }
+ 
++function test_shared_output_replacement_fences_until_restart() {
++  local pid output first_status=0 shutdown_status=0 restored_status=0 next_pid
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
++  mv "$output" "$output.original"
++  mkdir "$output"
++  echo replacement-owned > "$output/sentinel"
++  shared_bazel info server_pid >"$TEST_TMPDIR/fenced.log" 2>&1 || first_status=$?
++  shared_bazel shutdown >"$TEST_TMPDIR/fenced-shutdown.log" 2>&1 || shutdown_status=$?
++  # Restore original objects before assertions so ordinary teardown is possible.
++  mv "$output" "$output.replacement"
++  mv "$output.original" "$output"
++  assert_equals 36 "$first_status"
++  assert_equals 36 "$shutdown_status"
++  assert_contains 'engine is fenced' "$TEST_TMPDIR/fenced.log"
++  assert_equals replacement-owned "$(cat "$output.replacement/sentinel")"
++  [[ ! -e "$output.replacement/command.log" ]] || fail "Dispatched against replacement output"
++  [[ ! -e "$output.replacement/execroot" ]] || fail "Initialized replacement output"
++  shared_bazel info server_pid >"$TEST_log" 2>&1 || restored_status=$?
++  assert_equals 36 "$restored_status"
++  expect_log 'engine is fenced'
++  # Shutdown is allowed only with the original directory objects restored.
++  shared_bazel shutdown >"$TEST_log" 2>&1 || fail "Restored engine shutdown failed"
++  next_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Fresh engine failed"
++  assert_not_equals "$pid" "$next_pid"
++}
++
++function test_shared_missing_output_recreated_by_client_is_fenced() {
++  local output status=0
++  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Startup failed"
++  mv "$output" "$output.original"
++  # The launcher creates a new directory at the old path. It cannot reuse the engine.
++  shared_bazel info workspace >"$TEST_TMPDIR/recreated.log" 2>&1 || status=$?
++  mv "$output" "$output.replacement"
++  mv "$output.original" "$output"
++  assert_equals 36 "$status"
++  assert_contains 'engine is fenced' "$TEST_TMPDIR/recreated.log"
++  [[ ! -e "$output.replacement/command.log" ]] || fail "Dispatched against recreated output"
++}
++
++function test_shared_directory_identity_handles_non_ascii_paths() {
++  mkdir -p "$shared_workspace/workspace-ü-空"
++  cd "$shared_workspace/workspace-ü-空"
++  touch MODULE.bazel
++  shared_workspace="$(pwd -P)"
++  shared_root="$shared_root/output-ü-空"
++  shared_control="$shared_root/shared_servers/v1/prototype/control"
++  local pid actual
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Non-ASCII startup failed"
++  actual=$(shared_bazel info workspace 2>"$TEST_log") || fail "Non-ASCII info failed"
++  assert_equals "$shared_workspace" "$actual"
++  assert_shared_pid "$pid"
++}
++
+ function test_shared_rejects_unsupported_options() {
+   local option status
+   for option in --batch --output_base="$TEST_TMPDIR/explicit-engine" \

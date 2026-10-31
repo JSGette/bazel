@@ -85,6 +85,7 @@ import com.google.devtools.build.lib.sandbox.cgroups.proto.CgroupsInfoProtos.Cgr
 import com.google.devtools.build.lib.server.CommandProtos.EnvironmentVariable;
 import com.google.devtools.build.lib.server.CommandProtos.ExecRequest;
 import com.google.devtools.build.lib.server.CommandServer;
+import com.google.devtools.build.lib.server.EngineDirectories;
 import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
 import com.google.devtools.build.lib.server.FailureDetails.Filesystem;
 import com.google.devtools.build.lib.server.FailureDetails.JniLinking;
@@ -1334,70 +1335,92 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       @Nullable Throwable delayedJniLinkingError) {
     InterruptSignalHandler sigintHandler = null;
     try {
-      AtomicReference<CommandServer> commandServerRef = new AtomicReference<>();
-      Runnable prepareForAbruptShutdown = () -> commandServerRef.get().prepareForAbruptShutdown();
-      BlazeRuntime runtime =
-          newRuntime(
-              blazeModules,
-              blazeServices,
-              Arrays.asList(args),
-              delayedJniLinkingError,
-              prepareForAbruptShutdown);
+      OptionsParsingResult parsedStartup =
+          parseStartupOptions(Iterables.concat(blazeModules, blazeServices), Arrays.asList(args));
+      BlazeServerStartupOptions parsedOptions =
+          parsedStartup.getOptions(BlazeServerStartupOptions.class);
+      try (EngineDirectories engineDirectories =
+          parsedOptions.getExperimentalSharedServer().isEmpty()
+              ? null
+              : EngineDirectories.open(
+                  java.nio.file.Path.of(
+                      StringEncoding.internalToPlatform(
+                          parsedOptions.getWorkspaceDirectory().getPathString())),
+                  java.nio.file.Path.of(
+                      StringEncoding.internalToPlatform(
+                          parsedOptions.getOutputBase().getPathString())))) {
+        AtomicReference<CommandServer> commandServerRef = new AtomicReference<>();
+        Runnable prepareForAbruptShutdown = () -> commandServerRef.get().prepareForAbruptShutdown();
+        BlazeRuntime runtime =
+            newRuntime(
+                blazeModules,
+                blazeServices,
+                parsedStartup,
+                delayedJniLinkingError,
+                prepareForAbruptShutdown);
 
-      // server.pid was written in the C++ launcher after fork() but before exec(). The client only
-      // accesses the pid file after connecting to the socket which ensures that it gets the correct
-      // pid value.
-      Path pidFile = runtime.getServerDirectory().getRelative("server.pid.txt");
-      int serverPid = readPidFile(pidFile);
-      PidFileWatcher pidFileWatcher = new PidFileWatcher(pidFile, serverPid);
-      pidFileWatcher.start();
+        // server.pid was written in the C++ launcher after fork() but before exec(). The client
+        // only
+        // accesses the pid file after connecting to the socket which ensures that it gets the
+        // correct
+        // pid value.
+        Path pidFile = runtime.getServerDirectory().getRelative("server.pid.txt");
+        int serverPid = readPidFile(pidFile);
+        PidFileWatcher pidFileWatcher = new PidFileWatcher(pidFile, serverPid);
+        pidFileWatcher.start();
 
-      ShutdownHooks shutdownHooks = ShutdownHooks.createAndRegister();
-      shutdownHooks.cleanupPidFile(pidFile, pidFileWatcher);
-      if (runtime.deleteOutputBaseOnShutdown) {
-        shutdownHooks.runLastAtExit(runtime::deleteOutputBase);
+        ShutdownHooks shutdownHooks = ShutdownHooks.createAndRegister();
+        shutdownHooks.cleanupPidFile(pidFile, pidFileWatcher);
+        if (runtime.deleteOutputBaseOnShutdown) {
+          shutdownHooks.runLastAtExit(runtime::deleteOutputBase);
+        }
+
+        GrpcCommandServerService grpcCommandServerService =
+            Preconditions.checkNotNull(runtime.getBlazeService(GrpcCommandServerService.class));
+
+        BlazeCommandDispatcher dispatcher =
+            new BlazeCommandDispatcher(runtime, serverPid, engineDirectories);
+        BlazeServerStartupOptions startupOptions =
+            runtime.startupOptionsProvider.getOptions(BlazeServerStartupOptions.class);
+        CommandServer commandServer =
+            CommandServer.create(
+                grpcCommandServerService.getGrpcCommandServer(),
+                dispatcher,
+                () -> {
+                  runtime.shutdown();
+                  dispatcher.shutdown();
+                },
+                shutdownHooks,
+                pidFileWatcher,
+                runtime.clock,
+                startupOptions.getCommandPort(),
+                runtime.getServerDirectory(),
+                startupOptions.getWorkspaceDirectory(),
+                startupOptions.getOutputBase(),
+                engineDirectories,
+                serverPid,
+                startupOptions.getMaxIdleSeconds(),
+                startupOptions.getShutdownOnLowSysMem(),
+                startupOptions.getIdleServerTasks(),
+                getSlowInterruptMessageSuffix(blazeModules));
+        commandServerRef.set(commandServer);
+
+        // Register the signal handler.
+        sigintHandler =
+            new InterruptSignalHandler() {
+              @Override
+              public void run() {
+                logger.atSevere().log("User interrupt");
+                commandServer.interrupt();
+              }
+            };
+
+        commandServer.serveAndAwaitTermination();
+        return ExitCode.SUCCESS.getNumericExitCode();
       }
-
-      GrpcCommandServerService grpcCommandServerService =
-          Preconditions.checkNotNull(runtime.getBlazeService(GrpcCommandServerService.class));
-
-      BlazeCommandDispatcher dispatcher = new BlazeCommandDispatcher(runtime, serverPid);
-      BlazeServerStartupOptions startupOptions =
-          runtime.startupOptionsProvider.getOptions(BlazeServerStartupOptions.class);
-      CommandServer commandServer =
-          CommandServer.create(
-              grpcCommandServerService.getGrpcCommandServer(),
-              dispatcher,
-              () -> {
-                runtime.shutdown();
-                dispatcher.shutdown();
-              },
-              shutdownHooks,
-              pidFileWatcher,
-              runtime.clock,
-              startupOptions.getCommandPort(),
-              runtime.getServerDirectory(),
-              startupOptions.getWorkspaceDirectory(),
-              startupOptions.getOutputBase(),
-              serverPid,
-              startupOptions.getMaxIdleSeconds(),
-              startupOptions.getShutdownOnLowSysMem(),
-              startupOptions.getIdleServerTasks(),
-              getSlowInterruptMessageSuffix(blazeModules));
-      commandServerRef.set(commandServer);
-
-      // Register the signal handler.
-      sigintHandler =
-          new InterruptSignalHandler() {
-            @Override
-            public void run() {
-              logger.atSevere().log("User interrupt");
-              commandServer.interrupt();
-            }
-          };
-
-      commandServer.serveAndAwaitTermination();
-      return ExitCode.SUCCESS.getNumericExitCode();
+    } catch (IOException e) {
+      outErr.printErrLn("Cannot retain shared engine directory identity: " + e.getMessage());
+      return ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode();
     } catch (OptionsParsingException e) {
       outErr.printErrLn(e.getMessage());
       return ExitCode.COMMAND_LINE_ERROR.getNumericExitCode();
@@ -1468,8 +1491,21 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
       @Nullable Throwable delayedJniLinkingError,
       @Nullable Runnable abruptShutdownHandler)
       throws AbruptExitException, OptionsParsingException {
-    OptionsParsingResult options =
-        parseStartupOptions(Iterables.concat(blazeModules, blazeServices), args);
+    return newRuntime(
+        blazeModules,
+        blazeServices,
+        parseStartupOptions(Iterables.concat(blazeModules, blazeServices), args),
+        delayedJniLinkingError,
+        abruptShutdownHandler);
+  }
+
+  private static BlazeRuntime newRuntime(
+      Iterable<BlazeModule> blazeModules,
+      Iterable<BlazeService> blazeServices,
+      OptionsParsingResult options,
+      @Nullable Throwable delayedJniLinkingError,
+      @Nullable Runnable abruptShutdownHandler)
+      throws AbruptExitException, OptionsParsingException {
     BlazeServerStartupOptions startupOptions = options.getOptions(BlazeServerStartupOptions.class);
 
     // Set up the failure detail path first, so that it can communicate problems with other flags

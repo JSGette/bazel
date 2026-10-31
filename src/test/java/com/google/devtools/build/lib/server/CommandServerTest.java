@@ -17,6 +17,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -62,6 +63,7 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,13 +74,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /** Unit tests for {@link CommandServer}. */
 @RunWith(JUnit4.class)
 public final class CommandServerTest {
+
+  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
 
   private static final int SERVER_PID = 42;
   private static final String REQUEST_COOKIE = "request-cookie";
@@ -93,6 +99,12 @@ public final class CommandServerTest {
   }
 
   private ServerAndStub createServerAndStub(CommandDispatcher dispatcher, Runnable engineShutdown)
+      throws Exception {
+    return createServerAndStub(dispatcher, engineShutdown, null);
+  }
+
+  private ServerAndStub createServerAndStub(
+      CommandDispatcher dispatcher, Runnable engineShutdown, EngineDirectories engineDirectories)
       throws Exception {
     Path serverDirectory = fileSystem.getPath("/bazel_server_directory");
     serverDirectory.createDirectoryAndParents();
@@ -125,6 +137,7 @@ public final class CommandServerTest {
             serverDirectory,
             PathFragment.create("/workspace"),
             PathFragment.create("/output-base"),
+            engineDirectories,
             SERVER_PID,
             /* maxIdleSeconds= */ 1000,
             /* shutdownOnLowSysMem= */ false,
@@ -729,8 +742,73 @@ public final class CommandServerTest {
         GrpcServer.Code.ENGINE_UNAVAILABLE);
   }
 
+  @Test
+  public void replacedDirectoriesDoNotPreemptExistingCommand() throws Exception {
+    assumeTrue(System.getProperty("os.name").equals("Linux"));
+    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
+    java.nio.file.Path output = temporary.newFolder("output").toPath();
+    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
+      assertRejectedRequestDoesNotPreempt(
+          createRequest("Bar"),
+          GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED,
+          directories,
+          () -> {
+            Files.move(output, output.resolveSibling("original"));
+            Files.createDirectory(output);
+            return null;
+          },
+          () -> {
+            Files.delete(output);
+            Files.move(output.resolveSibling("original"), output);
+            return null;
+          });
+    }
+  }
+
+  @Test
+  public void cleanupCannotRunAgainstReplacementDirectories() throws Exception {
+    assumeTrue(System.getProperty("os.name").equals("Linux"));
+    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
+    java.nio.file.Path output = temporary.newFolder("output").toPath();
+    AtomicInteger cleanupCalls = new AtomicInteger();
+    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
+      ServerAndStub server =
+          createServerAndStub(throwingDispatcher(), cleanupCalls::incrementAndGet, directories);
+      Files.move(output, output.resolveSibling("original"));
+      Files.createDirectory(output);
+      server.server().shutdown();
+      assertThrows(IllegalStateException.class, server.server()::awaitTermination);
+      assertThat(cleanupCalls.get()).isEqualTo(0);
+    }
+  }
+
+  @Test
+  public void directoryReplacementDuringInitializationDoesNotExposeEndpoint() throws Exception {
+    assumeTrue(System.getProperty("os.name").equals("Linux"));
+    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
+    java.nio.file.Path output = temporary.newFolder("output").toPath();
+    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
+      Files.delete(output);
+      Files.createDirectory(output);
+      assertThrows(
+          IOException.class,
+          () -> createServerAndStub(throwingDispatcher(), () -> {}, directories));
+    }
+  }
+
   private void assertRejectedRequestDoesNotPreempt(
       RunRequest rejectedRequest, GrpcServer.Code expectedCode) throws Exception {
+    assertRejectedRequestDoesNotPreempt(
+        rejectedRequest, expectedCode, null, () -> null, () -> null);
+  }
+
+  private void assertRejectedRequestDoesNotPreempt(
+      RunRequest rejectedRequest,
+      GrpcServer.Code expectedCode,
+      EngineDirectories directories,
+      java.util.concurrent.Callable<Void> beforeRejectedRequest,
+      java.util.concurrent.Callable<Void> beforeCleanup)
+      throws Exception {
     CountDownLatch started = new CountDownLatch(1);
     CountDownLatch proceed = new CountDownLatch(1);
     AtomicInteger calls = new AtomicInteger();
@@ -751,7 +829,7 @@ public final class CommandServerTest {
           proceed.await();
           return BlazeCommandResult.success();
         };
-    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
+    ServerAndStub serverAndStub = createServerAndStub(dispatcher, () -> {}, directories);
     CountDownLatch firstDone = new CountDownLatch(1);
     List<RunResponse> firstResponses = new ArrayList<>();
     serverAndStub
@@ -761,6 +839,7 @@ public final class CommandServerTest {
             createResponseObserver(firstResponses, firstDone));
     try {
       assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+      beforeRejectedRequest.call();
       CountDownLatch rejected = new CountDownLatch(1);
       List<RunResponse> responses = new ArrayList<>();
       serverAndStub.stub().run(rejectedRequest, createResponseObserver(responses, rejected));
@@ -771,6 +850,7 @@ public final class CommandServerTest {
     } finally {
       proceed.countDown();
       assertThat(firstDone.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+      beforeCleanup.call();
       serverAndStub.server().shutdown();
       serverAndStub.server().awaitTermination();
     }

@@ -54,6 +54,7 @@ import com.google.devtools.build.lib.profiler.SilentCloseable;
 import com.google.devtools.build.lib.runtime.BlazeOptionHandler.DetailedParseResults;
 import com.google.devtools.build.lib.runtime.InstrumentationOutputFactory.DestinationRelativeTo;
 import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
+import com.google.devtools.build.lib.server.EngineDirectories;
 import com.google.devtools.build.lib.server.FailureDetails;
 import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
 import com.google.devtools.build.lib.server.IdleTask;
@@ -115,6 +116,7 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
       ImmutableSet.of("--help", "-help", "-h");
 
   private final BlazeRuntime runtime;
+  @Nullable private final EngineDirectories engineDirectories;
   private final int serverPid;
   private final BugReporter bugReporter;
   private final Object commandLock;
@@ -151,7 +153,20 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
     this(runtime, UNKNOWN_SERVER_PID, bugReporter);
   }
 
+  BlazeCommandDispatcher(BlazeRuntime runtime, int serverPid, EngineDirectories engineDirectories) {
+    this(runtime, serverPid, runtime.getBugReporter(), engineDirectories);
+  }
+
   private BlazeCommandDispatcher(BlazeRuntime runtime, int serverPid, BugReporter bugReporter) {
+    this(runtime, serverPid, bugReporter, null);
+  }
+
+  private BlazeCommandDispatcher(
+      BlazeRuntime runtime,
+      int serverPid,
+      BugReporter bugReporter,
+      @Nullable EngineDirectories engineDirectories) {
+    this.engineDirectories = engineDirectories;
     this.runtime = runtime;
     this.serverPid = serverPid;
     this.bugReporter = bugReporter;
@@ -286,13 +301,24 @@ public class BlazeCommandDispatcher implements CommandDispatcher {
     long waitTimeInMs =
         !multipleAttempts ? 0 : (BlazeClock.nanoTime() - clockBefore) / (1000L * 1000L);
 
-    // Retrieve information about idle tasks that ran during a previous idle period.
-    // We do this after obtaining the lock so that a non-blocking command doesn't cause this
-    // information to be lost (instead, it will be forwarded to the next command).
-    ImmutableList<IdleTask.Result> idleTaskResultsFromPreviousIdlePeriod =
-        idleTaskResultsSupplier.get();
-
     try {
+      // A directory can change while this request waits behind another command.
+      // Recheck before idle task consumption, module callbacks or command setup.
+      if (engineDirectories != null && !engineDirectories.canDispatch(commandName)) {
+        String message =
+            "Shared engine directories changed or cannot be verified; engine is fenced";
+        outErr.printErrLn(message);
+        return BlazeCommandResult.failureDetail(
+            FailureDetail.newBuilder()
+                .setMessage(message)
+                .setGrpcServer(
+                    FailureDetails.GrpcServer.newBuilder()
+                        .setCode(FailureDetails.GrpcServer.Code.ENGINE_DIRECTORIES_CHANGED))
+                .build());
+      }
+      // Consume prior idle-task results only after obtaining the lock and admission.
+      ImmutableList<IdleTask.Result> idleTaskResultsFromPreviousIdlePeriod =
+          idleTaskResultsSupplier.get();
       String retrievedShutdownReason = this.shutdownReason.get();
       if (retrievedShutdownReason != null) {
         outErr.printErrLn(retrievedShutdownReason);

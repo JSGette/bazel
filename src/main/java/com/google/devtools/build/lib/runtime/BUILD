@@ -1187,6 +1187,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/sandbox/cgroups",
         "//src/main/java/com/google/devtools/build/lib/sandbox/cgroups/proto:cgroups_info_java_proto",
         "//src/main/java/com/google/devtools/build/lib/server:command_server",
+        "//src/main/java/com/google/devtools/build/lib/server:engine_directories",
         "//src/main/java/com/google/devtools/build/lib/server:gc_and_interner_shrinking_idle_task",
         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server_service",
         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
