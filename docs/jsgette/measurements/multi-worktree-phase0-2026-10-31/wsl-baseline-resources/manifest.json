@@ -1,0 +1,65 @@
+{
+  "baseline_directory": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-representative-verified",
+  "baseline_manifest": {
+    "bazel_sha256": "9b2fdd2e5c4a8a8474197a1e20608ddd710b5258eb55280fad687b5be57b59a2",
+    "bazelisk_sha256": "5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992",
+    "budget": "4 logical CPUs via inherited affinity; 4 aggregate jobs; 6 GiB aggregate action memory estimate; 2 GiB heap/server",
+    "cache_policy": "empty experiment-owned caches; prime cohort; fresh graph/output bases for each group; no private cache/executor",
+    "configuration": {
+      "bazel": "/home/jgett/bazel-multiworktree-20261031/control/bazel-control",
+      "bazelisk": "/home/jgett/.local/bin/bazelisk",
+      "concurrency": [
+        1,
+        2,
+        4
+      ],
+      "repetitions": 30,
+      "repository": "/home/jgett/bazel-multiworktree-20261031/datadog-agent",
+      "results_dir": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-representative-verified",
+      "state_dir": "/home/jgett/bazel-multiworktree-20261031/representative-verified-state",
+      "timeout_seconds": 1800
+    },
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "environment_allowlist": {
+      "DD_BAZEL_REMOTE_CACHE": "off",
+      "HOME": "/home/jgett/bazel-multiworktree-20261031/representative-verified-state/home",
+      "LANG": "C.UTF-8",
+      "PATH": "/usr/local/bin:/usr/bin:/bin",
+      "USE_BAZEL_VERSION": "/home/jgett/bazel-multiworktree-20261031/control/bazel-control",
+      "XDG_CACHE_HOME": "/home/jgett/bazel-multiworktree-20261031/representative-verified-state/cache"
+    },
+    "inputs_sha256": {
+      ".bazelrc": "652eee4e7be84685ca7a4ad8d82deb68a4e6b039dbfae1874f42bb623005801f",
+      ".bazelversion": "ea5c03ac72d50565d704d4bb619237f8cdbd0f1f72f91c49762e66521e9a6126",
+      "AGENTS.md": "4141dc39d9c9504c6dbbb807e9428f935c7aeded97f1d7bc1089b088964b2ca5",
+      "MODULE.bazel": "2eafa902e6d1620914daee564aa14685ca4aed132d9f46597c8c32c1b63ca594",
+      "bazel/AGENTS.md": "2db31eefd6f7953caedf8d07dbf8d1c300d8639e3b2fbe82a05456e597b8ca2a",
+      "go.work": "403d6e2d9e7a882ce996a7892c0f49f164e14290d9edb71a16e8360192236bef",
+      "pkg/metrics/BUILD.bazel": "75d29ebd9f7eb9a78fac615c8ff60af785a867456e4375f899bf618245e68082",
+      "pkg/util/cache/BUILD.bazel": "d37cd1e7e2d7424f6dea0626163c331715f114fb44dd1f96208753b545503cbd",
+      "pkg/util/strings/BUILD.bazel": "b043a019d57d4e360ae945b4519c66b8290bbedceac9c01d7e1afa86f70311e5",
+      "tools/bazel": "16825f571c06b77d1cbac9a1807b5bb1660fd30f52e78026d8f294bbbdd45d73"
+    },
+    "latency_policy": "blocking waitpid with separate timeout watchdog; warmups excluded; no JSON trace, forced GC or process sampler in latency cohorts; BEP retained",
+    "matrix_version": 2,
+    "schema_version": 1,
+    "source_commit": "a83c9fa5161b775ed24b1df825db4817ea562a89",
+    "system": {
+      "machine": "x86_64",
+      "node": "JGETTE",
+      "processor": "x86_64",
+      "release": "6.6.87.2-microsoft-standard-WSL2",
+      "system": "Linux",
+      "version": "#1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025"
+    }
+  },
+  "cache_state": "retained output bases, action and download caches; server/graph cold at each lifetime; OS caches uncontrolled",
+  "cpu_method": "getrusage SELF and CHILDREN deltas after waiting for all owned descendants; no per-command CPU attribution",
+  "scope": "two lifetimes per group; one cold-graph uncached test command and three warm cached commands per lifetime; includes startup, shutdown and helpers",
+  "storage_method": "lstat st_blocks * 512; symlinks not followed, hard links counted once; excludes filesystem metadata, compression/reflink and host VHD allocation"
+}

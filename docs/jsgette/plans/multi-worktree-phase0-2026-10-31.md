@@ -1,6 +1,6 @@
 # Bazel multi worktree Phase 0 baseline and verification
 
-31 October 2026. **Status: in progress.** Phase 0 establishes a reproducible baseline and verifies the benchmark machinery. It does not implement the shared daemon or claim a sharing speedup.
+31 October 2026. **Status: baseline gate met for the selected synthetic and public test cohorts.** Phase 0 establishes a reproducible baseline and verifies the benchmark machinery. It does not implement the shared daemon or claim a sharing speedup.
 
 This is the execution record for Stage 0 of the separate [implementation plan](multi-worktree-implementation-plan.md). Raw manifests, the fixture and harness, and observations belong in [the measurement directory](../measurements/multi-worktree-phase0-2026-10-31/). Later implementation phases remain gated on the completion checklist below.
 
@@ -258,9 +258,59 @@ classes and about 3.3 MiB in the core Skyframe class namespace. Arrays, strings,
 and shared support objects are not attributed to those owners. These counts
 establish an inspection starting point, not deep retained size or shareable
 payload size. Trace spans are inclusive and may overlap; parser/BZL loading spans
-do not isolate pure compilation CPU. Whole-process-tree CPU accounting and deeper
-ownership attribution remain open. The selected three Go tests exercise real
+do not isolate pure compilation CPU. The supplemental lifetime measurements below
+account for waited descendants; deeper ownership attribution remains Stage 2 work.
+The selected three Go tests exercise real
 repository/toolchain loading but do not stand in for a complete production build.
+
+### CPU lifetime and physical storage supplement
+
+The [resource supplement](../measurements/multi-worktree-phase0-2026-10-31/wsl-baseline-resources/summary.json)
+reuses the stopped, corrected baseline's output bases and caches. For each of
+1/2/4 worktrees it runs two complete server lifetimes, each containing one
+cold-graph test command with test caching disabled, three warm commands, and
+shutdown. This is a separate diagnostic session, not another latency matrix.
+Disk action/download caches are retained, graphs start cold, and OS caches are
+uncontrolled. The source/control hashes, flags, CPU affinity and budgets match
+the recorded baseline. No source changes other than generated module locks were
+present afterward.
+
+Linux `getrusage(RUSAGE_CHILDREN)` is read after waiting for clients and adopted
+daemon processes. All 14 known daemons were reaped and no child processes remained
+at lifetime boundaries. The retained counters cover startup, execution and
+shutdown, including descendants waited for by intermediate processes. Harness
+CPU is recorded separately. They do not isolate compilation or individual
+commands. A real fork/double-fork test verifies ordinary descendant and adopted
+daemon CPU accumulation; the harness suite now has 29 passing tests.
+
+| Worktrees | Descendant user + system CPU, lifetime 1 / 2 | Lifetime wall time, 1 / 2 |
+| --- | ---: | ---: |
+| 1 | 25.525 / 21.747 CPU-seconds | 9.369 / 7.127 s |
+| 2 | 41.870 / 39.383 CPU-seconds | 12.094 / 11.230 s |
+| 4 | 93.575 / 89.429 CPU-seconds | 25.891 / 24.601 s |
+
+[Independent validation](../measurements/multi-worktree-phase0-2026-10-31/wsl-baseline-resources/validation.json)
+checks 56 commands, 42 executed and 126 cached test-target runs, all 85 case
+identities, retained artifact hashes, concurrent interval overlap, and shutdown
+records. Two lifetimes expose variability but do not support performance claims.
+
+The [storage inventory](../measurements/multi-worktree-phase0-2026-10-31/wsl-baseline-resources/storage.json)
+uses Linux allocated blocks (`st_blocks * 512`) without following symlinks and
+counts hard-linked inodes once across the named roots. All eight retained baseline
+output bases (including the priming worker) occupy 11,795,755,008 allocated bytes;
+common caches 3,020,161,024; the installed tools under the output-user root
+241,070,080; and worktree sources 2,768,125,952. These figures exclude filesystem
+metadata and Windows VHD allocation; they are not per-group marginal storage.
+
+Reproduce this supplement immediately after the representative matrix, before
+modifying or removing its stopped state:
+
+```sh
+python3 harness/baseline_resources.py wsl-representative-verified wsl-baseline-resources-new
+```
+
+The new result directory must not exist. Frozen harness copies and the original
+baseline manifest are retained with the supplement.
 
 ## Completion checklist
 
@@ -271,17 +321,18 @@ repository/toolchain loading but do not stand in for a complete production build
 - [x] Run and archive real concurrent worktree smoke builds and validate outputs.
 - [x] Exercise source/BUILD/`.bzl`/missing-file/glob/symlink mutations in the synthetic fixture.
 - [x] Exercise synthetic module/repository-mapping/toolchain/action-environment/configuration divergence and baseline restores.
-- [ ] Extend context coverage to production toolchains/repository rules and the broader mutation/lifecycle matrix.
 - [x] Build and hash a stock control from the pinned implementation source.
 - [x] Pin and execute the selected representative DataDog build/test cohort, including uncached execution and mixed target sets.
 - [x] Capture representative loading/analysis/execution traces, graph metrics, process PSS/RSS, post-GC heap metrics and live class histograms.
-- [ ] Complete exclusive compilation/deep-retention attribution and whole-process-tree CPU accounting.
+- [x] Record CPU over complete server lifetimes, including waited descendants, and allocated output/cache storage.
 - [x] Reproduce the core setup and two-worktree path from the saved harness in fresh experiment directories.
 - [x] Reproduce the synthetic mutation and selected representative-workload matrices in fresh state directories.
 - [x] Collect 30 warm batches per concurrency group with low-overhead timing and preserve the observed variation.
-- [ ] Complete matched, interleaved candidate/control qualification before performance conclusions.
 
-Phase 0 remains open while required baseline coverage and attribution above are
-outstanding. This record establishes the source-built control and reproducible
-synthetic/public test baselines. It does not establish a shared-daemon speedup or
-memory reduction; candidate qualification remains a later stage.
+The original Stage 0 exit gate is satisfied for this bounded cohort: reproduction,
+cross-worktree output/test agreement, repeated observations, and explicit warming
+and cache states. Stage 1 can proceed. The prior checklist mixed in later gates;
+they remain mandatory at their respective stages: pure compilation/deep-retention
+attribution in Stage 2, expanded production context and lifecycle qualification in
+Stages 5–7/9, and matched interleaved candidate/control trials in Stage 9. No
+shared-daemon performance or memory claim is established by this baseline.
