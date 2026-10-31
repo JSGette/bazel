@@ -68,7 +68,11 @@ A future snapshot feature would need a separate contract. An explicitly captured
 
 Daemon identity is separate from output-base identity. Begin with a conservative normalized startup compatibility profile. Exclude a startup setting from that profile only after documenting how it is safely scoped elsewhere. Different binaries, JVM requirements, filesystem implementations, or other incompatible startup semantics must not silently enter one runtime.
 
-No new flag name is committed by this plan. A possible opt-in such as `--experimental_shared_worktree_daemon` would be a **proposed flag**, not an existing or implemented option. Its name and precise command/startup semantics require review in stage 1.
+The Stage 1 startup prototype now implements `--experimental_shared_server=<name>`
+on Linux. Its bounded single-engine semantics and rejection matrix are recorded in
+[the execution report](multi-worktree-stage1-startup-2026-10-31.md). This flag does
+not yet enable multi-workspace runtime admission or concurrency; its release
+interface and broader command semantics remain unqualified.
 
 Keep ordinary Bazel behavior as the default during development. Private worker processes may be used as an operational fallback or early routing milestone, but they do not demonstrate shared Java-payload memory savings. Never start a fallback process against an output base still owned by a live engine: drain and transfer ownership, or use a separate output namespace.
 
@@ -122,8 +126,12 @@ flowchart LR
 and [registration/request lifetime](multi-worktree-stage1-registry-2026-10-31.md)
 are implemented and tested on the single-engine path. The client carries canonical
 workspace/output-base identity and a registration ID. The server checks them
-before dispatch/preemption and drains RPC leases before cleanup. Shared discovery,
-cross-process registration, startup profiles and filesystem lifetime fencing remain
+before dispatch/preemption and drains RPC leases before cleanup. The
+[control namespace/startup continuation](multi-worktree-stage1-startup-2026-10-31.md)
+adds a Linux opt-in named namespace, separate control/private-output locks and
+conservative startup rejection without restarting the live server. It still
+admits only one workspace. Durable cross-process engine ownership, full startup
+compatibility, filesystem lifetime fencing and multi-engine shutdown scope remain
 open; this stage is not complete.
 
 **Depends on:** stage 0 and the architectural contract above. Stage 0 supplies the pinned baseline, workload and compatibility evidence; no later performance claim may bypass its qualification requirements.

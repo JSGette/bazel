@@ -338,6 +338,19 @@ sh_test(
     tags = ["no_windows"],
 )
 
+sh_test(
+    name = "shared_server_test",
+    size = "medium",
+    timeout = "long",
+    srcs = ["shared_server_test.sh"],
+    data = [":test-deps"],
+    shard_count = 3,
+    tags = [
+        "no_macos",
+        "no_windows",
+    ],
+)
+
 sh_library(
     name = "config_stripped_outputs_lib",
     testonly = 1,

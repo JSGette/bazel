@@ -143,6 +143,27 @@ public abstract class BlazeServerStartupOptions extends OptionsBase {
   public abstract PathFragment getOutputBase();
 
   @Option(
+      name = "experimental_shared_server",
+      defaultValue = "",
+      documentationCategory = OptionDocumentationCategory.BAZEL_CLIENT_OPTIONS,
+      effectTags = {OptionEffectTag.LOSES_INCREMENTAL_STATE},
+      help =
+          "Linux single-engine prototype: select an isolated named control namespace. "
+              + "Incompatible attachments are rejected without restarting its server. "
+              + "Multiple workspace engines are not yet supported.")
+  public abstract String getExperimentalSharedServer();
+
+  @Option(
+      name = "experimental_server_directory",
+      defaultValue = "null",
+      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+      effectTags = {OptionEffectTag.UNKNOWN},
+      metadataTags = {OptionMetadataTag.HIDDEN},
+      converter = OptionsUtils.PathFragmentConverter.class,
+      help = "Client-selected control directory for the shared-server prototype.")
+  public abstract PathFragment getExperimentalServerDirectory();
+
+  @Option(
       name = "output_user_root",
       defaultValue = "null", // NOTE: only for documentation, value is always passed by the client.
       documentationCategory = OptionDocumentationCategory.BAZEL_CLIENT_OPTIONS,

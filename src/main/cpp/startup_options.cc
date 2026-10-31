@@ -173,6 +173,7 @@ StartupOptions::StartupOptions(const string& product_name,
   RegisterUnaryStartupFlag("macos_qos_class");
   RegisterUnaryStartupFlag("max_idle_secs");
   RegisterUnaryStartupFlag("output_base");
+  RegisterUnaryStartupFlag("experimental_shared_server");
   RegisterUnaryStartupFlag("output_user_root");
   RegisterUnaryStartupFlag("server_jvm_out");
   RegisterUnaryStartupFlag("failure_detail_out");
@@ -317,6 +318,19 @@ blaze_exit_code::ExitCode StartupOptions::ProcessArg(const string& argstr,
              nullptr) {
     output_base = blaze_util::Path(blaze::AbsolutePathFromFlag(value));
     option_sources["output_base"] = rcfile;
+  } else if ((value = GetUnaryOption(arg, next_arg,
+                                    "--experimental_shared_server")) != nullptr) {
+    experimental_shared_server = value;
+    if (experimental_shared_server.empty() ||
+        experimental_shared_server.size() > 64 ||
+        experimental_shared_server.find_first_not_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") !=
+            std::string::npos) {
+      *error = "--experimental_shared_server requires 1-64 letters, digits, "
+               "'_' or '-'";
+      return blaze_exit_code::BAD_ARGV;
+    }
+    option_sources["experimental_shared_server"] = rcfile;
   } else if ((value = GetUnaryOption(arg, next_arg, "--install_base")) !=
              nullptr) {
     install_base = blaze_util::Path(blaze::AbsolutePathFromFlag(value));
@@ -729,7 +743,14 @@ void StartupOptions::AddJVMLoggingArguments(std::vector<string>* result) const {
   const std::string loggingProps =
       GetSimpleLogHandlerProps(java_log, java_logging_formatter);
 
-  if (!blaze_util::WriteFile(loggingProps, propFile)) {
+  std::string existing_props;
+  const bool shared_existing = !experimental_shared_server.empty() &&
+                              blaze_util::ReadFile(propFile, &existing_props);
+  if (shared_existing && existing_props != loggingProps) {
+    BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+        << "Shared server logging configuration is incompatible; use another name";
+  }
+  if (!shared_existing && !blaze_util::WriteFile(loggingProps, propFile)) {
     perror(
         ("Couldn't write logging file " + propFile.AsPrintablePath()).c_str());
   } else {
@@ -772,6 +793,26 @@ void StartupOptions::UpdateConfiguration(const string& install_md5,
     }
     install_base =
         output_user_root.GetRelative("install").GetRelative(install_md5);
+  }
+
+  if (!experimental_shared_server.empty()) {
+#ifndef __linux__
+    BAZEL_DIE(blaze_exit_code::BAD_ARGV)
+        << "--experimental_shared_server is currently supported only on Linux";
+#endif
+    if (batch || server_mode || workspace.empty() || !output_base.IsEmpty() ||
+        delete_output_base_on_shutdown) {
+      BAZEL_DIE(blaze_exit_code::BAD_ARGV)
+          << "--experimental_shared_server requires a workspace and does not "
+             "support --batch, exec-server, --output_base or "
+             "--delete_output_base_on_shutdown";
+    }
+    const auto group = output_user_root.GetRelative("shared_servers")
+                           .GetRelative("v1")
+                           .GetRelative(experimental_shared_server);
+    output_base = group.GetRelative("control");
+    engine_output_base =
+        blaze::GetHashedBaseDir(group.GetRelative("engines"), workspace);
   }
 
   if (output_base.IsEmpty()) {

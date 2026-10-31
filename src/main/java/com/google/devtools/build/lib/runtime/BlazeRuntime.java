@@ -592,7 +592,12 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
 
   /** The directory in which blaze stores the server state - that is, the socket file and a log. */
   public Path getServerDirectory() {
-    return workspace.getDirectories().getOutputBase().getChild("server");
+    BlazeServerStartupOptions options =
+        startupOptionsProvider.getOptions(BlazeServerStartupOptions.class);
+    PathFragment control = options.getExperimentalServerDirectory();
+    return control == null
+        ? workspace.getDirectories().getOutputBase().getChild("server")
+        : fileSystem.getPath(control);
   }
 
   /**
@@ -1495,6 +1500,11 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
     PathFragment outputUserRoot = startupOptions.getOutputUserRoot();
     PathFragment installBase = startupOptions.getInstallBase();
     PathFragment outputBase = startupOptions.getOutputBase();
+    PathFragment serverDirectory = startupOptions.getExperimentalServerDirectory();
+    if ((serverDirectory != null) != !startupOptions.getExperimentalSharedServer().isEmpty()
+        || (serverDirectory != null && !serverDirectory.isAbsolute())) {
+      throw new IllegalArgumentException("Invalid shared server control directory");
+    }
     PathFragment execRootBase = outputBase.getRelative(ServerDirectories.EXECROOT);
 
     // Emit a helpful error message (now that we have the install base path handy) if we detected a
@@ -1671,7 +1681,9 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
     BlazeRuntime runtime = runtimeBuilder.build();
 
     CustomExitCodePublisher.setAbruptExitStatusFileDir(
-        serverDirectories.getOutputBase().getPathString());
+        serverDirectory == null
+            ? serverDirectories.getOutputBase().getPathString()
+            : serverDirectory.getParentDirectory().getPathString());
     // Delete the previous file, if any, in case this server is reusing an existing output base
     // from a previous server that had an abrupt exit.
     CustomExitCodePublisher.maybeDeleteAbruptExitStatusFile();

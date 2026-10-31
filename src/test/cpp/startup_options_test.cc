@@ -84,6 +84,48 @@ class StartupOptionsTest : public ::testing::Test {
   std::string old_test_tmpdir_;
 };
 
+TEST_F(StartupOptionsTest, SharedServerNameValidation) {
+  for (const auto& name : {"", "../other", "a/b", "a.b", "a b", "a:b"}) {
+    ReinitStartupOptions();
+    std::string error;
+    EXPECT_EQ(blaze_exit_code::BAD_ARGV,
+              startup_options_->ProcessArgs(
+                  {RcStartupFlag("", std::string("--experimental_shared_server=") + name)},
+                  &error));
+    EXPECT_NE(std::string::npos, error.find("1-64"));
+  }
+  ReinitStartupOptions();
+  std::string error;
+  EXPECT_EQ(blaze_exit_code::BAD_ARGV,
+            startup_options_->ProcessArgs(
+                {RcStartupFlag("", "--experimental_shared_server=" + std::string(65, 'a'))},
+                &error));
+  EXPECT_EQ(blaze_exit_code::SUCCESS,
+            startup_options_->ProcessArgs(
+                {RcStartupFlag("", "--experimental_shared_server=A-z_09")}, &error));
+  EXPECT_EQ("A-z_09", startup_options_->experimental_shared_server);
+}
+
+#ifdef __linux__
+TEST_F(StartupOptionsTest, SharedServerSeparatesControlAndEngineDirectories) {
+  startup_options_->output_user_root = blaze_util::Path("/shared-test-root");
+  startup_options_->experimental_shared_server = "team";
+  startup_options_->UpdateConfiguration("install", "/workspace-a", false);
+  const auto control = startup_options_->output_base;
+  const auto engine_a = startup_options_->engine_output_base;
+  EXPECT_EQ(blaze_util::Path("/shared-test-root/shared_servers/v1/team/control"), control);
+  EXPECT_EQ(blaze::GetHashedBaseDir(
+                blaze_util::Path("/shared-test-root/shared_servers/v1/team/engines"), "/workspace-a"),
+            engine_a);
+  ReinitStartupOptions();
+  startup_options_->output_user_root = blaze_util::Path("/shared-test-root");
+  startup_options_->experimental_shared_server = "team";
+  startup_options_->UpdateConfiguration("install", "/workspace-b", false);
+  EXPECT_EQ(control, startup_options_->output_base);
+  EXPECT_NE(engine_a, startup_options_->engine_output_base);
+}
+#endif
+
 TEST_F(StartupOptionsTest, ProductName) {
   ASSERT_EQ("Bazel", startup_options_->product_name);
 }

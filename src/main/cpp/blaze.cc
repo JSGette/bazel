@@ -26,6 +26,7 @@
 #include "src/main/cpp/blaze.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <grpc/grpc.h>
 #include <grpc/support/time.h>
@@ -34,6 +35,7 @@
 #include <grpcpp/create_channel.h>
 #include <grpcpp/security/credentials.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -103,6 +105,7 @@ static int SelectMaxImportDepth() {
 struct ClientLocks {
   std::optional<LockHandle> install_base_lock;
   std::optional<LockHandle> output_base_lock;
+  std::optional<LockHandle> engine_output_base_lock;
 };
 
 static std::pair<ClientLocks, DurationMillis> AcquireClientLocks(
@@ -131,15 +134,26 @@ static std::pair<ClientLocks, DurationMillis> AcquireClientLocks(
     wait_time += install_base_result.second;
   }
 
-  // Take an exclusive lock on the output base, because two simultaneous
-  // commands may not run against the same output base.
+  // Legacy mode locks its output base. Shared mode locks daemon startup here
+  // and the private engine output base below, always in that order.
   auto output_base_result = blaze::AcquireLock(
-      "output base", startup_options.output_base.GetRelative("lock"),
-      LockMode::kExclusive, startup_options.batch,
+      startup_options.experimental_shared_server.empty() ? "output base"
+                                                        : "shared server startup",
+      startup_options.output_base.GetRelative("lock"), LockMode::kExclusive,
+      startup_options.batch,
       startup_options.block_for_lock_timeout);
   locks.output_base_lock = output_base_result.first;
   wait_time += output_base_result.second;
 
+  if (!startup_options.experimental_shared_server.empty()) {
+    // Always acquire the control/startup lock before the private output lock.
+    auto engine_result = blaze::AcquireLock(
+        "engine output base",
+        startup_options.engine_output_base.GetRelative("lock"),
+        LockMode::kExclusive, false, startup_options.block_for_lock_timeout);
+    locks.engine_output_base_lock = engine_result.first;
+    wait_time += engine_result.second;
+  }
   return std::make_pair(std::move(locks), wait_time);
 }
 
@@ -148,6 +162,10 @@ static void ReleaseClientLocks(bool lock_install_base, ClientLocks *locks) {
     BAZEL_DIE(blaze_exit_code::INTERNAL_ERROR)
         << "ReleaseLocks() called but the output base lock has already been "
            "released.";
+  }
+  if (locks->engine_output_base_lock.has_value()) {
+    blaze::ReleaseLock(*locks->engine_output_base_lock);
+    locks->engine_output_base_lock = std::nullopt;
   }
   blaze::ReleaseLock(*locks->output_base_lock);
   locks->output_base_lock = std::nullopt;
@@ -320,7 +338,14 @@ static vector<string> GetServerExeArgs(const blaze_util::Path &jvm_path,
     result.push_back("--lock_install_base");
   }
   result.push_back("--output_base=" +
-                   startup_options.output_base.AsCommandLineArgument());
+                   startup_options.engine_output_base.AsCommandLineArgument());
+  if (!startup_options.experimental_shared_server.empty()) {
+    result.push_back("--experimental_shared_server=" +
+                     startup_options.experimental_shared_server);
+    result.push_back("--experimental_server_directory=" +
+                     startup_options.output_base.GetRelative("server")
+                         .AsCommandLineArgument());
+  }
   result.push_back("--workspace_directory=" +
                    blaze_util::ConvertPath(workspace));
   if (startup_options.autodetect_server_javabase) {
@@ -625,6 +650,23 @@ static void PrepareDirectories(StartupOptions *startup_options) {
     BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
         << "Output base directory could not be canonicalized: "
         << GetLastErrorString();
+  }
+  if (startup_options->experimental_shared_server.empty()) {
+    startup_options->engine_output_base = startup_options->output_base;
+  } else {
+    if (!blaze_util::MakeDirectories(startup_options->engine_output_base, 0777) ||
+        !blaze_util::CanAccessDirectory(startup_options->engine_output_base)) {
+      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+          << "Cannot create or access the private engine output base";
+    }
+    startup_options->engine_output_base =
+        startup_options->engine_output_base.Canonicalize();
+    if (startup_options->engine_output_base.IsEmpty() ||
+        startup_options->engine_output_base == startup_options->output_base) {
+      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+          << "Invalid private engine output base";
+    }
+    ExcludePathFromBackup(startup_options->engine_output_base);
   }
   // Derive defaults only after canonicalization, so an output-base alias does
   // not appear to change the server's startup options. Preserve explicit paths.
@@ -953,6 +995,7 @@ class BlazeServer final {
   const bool preemptible_;
   const bool lock_install_base_;
   const blaze_util::Path output_base_;
+  const blaze_util::Path engine_output_base_;
   const std::string workspace_;
   CommandExtensionAdder* command_extension_adder_;
 };
@@ -1154,14 +1197,47 @@ static void ConnectOrDie(const OptionProcessor &option_processor,
       << startup_options.local_startup_timeout_secs << " seconds.";
 }
 
+static bool SharedServerProcessMayBeAlive(int pid) {
+#ifdef __linux__
+  if (kill(pid, 0) < 0 && errno == ESRCH) {
+    return false;
+  }
+  string statline;
+  string start_time;
+  char state = '\0';
+  if (blaze_util::ReadFile(
+          blaze_util::Path("/proc/" + blaze_util::ToString(pid) + "/stat"),
+          &statline) &&
+      ParseProcStat(statline, &start_time, &state)) {
+    return state != 'Z' && state != 'X' && state != 'x';
+  }
+#endif
+  return true;  // Unknown ownership fails closed.
+}
+
 // Ensures that any server previously associated with `server_dir` is no longer
 // running.
 static void EnsurePreviousServerProcessTerminated(
     const blaze_util::Path &server_dir, const StartupOptions &startup_options,
     LoggingInfo *logging_info) {
   int server_pid = GetServerPid(server_dir);
+  if (!startup_options.experimental_shared_server.empty()) {
+    // A damaged start-time record must not turn a live process into permission
+    // to overwrite its namespace. Even a reused live PID is a safe rejection.
+    if ((server_pid > 0 && SharedServerProcessMayBeAlive(server_pid)) ||
+        (server_pid <= 0 &&
+         blaze_util::PathExists(server_dir.GetRelative(kServerPidFile)))) {
+      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+          << "Shared server is alive or its ownership cannot be verified; "
+             "refusing to replace it";
+    }
+  }
   if (server_pid > 0) {
     if (VerifyServerProcess(server_pid, startup_options.output_base)) {
+      if (!startup_options.experimental_shared_server.empty()) {
+        BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+            << "Shared server is alive but unavailable; refusing to replace it";
+      }
       if (KillServerProcess(server_pid, startup_options.output_base)) {
         BAZEL_LOG(USER) << "Killed non-responsive server process (pid="
                         << server_pid << ")";
@@ -1185,6 +1261,11 @@ static void StartServerAndConnect(
     StartupInterceptor *interceptor) {
   if (interceptor != nullptr) {
     interceptor->MaybeReroute(&startup_options, build_label);
+  }
+
+  if (!startup_options.experimental_shared_server.empty()) {
+    EnsurePreviousServerProcessTerminated(server_dir, startup_options,
+                                         logging_info);
   }
 
   // Delete the old command_port file if it already exists. Otherwise we might
@@ -1449,6 +1530,13 @@ static ATTRIBUTE_NORETURN void RunClientServerMode(
     // cases, it's better to assume that everything is alright if we can't get
     // the cwd.
 
+    if (!startup_options.experimental_shared_server.empty() &&
+        (server_cwd == nullptr || *server_cwd != blaze_util::Path(workspace) ||
+         server_cwd->Contains(" (deleted)"))) {
+      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+          << "Shared server workspace identity cannot be verified; "
+             "refusing attachment";
+    }
     if (server_cwd != nullptr &&
         (*server_cwd != blaze_util::Path(workspace) ||  // changed
          server_cwd->Contains(" (deleted)"))) {         // deleted.
@@ -1591,6 +1679,78 @@ void PrintVersionInfo(const string& build_label, const string& product_name) {
   printf("%s %s\n", product_name.c_str(), build_label.c_str());
 }
 
+// Conservative v1 profile: preserve argument order and repetitions. Only the
+// display name and option provenance are client-local. Workspace and output
+// paths remain in the profile until multiple complete runtimes can be hosted.
+static string SharedStartupProfile(const blaze_util::Path& server_exe,
+                                   const vector<string>& server_args,
+                                   const StartupOptions& options) {
+  vector<string> profile = {
+      "bazel-shared-startup-v1", server_exe.AsNativePath(),
+      options.java_logging_formatter,
+      blaze_util::ToString(options.batch_cpu_scheduling),
+      blaze_util::ToString(options.io_nice_level),
+      blaze_util::ToString(options.unlimit_coredumps)};
+#ifdef __linux__
+  profile.push_back(options.cgroup_parent);
+  profile.push_back(blaze_util::ToString(options.run_in_user_cgroup));
+#endif
+  for (size_t i = 1; i < server_args.size(); ++i) {
+    if (server_args[i].compare(0, 17, "--option_sources=") != 0) {
+      profile.push_back(server_args[i]);
+    }
+  }
+  return GetArgumentString(profile);
+}
+
+// Linux exposes the environment passed to exec, which is what JVM startup
+// consumes. Compare it exactly without writing credentials to a profile file or
+// logging values. This intentionally rejects even harmless environment changes.
+static bool SharedServerEnvironmentMatches(int pid) {
+  string bytes;
+  if (!blaze_util::ReadFile(
+          blaze_util::Path("/proc/" + blaze_util::ToString(pid) + "/environ"),
+          &bytes) ||
+      bytes.empty() || bytes.back() != '\0') {
+    return false;
+  }
+  set<string> actual;
+  size_t start = 0;
+  while (start < bytes.size()) {
+    size_t end = bytes.find('\0', start);
+    if (end == string::npos || end == start ||
+        !actual.insert(bytes.substr(start, end - start)).second) {
+      return false;
+    }
+    start = end + 1;
+  }
+  set<string> expected;
+  for (const auto& entry : PrepareEnvironmentForJvm()) {
+    if (entry.second.action == EnvVarAction::SET) {
+      expected.insert(entry.first + "=" + entry.second.value);
+    }
+  }
+  if (actual != expected) {
+    set<string> changed_names;
+    for (const auto& value : actual) {
+      if (expected.find(value) == expected.end()) {
+        changed_names.insert(value.substr(0, value.find('=')));
+      }
+    }
+    for (const auto& value : expected) {
+      if (actual.find(value) == actual.end()) {
+        changed_names.insert(value.substr(0, value.find('=')));
+      }
+    }
+    string names;
+    blaze_util::JoinStrings(
+        vector<string>(changed_names.begin(), changed_names.end()), ',', &names);
+    BAZEL_LOG(USER) << "Shared server startup environment differs for: " << names;
+    return false;
+  }
+  return true;
+}
+
 static void RunLauncher(const string& self_path,
                         const vector<string>& archive_contents,
                         const string& install_md5,
@@ -1633,13 +1793,29 @@ static void RunLauncher(const string& self_path,
 
   if (!startup_options.batch && "shutdown" == option_processor.GetCommand() &&
       !blaze_server->Connected()) {
+    if (!startup_options.experimental_shared_server.empty()) {
+      EnsurePreviousServerProcessTerminated(server_dir, startup_options,
+                                         logging_info);
+    }
     // TODO(b/134525510): Connected() can return false when the server process
     // is alive but unresponsive, so bailing early here might not always be the
     // right thing to do.
     return;
   }
 
-  EnsureCorrectRunningVersion(startup_options, logging_info, blaze_server);
+  const bool shared = !startup_options.experimental_shared_server.empty();
+  if (shared) {
+    if (!blaze_server->Connected()) {
+      // Check before touching any existing daemon metadata.
+      EnsurePreviousServerProcessTerminated(server_dir, startup_options,
+                                         logging_info);
+    } else if (NeedsNewInstallationSymlink(startup_options)) {
+      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+          << "Shared server binary is incompatible; use another name";
+    }
+  } else {
+    EnsureCorrectRunningVersion(startup_options, logging_info, blaze_server);
+  }
 
   const blaze_util::Path jvm_path = startup_options.GetJvm();
   const string server_jar_path = startup_options.GetServerJarFilename();
@@ -1651,9 +1827,30 @@ static void RunLauncher(const string& self_path,
       GetServerExeArgs(jvm_path, server_jar_path, install_md5, workspace_layout,
                        workspace, startup_options);
 
-  if (KillRunningServerIfDifferentStartupOptions(
-          startup_options, server_exe_args, logging_info, blaze_server) &&
-      "shutdown" == option_processor.GetCommand()) {
+  if (shared) {
+    const string requested =
+        SharedStartupProfile(server_exe, server_exe_args, startup_options);
+    const auto profile_path = server_dir.GetRelative("startup_profile");
+    if (blaze_server->Connected()) {
+      string existing;
+      if (!blaze_util::ReadFile(profile_path, &existing) || existing != requested ||
+          !SharedServerEnvironmentMatches(
+              blaze_server->ProcessInfo().server_pid_)) {
+        BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+            << "Shared server startup profile, workspace or environment is "
+               "incompatible; use another name or shut down with the original settings";
+      }
+    } else {
+      UpdateInstallationSymlink(startup_options);
+      EnsureServerDir(server_dir);
+      if (!blaze_util::WriteFile(requested, profile_path)) {
+        BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
+            << "Cannot write shared server startup profile";
+      }
+    }
+  } else if (KillRunningServerIfDifferentStartupOptions(
+                 startup_options, server_exe_args, logging_info, blaze_server) &&
+             "shutdown" == option_processor.GetCommand()) {
     return;
   }
 
@@ -1734,6 +1931,15 @@ int Main(int argc, const char *const *argv, WorkspaceLayout *workspace_layout,
                     max_import_depth);
   StartupOptions *startup_options = option_processor->GetParsedStartupOptions();
   startup_options->MaybeLogStartupOptionWarnings();
+  if (!startup_options->experimental_shared_server.empty()) {
+    const string& command = option_processor->GetCommand();
+    if (command != "build" && command != "test" && command != "info" &&
+        command != "shutdown") {
+      BAZEL_DIE(blaze_exit_code::BAD_ARGV)
+          << "--experimental_shared_server currently supports "
+             "build, test, info and shutdown";
+    }
+  }
 
   if (startup_options->client_debug) {
     SetDebugLog(blaze_util::LOGGINGDETAIL_DEBUG);
@@ -1795,6 +2001,7 @@ BlazeServer::BlazeServer(const StartupOptions& startup_options,
       preemptible_(startup_options.preemptible),
       lock_install_base_(startup_options.lock_install_base),
       output_base_(startup_options.output_base),
+      engine_output_base_(startup_options.engine_output_base),
       workspace_(workspace),
       command_extension_adder_(command_extension_adder) {
   pipe_.reset(blaze_util::CreatePipe());
@@ -2137,7 +2344,7 @@ unsigned int BlazeServer::Communicate(
       blaze_util::ConvertPath(workspace_));
   request.set_engine_instance_id(engine_instance_id_);
   request.mutable_engine_identity()->set_output_base(
-      output_base_.AsCommandLineArgument());
+      engine_output_base_.AsCommandLineArgument());
   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
   if (block_for_lock_timeout_ != absl::InfiniteDuration()) {
     request.set_block_for_lock_timeout_ms(

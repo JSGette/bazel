@@ -1,0 +1,858 @@
+diff --git a/src/main/cpp/blaze.cc b/src/main/cpp/blaze.cc
+index 1b1752df..21f8eeec 100644
+--- a/src/main/cpp/blaze.cc
++++ b/src/main/cpp/blaze.cc
+@@ -26,6 +26,7 @@
+ #include "src/main/cpp/blaze.h"
+ 
+ #include <assert.h>
++#include <errno.h>
+ #include <fcntl.h>
+ #include <grpc/grpc.h>
+ #include <grpc/support/time.h>
+@@ -34,6 +35,7 @@
+ #include <grpcpp/create_channel.h>
+ #include <grpcpp/security/credentials.h>
+ #include <limits.h>
++#include <signal.h>
+ #include <stdarg.h>
+ #include <stdint.h>
+ #include <stdio.h>
+@@ -103,6 +105,7 @@ static int SelectMaxImportDepth() {
+ struct ClientLocks {
+   std::optional<LockHandle> install_base_lock;
+   std::optional<LockHandle> output_base_lock;
++  std::optional<LockHandle> engine_output_base_lock;
+ };
+ 
+ static std::pair<ClientLocks, DurationMillis> AcquireClientLocks(
+@@ -131,15 +134,26 @@ static std::pair<ClientLocks, DurationMillis> AcquireClientLocks(
+     wait_time += install_base_result.second;
+   }
+ 
+-  // Take an exclusive lock on the output base, because two simultaneous
+-  // commands may not run against the same output base.
++  // Legacy mode locks its output base. Shared mode locks daemon startup here
++  // and the private engine output base below, always in that order.
+   auto output_base_result = blaze::AcquireLock(
+-      "output base", startup_options.output_base.GetRelative("lock"),
+-      LockMode::kExclusive, startup_options.batch,
++      startup_options.experimental_shared_server.empty() ? "output base"
++                                                        : "shared server startup",
++      startup_options.output_base.GetRelative("lock"), LockMode::kExclusive,
++      startup_options.batch,
+       startup_options.block_for_lock_timeout);
+   locks.output_base_lock = output_base_result.first;
+   wait_time += output_base_result.second;
+ 
++  if (!startup_options.experimental_shared_server.empty()) {
++    // Always acquire the control/startup lock before the private output lock.
++    auto engine_result = blaze::AcquireLock(
++        "engine output base",
++        startup_options.engine_output_base.GetRelative("lock"),
++        LockMode::kExclusive, false, startup_options.block_for_lock_timeout);
++    locks.engine_output_base_lock = engine_result.first;
++    wait_time += engine_result.second;
++  }
+   return std::make_pair(std::move(locks), wait_time);
+ }
+ 
+@@ -149,6 +163,10 @@ static void ReleaseClientLocks(bool lock_install_base, ClientLocks *locks) {
+         << "ReleaseLocks() called but the output base lock has already been "
+            "released.";
+   }
++  if (locks->engine_output_base_lock.has_value()) {
++    blaze::ReleaseLock(*locks->engine_output_base_lock);
++    locks->engine_output_base_lock = std::nullopt;
++  }
+   blaze::ReleaseLock(*locks->output_base_lock);
+   locks->output_base_lock = std::nullopt;
+ 
+@@ -320,7 +338,14 @@ static vector<string> GetServerExeArgs(const blaze_util::Path &jvm_path,
+     result.push_back("--lock_install_base");
+   }
+   result.push_back("--output_base=" +
+-                   startup_options.output_base.AsCommandLineArgument());
++                   startup_options.engine_output_base.AsCommandLineArgument());
++  if (!startup_options.experimental_shared_server.empty()) {
++    result.push_back("--experimental_shared_server=" +
++                     startup_options.experimental_shared_server);
++    result.push_back("--experimental_server_directory=" +
++                     startup_options.output_base.GetRelative("server")
++                         .AsCommandLineArgument());
++  }
+   result.push_back("--workspace_directory=" +
+                    blaze_util::ConvertPath(workspace));
+   if (startup_options.autodetect_server_javabase) {
+@@ -626,6 +651,23 @@ static void PrepareDirectories(StartupOptions *startup_options) {
+         << "Output base directory could not be canonicalized: "
+         << GetLastErrorString();
+   }
++  if (startup_options->experimental_shared_server.empty()) {
++    startup_options->engine_output_base = startup_options->output_base;
++  } else {
++    if (!blaze_util::MakeDirectories(startup_options->engine_output_base, 0777) ||
++        !blaze_util::CanAccessDirectory(startup_options->engine_output_base)) {
++      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++          << "Cannot create or access the private engine output base";
++    }
++    startup_options->engine_output_base =
++        startup_options->engine_output_base.Canonicalize();
++    if (startup_options->engine_output_base.IsEmpty() ||
++        startup_options->engine_output_base == startup_options->output_base) {
++      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++          << "Invalid private engine output base";
++    }
++    ExcludePathFromBackup(startup_options->engine_output_base);
++  }
+   // Derive defaults only after canonicalization, so an output-base alias does
+   // not appear to change the server's startup options. Preserve explicit paths.
+   if (startup_options->failure_detail_out.IsEmpty()) {
+@@ -953,6 +995,7 @@ class BlazeServer final {
+   const bool preemptible_;
+   const bool lock_install_base_;
+   const blaze_util::Path output_base_;
++  const blaze_util::Path engine_output_base_;
+   const std::string workspace_;
+   CommandExtensionAdder* command_extension_adder_;
+ };
+@@ -1154,14 +1197,47 @@ static void ConnectOrDie(const OptionProcessor &option_processor,
+       << startup_options.local_startup_timeout_secs << " seconds.";
+ }
+ 
++static bool SharedServerProcessMayBeAlive(int pid) {
++#ifdef __linux__
++  if (kill(pid, 0) < 0 && errno == ESRCH) {
++    return false;
++  }
++  string statline;
++  string start_time;
++  char state = '\0';
++  if (blaze_util::ReadFile(
++          blaze_util::Path("/proc/" + blaze_util::ToString(pid) + "/stat"),
++          &statline) &&
++      ParseProcStat(statline, &start_time, &state)) {
++    return state != 'Z' && state != 'X' && state != 'x';
++  }
++#endif
++  return true;  // Unknown ownership fails closed.
++}
++
+ // Ensures that any server previously associated with `server_dir` is no longer
+ // running.
+ static void EnsurePreviousServerProcessTerminated(
+     const blaze_util::Path &server_dir, const StartupOptions &startup_options,
+     LoggingInfo *logging_info) {
+   int server_pid = GetServerPid(server_dir);
++  if (!startup_options.experimental_shared_server.empty()) {
++    // A damaged start-time record must not turn a live process into permission
++    // to overwrite its namespace. Even a reused live PID is a safe rejection.
++    if ((server_pid > 0 && SharedServerProcessMayBeAlive(server_pid)) ||
++        (server_pid <= 0 &&
++         blaze_util::PathExists(server_dir.GetRelative(kServerPidFile)))) {
++      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++          << "Shared server is alive or its ownership cannot be verified; "
++             "refusing to replace it";
++    }
++  }
+   if (server_pid > 0) {
+     if (VerifyServerProcess(server_pid, startup_options.output_base)) {
++      if (!startup_options.experimental_shared_server.empty()) {
++        BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++            << "Shared server is alive but unavailable; refusing to replace it";
++      }
+       if (KillServerProcess(server_pid, startup_options.output_base)) {
+         BAZEL_LOG(USER) << "Killed non-responsive server process (pid="
+                         << server_pid << ")";
+@@ -1187,6 +1263,11 @@ static void StartServerAndConnect(
+     interceptor->MaybeReroute(&startup_options, build_label);
+   }
+ 
++  if (!startup_options.experimental_shared_server.empty()) {
++    EnsurePreviousServerProcessTerminated(server_dir, startup_options,
++                                         logging_info);
++  }
++
+   // Delete the old command_port file if it already exists. Otherwise we might
+   // run into the race condition that we read the old command_port file before
+   // the new server has written the new file and we try to connect to the old
+@@ -1449,6 +1530,13 @@ static ATTRIBUTE_NORETURN void RunClientServerMode(
+     // cases, it's better to assume that everything is alright if we can't get
+     // the cwd.
+ 
++    if (!startup_options.experimental_shared_server.empty() &&
++        (server_cwd == nullptr || *server_cwd != blaze_util::Path(workspace) ||
++         server_cwd->Contains(" (deleted)"))) {
++      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++          << "Shared server workspace identity cannot be verified; "
++             "refusing attachment";
++    }
+     if (server_cwd != nullptr &&
+         (*server_cwd != blaze_util::Path(workspace) ||  // changed
+          server_cwd->Contains(" (deleted)"))) {         // deleted.
+@@ -1591,6 +1679,78 @@ void PrintVersionInfo(const string& build_label, const string& product_name) {
+   printf("%s %s\n", product_name.c_str(), build_label.c_str());
+ }
+ 
++// Conservative v1 profile: preserve argument order and repetitions. Only the
++// display name and option provenance are client-local. Workspace and output
++// paths remain in the profile until multiple complete runtimes can be hosted.
++static string SharedStartupProfile(const blaze_util::Path& server_exe,
++                                   const vector<string>& server_args,
++                                   const StartupOptions& options) {
++  vector<string> profile = {
++      "bazel-shared-startup-v1", server_exe.AsNativePath(),
++      options.java_logging_formatter,
++      blaze_util::ToString(options.batch_cpu_scheduling),
++      blaze_util::ToString(options.io_nice_level),
++      blaze_util::ToString(options.unlimit_coredumps)};
++#ifdef __linux__
++  profile.push_back(options.cgroup_parent);
++  profile.push_back(blaze_util::ToString(options.run_in_user_cgroup));
++#endif
++  for (size_t i = 1; i < server_args.size(); ++i) {
++    if (server_args[i].compare(0, 17, "--option_sources=") != 0) {
++      profile.push_back(server_args[i]);
++    }
++  }
++  return GetArgumentString(profile);
++}
++
++// Linux exposes the environment passed to exec, which is what JVM startup
++// consumes. Compare it exactly without writing credentials to a profile file or
++// logging values. This intentionally rejects even harmless environment changes.
++static bool SharedServerEnvironmentMatches(int pid) {
++  string bytes;
++  if (!blaze_util::ReadFile(
++          blaze_util::Path("/proc/" + blaze_util::ToString(pid) + "/environ"),
++          &bytes) ||
++      bytes.empty() || bytes.back() != '\0') {
++    return false;
++  }
++  set<string> actual;
++  size_t start = 0;
++  while (start < bytes.size()) {
++    size_t end = bytes.find('\0', start);
++    if (end == string::npos || end == start ||
++        !actual.insert(bytes.substr(start, end - start)).second) {
++      return false;
++    }
++    start = end + 1;
++  }
++  set<string> expected;
++  for (const auto& entry : PrepareEnvironmentForJvm()) {
++    if (entry.second.action == EnvVarAction::SET) {
++      expected.insert(entry.first + "=" + entry.second.value);
++    }
++  }
++  if (actual != expected) {
++    set<string> changed_names;
++    for (const auto& value : actual) {
++      if (expected.find(value) == expected.end()) {
++        changed_names.insert(value.substr(0, value.find('=')));
++      }
++    }
++    for (const auto& value : expected) {
++      if (actual.find(value) == actual.end()) {
++        changed_names.insert(value.substr(0, value.find('=')));
++      }
++    }
++    string names;
++    blaze_util::JoinStrings(
++        vector<string>(changed_names.begin(), changed_names.end()), ',', &names);
++    BAZEL_LOG(USER) << "Shared server startup environment differs for: " << names;
++    return false;
++  }
++  return true;
++}
++
+ static void RunLauncher(const string& self_path,
+                         const vector<string>& archive_contents,
+                         const string& install_md5,
+@@ -1633,13 +1793,29 @@ static void RunLauncher(const string& self_path,
+ 
+   if (!startup_options.batch && "shutdown" == option_processor.GetCommand() &&
+       !blaze_server->Connected()) {
++    if (!startup_options.experimental_shared_server.empty()) {
++      EnsurePreviousServerProcessTerminated(server_dir, startup_options,
++                                         logging_info);
++    }
+     // TODO(b/134525510): Connected() can return false when the server process
+     // is alive but unresponsive, so bailing early here might not always be the
+     // right thing to do.
+     return;
+   }
+ 
+-  EnsureCorrectRunningVersion(startup_options, logging_info, blaze_server);
++  const bool shared = !startup_options.experimental_shared_server.empty();
++  if (shared) {
++    if (!blaze_server->Connected()) {
++      // Check before touching any existing daemon metadata.
++      EnsurePreviousServerProcessTerminated(server_dir, startup_options,
++                                         logging_info);
++    } else if (NeedsNewInstallationSymlink(startup_options)) {
++      BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++          << "Shared server binary is incompatible; use another name";
++    }
++  } else {
++    EnsureCorrectRunningVersion(startup_options, logging_info, blaze_server);
++  }
+ 
+   const blaze_util::Path jvm_path = startup_options.GetJvm();
+   const string server_jar_path = startup_options.GetServerJarFilename();
+@@ -1651,9 +1827,30 @@ static void RunLauncher(const string& self_path,
+       GetServerExeArgs(jvm_path, server_jar_path, install_md5, workspace_layout,
+                        workspace, startup_options);
+ 
+-  if (KillRunningServerIfDifferentStartupOptions(
+-          startup_options, server_exe_args, logging_info, blaze_server) &&
+-      "shutdown" == option_processor.GetCommand()) {
++  if (shared) {
++    const string requested =
++        SharedStartupProfile(server_exe, server_exe_args, startup_options);
++    const auto profile_path = server_dir.GetRelative("startup_profile");
++    if (blaze_server->Connected()) {
++      string existing;
++      if (!blaze_util::ReadFile(profile_path, &existing) || existing != requested ||
++          !SharedServerEnvironmentMatches(
++              blaze_server->ProcessInfo().server_pid_)) {
++        BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++            << "Shared server startup profile, workspace or environment is "
++               "incompatible; use another name or shut down with the original settings";
++      }
++    } else {
++      UpdateInstallationSymlink(startup_options);
++      EnsureServerDir(server_dir);
++      if (!blaze_util::WriteFile(requested, profile_path)) {
++        BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++            << "Cannot write shared server startup profile";
++      }
++    }
++  } else if (KillRunningServerIfDifferentStartupOptions(
++                 startup_options, server_exe_args, logging_info, blaze_server) &&
++             "shutdown" == option_processor.GetCommand()) {
+     return;
+   }
+ 
+@@ -1734,6 +1931,15 @@ int Main(int argc, const char *const *argv, WorkspaceLayout *workspace_layout,
+                     max_import_depth);
+   StartupOptions *startup_options = option_processor->GetParsedStartupOptions();
+   startup_options->MaybeLogStartupOptionWarnings();
++  if (!startup_options->experimental_shared_server.empty()) {
++    const string& command = option_processor->GetCommand();
++    if (command != "build" && command != "test" && command != "info" &&
++        command != "shutdown") {
++      BAZEL_DIE(blaze_exit_code::BAD_ARGV)
++          << "--experimental_shared_server currently supports "
++             "build, test, info and shutdown";
++    }
++  }
+ 
+   if (startup_options->client_debug) {
+     SetDebugLog(blaze_util::LOGGINGDETAIL_DEBUG);
+@@ -1795,6 +2001,7 @@ BlazeServer::BlazeServer(const StartupOptions& startup_options,
+       preemptible_(startup_options.preemptible),
+       lock_install_base_(startup_options.lock_install_base),
+       output_base_(startup_options.output_base),
++      engine_output_base_(startup_options.engine_output_base),
+       workspace_(workspace),
+       command_extension_adder_(command_extension_adder) {
+   pipe_.reset(blaze_util::CreatePipe());
+@@ -2137,7 +2344,7 @@ unsigned int BlazeServer::Communicate(
+       blaze_util::ConvertPath(workspace_));
+   request.set_engine_instance_id(engine_instance_id_);
+   request.mutable_engine_identity()->set_output_base(
+-      output_base_.AsCommandLineArgument());
++      engine_output_base_.AsCommandLineArgument());
+   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
+   if (block_for_lock_timeout_ != absl::InfiniteDuration()) {
+     request.set_block_for_lock_timeout_ms(
+diff --git a/src/main/cpp/startup_options.cc b/src/main/cpp/startup_options.cc
+index d9a78cda..32830ae1 100644
+--- a/src/main/cpp/startup_options.cc
++++ b/src/main/cpp/startup_options.cc
+@@ -173,6 +173,7 @@ StartupOptions::StartupOptions(const string& product_name,
+   RegisterUnaryStartupFlag("macos_qos_class");
+   RegisterUnaryStartupFlag("max_idle_secs");
+   RegisterUnaryStartupFlag("output_base");
++  RegisterUnaryStartupFlag("experimental_shared_server");
+   RegisterUnaryStartupFlag("output_user_root");
+   RegisterUnaryStartupFlag("server_jvm_out");
+   RegisterUnaryStartupFlag("failure_detail_out");
+@@ -317,6 +318,19 @@ blaze_exit_code::ExitCode StartupOptions::ProcessArg(const string& argstr,
+              nullptr) {
+     output_base = blaze_util::Path(blaze::AbsolutePathFromFlag(value));
+     option_sources["output_base"] = rcfile;
++  } else if ((value = GetUnaryOption(arg, next_arg,
++                                    "--experimental_shared_server")) != nullptr) {
++    experimental_shared_server = value;
++    if (experimental_shared_server.empty() ||
++        experimental_shared_server.size() > 64 ||
++        experimental_shared_server.find_first_not_of(
++            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") !=
++            std::string::npos) {
++      *error = "--experimental_shared_server requires 1-64 letters, digits, "
++               "'_' or '-'";
++      return blaze_exit_code::BAD_ARGV;
++    }
++    option_sources["experimental_shared_server"] = rcfile;
+   } else if ((value = GetUnaryOption(arg, next_arg, "--install_base")) !=
+              nullptr) {
+     install_base = blaze_util::Path(blaze::AbsolutePathFromFlag(value));
+@@ -729,7 +743,14 @@ void StartupOptions::AddJVMLoggingArguments(std::vector<string>* result) const {
+   const std::string loggingProps =
+       GetSimpleLogHandlerProps(java_log, java_logging_formatter);
+ 
+-  if (!blaze_util::WriteFile(loggingProps, propFile)) {
++  std::string existing_props;
++  const bool shared_existing = !experimental_shared_server.empty() &&
++                              blaze_util::ReadFile(propFile, &existing_props);
++  if (shared_existing && existing_props != loggingProps) {
++    BAZEL_DIE(blaze_exit_code::LOCAL_ENVIRONMENTAL_ERROR)
++        << "Shared server logging configuration is incompatible; use another name";
++  }
++  if (!shared_existing && !blaze_util::WriteFile(loggingProps, propFile)) {
+     perror(
+         ("Couldn't write logging file " + propFile.AsPrintablePath()).c_str());
+   } else {
+@@ -774,6 +795,26 @@ void StartupOptions::UpdateConfiguration(const string& install_md5,
+         output_user_root.GetRelative("install").GetRelative(install_md5);
+   }
+ 
++  if (!experimental_shared_server.empty()) {
++#ifndef __linux__
++    BAZEL_DIE(blaze_exit_code::BAD_ARGV)
++        << "--experimental_shared_server is currently supported only on Linux";
++#endif
++    if (batch || server_mode || workspace.empty() || !output_base.IsEmpty() ||
++        delete_output_base_on_shutdown) {
++      BAZEL_DIE(blaze_exit_code::BAD_ARGV)
++          << "--experimental_shared_server requires a workspace and does not "
++             "support --batch, exec-server, --output_base or "
++             "--delete_output_base_on_shutdown";
++    }
++    const auto group = output_user_root.GetRelative("shared_servers")
++                           .GetRelative("v1")
++                           .GetRelative(experimental_shared_server);
++    output_base = group.GetRelative("control");
++    engine_output_base =
++        blaze::GetHashedBaseDir(group.GetRelative("engines"), workspace);
++  }
++
+   if (output_base.IsEmpty()) {
+     // The default output_base is <output_user_root>/<md5(workspace)>.
+     // However, exec-server requires it to be explicitly set.
+diff --git a/src/main/cpp/startup_options.h b/src/main/cpp/startup_options.h
+index c056ec93..9b91d649 100644
+--- a/src/main/cpp/startup_options.h
++++ b/src/main/cpp/startup_options.h
+@@ -153,11 +153,16 @@ class StartupOptions {
+   // See UpdateConfiguration().
+   blaze_util::Path output_user_root;
+ 
+-  // The directory where build outputs are placed.
++  // The legacy build output directory, or the experimental daemon control base.
+   // Defaults to a <md5(workspace)> subdirectory of output_user_root.
+   // See UpdateConfiguration().
+   blaze_util::Path output_base;
+ 
++  // Experimental single-engine control namespace. In this mode output_base is
++  // the daemon control base; engine_output_base contains private build state.
++  std::string experimental_shared_server;
++  blaze_util::Path engine_output_base;
++
+   // The directory where the decompressed Bazel server is installed.
+   // Defaults to an install/<md5(install)> subdirectory of output_user_root.
+   // See UpdateConfiguration().
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+index 6fa0646e..5ef2f08b 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+@@ -592,7 +592,12 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+ 
+   /** The directory in which blaze stores the server state - that is, the socket file and a log. */
+   public Path getServerDirectory() {
+-    return workspace.getDirectories().getOutputBase().getChild("server");
++    BlazeServerStartupOptions options =
++        startupOptionsProvider.getOptions(BlazeServerStartupOptions.class);
++    PathFragment control = options.getExperimentalServerDirectory();
++    return control == null
++        ? workspace.getDirectories().getOutputBase().getChild("server")
++        : fileSystem.getPath(control);
+   }
+ 
+   /**
+@@ -1495,6 +1500,11 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+     PathFragment outputUserRoot = startupOptions.getOutputUserRoot();
+     PathFragment installBase = startupOptions.getInstallBase();
+     PathFragment outputBase = startupOptions.getOutputBase();
++    PathFragment serverDirectory = startupOptions.getExperimentalServerDirectory();
++    if ((serverDirectory != null) != !startupOptions.getExperimentalSharedServer().isEmpty()
++        || (serverDirectory != null && !serverDirectory.isAbsolute())) {
++      throw new IllegalArgumentException("Invalid shared server control directory");
++    }
+     PathFragment execRootBase = outputBase.getRelative(ServerDirectories.EXECROOT);
+ 
+     // Emit a helpful error message (now that we have the install base path handy) if we detected a
+@@ -1671,7 +1681,9 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+     BlazeRuntime runtime = runtimeBuilder.build();
+ 
+     CustomExitCodePublisher.setAbruptExitStatusFileDir(
+-        serverDirectories.getOutputBase().getPathString());
++        serverDirectory == null
++            ? serverDirectories.getOutputBase().getPathString()
++            : serverDirectory.getParentDirectory().getPathString());
+     // Delete the previous file, if any, in case this server is reusing an existing output base
+     // from a previous server that had an abrupt exit.
+     CustomExitCodePublisher.maybeDeleteAbruptExitStatusFile();
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
+index 951d1d21..791bf680 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
+@@ -142,6 +142,27 @@ public abstract class BlazeServerStartupOptions extends OptionsBase {
+               + "See 'bazel help shutdown' on how to shutdown a Bazel server.")
+   public abstract PathFragment getOutputBase();
+ 
++  @Option(
++      name = "experimental_shared_server",
++      defaultValue = "",
++      documentationCategory = OptionDocumentationCategory.BAZEL_CLIENT_OPTIONS,
++      effectTags = {OptionEffectTag.LOSES_INCREMENTAL_STATE},
++      help =
++          "Linux single-engine prototype: select an isolated named control namespace. "
++              + "Incompatible attachments are rejected without restarting its server. "
++              + "Multiple workspace engines are not yet supported.")
++  public abstract String getExperimentalSharedServer();
++
++  @Option(
++      name = "experimental_server_directory",
++      defaultValue = "null",
++      documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
++      effectTags = {OptionEffectTag.UNKNOWN},
++      metadataTags = {OptionMetadataTag.HIDDEN},
++      converter = OptionsUtils.PathFragmentConverter.class,
++      help = "Client-selected control directory for the shared-server prototype.")
++  public abstract PathFragment getExperimentalServerDirectory();
++
+   @Option(
+       name = "output_user_root",
+       defaultValue = "null", // NOTE: only for documentation, value is always passed by the client.
+diff --git a/src/test/cpp/startup_options_test.cc b/src/test/cpp/startup_options_test.cc
+index 542ab0d4..277de578 100644
+--- a/src/test/cpp/startup_options_test.cc
++++ b/src/test/cpp/startup_options_test.cc
+@@ -84,6 +84,48 @@ class StartupOptionsTest : public ::testing::Test {
+   std::string old_test_tmpdir_;
+ };
+ 
++TEST_F(StartupOptionsTest, SharedServerNameValidation) {
++  for (const auto& name : {"", "../other", "a/b", "a.b", "a b", "a:b"}) {
++    ReinitStartupOptions();
++    std::string error;
++    EXPECT_EQ(blaze_exit_code::BAD_ARGV,
++              startup_options_->ProcessArgs(
++                  {RcStartupFlag("", std::string("--experimental_shared_server=") + name)},
++                  &error));
++    EXPECT_NE(std::string::npos, error.find("1-64"));
++  }
++  ReinitStartupOptions();
++  std::string error;
++  EXPECT_EQ(blaze_exit_code::BAD_ARGV,
++            startup_options_->ProcessArgs(
++                {RcStartupFlag("", "--experimental_shared_server=" + std::string(65, 'a'))},
++                &error));
++  EXPECT_EQ(blaze_exit_code::SUCCESS,
++            startup_options_->ProcessArgs(
++                {RcStartupFlag("", "--experimental_shared_server=A-z_09")}, &error));
++  EXPECT_EQ("A-z_09", startup_options_->experimental_shared_server);
++}
++
++#ifdef __linux__
++TEST_F(StartupOptionsTest, SharedServerSeparatesControlAndEngineDirectories) {
++  startup_options_->output_user_root = blaze_util::Path("/shared-test-root");
++  startup_options_->experimental_shared_server = "team";
++  startup_options_->UpdateConfiguration("install", "/workspace-a", false);
++  const auto control = startup_options_->output_base;
++  const auto engine_a = startup_options_->engine_output_base;
++  EXPECT_EQ(blaze_util::Path("/shared-test-root/shared_servers/v1/team/control"), control);
++  EXPECT_EQ(blaze::GetHashedBaseDir(
++                blaze_util::Path("/shared-test-root/shared_servers/v1/team/engines"), "/workspace-a"),
++            engine_a);
++  ReinitStartupOptions();
++  startup_options_->output_user_root = blaze_util::Path("/shared-test-root");
++  startup_options_->experimental_shared_server = "team";
++  startup_options_->UpdateConfiguration("install", "/workspace-b", false);
++  EXPECT_EQ(control, startup_options_->output_base);
++  EXPECT_NE(engine_a, startup_options_->engine_output_base);
++}
++#endif
++
+ TEST_F(StartupOptionsTest, ProductName) {
+   ASSERT_EQ("Bazel", startup_options_->product_name);
+ }
+diff --git a/src/test/shell/integration/BUILD b/src/test/shell/integration/BUILD
+index 47eeb8ed..ce85bdb8 100644
+--- a/src/test/shell/integration/BUILD
++++ b/src/test/shell/integration/BUILD
+@@ -338,6 +338,19 @@ sh_test(
+     tags = ["no_windows"],
+ )
+ 
++sh_test(
++    name = "shared_server_test",
++    size = "medium",
++    timeout = "long",
++    srcs = ["shared_server_test.sh"],
++    data = [":test-deps"],
++    shard_count = 3,
++    tags = [
++        "no_macos",
++        "no_windows",
++    ],
++)
++
+ sh_library(
+     name = "config_stripped_outputs_lib",
+     testonly = 1,
+diff --git a/src/test/shell/integration/shared_server_test.sh b/src/test/shell/integration/shared_server_test.sh
+new file mode 100755
+index 00000000..7a1f5e57
+--- /dev/null
++++ b/src/test/shell/integration/shared_server_test.sh
+@@ -0,0 +1,236 @@
++#!/usr/bin/env bash
++# Copyright 2026 The Bazel Authors. All rights reserved.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#    http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
++source "${CURRENT_DIR}/../integration_test_setup.sh" \
++  || { echo "integration_test_setup.sh not found!" >&2; exit 1; }
++
++function set_up() {
++  shared_workspace="$(pwd -P)"
++  shared_root="$TEST_TMPDIR/shared-$TEST_name"
++  shared_control="$shared_root/shared_servers/v1/prototype/control"
++  shared_args=()
++}
++
++function shared_bazel() {
++  # Keep shell-launch context identical across foreground, background and
++  # command-substitution clients: v1 deliberately compares the full JVM env.
++  env SHLVL=1 OLDPWD="$shared_workspace" bazel --output_user_root="$shared_root" --experimental_shared_server=prototype \
++    "${shared_args[@]}" "$@"
++}
++
++function tear_down() {
++  cd "$shared_workspace"
++  shared_bazel shutdown >>"$TEST_log" 2>&1 || fail "Shared shutdown failed"
++}
++
++function assert_shared_pid() {
++  local actual
++  actual=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Shared info failed"
++  assert_equals "$1" "$actual"
++}
++
++function expect_shared_rejection() {
++  local status=0
++  shared_bazel "$@" >"$TEST_log" 2>&1 || status=$?
++  assert_equals 36 "$status"
++  expect_log 'Shared server'
++}
++
++function test_shared_namespace_and_legacy_coexistence() {
++  local shared_pid output legacy_pid
++  shared_pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
++  [[ "$output" == "$shared_root/shared_servers/v1/prototype/engines/"* ]] \
++    || fail "Build state is outside the private engine namespace: $output"
++  assert_equals "$shared_pid" "$(cat "$shared_control/server/server.pid.txt")"
++  [[ ! -e "$output/server/server.pid.txt" ]] || fail "PID exposed in engine output base"
++  [[ -e "$shared_control/lock" && -e "$output/lock" ]] || fail "Missing separate locks"
++  legacy_pid=$(bazel --output_user_root="$shared_root" info server_pid 2>"$TEST_log") || fail "Legacy startup failed"
++  assert_not_equals "$legacy_pid" "$shared_pid"
++  bazel --output_user_root="$shared_root" --host_jvm_args=-Dlegacy_restart=true \
++    info server_pid >"$TEST_log" 2>&1 || fail "Legacy restart failed"
++  assert_shared_pid "$shared_pid"
++  bazel --output_user_root="$shared_root" shutdown >"$TEST_log" 2>&1 \
++    || fail "Legacy shutdown failed"
++  assert_shared_pid "$shared_pid"
++}
++
++function test_shared_ordered_jvm_options() {
++  shared_args=(--host_jvm_args=-Dshared.order=first --host_jvm_args=-Dshared.order=last)
++  local pid
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  shared_args=(--host_jvm_args=-Dshared.order=last --host_jvm_args=-Dshared.order=first)
++  local status=0
++  shared_bazel info server_pid >"$TEST_log" 2>&1 || status=$?
++  shared_args=(--host_jvm_args=-Dshared.order=first --host_jvm_args=-Dshared.order=last)
++  assert_equals 36 "$status"
++  expect_log 'startup profile'
++  assert_shared_pid "$pid"
++  expect_shared_rejection --max_idle_secs=17 info server_pid
++  assert_shared_pid "$pid"
++}
++
++function test_shared_installation_mismatch() {
++  local pid
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  expect_shared_rejection --install_base="$TEST_TMPDIR/other-install" info server_pid
++  expect_log 'binary is incompatible'
++  assert_shared_pid "$pid"
++}
++
++function test_shared_environment_mismatch() {
++  local pid
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  SHARED_CONTEXT_SENTINEL=private_value expect_shared_rejection info server_pid
++  expect_not_log 'private_value'
++  assert_shared_pid "$pid"
++}
++
++function test_shared_other_workspace_cannot_shutdown() {
++  local pid status=0
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  mkdir -p "$shared_workspace/other"
++  touch "$shared_workspace/other/MODULE.bazel"
++  (cd "$shared_workspace/other" && shared_bazel shutdown) >"$TEST_log" 2>&1 || status=$?
++  assert_equals 36 "$status"
++  assert_shared_pid "$pid"
++}
++
++function test_shared_concurrent_startup() {
++  shared_bazel info server_pid >"$TEST_TMPDIR/first.pid" 2>"$TEST_TMPDIR/first.log" &
++  local first=$!
++  shared_bazel info server_pid >"$TEST_TMPDIR/second.pid" 2>"$TEST_TMPDIR/second.log" &
++  local second=$!
++  wait "$first" || fail "First client failed"
++  wait "$second" || fail "Second client failed"
++  assert_equals "$(cat "$TEST_TMPDIR/first.pid")" "$(cat "$TEST_TMPDIR/second.pid")"
++  assert_shared_pid "$(cat "$TEST_TMPDIR/first.pid")"
++}
++
++function test_shared_missing_profile_does_not_restart() {
++  local pid status=0
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  mv "$shared_control/server/startup_profile" "$shared_control/server/profile.saved"
++  shared_bazel info server_pid >"$TEST_log" 2>&1 || status=$?
++  mv "$shared_control/server/profile.saved" "$shared_control/server/startup_profile"
++  assert_equals 36 "$status"
++  assert_shared_pid "$pid"
++}
++
++function test_shared_unavailable_server_is_not_replaced() {
++  local pid status=0
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  mv "$shared_control/server/server_info.rawproto" "$shared_control/server/info.saved"
++  shared_bazel info server_pid >"$TEST_log" 2>&1 || status=$?
++  mv "$shared_control/server/info.saved" "$shared_control/server/server_info.rawproto"
++  assert_equals 36 "$status"
++  assert_shared_pid "$pid"
++}
++
++function test_shared_damaged_start_time_does_not_replace_live_process() {
++  local pid status=0
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  cp "$shared_control/server/server.starttime" "$shared_control/server/start.saved"
++  echo damaged > "$shared_control/server/server.starttime"
++  shared_bazel info server_pid >"$TEST_log" 2>&1 || status=$?
++  mv "$shared_control/server/start.saved" "$shared_control/server/server.starttime"
++  assert_equals 36 "$status"
++  assert_shared_pid "$pid"
++}
++
++function test_shared_control_and_output_locks() {
++  local pid output lock ready release holder status waiter
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
++  output=$(shared_bazel info output_base 2>"$TEST_log") || fail "Info failed"
++  for lock in "$shared_control/lock" "$output/lock"; do
++    ready="$lock.ready"
++    release="$lock.release"
++    python3 - "$lock" "$ready" "$release" <<'PY' &
++import fcntl, pathlib, sys, time
++with open(sys.argv[1], "a") as lock:
++    fcntl.lockf(lock, fcntl.LOCK_EX)
++    pathlib.Path(sys.argv[2]).touch()
++    deadline = time.monotonic() + 30
++    while not pathlib.Path(sys.argv[3]).exists():
++        if time.monotonic() > deadline:
++            raise RuntimeError("lock release timed out")
++        time.sleep(0.05)
++PY
++    holder=$!
++    for ((i=0; i<200; i++)); do
++      [[ -f "$ready" ]] && break
++      sleep 0.05
++    done
++    [[ -f "$ready" ]] || fail "Lock holder did not become ready"
++    status=0
++    shared_bazel --noblock_for_lock info server_pid >"$TEST_log" 2>&1 || status=$?
++    # Release before asserting to leave a recoverable test fixture on failure.
++    if [[ "$status" != 9 ]]; then
++      touch "$release"
++      wait "$holder"
++      fail "Expected lock rejection 9, got $status"
++    fi
++    shared_bazel info server_pid >"$TEST_TMPDIR/waiter.pid" 2>"$TEST_TMPDIR/waiter.log" &
++    waiter=$!
++    for ((i=0; i<200; i++)); do
++      grep -q 'Waiting for it to complete' "$TEST_TMPDIR/waiter.log" && break
++      sleep 0.05
++    done
++    touch "$release"
++    wait "$holder" || fail "Lock holder failed"
++    wait "$waiter" || fail "Waiting client failed"
++    grep -q 'Waiting for it to complete' "$TEST_TMPDIR/waiter.log" \
++      || fail "Client never reached the lock wait"
++    assert_equals "$pid" "$(cat "$TEST_TMPDIR/waiter.pid")"
++  done
++}
++
++function test_shared_rejects_unsupported_options() {
++  local option status
++  for option in --batch --output_base="$TEST_TMPDIR/explicit-engine" \
++      --delete_output_base_on_shutdown; do
++    status=0
++    shared_bazel "$option" info >"$TEST_log" 2>&1 || status=$?
++    assert_equals 2 "$status"
++  done
++  status=0
++  shared_bazel clean >"$TEST_log" 2>&1 || status=$?
++  assert_equals 2 "$status"
++  [[ ! -e "$shared_control" ]] || fail "Rejected options created control state"
++}
++
++function test_shared_build_and_test() {
++  mkdir -p shared_target
++  cat > shared_target/BUILD <<'EOF'
++load(":rules.bzl", "local_check_test")
++local_check_test(name = "check")
++EOF
++  cat > shared_target/rules.bzl <<'EOF'
++def _impl(ctx):
++    executable = ctx.actions.declare_file(ctx.label.name + ".sh")
++    ctx.actions.write(executable, "#!/bin/sh\necho shared-check-ok\n", is_executable = True)
++    return [DefaultInfo(executable = executable)]
++local_check_test = rule(implementation = _impl, test = True)
++EOF
++  shared_bazel build //shared_target:check >"$TEST_log" 2>&1 || fail "Build failed"
++  local pid
++  pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Info failed"
++  shared_bazel test --test_output=all //shared_target:check >"$TEST_log" 2>&1 || fail "Test failed"
++  expect_log 'shared-check-ok'
++  assert_shared_pid "$pid"
++}
++
++run_suite "Shared server startup and control namespace"

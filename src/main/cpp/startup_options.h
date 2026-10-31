@@ -153,10 +153,15 @@ class StartupOptions {
   // See UpdateConfiguration().
   blaze_util::Path output_user_root;
 
-  // The directory where build outputs are placed.
+  // The legacy build output directory, or the experimental daemon control base.
   // Defaults to a <md5(workspace)> subdirectory of output_user_root.
   // See UpdateConfiguration().
   blaze_util::Path output_base;
+
+  // Experimental single-engine control namespace. In this mode output_base is
+  // the daemon control base; engine_output_base contains private build state.
+  std::string experimental_shared_server;
+  blaze_util::Path engine_output_base;
 
   // The directory where the decompressed Bazel server is installed.
   // Defaults to an install/<md5(install)> subdirectory of output_user_root.
