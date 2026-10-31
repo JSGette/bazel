@@ -11,6 +11,11 @@ The earlier process supervisor remains an operational fallback. See the
 [native execution report](multi-worktree-native-mvp-2026-10-31.md) for evidence and
 supported scope; no memory/performance qualification is claimed.
 
+
+The [completion roadmap](multi-worktree-completion-roadmap.md) consolidates current
+restrictions and remaining gates at the latest reviewed implementation revision;
+older stage-status paragraphs below are historical execution snapshots.
+
 Initial supported commands: `build` and `test`
 
 Initial ownership boundary: one private workspace engine and output base per worktree

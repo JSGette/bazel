@@ -70,3 +70,6 @@ engine admission, scoped shutdown and final daemon exit. It retains commands,
 BEP, execution logs and a machine-readable result. See the
 [execution report](../../docs/jsgette/plans/multi-worktree-native-mvp-2026-10-31.md)
 for the DataDog Agent experiment and exact limitations.
+
+For the consolidated limitations, remaining work and completion gates, see the
+[completion roadmap](../../docs/jsgette/plans/multi-worktree-completion-roadmap.md).
