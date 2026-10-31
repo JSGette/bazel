@@ -78,6 +78,23 @@ message RunRequest {
   // block_for_lock is true, or abort immediately if block_for_lock is false.
   // If set to 0 (or <= 0), abort immediately when the lock is held.
   optional int64 block_for_lock_timeout_ms = 10;
+
+  // Engine selected by the client after workspace discovery and output-base
+  // canonicalization. A server must reject a present identity that does not
+  // belong to its dispatcher before admitting or preempting commands. Absence
+  // retains the legacy single-engine protocol; it is not valid shared routing.
+  EngineIdentity engine_identity = 11;
+}
+
+// Location of a private workspace engine. This identifies paths, not the
+// lifetime of their filesystem objects or a startup compatibility profile.
+message EngineIdentity {
+  // Canonical absolute workspace root, or empty outside a workspace. Uses the
+  // same platform byte encoding as startup arguments, not protobuf UTF-8.
+  bytes workspace_directory = 1;
+
+  // Canonical absolute output base, including an explicit --output_base.
+  bytes output_base = 2;
 }
 
 // Contains the a startup option with its source file. Uses bytes to preserve

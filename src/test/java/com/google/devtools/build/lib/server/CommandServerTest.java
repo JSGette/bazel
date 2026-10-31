@@ -26,6 +26,7 @@ import com.google.devtools.build.lib.runtime.CommandDispatcher;
 import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
 import com.google.devtools.build.lib.server.CommandProtos.CancelRequest;
 import com.google.devtools.build.lib.server.CommandProtos.CancelResponse;
+import com.google.devtools.build.lib.server.CommandProtos.EngineIdentity;
 import com.google.devtools.build.lib.server.CommandProtos.EnvironmentVariable;
 import com.google.devtools.build.lib.server.CommandProtos.RunRequest;
 import com.google.devtools.build.lib.server.CommandProtos.RunResponse;
@@ -44,6 +45,7 @@ import com.google.devtools.build.lib.util.io.OutErr;
 import com.google.devtools.build.lib.vfs.DigestHashFunction;
 import com.google.devtools.build.lib.vfs.FileSystem;
 import com.google.devtools.build.lib.vfs.Path;
+import com.google.devtools.build.lib.vfs.PathFragment;
 import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
@@ -111,6 +113,8 @@ public final class CommandServerTest {
             REQUEST_COOKIE,
             RESPONSE_COOKIE,
             serverDirectory,
+            PathFragment.create("/workspace"),
+            PathFragment.create("/output-base"),
             SERVER_PID,
             /* maxIdleSeconds= */ 1000,
             /* shutdownOnLowSysMem= */ false,
@@ -129,6 +133,10 @@ public final class CommandServerTest {
     return RunRequest.newBuilder()
         .setCookie(REQUEST_COOKIE)
         .setClientDescription("client-description")
+        .setEngineIdentity(
+            EngineIdentity.newBuilder()
+                .setWorkspaceDirectory(ByteString.copyFromUtf8("/workspace"))
+                .setOutputBase(ByteString.copyFromUtf8("/output-base")))
         .addAllArg(Arrays.stream(args).map(ByteString::copyFromUtf8).collect(Collectors.toList()))
         .build();
   }
@@ -480,6 +488,132 @@ public final class CommandServerTest {
             .build());
   }
 
+  @Test
+  public void engineIdentity_wrongWorkspaceIsRejectedBeforeDispatch() throws Exception {
+    runBadEngineIdentityTest("/other-worktree", "/output-base");
+  }
+
+  @Test
+  public void engineIdentity_wrongOutputBaseIsRejectedBeforeDispatch() throws Exception {
+    runBadEngineIdentityTest("/workspace", "/other-output-base");
+  }
+
+  @Test
+  public void engineIdentity_emptyOutputBaseIsRejectedBeforeDispatch() throws Exception {
+    runBadEngineIdentityTest("/workspace", "");
+  }
+
+  @Test
+  public void engineIdentity_relativeOutputBaseIsRejectedBeforeDispatch() throws Exception {
+    runBadEngineIdentityTest("/workspace", "output-base");
+  }
+
+  @Test
+  public void engineIdentity_legacyRequestWithoutIdentityStillDispatches() throws Exception {
+    AtomicInteger calls = new AtomicInteger();
+    CommandDispatcher dispatcher =
+        (policy,
+            args,
+            outErr,
+            timeout,
+            verbosity,
+            client,
+            start,
+            options,
+            idle,
+            extensions,
+            reporter) -> {
+          calls.incrementAndGet();
+          return BlazeCommandResult.success();
+        };
+    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
+    CountDownLatch done = new CountDownLatch(1);
+    List<RunResponse> responses = new ArrayList<>();
+    serverAndStub
+        .stub()
+        .run(
+            createRequest("Foo").toBuilder().clearEngineIdentity().build(),
+            createResponseObserver(responses, done));
+    assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+    serverAndStub.server().shutdown();
+    serverAndStub.server().awaitTermination();
+    assertThat(calls.get()).isEqualTo(1);
+    assertThat(responses.getLast().getExitCode()).isEqualTo(0);
+  }
+
+  @Test
+  public void engineIdentity_mismatchDoesNotPreemptExistingCommand() throws Exception {
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch proceed = new CountDownLatch(1);
+    AtomicInteger calls = new AtomicInteger();
+    CommandDispatcher dispatcher =
+        (policy,
+            args,
+            outErr,
+            timeout,
+            verbosity,
+            client,
+            start,
+            options,
+            idle,
+            extensions,
+            reporter) -> {
+          calls.incrementAndGet();
+          started.countDown();
+          proceed.await();
+          return BlazeCommandResult.success();
+        };
+    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
+    CountDownLatch firstDone = new CountDownLatch(1);
+    List<RunResponse> firstResponses = new ArrayList<>();
+    serverAndStub
+        .stub()
+        .run(
+            createRequest("Foo").toBuilder().setPreemptible(true).build(),
+            createResponseObserver(firstResponses, firstDone));
+    try {
+      assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+      CountDownLatch rejected = new CountDownLatch(1);
+      List<RunResponse> responses = new ArrayList<>();
+      serverAndStub
+          .stub()
+          .run(
+              createRequest("Bar").toBuilder()
+                  .setEngineIdentity(
+                      EngineIdentity.newBuilder()
+                          .setWorkspaceDirectory(ByteString.copyFromUtf8("/other-worktree"))
+                          .setOutputBase(ByteString.copyFromUtf8("/output-base")))
+                  .build(),
+              createResponseObserver(responses, rejected));
+      assertThat(rejected.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+      assertThat(responses).hasSize(1);
+      assertThat(responses.getFirst().getFailureDetail().getGrpcServer().getCode())
+          .isEqualTo(GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+    } finally {
+      proceed.countDown();
+      assertThat(firstDone.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+      serverAndStub.server().shutdown();
+      serverAndStub.server().awaitTermination();
+    }
+    assertThat(calls.get()).isEqualTo(1);
+    assertThat(firstResponses.getLast().getFinished()).isTrue();
+    assertThat(firstResponses.getLast().getExitCode()).isEqualTo(0);
+  }
+
+  private void runBadEngineIdentityTest(String workspace, String outputBase) throws Exception {
+    runBadCommandTest(
+        createRequest().toBuilder()
+            .setEngineIdentity(
+                EngineIdentity.newBuilder()
+                    .setWorkspaceDirectory(ByteString.copyFromUtf8(workspace))
+                    .setOutputBase(ByteString.copyFromUtf8(outputBase))),
+        FailureDetail.newBuilder()
+            .setMessage("Invalid RunRequest: engine identity does not match this server")
+            .setGrpcServer(
+                GrpcServer.newBuilder().setCode(GrpcServer.Code.ENGINE_IDENTITY_MISMATCH))
+            .build());
+  }
+
   private void runBadCommandTest(RunRequest.Builder runRequestBuilder, FailureDetail failureDetail)
       throws Exception {
     ServerAndStub serverAndStub = createServerAndStub(throwingDispatcher());
@@ -501,6 +635,13 @@ public final class CommandServerTest {
     assertThat(responses.get(0).getExitCode()).isEqualTo(36);
     assertThat(responses.get(0).hasFailureDetail()).isTrue();
     assertThat(responses.get(0).getFailureDetail()).isEqualTo(failureDetail);
+    if (runRequestBuilder.hasEngineIdentity()) {
+      assertThat(responses.get(0).getCookie()).isEqualTo(RESPONSE_COOKIE);
+      assertThat(responses.get(0).getCommandId()).isEmpty();
+      assertThat(responses.get(0).getTerminationExpected()).isFalse();
+      assertThat(responses.get(0).getStandardError().toStringUtf8())
+          .contains(failureDetail.getMessage());
+    }
   }
 
   @Test

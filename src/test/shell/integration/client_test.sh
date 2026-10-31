@@ -80,6 +80,62 @@ function test_multiple_requests_same_server() {
   expect_not_log "WARNING.* Running B\\(azel\\|laze\\) server needs to be killed"
 }
 
+function test_engine_identity_canonical_aliases() {
+  local workspace="$(pwd -P)"
+  local output="$TEST_TMPDIR/engine-output"
+  mkdir -p "$output" "$workspace/subdir"
+  ln -s "$workspace" "$TEST_TMPDIR/engine-workspace-alias"
+  ln -s "$output" "$TEST_TMPDIR/engine-output-alias"
+  local first second
+  first=$(bazel --output_base="$output" info server_pid 2>"$TEST_log") \
+    || fail "Initial engine request failed"
+  second=$(cd "$TEST_TMPDIR/engine-workspace-alias/subdir" && \
+    bazel --output_base="$TEST_TMPDIR/engine-output-alias" info server_pid 2>"$TEST_log") \
+    || fail "Aliased engine request failed"
+  assert_equals "$first" "$second"
+  bazel --output_base="$output" shutdown >"$TEST_log" 2>&1 || fail "Shutdown failed"
+}
+
+function test_engine_identity_explicit_output_base_nested_workspace() {
+  local workspace="$(pwd -P)"
+  local output="$TEST_TMPDIR/engine-collision-output"
+  mkdir -p "$workspace/nested"
+  touch "$workspace/nested/MODULE.bazel"
+  local actual
+  actual=$(bazel --output_base="$output" info workspace 2>"$TEST_log") \
+    || fail "Initial engine request failed"
+  assert_equals "$workspace" "$actual"
+  actual=$(cd "$workspace/nested" && \
+    bazel --output_base="$output" info workspace 2>"$TEST_log") \
+    || fail "Nested workspace restart failed"
+  assert_equals "$workspace/nested" "$actual"
+  actual=$(bazel --output_base="$output" info workspace 2>"$TEST_log") \
+    || fail "Return to initial workspace failed"
+  assert_equals "$workspace" "$actual"
+  bazel --output_base="$output" shutdown >"$TEST_log" 2>&1 || fail "Shutdown failed"
+}
+
+function test_engine_identity_outside_workspace() {
+  local output="$TEST_TMPDIR/engine-outside-output"
+  (cd / && bazel --output_base="$output" version >"$TEST_log" 2>&1) \
+    || fail "Outside-workspace request failed"
+  (cd / && bazel --output_base="$output" shutdown >"$TEST_log" 2>&1) \
+    || fail "Outside-workspace shutdown failed"
+}
+
+function test_engine_identity_preserves_explicit_failure_detail_path() {
+  local output="$TEST_TMPDIR/engine-explicit-failure-output"
+  local first second
+  first=$(bazel --output_base="$output" --failure_detail_out="$TEST_TMPDIR/failure-a" \
+    info server_pid 2>"$TEST_log") || fail "First explicit path failed"
+  second=$(bazel --output_base="$output" --failure_detail_out="$TEST_TMPDIR/failure-b" \
+    info server_pid 2>"$TEST_log") || fail "Second explicit path failed"
+  assert_not_equals "$first" "$second"
+  expect_log "failure_detail_out="
+  bazel --output_base="$output" --failure_detail_out="$TEST_TMPDIR/failure-b" \
+    shutdown >"$TEST_log" 2>&1 || fail "Shutdown failed"
+}
+
 function test_no_server_restart_if_options_order_changes() {
   local server_pid1=$(bazel \
                       --host_jvm_args=-Dfoo \

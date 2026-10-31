@@ -783,10 +783,6 @@ void StartupOptions::UpdateConfiguration(const string& install_md5,
     }
     output_base = blaze::GetHashedBaseDir(output_user_root, workspace);
   }
-
-  if (failure_detail_out.IsEmpty()) {
-    failure_detail_out = output_base.GetRelative("failure_detail.rawproto");
-  }
 }
 
 }  // namespace blaze

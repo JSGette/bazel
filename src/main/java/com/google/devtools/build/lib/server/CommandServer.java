@@ -52,6 +52,7 @@ import com.google.devtools.build.lib.util.io.CommandExtensionReporter;
 import com.google.devtools.build.lib.util.io.OutErr;
 import com.google.devtools.build.lib.vfs.FileSystemUtils;
 import com.google.devtools.build.lib.vfs.Path;
+import com.google.devtools.build.lib.vfs.PathFragment;
 import com.google.devtools.common.options.InvocationPolicyParser;
 import com.google.devtools.common.options.OptionsParsingException;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -95,6 +96,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
       Clock clock,
       int port,
       Path serverDirectory,
+      PathFragment workspaceDirectory,
+      PathFragment outputBase,
       int serverPid,
       int maxIdleSeconds,
       boolean shutdownOnLowSysMem,
@@ -111,6 +114,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
         generateCookie(random, 16),
         generateCookie(random, 16),
         serverDirectory,
+        workspaceDirectory,
+        outputBase,
         serverPid,
         maxIdleSeconds,
         shutdownOnLowSysMem,
@@ -243,6 +248,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
   private final PidFileWatcher pidFileWatcher;
   private final int serverPid;
   private final int port;
+  private final PathFragment workspaceDirectory;
+  private final PathFragment outputBase;
 
   @VisibleForTesting
   CommandServer(
@@ -255,6 +262,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
       String requestCookie,
       String responseCookie,
       Path serverDirectory,
+      PathFragment workspaceDirectory,
+      PathFragment outputBase,
       int serverPid,
       int maxIdleSeconds,
       boolean shutdownOnLowSysMem,
@@ -269,6 +278,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
     this.requestCookie = requestCookie;
     this.responseCookie = responseCookie;
     this.serverDirectory = serverDirectory;
+    this.workspaceDirectory = workspaceDirectory;
+    this.outputBase = outputBase;
     this.serverPid = serverPid;
     this.maxIdleSeconds = maxIdleSeconds;
     this.shutdownOnLowSysMem = shutdownOnLowSysMem;
@@ -446,6 +457,35 @@ public class CommandServer implements GrpcCommandServer.Callback {
                 .setFinished(true)
                 .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
                 .setFailureDetail(failureDetail)
+                .build()
+                .toByteArray());
+        responder.onCompleted();
+      } catch (IOException e) {
+        logger.atInfo().withCause(e).log("Error while sending RunResponse");
+      }
+      return;
+    }
+
+    // Validate ownership before preemption, command registration, or dispatch.
+    // Legacy clients and legacy restart requests omit the identity.
+    if (request.hasEngineIdentity()
+        && (!workspaceDirectory.equals(
+                PathFragment.create(
+                    platformBytesToInternalString(
+                        request.getEngineIdentity().getWorkspaceDirectory())))
+            || !outputBase.equals(
+                PathFragment.create(
+                    platformBytesToInternalString(request.getEngineIdentity().getOutputBase()))))) {
+      String message = "Invalid RunRequest: engine identity does not match this server";
+      try {
+        responder.onNext(
+            RunResponse.newBuilder()
+                .setCookie(responseCookie)
+                .setFinished(true)
+                .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
+                .setStandardError(ByteString.copyFromUtf8(message + "\n"))
+                .setFailureDetail(
+                    createFailureDetail(message, GrpcServer.Code.ENGINE_IDENTITY_MISMATCH))
                 .build()
                 .toByteArray());
         responder.onCompleted();

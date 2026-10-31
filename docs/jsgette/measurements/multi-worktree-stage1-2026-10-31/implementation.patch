@@ -1,0 +1,508 @@
+diff --git a/src/main/cpp/blaze.cc b/src/main/cpp/blaze.cc
+index b3da74c0..b50b1dfb 100644
+--- a/src/main/cpp/blaze.cc
++++ b/src/main/cpp/blaze.cc
+@@ -626,6 +626,12 @@ static void PrepareDirectories(StartupOptions *startup_options) {
+         << "Output base directory could not be canonicalized: "
+         << GetLastErrorString();
+   }
++  // Derive defaults only after canonicalization, so an output-base alias does
++  // not appear to change the server's startup options. Preserve explicit paths.
++  if (startup_options->failure_detail_out.IsEmpty()) {
++    startup_options->failure_detail_out =
++        startup_options->output_base.GetRelative("failure_detail.rawproto");
++  }
+ }
+ 
+ // Prepares the environment to be suitable to start a JVM.
+@@ -869,7 +875,7 @@ static const char *ReasonString(RestartReason reason) {
+ 
+ class BlazeServer final {
+  public:
+-  BlazeServer(const StartupOptions &startup_options,
++  BlazeServer(const StartupOptions &startup_options, const std::string &workspace,
+               CommandExtensionAdder *command_extension_adder,
+               ClientLocks locks);
+ 
+@@ -946,6 +952,7 @@ class BlazeServer final {
+   const bool preemptible_;
+   const bool lock_install_base_;
+   const blaze_util::Path output_base_;
++  const std::string workspace_;
+   CommandExtensionAdder* command_extension_adder_;
+ };
+ 
+@@ -1618,8 +1625,8 @@ static void RunLauncher(const string& self_path,
+     return;
+   }
+ 
+-  blaze_server = new BlazeServer(startup_options, command_extension_adder,
+-                                 std::move(client_locks));
++  blaze_server = new BlazeServer(startup_options, workspace,
++                                 command_extension_adder, std::move(client_locks));
+ 
+   blaze_server->Connect();
+ 
+@@ -1775,6 +1782,7 @@ int Main(int argc, const char *const *argv, WorkspaceLayout *workspace_layout,
+ }
+ 
+ BlazeServer::BlazeServer(const StartupOptions& startup_options,
++                         const std::string& workspace,
+                          CommandExtensionAdder* command_extension_adder,
+                          ClientLocks locks)
+     : locks_(std::move(locks)),
+@@ -1786,6 +1794,7 @@ BlazeServer::BlazeServer(const StartupOptions& startup_options,
+       preemptible_(startup_options.preemptible),
+       lock_install_base_(startup_options.lock_install_base),
+       output_base_(startup_options.output_base),
++      workspace_(workspace),
+       command_extension_adder_(command_extension_adder) {
+   pipe_.reset(blaze_util::CreatePipe());
+   if (!pipe_) {
+@@ -2017,6 +2026,8 @@ void BlazeServer::KillRunningServer() {
+ 
+   std::unique_ptr<grpc::ClientContext> context(new grpc::ClientContext);
+   command_server::RunRequest request;
++  // Legacy restart may target a server started for a different workspace.
++  // Keep this control request separate from ordinary engine-bound commands.
+   command_server::RunResponse response;
+   request.set_cookie(request_cookie_);
+   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
+@@ -2117,6 +2128,10 @@ unsigned int BlazeServer::Communicate(
+ 
+   command_server::RunRequest request;
+   request.set_cookie(request_cookie_);
++  request.mutable_engine_identity()->set_workspace_directory(
++      blaze_util::ConvertPath(workspace_));
++  request.mutable_engine_identity()->set_output_base(
++      output_base_.AsCommandLineArgument());
+   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
+   if (block_for_lock_timeout_ != absl::InfiniteDuration()) {
+     request.set_block_for_lock_timeout_ms(
+diff --git a/src/main/cpp/startup_options.cc b/src/main/cpp/startup_options.cc
+index 4d6e7662..d9a78cda 100644
+--- a/src/main/cpp/startup_options.cc
++++ b/src/main/cpp/startup_options.cc
+@@ -783,10 +783,6 @@ void StartupOptions::UpdateConfiguration(const string& install_md5,
+     }
+     output_base = blaze::GetHashedBaseDir(output_user_root, workspace);
+   }
+-
+-  if (failure_detail_out.IsEmpty()) {
+-    failure_detail_out = output_base.GetRelative("failure_detail.rawproto");
+-  }
+ }
+ 
+ }  // namespace blaze
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+index 80103166..6e8f1f5b 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+@@ -1368,6 +1368,8 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+               runtime.clock,
+               startupOptions.getCommandPort(),
+               runtime.getServerDirectory(),
++              startupOptions.getWorkspaceDirectory(),
++              startupOptions.getOutputBase(),
+               serverPid,
+               startupOptions.getMaxIdleSeconds(),
+               startupOptions.getShutdownOnLowSysMem(),
+diff --git a/src/main/java/com/google/devtools/build/lib/server/BUILD b/src/main/java/com/google/devtools/build/lib/server/BUILD
+index 71f0c8ab..bada99fe 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/server/BUILD
+@@ -147,6 +147,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/util/io:io-proto",
+         "//src/main/java/com/google/devtools/build/lib/util/io:out-err",
+         "//src/main/java/com/google/devtools/build/lib/vfs",
++        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
+         "//src/main/java/com/google/devtools/common/options",
+         "//src/main/java/com/google/devtools/common/options:invocation_policy",
+         "//src/main/protobuf:command_server_java_proto",
+diff --git a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+index 08115524..afdcec75 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
++++ b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+@@ -52,6 +52,7 @@ import com.google.devtools.build.lib.util.io.CommandExtensionReporter;
+ import com.google.devtools.build.lib.util.io.OutErr;
+ import com.google.devtools.build.lib.vfs.FileSystemUtils;
+ import com.google.devtools.build.lib.vfs.Path;
++import com.google.devtools.build.lib.vfs.PathFragment;
+ import com.google.devtools.common.options.InvocationPolicyParser;
+ import com.google.devtools.common.options.OptionsParsingException;
+ import com.google.errorprone.annotations.CanIgnoreReturnValue;
+@@ -95,6 +96,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       Clock clock,
+       int port,
+       Path serverDirectory,
++      PathFragment workspaceDirectory,
++      PathFragment outputBase,
+       int serverPid,
+       int maxIdleSeconds,
+       boolean shutdownOnLowSysMem,
+@@ -111,6 +114,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
+         generateCookie(random, 16),
+         generateCookie(random, 16),
+         serverDirectory,
++        workspaceDirectory,
++        outputBase,
+         serverPid,
+         maxIdleSeconds,
+         shutdownOnLowSysMem,
+@@ -243,6 +248,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   private final PidFileWatcher pidFileWatcher;
+   private final int serverPid;
+   private final int port;
++  private final PathFragment workspaceDirectory;
++  private final PathFragment outputBase;
+ 
+   @VisibleForTesting
+   CommandServer(
+@@ -255,6 +262,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       String requestCookie,
+       String responseCookie,
+       Path serverDirectory,
++      PathFragment workspaceDirectory,
++      PathFragment outputBase,
+       int serverPid,
+       int maxIdleSeconds,
+       boolean shutdownOnLowSysMem,
+@@ -269,6 +278,8 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     this.requestCookie = requestCookie;
+     this.responseCookie = responseCookie;
+     this.serverDirectory = serverDirectory;
++    this.workspaceDirectory = workspaceDirectory;
++    this.outputBase = outputBase;
+     this.serverPid = serverPid;
+     this.maxIdleSeconds = maxIdleSeconds;
+     this.shutdownOnLowSysMem = shutdownOnLowSysMem;
+@@ -455,6 +466,35 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       return;
+     }
+ 
++    // Validate ownership before preemption, command registration, or dispatch.
++    // Legacy clients and legacy restart requests omit the identity.
++    if (request.hasEngineIdentity()
++        && (!workspaceDirectory.equals(
++                PathFragment.create(
++                    platformBytesToInternalString(
++                        request.getEngineIdentity().getWorkspaceDirectory())))
++            || !outputBase.equals(
++                PathFragment.create(
++                    platformBytesToInternalString(request.getEngineIdentity().getOutputBase()))))) {
++      String message = "Invalid RunRequest: engine identity does not match this server";
++      try {
++        responder.onNext(
++            RunResponse.newBuilder()
++                .setCookie(responseCookie)
++                .setFinished(true)
++                .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
++                .setStandardError(ByteString.copyFromUtf8(message + "\n"))
++                .setFailureDetail(
++                    createFailureDetail(message, GrpcServer.Code.ENGINE_IDENTITY_MISMATCH))
++                .build()
++                .toByteArray());
++        responder.onCompleted();
++      } catch (IOException e) {
++        logger.atInfo().withCause(e).log("Error while sending RunResponse");
++      }
++      return;
++    }
++
+     String commandId;
+     BlazeCommandResult result;
+ 
+diff --git a/src/main/protobuf/command_server.proto b/src/main/protobuf/command_server.proto
+index 02467c97..d9987ce5 100644
+--- a/src/main/protobuf/command_server.proto
++++ b/src/main/protobuf/command_server.proto
+@@ -78,6 +78,23 @@ message RunRequest {
+   // block_for_lock is true, or abort immediately if block_for_lock is false.
+   // If set to 0 (or <= 0), abort immediately when the lock is held.
+   optional int64 block_for_lock_timeout_ms = 10;
++
++  // Engine selected by the client after workspace discovery and output-base
++  // canonicalization. A server must reject a present identity that does not
++  // belong to its dispatcher before admitting or preempting commands. Absence
++  // retains the legacy single-engine protocol; it is not valid shared routing.
++  EngineIdentity engine_identity = 11;
++}
++
++// Location of a private workspace engine. This identifies paths, not the
++// lifetime of their filesystem objects or a startup compatibility profile.
++message EngineIdentity {
++  // Canonical absolute workspace root, or empty outside a workspace. Uses the
++  // same platform byte encoding as startup arguments, not protobuf UTF-8.
++  bytes workspace_directory = 1;
++
++  // Canonical absolute output base, including an explicit --output_base.
++  bytes output_base = 2;
+ }
+ 
+ // Contains the a startup option with its source file. Uses bytes to preserve
+diff --git a/src/main/protobuf/failure_details.proto b/src/main/protobuf/failure_details.proto
+index fbaedd80..f6fcc187 100644
+--- a/src/main/protobuf/failure_details.proto
++++ b/src/main/protobuf/failure_details.proto
+@@ -656,6 +656,7 @@ message GrpcServer {
+     BAD_COOKIE = 3 [(metadata) = { exit_code: 36 }];
+     NO_CLIENT_DESCRIPTION = 4 [(metadata) = { exit_code: 36 }];
+     reserved 5; // For internal use
++    ENGINE_IDENTITY_MISMATCH = 6 [(metadata) = { exit_code: 36 }];
+   }
+ 
+   Code code = 1;
+diff --git a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+index 8097f1ca..6b34a658 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
++++ b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+@@ -26,6 +26,7 @@ import com.google.devtools.build.lib.runtime.CommandDispatcher;
+ import com.google.devtools.build.lib.runtime.proto.InvocationPolicyOuterClass.InvocationPolicy;
+ import com.google.devtools.build.lib.server.CommandProtos.CancelRequest;
+ import com.google.devtools.build.lib.server.CommandProtos.CancelResponse;
++import com.google.devtools.build.lib.server.CommandProtos.EngineIdentity;
+ import com.google.devtools.build.lib.server.CommandProtos.EnvironmentVariable;
+ import com.google.devtools.build.lib.server.CommandProtos.RunRequest;
+ import com.google.devtools.build.lib.server.CommandProtos.RunResponse;
+@@ -44,6 +45,7 @@ import com.google.devtools.build.lib.util.io.OutErr;
+ import com.google.devtools.build.lib.vfs.DigestHashFunction;
+ import com.google.devtools.build.lib.vfs.FileSystem;
+ import com.google.devtools.build.lib.vfs.Path;
++import com.google.devtools.build.lib.vfs.PathFragment;
+ import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
+ import com.google.protobuf.Any;
+ import com.google.protobuf.ByteString;
+@@ -111,6 +113,8 @@ public final class CommandServerTest {
+             REQUEST_COOKIE,
+             RESPONSE_COOKIE,
+             serverDirectory,
++            PathFragment.create("/workspace"),
++            PathFragment.create("/output-base"),
+             SERVER_PID,
+             /* maxIdleSeconds= */ 1000,
+             /* shutdownOnLowSysMem= */ false,
+@@ -129,6 +133,10 @@ public final class CommandServerTest {
+     return RunRequest.newBuilder()
+         .setCookie(REQUEST_COOKIE)
+         .setClientDescription("client-description")
++        .setEngineIdentity(
++            EngineIdentity.newBuilder()
++                .setWorkspaceDirectory(ByteString.copyFromUtf8("/workspace"))
++                .setOutputBase(ByteString.copyFromUtf8("/output-base")))
+         .addAllArg(Arrays.stream(args).map(ByteString::copyFromUtf8).collect(Collectors.toList()))
+         .build();
+   }
+@@ -480,6 +488,132 @@ public final class CommandServerTest {
+             .build());
+   }
+ 
++  @Test
++  public void engineIdentity_wrongWorkspaceIsRejectedBeforeDispatch() throws Exception {
++    runBadEngineIdentityTest("/other-worktree", "/output-base");
++  }
++
++  @Test
++  public void engineIdentity_wrongOutputBaseIsRejectedBeforeDispatch() throws Exception {
++    runBadEngineIdentityTest("/workspace", "/other-output-base");
++  }
++
++  @Test
++  public void engineIdentity_emptyOutputBaseIsRejectedBeforeDispatch() throws Exception {
++    runBadEngineIdentityTest("/workspace", "");
++  }
++
++  @Test
++  public void engineIdentity_relativeOutputBaseIsRejectedBeforeDispatch() throws Exception {
++    runBadEngineIdentityTest("/workspace", "output-base");
++  }
++
++  @Test
++  public void engineIdentity_legacyRequestWithoutIdentityStillDispatches() throws Exception {
++    AtomicInteger calls = new AtomicInteger();
++    CommandDispatcher dispatcher =
++        (policy,
++            args,
++            outErr,
++            timeout,
++            verbosity,
++            client,
++            start,
++            options,
++            idle,
++            extensions,
++            reporter) -> {
++          calls.incrementAndGet();
++          return BlazeCommandResult.success();
++        };
++    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
++    CountDownLatch done = new CountDownLatch(1);
++    List<RunResponse> responses = new ArrayList<>();
++    serverAndStub
++        .stub()
++        .run(
++            createRequest("Foo").toBuilder().clearEngineIdentity().build(),
++            createResponseObserver(responses, done));
++    assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++    serverAndStub.server().shutdown();
++    serverAndStub.server().awaitTermination();
++    assertThat(calls.get()).isEqualTo(1);
++    assertThat(responses.getLast().getExitCode()).isEqualTo(0);
++  }
++
++  @Test
++  public void engineIdentity_mismatchDoesNotPreemptExistingCommand() throws Exception {
++    CountDownLatch started = new CountDownLatch(1);
++    CountDownLatch proceed = new CountDownLatch(1);
++    AtomicInteger calls = new AtomicInteger();
++    CommandDispatcher dispatcher =
++        (policy,
++            args,
++            outErr,
++            timeout,
++            verbosity,
++            client,
++            start,
++            options,
++            idle,
++            extensions,
++            reporter) -> {
++          calls.incrementAndGet();
++          started.countDown();
++          proceed.await();
++          return BlazeCommandResult.success();
++        };
++    ServerAndStub serverAndStub = createServerAndStub(dispatcher);
++    CountDownLatch firstDone = new CountDownLatch(1);
++    List<RunResponse> firstResponses = new ArrayList<>();
++    serverAndStub
++        .stub()
++        .run(
++            createRequest("Foo").toBuilder().setPreemptible(true).build(),
++            createResponseObserver(firstResponses, firstDone));
++    try {
++      assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++      CountDownLatch rejected = new CountDownLatch(1);
++      List<RunResponse> responses = new ArrayList<>();
++      serverAndStub
++          .stub()
++          .run(
++              createRequest("Bar").toBuilder()
++                  .setEngineIdentity(
++                      EngineIdentity.newBuilder()
++                          .setWorkspaceDirectory(ByteString.copyFromUtf8("/other-worktree"))
++                          .setOutputBase(ByteString.copyFromUtf8("/output-base")))
++                  .build(),
++              createResponseObserver(responses, rejected));
++      assertThat(rejected.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++      assertThat(responses).hasSize(1);
++      assertThat(responses.getFirst().getFailureDetail().getGrpcServer().getCode())
++          .isEqualTo(GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++    } finally {
++      proceed.countDown();
++      assertThat(firstDone.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++      serverAndStub.server().shutdown();
++      serverAndStub.server().awaitTermination();
++    }
++    assertThat(calls.get()).isEqualTo(1);
++    assertThat(firstResponses.getLast().getFinished()).isTrue();
++    assertThat(firstResponses.getLast().getExitCode()).isEqualTo(0);
++  }
++
++  private void runBadEngineIdentityTest(String workspace, String outputBase) throws Exception {
++    runBadCommandTest(
++        createRequest().toBuilder()
++            .setEngineIdentity(
++                EngineIdentity.newBuilder()
++                    .setWorkspaceDirectory(ByteString.copyFromUtf8(workspace))
++                    .setOutputBase(ByteString.copyFromUtf8(outputBase))),
++        FailureDetail.newBuilder()
++            .setMessage("Invalid RunRequest: engine identity does not match this server")
++            .setGrpcServer(
++                GrpcServer.newBuilder().setCode(GrpcServer.Code.ENGINE_IDENTITY_MISMATCH))
++            .build());
++  }
++
+   private void runBadCommandTest(RunRequest.Builder runRequestBuilder, FailureDetail failureDetail)
+       throws Exception {
+     ServerAndStub serverAndStub = createServerAndStub(throwingDispatcher());
+@@ -501,6 +635,13 @@ public final class CommandServerTest {
+     assertThat(responses.get(0).getExitCode()).isEqualTo(36);
+     assertThat(responses.get(0).hasFailureDetail()).isTrue();
+     assertThat(responses.get(0).getFailureDetail()).isEqualTo(failureDetail);
++    if (runRequestBuilder.hasEngineIdentity()) {
++      assertThat(responses.get(0).getCookie()).isEqualTo(RESPONSE_COOKIE);
++      assertThat(responses.get(0).getCommandId()).isEmpty();
++      assertThat(responses.get(0).getTerminationExpected()).isFalse();
++      assertThat(responses.get(0).getStandardError().toStringUtf8())
++          .contains(failureDetail.getMessage());
++    }
+   }
+ 
+   @Test
+diff --git a/src/test/shell/integration/client_test.sh b/src/test/shell/integration/client_test.sh
+index d7c9560a..f729f87b 100755
+--- a/src/test/shell/integration/client_test.sh
++++ b/src/test/shell/integration/client_test.sh
+@@ -80,6 +80,62 @@ function test_multiple_requests_same_server() {
+   expect_not_log "WARNING.* Running B\\(azel\\|laze\\) server needs to be killed"
+ }
+ 
++function test_engine_identity_canonical_aliases() {
++  local workspace="$(pwd -P)"
++  local output="$TEST_TMPDIR/engine-output"
++  mkdir -p "$output" "$workspace/subdir"
++  ln -s "$workspace" "$TEST_TMPDIR/engine-workspace-alias"
++  ln -s "$output" "$TEST_TMPDIR/engine-output-alias"
++  local first second
++  first=$(bazel --output_base="$output" info server_pid 2>"$TEST_log") \
++    || fail "Initial engine request failed"
++  second=$(cd "$TEST_TMPDIR/engine-workspace-alias/subdir" && \
++    bazel --output_base="$TEST_TMPDIR/engine-output-alias" info server_pid 2>"$TEST_log") \
++    || fail "Aliased engine request failed"
++  assert_equals "$first" "$second"
++  bazel --output_base="$output" shutdown >"$TEST_log" 2>&1 || fail "Shutdown failed"
++}
++
++function test_engine_identity_explicit_output_base_nested_workspace() {
++  local workspace="$(pwd -P)"
++  local output="$TEST_TMPDIR/engine-collision-output"
++  mkdir -p "$workspace/nested"
++  touch "$workspace/nested/MODULE.bazel"
++  local actual
++  actual=$(bazel --output_base="$output" info workspace 2>"$TEST_log") \
++    || fail "Initial engine request failed"
++  assert_equals "$workspace" "$actual"
++  actual=$(cd "$workspace/nested" && \
++    bazel --output_base="$output" info workspace 2>"$TEST_log") \
++    || fail "Nested workspace restart failed"
++  assert_equals "$workspace/nested" "$actual"
++  actual=$(bazel --output_base="$output" info workspace 2>"$TEST_log") \
++    || fail "Return to initial workspace failed"
++  assert_equals "$workspace" "$actual"
++  bazel --output_base="$output" shutdown >"$TEST_log" 2>&1 || fail "Shutdown failed"
++}
++
++function test_engine_identity_outside_workspace() {
++  local output="$TEST_TMPDIR/engine-outside-output"
++  (cd / && bazel --output_base="$output" version >"$TEST_log" 2>&1) \
++    || fail "Outside-workspace request failed"
++  (cd / && bazel --output_base="$output" shutdown >"$TEST_log" 2>&1) \
++    || fail "Outside-workspace shutdown failed"
++}
++
++function test_engine_identity_preserves_explicit_failure_detail_path() {
++  local output="$TEST_TMPDIR/engine-explicit-failure-output"
++  local first second
++  first=$(bazel --output_base="$output" --failure_detail_out="$TEST_TMPDIR/failure-a" \
++    info server_pid 2>"$TEST_log") || fail "First explicit path failed"
++  second=$(bazel --output_base="$output" --failure_detail_out="$TEST_TMPDIR/failure-b" \
++    info server_pid 2>"$TEST_log") || fail "Second explicit path failed"
++  assert_not_equals "$first" "$second"
++  expect_log "failure_detail_out="
++  bazel --output_base="$output" --failure_detail_out="$TEST_TMPDIR/failure-b" \
++    shutdown >"$TEST_log" 2>&1 || fail "Shutdown failed"
++}
++
+ function test_no_server_restart_if_options_order_changes() {
+   local server_pid1=$(bazel \
+                       --host_jvm_args=-Dfoo \

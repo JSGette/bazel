@@ -626,6 +626,12 @@ static void PrepareDirectories(StartupOptions *startup_options) {
         << "Output base directory could not be canonicalized: "
         << GetLastErrorString();
   }
+  // Derive defaults only after canonicalization, so an output-base alias does
+  // not appear to change the server's startup options. Preserve explicit paths.
+  if (startup_options->failure_detail_out.IsEmpty()) {
+    startup_options->failure_detail_out =
+        startup_options->output_base.GetRelative("failure_detail.rawproto");
+  }
 }
 
 // Prepares the environment to be suitable to start a JVM.
@@ -869,7 +875,7 @@ static const char *ReasonString(RestartReason reason) {
 
 class BlazeServer final {
  public:
-  BlazeServer(const StartupOptions &startup_options,
+  BlazeServer(const StartupOptions &startup_options, const std::string &workspace,
               CommandExtensionAdder *command_extension_adder,
               ClientLocks locks);
 
@@ -946,6 +952,7 @@ class BlazeServer final {
   const bool preemptible_;
   const bool lock_install_base_;
   const blaze_util::Path output_base_;
+  const std::string workspace_;
   CommandExtensionAdder* command_extension_adder_;
 };
 
@@ -1618,8 +1625,8 @@ static void RunLauncher(const string& self_path,
     return;
   }
 
-  blaze_server = new BlazeServer(startup_options, command_extension_adder,
-                                 std::move(client_locks));
+  blaze_server = new BlazeServer(startup_options, workspace,
+                                 command_extension_adder, std::move(client_locks));
 
   blaze_server->Connect();
 
@@ -1775,6 +1782,7 @@ int Main(int argc, const char *const *argv, WorkspaceLayout *workspace_layout,
 }
 
 BlazeServer::BlazeServer(const StartupOptions& startup_options,
+                         const std::string& workspace,
                          CommandExtensionAdder* command_extension_adder,
                          ClientLocks locks)
     : locks_(std::move(locks)),
@@ -1786,6 +1794,7 @@ BlazeServer::BlazeServer(const StartupOptions& startup_options,
       preemptible_(startup_options.preemptible),
       lock_install_base_(startup_options.lock_install_base),
       output_base_(startup_options.output_base),
+      workspace_(workspace),
       command_extension_adder_(command_extension_adder) {
   pipe_.reset(blaze_util::CreatePipe());
   if (!pipe_) {
@@ -2017,6 +2026,8 @@ void BlazeServer::KillRunningServer() {
 
   std::unique_ptr<grpc::ClientContext> context(new grpc::ClientContext);
   command_server::RunRequest request;
+  // Legacy restart may target a server started for a different workspace.
+  // Keep this control request separate from ordinary engine-bound commands.
   command_server::RunResponse response;
   request.set_cookie(request_cookie_);
   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
@@ -2117,6 +2128,10 @@ unsigned int BlazeServer::Communicate(
 
   command_server::RunRequest request;
   request.set_cookie(request_cookie_);
+  request.mutable_engine_identity()->set_workspace_directory(
+      blaze_util::ConvertPath(workspace_));
+  request.mutable_engine_identity()->set_output_base(
+      output_base_.AsCommandLineArgument());
   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
   if (block_for_lock_timeout_ != absl::InfiniteDuration()) {
     request.set_block_for_lock_timeout_ms(
