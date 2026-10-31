@@ -1,6 +1,8 @@
 # Multi-worktree Stage 1: request ownership
 
 31 October 2026. **First implementation slice complete; Stage 1 remains open.**
+The [registration and request-lifetime continuation](multi-worktree-stage1-registry-2026-10-31.md)
+implements the next slice; this document records the earlier state.
 The [bounded Phase 0 baseline](multi-worktree-phase0-2026-10-31.md) now meets the
 original baseline exit gate. This increment adds an ownership check to the real
 C++ client / protobuf / Java dispatch path. It does not enable shared daemons.
@@ -45,7 +47,7 @@ Legacy omission is compatibility, not a security or ownership fence for a future
 shared daemon. In particular, the legacy restart/kill path must never reach a
 shared daemon. No shared PID or endpoint is currently published anywhere.
 
-## Remaining Stage 1 contract
+## Remaining Stage 1 contract at the end of this first slice
 
 These are implementation decisions for the next slices, not working features or
 public flags:

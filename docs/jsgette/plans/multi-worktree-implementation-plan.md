@@ -118,10 +118,13 @@ flowchart LR
 
 ## Stage 1 — Ownership, identity, and compatibility
 
-**Execution status (31 October 2026):** the [first request-ownership slice](multi-worktree-stage1-2026-10-31.md)
-is implemented and tested. Canonical workspace/output-base identity is carried by
-the C++ client and checked before Java dispatch/preemption. Shared registration,
-compatibility profiles and lifecycle fencing remain open; this stage is not complete.
+**Execution status (31 October 2026):** [request ownership](multi-worktree-stage1-2026-10-31.md)
+and [registration/request lifetime](multi-worktree-stage1-registry-2026-10-31.md)
+are implemented and tested on the single-engine path. The client carries canonical
+workspace/output-base identity and a registration ID. The server checks them
+before dispatch/preemption and drains RPC leases before cleanup. Shared discovery,
+cross-process registration, startup profiles and filesystem lifetime fencing remain
+open; this stage is not complete.
 
 **Depends on:** stage 0 and the architectural contract above. Stage 0 supplies the pinned baseline, workload and compatibility evidence; no later performance claim may bypass its qualification requirements.
 

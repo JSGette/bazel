@@ -126,10 +126,22 @@ java_library(
 )
 
 java_library(
+    name = "engine_registry",
+    srcs = ["EngineRegistry.java"],
+    deps = [
+        "//src/main/java/com/google/devtools/build/lib/runtime:command_dispatcher",
+        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
+        "//third_party/java/guava:base",
+        "//third_party/java/jsr305_annotations",
+    ],
+)
+
+java_library(
     name = "command_server",
     srcs = ["CommandServer.java"],
     deps = [
         ":command_manager",
+        ":engine_registry",
         ":grpc_command_server",
         ":pid_file_watcher",
         ":server_watcher_runnable",

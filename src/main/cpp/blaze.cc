@@ -928,6 +928,7 @@ class BlazeServer final {
   std::string request_cookie_;
   std::string response_cookie_;
   std::string command_id_;
+  std::string engine_instance_id_;
 
   // protects command_id_ . Although we always set it before making the cancel
   // thread do something with it, the mutex is still useful because it provides
@@ -1830,6 +1831,7 @@ bool BlazeServer::TryConnect(CommandServer::Stub *client) {
     return false;
   }
 
+  engine_instance_id_ = response.engine_instance_id();
   return true;
 }
 
@@ -1989,6 +1991,7 @@ void BlazeServer::SendCancelMessage() {
 
   command_server::CancelRequest request;
   request.set_cookie(request_cookie_);
+  request.set_engine_instance_id(engine_instance_id_);
   request.set_command_id(command_id_);
   grpc::ClientContext context;
   context.set_deadline(DeadlineFromNow(10));
@@ -2006,6 +2009,7 @@ void BlazeServer::SendTerminalSizeMessage(int columns) {
 
   command_server::TerminalSizeRequest request;
   request.set_cookie(request_cookie_);
+  request.set_engine_instance_id(engine_instance_id_);
   request.set_command_id(command_id_);
   request.set_columns(columns);
   grpc::ClientContext context;
@@ -2030,6 +2034,7 @@ void BlazeServer::KillRunningServer() {
   // Keep this control request separate from ordinary engine-bound commands.
   command_server::RunResponse response;
   request.set_cookie(request_cookie_);
+  request.set_engine_instance_id(engine_instance_id_);
   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
   if (block_for_lock_timeout_ != absl::InfiniteDuration()) {
     request.set_block_for_lock_timeout_ms(
@@ -2130,6 +2135,7 @@ unsigned int BlazeServer::Communicate(
   request.set_cookie(request_cookie_);
   request.mutable_engine_identity()->set_workspace_directory(
       blaze_util::ConvertPath(workspace_));
+  request.set_engine_instance_id(engine_instance_id_);
   request.mutable_engine_identity()->set_output_base(
       output_base_.AsCommandLineArgument());
   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());

@@ -84,6 +84,11 @@ message RunRequest {
   // belong to its dispatcher before admitting or preempting commands. Absence
   // retains the legacy single-engine protocol; it is not valid shared routing.
   EngineIdentity engine_identity = 11;
+
+  // Opaque registration ID returned by Ping. Reject a nonempty ID after that
+  // registration has drained or been replaced, even if its paths are unchanged.
+  // Empty retains legacy single-engine behavior.
+  string engine_instance_id = 12;
 }
 
 // Location of a private workspace engine. This identifies paths, not the
@@ -209,6 +214,9 @@ message CancelRequest {
 
   // The id of the command to cancel.
   string command_id = 2;
+
+  // Registration owning the command. Empty is accepted for legacy clients.
+  string engine_instance_id = 3;
 }
 
 message CancelResponse {
@@ -231,6 +239,9 @@ message TerminalSizeRequest {
   // Terminal height in rows. This is not currently used by Bazel's progress UI
   // but is included so the RPC can carry the complete terminal size.
   int32 rows = 4;
+
+  // Registration owning the command. Empty is accepted for legacy clients.
+  string engine_instance_id = 5;
 }
 
 message TerminalSizeResponse {
@@ -247,6 +258,10 @@ message PingRequest {
 message PingResponse {
   // The server response cookie (see RunResponse.cookie).
   string cookie = 1;
+
+  // Registration served by this single-engine endpoint. Only returned after
+  // authenticating the request. This is not a filesystem object identity.
+  string engine_instance_id = 2;
 }
 
 // Describes metadata necessary for connecting to and managing the server.

@@ -15,6 +15,7 @@
 package com.google.devtools.build.lib.server;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.server.CommandManager.RunningCommand;
@@ -38,7 +39,7 @@ public class CommandManagerTest {
   @Test
   public void testBasicOperationsOnSingleThread() {
     CommandManager underTest =
-        new CommandManager(/*doIdleServerTasks=*/ false, "slow interrupt message suffix");
+        new CommandManager(/* doIdleServerTasks= */ false, "slow interrupt message suffix");
     assertThat(underTest.isEmpty()).isTrue();
     assertThat(underTest.getCommandCounter()).isEqualTo(0);
     try (RunningCommand firstCommand = underTest.createCommand()) {
@@ -62,7 +63,7 @@ public class CommandManagerTest {
   public void testNotifiesOnBusyAndIdle() throws Exception {
     AtomicInteger notificationCounter = new AtomicInteger(0);
     CommandManager underTest =
-        new CommandManager(/*doIdleServerTasks=*/ false, "slow interrupt message suffix");
+        new CommandManager(/* doIdleServerTasks= */ false, "slow interrupt message suffix");
     AtomicBoolean waiting = new AtomicBoolean(false);
     CyclicBarrier cyclicBarrier = new CyclicBarrier(2);
 
@@ -181,6 +182,42 @@ public class CommandManagerTest {
     while (!(readyToWaitForChange.get() && thread.getState() == State.WAITING)) {
       Thread.sleep(50);
     }
+  }
+
+  @Test
+  public void shutdownRequiresDrainedCommandsAndStopsIdleTasks() throws Exception {
+    CommandManager manager = new CommandManager(true, null);
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch stopped = new CountDownLatch(1);
+    try (var command = manager.createCommand()) {
+      assertThrows(IllegalStateException.class, manager::shutdown);
+      command.setIdleTasks(
+          ImmutableList.of(
+              new IdleTask() {
+                @Override
+                public String displayName() {
+                  return "shutdown-test";
+                }
+
+                @Override
+                public void run() {
+                  started.countDown();
+                  try {
+                    new CountDownLatch(1).await();
+                  } catch (InterruptedException expected) {
+                    stopped.countDown();
+                  }
+                }
+              }));
+    }
+    try {
+      assertThat(
+              started.await(TestUtils.WAIT_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS))
+          .isTrue();
+    } finally {
+      manager.shutdown();
+    }
+    assertThat(stopped.getCount()).isEqualTo(0);
   }
 
   private static boolean isValidUuid(String uuidString) {

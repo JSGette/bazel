@@ -22,6 +22,7 @@ java_library(
         "//src/main/java/com/google/devtools/build/lib/runtime:command_dispatcher",
         "//src/main/java/com/google/devtools/build/lib/server:command_manager",
         "//src/main/java/com/google/devtools/build/lib/server:command_server",
+        "//src/main/java/com/google/devtools/build/lib/server:engine_registry",
         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server",
         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server_impl",
         "//src/main/java/com/google/devtools/build/lib/server:idle_task",

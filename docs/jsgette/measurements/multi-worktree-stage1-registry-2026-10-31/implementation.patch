@@ -1,0 +1,1243 @@
+diff --git a/src/main/cpp/blaze.cc b/src/main/cpp/blaze.cc
+index b50b1dfb..1b1752df 100644
+--- a/src/main/cpp/blaze.cc
++++ b/src/main/cpp/blaze.cc
+@@ -928,6 +928,7 @@ class BlazeServer final {
+   std::string request_cookie_;
+   std::string response_cookie_;
+   std::string command_id_;
++  std::string engine_instance_id_;
+ 
+   // protects command_id_ . Although we always set it before making the cancel
+   // thread do something with it, the mutex is still useful because it provides
+@@ -1830,6 +1831,7 @@ bool BlazeServer::TryConnect(CommandServer::Stub *client) {
+     return false;
+   }
+ 
++  engine_instance_id_ = response.engine_instance_id();
+   return true;
+ }
+ 
+@@ -1989,6 +1991,7 @@ void BlazeServer::SendCancelMessage() {
+ 
+   command_server::CancelRequest request;
+   request.set_cookie(request_cookie_);
++  request.set_engine_instance_id(engine_instance_id_);
+   request.set_command_id(command_id_);
+   grpc::ClientContext context;
+   context.set_deadline(DeadlineFromNow(10));
+@@ -2006,6 +2009,7 @@ void BlazeServer::SendTerminalSizeMessage(int columns) {
+ 
+   command_server::TerminalSizeRequest request;
+   request.set_cookie(request_cookie_);
++  request.set_engine_instance_id(engine_instance_id_);
+   request.set_command_id(command_id_);
+   request.set_columns(columns);
+   grpc::ClientContext context;
+@@ -2030,6 +2034,7 @@ void BlazeServer::KillRunningServer() {
+   // Keep this control request separate from ordinary engine-bound commands.
+   command_server::RunResponse response;
+   request.set_cookie(request_cookie_);
++  request.set_engine_instance_id(engine_instance_id_);
+   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
+   if (block_for_lock_timeout_ != absl::InfiniteDuration()) {
+     request.set_block_for_lock_timeout_ms(
+@@ -2130,6 +2135,7 @@ unsigned int BlazeServer::Communicate(
+   request.set_cookie(request_cookie_);
+   request.mutable_engine_identity()->set_workspace_directory(
+       blaze_util::ConvertPath(workspace_));
++  request.set_engine_instance_id(engine_instance_id_);
+   request.mutable_engine_identity()->set_output_base(
+       output_base_.AsCommandLineArgument());
+   request.set_block_for_lock(block_for_lock_timeout_ > absl::ZeroDuration());
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+index 6e8f1f5b..6fa0646e 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeRuntime.java
+@@ -1363,6 +1363,10 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+           CommandServer.create(
+               grpcCommandServerService.getGrpcCommandServer(),
+               dispatcher,
++              () -> {
++                runtime.shutdown();
++                dispatcher.shutdown();
++              },
+               shutdownHooks,
+               pidFileWatcher,
+               runtime.clock,
+@@ -1388,8 +1392,6 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
+           };
+ 
+       commandServer.serveAndAwaitTermination();
+-      runtime.shutdown();
+-      dispatcher.shutdown();
+       return ExitCode.SUCCESS.getNumericExitCode();
+     } catch (OptionsParsingException e) {
+       outErr.printErrLn(e.getMessage());
+diff --git a/src/main/java/com/google/devtools/build/lib/server/BUILD b/src/main/java/com/google/devtools/build/lib/server/BUILD
+index bada99fe..7a33e60a 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/server/BUILD
+@@ -125,11 +125,23 @@ java_library(
+     ],
+ )
+ 
++java_library(
++    name = "engine_registry",
++    srcs = ["EngineRegistry.java"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/runtime:command_dispatcher",
++        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
++        "//third_party/java/guava:base",
++        "//third_party/java/jsr305_annotations",
++    ],
++)
++
+ java_library(
+     name = "command_server",
+     srcs = ["CommandServer.java"],
+     deps = [
+         ":command_manager",
++        ":engine_registry",
+         ":grpc_command_server",
+         ":pid_file_watcher",
+         ":server_watcher_runnable",
+diff --git a/src/main/java/com/google/devtools/build/lib/server/CommandManager.java b/src/main/java/com/google/devtools/build/lib/server/CommandManager.java
+index 05a319fb..0c90f11d 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/CommandManager.java
++++ b/src/main/java/com/google/devtools/build/lib/server/CommandManager.java
+@@ -142,6 +142,14 @@ class CommandManager {
+     }
+   }
+ 
++  /** Stops idle work after the engine has stopped admitting RPCs and drained its leases. */
++  void shutdown() {
++    synchronized (runningCommandsMap) {
++      checkState(runningCommandsMap.isEmpty(), "commands are still running");
++      busy();
++    }
++  }
++
+   long getCommandCounter() {
+     synchronized (runningCommandsMap) {
+       return commandCounter;
+diff --git a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+index afdcec75..5ed30cbb 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
++++ b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+@@ -14,6 +14,7 @@
+ 
+ package com.google.devtools.build.lib.server;
+ 
++import static com.google.common.base.Preconditions.checkState;
+ import static java.nio.charset.StandardCharsets.ISO_8859_1;
+ 
+ import com.google.common.annotations.VisibleForTesting;
+@@ -38,6 +39,7 @@ import com.google.devtools.build.lib.server.CommandProtos.ServerInfo;
+ import com.google.devtools.build.lib.server.CommandProtos.StartupOption;
+ import com.google.devtools.build.lib.server.CommandProtos.TerminalSizeRequest;
+ import com.google.devtools.build.lib.server.CommandProtos.TerminalSizeResponse;
++import com.google.devtools.build.lib.server.EngineRegistry.Lease;
+ import com.google.devtools.build.lib.server.FailureDetails.Command;
+ import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
+ import com.google.devtools.build.lib.server.FailureDetails.Filesystem;
+@@ -91,6 +93,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   public static CommandServer create(
+       GrpcCommandServer grpcCommandServer,
+       CommandDispatcher dispatcher,
++      Runnable engineShutdown,
+       ShutdownHooks shutdownHooks,
+       PidFileWatcher pidFileWatcher,
+       Clock clock,
+@@ -107,6 +110,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     return new CommandServer(
+         grpcCommandServer,
+         dispatcher,
++        engineShutdown,
+         shutdownHooks,
+         pidFileWatcher,
+         clock,
+@@ -237,7 +241,12 @@ public class CommandServer implements GrpcCommandServer.Callback {
+ 
+   private final GrpcCommandServer grpcCommandServer;
+   private final CommandManager commandManager;
+-  private final CommandDispatcher dispatcher;
++  private final EngineRegistry engines = new EngineRegistry();
++  private final EngineRegistry.Key engineKey;
++  private final EngineRegistry.Registration engine;
++  private final Runnable engineShutdown;
++  // Guarded by this; cleanup must never be retried after a partial failure.
++  private boolean engineCleanupStarted;
+   private final ShutdownHooks shutdownHooks;
+   private final Clock clock;
+   private final Path serverDirectory;
+@@ -255,6 +264,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   CommandServer(
+       GrpcCommandServer grpcCommandServer,
+       CommandDispatcher dispatcher,
++      Runnable engineShutdown,
+       ShutdownHooks shutdownHooks,
+       PidFileWatcher pidFileWatcher,
+       Clock clock,
+@@ -270,7 +280,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       boolean doIdleServerTasks,
+       @Nullable String slowInterruptMessageSuffix) {
+     this.grpcCommandServer = grpcCommandServer;
+-    this.dispatcher = dispatcher;
++    this.engineKey = new EngineRegistry.Key(workspaceDirectory, outputBase);
++    this.engine = engines.reserve(engineKey);
++    this.engineShutdown = engineShutdown;
+     this.shutdownHooks = shutdownHooks;
+     this.pidFileWatcher = pidFileWatcher;
+     this.clock = clock;
+@@ -285,6 +297,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     this.shutdownOnLowSysMem = shutdownOnLowSysMem;
+ 
+     commandManager = new CommandManager(doIdleServerTasks, slowInterruptMessageSuffix);
++    engine.activate(dispatcher);
+   }
+ 
+   private static String generateCookie(SecureRandom random, int byteCount) {
+@@ -381,6 +394,20 @@ public class CommandServer implements GrpcCommandServer.Callback {
+   @VisibleForTesting
+   void awaitTermination() throws InterruptedException {
+     grpcCommandServer.awaitTermination();
++    shutdownEngine();
++  }
++
++  private synchronized void shutdownEngine() throws InterruptedException {
++    if (engine.state() == EngineRegistry.State.CLOSED) {
++      return;
++    }
++    engine.beginDrain();
++    engine.awaitDrained();
++    checkState(!engineCleanupStarted, "engine cleanup previously failed");
++    engineCleanupStarted = true;
++    commandManager.shutdown();
++    engineShutdown.run();
++    engine.close();
+   }
+ 
+   private void writeServerStatusFiles(SocketAddress address) throws AbruptExitException {
+@@ -476,25 +503,45 @@ public class CommandServer implements GrpcCommandServer.Callback {
+             || !outputBase.equals(
+                 PathFragment.create(
+                     platformBytesToInternalString(request.getEngineIdentity().getOutputBase()))))) {
+-      String message = "Invalid RunRequest: engine identity does not match this server";
+-      try {
+-        responder.onNext(
+-            RunResponse.newBuilder()
+-                .setCookie(responseCookie)
+-                .setFinished(true)
+-                .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
+-                .setStandardError(ByteString.copyFromUtf8(message + "\n"))
+-                .setFailureDetail(
+-                    createFailureDetail(message, GrpcServer.Code.ENGINE_IDENTITY_MISMATCH))
+-                .build()
+-                .toByteArray());
+-        responder.onCompleted();
+-      } catch (IOException e) {
+-        logger.atInfo().withCause(e).log("Error while sending RunResponse");
+-      }
++      rejectRun(
++          responder,
++          "Invalid RunRequest: engine identity does not match this server",
++          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+       return;
+     }
+ 
++    try (Lease lease = engines.acquire(engineKey, request.getEngineInstanceId())) {
++      if (lease == null) {
++        rejectRun(
++            responder,
++            "Invalid RunRequest: engine registration is unavailable",
++            GrpcServer.Code.ENGINE_UNAVAILABLE);
++        return;
++      }
++      execute(request, responder, lease.dispatcher());
++    }
++  }
++
++  private void rejectRun(
++      GrpcCommandServer.Responder responder, String message, GrpcServer.Code code) {
++    try {
++      responder.onNext(
++          RunResponse.newBuilder()
++              .setCookie(responseCookie)
++              .setFinished(true)
++              .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
++              .setStandardError(ByteString.copyFromUtf8(message + "\n"))
++              .setFailureDetail(createFailureDetail(message, code))
++              .build()
++              .toByteArray());
++      responder.onCompleted();
++    } catch (IOException e) {
++      logger.atInfo().withCause(e).log("Error while sending RunResponse");
++    }
++  }
++
++  private void execute(
++      RunRequest request, GrpcCommandServer.Responder responder, CommandDispatcher dispatcher) {
+     String commandId;
+     BlazeCommandResult result;
+ 
+@@ -629,13 +676,19 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       // Programming error: the SC proto must remain backwards-compatible with the LC proto.
+       throw new IllegalStateException(e);
+     }
+-    try (RunningCommand command = commandManager.createCommand()) {
++    try (Lease lease =
++        isValidRequestCookie(request.getCookie()) ? engines.acquire(engineKey, "") : null) {
+       PingResponse.Builder response = PingResponse.newBuilder();
+-      if (isValidRequestCookie(request.getCookie())) {
+-        response.setCookie(responseCookie);
++      if (lease != null) {
++        try (RunningCommand command = commandManager.createCommand()) {
++          response.setCookie(responseCookie).setEngineInstanceId(engine.instanceId());
++          responder.onNext(response.build().toByteArray());
++          responder.onCompleted();
++        }
++      } else {
++        responder.onNext(response.build().toByteArray());
++        responder.onCompleted();
+       }
+-      responder.onNext(response.build().toByteArray());
+-      responder.onCompleted();
+     } catch (IOException e) {
+       // There is no one to report the failure to.
+       logger.atInfo().withCause(e).log("Error while sending PingResponse");
+@@ -652,8 +705,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       throw new IllegalStateException(e);
+     }
+     logger.atInfo().log("Got CancelRequest for command id %s", request.getCommandId());
+-    try {
+-      if (isValidRequestCookie(request.getCookie())) {
++    try (Lease lease =
++        isValidRequestCookie(request.getCookie())
++            ? engines.acquire(engineKey, request.getEngineInstanceId())
++            : null) {
++      if (lease != null) {
+         commandManager.doCancel(request);
+         responder.onNext(
+             CancelResponse.newBuilder().setCookie(responseCookie).build().toByteArray());
+@@ -676,8 +732,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
+       throw new IllegalStateException(e);
+     }
+     logger.atInfo().log("Got TerminalSizeRequest for command id %s", request.getCommandId());
+-    try {
+-      if (isValidRequestCookie(request.getCookie())) {
++    try (Lease lease =
++        isValidRequestCookie(request.getCookie())
++            ? engines.acquire(engineKey, request.getEngineInstanceId())
++            : null) {
++      if (lease != null) {
+         commandManager.doUpdateTerminalSize(request);
+         responder.onNext(
+             TerminalSizeResponse.newBuilder().setCookie(responseCookie).build().toByteArray());
+diff --git a/src/main/java/com/google/devtools/build/lib/server/EngineRegistry.java b/src/main/java/com/google/devtools/build/lib/server/EngineRegistry.java
+new file mode 100644
+index 00000000..73aba7ea
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/server/EngineRegistry.java
+@@ -0,0 +1,196 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package com.google.devtools.build.lib.server;
++
++import static com.google.common.base.Preconditions.checkArgument;
++import static com.google.common.base.Preconditions.checkNotNull;
++import static com.google.common.base.Preconditions.checkState;
++
++import com.google.devtools.build.lib.runtime.CommandDispatcher;
++import com.google.devtools.build.lib.vfs.PathFragment;
++import java.util.HashMap;
++import java.util.Map;
++import java.util.UUID;
++import javax.annotation.Nullable;
++import javax.annotation.concurrent.GuardedBy;
++
++/**
++ * Process-local ownership of private workspace engines.
++ *
++ * <p>This is not a filesystem lock or a startup compatibility check. Callers must canonicalize
++ * paths and hold the appropriate external locks before reserving an output base. An owner reserves
++ * before initialization, activates only after initialization succeeds, then drains requests before
++ * cleaning up the engine. It closes the registration only after cleanup succeeds. Failed cleanup
++ * deliberately leaves the output base reserved; it must not be handed to a new engine with old
++ * resources alive.
++ */
++final class EngineRegistry {
++  record Key(PathFragment workspace, PathFragment outputBase) {
++    Key {
++      checkNotNull(workspace);
++      checkArgument(workspace.isEmpty() || workspace.isAbsolute(), "workspace must be absolute");
++      checkArgument(outputBase.isAbsolute(), "output base must be absolute");
++    }
++  }
++
++  enum State {
++    CREATING,
++    READY,
++    DRAINING,
++    CLOSED
++  }
++
++  @GuardedBy("this")
++  private final Map<PathFragment, Registration> registrations = new HashMap<>();
++
++  synchronized Registration reserve(Key key) {
++    checkState(!registrations.containsKey(key.outputBase()), "output base is already reserved");
++    Registration registration = new Registration(key);
++    registrations.put(key.outputBase(), registration);
++    return registration;
++  }
++
++  /** Returns null for an absent, not-ready or stale registration. Empty IDs are legacy requests. */
++  @Nullable
++  synchronized Lease acquire(Key key, String instanceId) {
++    Registration registration = registrations.get(key.outputBase());
++    return registration == null || !registration.key.equals(key)
++        ? null
++        : registration.acquire(instanceId);
++  }
++
++  final class Registration implements AutoCloseable {
++    private final Key key;
++    private final String instanceId = UUID.randomUUID().toString();
++
++    @GuardedBy("EngineRegistry.this")
++    private State state = State.CREATING;
++
++    @GuardedBy("EngineRegistry.this")
++    private int leases;
++
++    @GuardedBy("EngineRegistry.this")
++    @Nullable
++    private CommandDispatcher dispatcher;
++
++    private Registration(Key key) {
++      this.key = key;
++    }
++
++    @Nullable
++    private Lease acquire(String requestedId) {
++      synchronized (EngineRegistry.this) {
++        if (state != State.READY || (!requestedId.isEmpty() && !instanceId.equals(requestedId))) {
++          return null;
++        }
++        leases++;
++        return new Lease(this, checkNotNull(dispatcher));
++      }
++    }
++
++    private void releaseLease() {
++      synchronized (EngineRegistry.this) {
++        leases--;
++        EngineRegistry.this.notifyAll();
++      }
++    }
++
++    String instanceId() {
++      return instanceId;
++    }
++
++    State state() {
++      synchronized (EngineRegistry.this) {
++        return state;
++      }
++    }
++
++    void activate(CommandDispatcher dispatcher) {
++      synchronized (EngineRegistry.this) {
++        checkState(state == State.CREATING, "registration is not creating");
++        this.dispatcher = checkNotNull(dispatcher);
++        state = State.READY;
++      }
++    }
++
++    void beginDrain() {
++      synchronized (EngineRegistry.this) {
++        checkState(state == State.READY || state == State.DRAINING, "registration is not ready");
++        state = State.DRAINING;
++      }
++    }
++
++    /**
++     * Waits without releasing output-base ownership. Call outside any lease held by this thread.
++     */
++    void awaitDrained() throws InterruptedException {
++      synchronized (EngineRegistry.this) {
++        checkState(state == State.DRAINING, "registration is not draining");
++        while (leases != 0) {
++          EngineRegistry.this.wait();
++        }
++      }
++    }
++
++    /** Aborts creation, or releases a drained registration after the owner has cleaned it up. */
++    @Override
++    public void close() {
++      synchronized (EngineRegistry.this) {
++        if (state == State.CLOSED) {
++          return;
++        }
++        checkState(state == State.CREATING || state == State.DRAINING, "engine must drain first");
++        checkState(leases == 0, "engine still has active leases");
++        state = State.CLOSED;
++        dispatcher = null;
++        registrations.remove(key.outputBase(), this);
++      }
++    }
++  }
++
++  final class Lease implements AutoCloseable {
++    private final Registration registration;
++
++    @GuardedBy("EngineRegistry.this")
++    @Nullable
++    private CommandDispatcher dispatcher;
++
++    @GuardedBy("EngineRegistry.this")
++    private boolean closed;
++
++    private Lease(Registration registration, CommandDispatcher dispatcher) {
++      this.registration = registration;
++      this.dispatcher = dispatcher;
++    }
++
++    CommandDispatcher dispatcher() {
++      synchronized (EngineRegistry.this) {
++        checkState(!closed, "lease is closed");
++        return checkNotNull(dispatcher);
++      }
++    }
++
++    @Override
++    public void close() {
++      synchronized (EngineRegistry.this) {
++        if (!closed) {
++          closed = true;
++          dispatcher = null;
++          registration.releaseLease();
++        }
++      }
++    }
++  }
++}
+diff --git a/src/main/protobuf/command_server.proto b/src/main/protobuf/command_server.proto
+index d9987ce5..f40ca43d 100644
+--- a/src/main/protobuf/command_server.proto
++++ b/src/main/protobuf/command_server.proto
+@@ -84,6 +84,11 @@ message RunRequest {
+   // belong to its dispatcher before admitting or preempting commands. Absence
+   // retains the legacy single-engine protocol; it is not valid shared routing.
+   EngineIdentity engine_identity = 11;
++
++  // Opaque registration ID returned by Ping. Reject a nonempty ID after that
++  // registration has drained or been replaced, even if its paths are unchanged.
++  // Empty retains legacy single-engine behavior.
++  string engine_instance_id = 12;
+ }
+ 
+ // Location of a private workspace engine. This identifies paths, not the
+@@ -209,6 +214,9 @@ message CancelRequest {
+ 
+   // The id of the command to cancel.
+   string command_id = 2;
++
++  // Registration owning the command. Empty is accepted for legacy clients.
++  string engine_instance_id = 3;
+ }
+ 
+ message CancelResponse {
+@@ -231,6 +239,9 @@ message TerminalSizeRequest {
+   // Terminal height in rows. This is not currently used by Bazel's progress UI
+   // but is included so the RPC can carry the complete terminal size.
+   int32 rows = 4;
++
++  // Registration owning the command. Empty is accepted for legacy clients.
++  string engine_instance_id = 5;
+ }
+ 
+ message TerminalSizeResponse {
+@@ -247,6 +258,10 @@ message PingRequest {
+ message PingResponse {
+   // The server response cookie (see RunResponse.cookie).
+   string cookie = 1;
++
++  // Registration served by this single-engine endpoint. Only returned after
++  // authenticating the request. This is not a filesystem object identity.
++  string engine_instance_id = 2;
+ }
+ 
+ // Describes metadata necessary for connecting to and managing the server.
+diff --git a/src/main/protobuf/failure_details.proto b/src/main/protobuf/failure_details.proto
+index f6fcc187..75b26155 100644
+--- a/src/main/protobuf/failure_details.proto
++++ b/src/main/protobuf/failure_details.proto
+@@ -657,6 +657,7 @@ message GrpcServer {
+     NO_CLIENT_DESCRIPTION = 4 [(metadata) = { exit_code: 36 }];
+     reserved 5; // For internal use
+     ENGINE_IDENTITY_MISMATCH = 6 [(metadata) = { exit_code: 36 }];
++    ENGINE_UNAVAILABLE = 7 [(metadata) = { exit_code: 36 }];
+   }
+ 
+   Code code = 1;
+diff --git a/src/test/java/com/google/devtools/build/lib/server/BUILD b/src/test/java/com/google/devtools/build/lib/server/BUILD
+index 1ef17bae..9e10eec7 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/server/BUILD
+@@ -22,6 +22,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/runtime:command_dispatcher",
+         "//src/main/java/com/google/devtools/build/lib/server:command_manager",
+         "//src/main/java/com/google/devtools/build/lib/server:command_server",
++        "//src/main/java/com/google/devtools/build/lib/server:engine_registry",
+         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server",
+         "//src/main/java/com/google/devtools/build/lib/server:grpc_command_server_impl",
+         "//src/main/java/com/google/devtools/build/lib/server:idle_task",
+diff --git a/src/test/java/com/google/devtools/build/lib/server/CommandManagerTest.java b/src/test/java/com/google/devtools/build/lib/server/CommandManagerTest.java
+index f53eab9f..1e113a4e 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/CommandManagerTest.java
++++ b/src/test/java/com/google/devtools/build/lib/server/CommandManagerTest.java
+@@ -15,6 +15,7 @@
+ package com.google.devtools.build.lib.server;
+ 
+ import static com.google.common.truth.Truth.assertThat;
++import static org.junit.Assert.assertThrows;
+ 
+ import com.google.common.collect.ImmutableList;
+ import com.google.devtools.build.lib.server.CommandManager.RunningCommand;
+@@ -38,7 +39,7 @@ public class CommandManagerTest {
+   @Test
+   public void testBasicOperationsOnSingleThread() {
+     CommandManager underTest =
+-        new CommandManager(/*doIdleServerTasks=*/ false, "slow interrupt message suffix");
++        new CommandManager(/* doIdleServerTasks= */ false, "slow interrupt message suffix");
+     assertThat(underTest.isEmpty()).isTrue();
+     assertThat(underTest.getCommandCounter()).isEqualTo(0);
+     try (RunningCommand firstCommand = underTest.createCommand()) {
+@@ -62,7 +63,7 @@ public class CommandManagerTest {
+   public void testNotifiesOnBusyAndIdle() throws Exception {
+     AtomicInteger notificationCounter = new AtomicInteger(0);
+     CommandManager underTest =
+-        new CommandManager(/*doIdleServerTasks=*/ false, "slow interrupt message suffix");
++        new CommandManager(/* doIdleServerTasks= */ false, "slow interrupt message suffix");
+     AtomicBoolean waiting = new AtomicBoolean(false);
+     CyclicBarrier cyclicBarrier = new CyclicBarrier(2);
+ 
+@@ -183,6 +184,42 @@ public class CommandManagerTest {
+     }
+   }
+ 
++  @Test
++  public void shutdownRequiresDrainedCommandsAndStopsIdleTasks() throws Exception {
++    CommandManager manager = new CommandManager(true, null);
++    CountDownLatch started = new CountDownLatch(1);
++    CountDownLatch stopped = new CountDownLatch(1);
++    try (var command = manager.createCommand()) {
++      assertThrows(IllegalStateException.class, manager::shutdown);
++      command.setIdleTasks(
++          ImmutableList.of(
++              new IdleTask() {
++                @Override
++                public String displayName() {
++                  return "shutdown-test";
++                }
++
++                @Override
++                public void run() {
++                  started.countDown();
++                  try {
++                    new CountDownLatch(1).await();
++                  } catch (InterruptedException expected) {
++                    stopped.countDown();
++                  }
++                }
++              }));
++    }
++    try {
++      assertThat(
++              started.await(TestUtils.WAIT_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS))
++          .isTrue();
++    } finally {
++      manager.shutdown();
++    }
++    assertThat(stopped.getCount()).isEqualTo(0);
++  }
++
+   private static boolean isValidUuid(String uuidString) {
+     try {
+       UUID unused = UUID.fromString(uuidString);
+diff --git a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+index 6b34a658..ae2ffe37 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
++++ b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+@@ -20,6 +20,7 @@ import static org.junit.Assert.assertThrows;
+ 
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Iterables;
++import com.google.common.util.concurrent.Uninterruptibles;
+ import com.google.devtools.build.lib.clock.JavaClock;
+ import com.google.devtools.build.lib.runtime.BlazeCommandResult;
+ import com.google.devtools.build.lib.runtime.CommandDispatcher;
+@@ -28,6 +29,8 @@ import com.google.devtools.build.lib.server.CommandProtos.CancelRequest;
+ import com.google.devtools.build.lib.server.CommandProtos.CancelResponse;
+ import com.google.devtools.build.lib.server.CommandProtos.EngineIdentity;
+ import com.google.devtools.build.lib.server.CommandProtos.EnvironmentVariable;
++import com.google.devtools.build.lib.server.CommandProtos.PingRequest;
++import com.google.devtools.build.lib.server.CommandProtos.PingResponse;
+ import com.google.devtools.build.lib.server.CommandProtos.RunRequest;
+ import com.google.devtools.build.lib.server.CommandProtos.RunResponse;
+ import com.google.devtools.build.lib.server.CommandProtos.TerminalSizeRequest;
+@@ -38,6 +41,7 @@ import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
+ import com.google.devtools.build.lib.server.FailureDetails.GrpcServer;
+ import com.google.devtools.build.lib.server.FailureDetails.Interrupted;
+ import com.google.devtools.build.lib.server.FailureDetails.Interrupted.Code;
++import com.google.devtools.build.lib.testutil.TestThread;
+ import com.google.devtools.build.lib.testutil.TestUtils;
+ import com.google.devtools.build.lib.util.Pair;
+ import com.google.devtools.build.lib.util.io.CommandExtensionReporter;
+@@ -85,6 +89,11 @@ public final class CommandServerTest {
+   record ServerAndStub(CommandServer server, CommandServerStub stub) {}
+ 
+   private ServerAndStub createServerAndStub(CommandDispatcher dispatcher) throws Exception {
++    return createServerAndStub(dispatcher, () -> {});
++  }
++
++  private ServerAndStub createServerAndStub(CommandDispatcher dispatcher, Runnable engineShutdown)
++      throws Exception {
+     Path serverDirectory = fileSystem.getPath("/bazel_server_directory");
+     serverDirectory.createDirectoryAndParents();
+ 
+@@ -106,6 +115,7 @@ public final class CommandServerTest {
+         new CommandServer(
+             grpcCommandServer,
+             dispatcher,
++            engineShutdown,
+             ShutdownHooks.createUnregistered(),
+             new PidFileWatcher(fileSystem.getPath("/thread-not-running-dont-need"), SERVER_PID),
+             new JavaClock(),
+@@ -478,6 +488,165 @@ public final class CommandServerTest {
+             .build());
+   }
+ 
++  private static GrpcCommandServer.Responder noValueResponder(AtomicInteger completed) {
++    return new GrpcCommandServer.Responder() {
++      @Override
++      public void onNext(byte[] bytes) {
++        throw new AssertionError("Stale control request must not be acknowledged");
++      }
++
++      @Override
++      public void onCompleted() {
++        completed.incrementAndGet();
++      }
++    };
++  }
++
++  private static PingResponse ping(ServerAndStub server, String cookie) {
++    return CommandServerGrpc.newBlockingStub(server.stub().getChannel())
++        .withDeadlineAfter(WAIT_TIMEOUT_SECONDS, SECONDS)
++        .ping(PingRequest.newBuilder().setCookie(cookie).build());
++  }
++
++  @Test
++  public void engineInstance_pingAuthenticatesAndPinsRegistration() throws Exception {
++    AtomicInteger calls = new AtomicInteger();
++    CommandDispatcher dispatcher =
++        (policy,
++            args,
++            outErr,
++            timeout,
++            verbosity,
++            client,
++            start,
++            options,
++            idle,
++            extensions,
++            reporter) -> {
++          calls.incrementAndGet();
++          return BlazeCommandResult.success();
++        };
++    ServerAndStub first = createServerAndStub(dispatcher);
++    PingResponse response = ping(first, REQUEST_COOKIE);
++    assertThat(response.getCookie()).isEqualTo(RESPONSE_COOKIE);
++    assertThat(response.getEngineInstanceId()).isNotEmpty();
++    assertThat(ping(first, REQUEST_COOKIE)).isEqualTo(response);
++    assertThat(ping(first, "invalid").getEngineInstanceId()).isEmpty();
++    first.server().shutdown();
++    first.server().awaitTermination();
++
++    ServerAndStub second = createServerAndStub(dispatcher);
++    PingResponse replacement = ping(second, REQUEST_COOKIE);
++    assertThat(replacement.getEngineInstanceId()).isNotEqualTo(response.getEngineInstanceId());
++    for (String id :
++        ImmutableList.of(response.getEngineInstanceId(), replacement.getEngineInstanceId())) {
++      CountDownLatch done = new CountDownLatch(1);
++      List<RunResponse> replies = new ArrayList<>();
++      second
++          .stub()
++          .run(
++              createRequest("Foo").toBuilder().setEngineInstanceId(id).build(),
++              createResponseObserver(replies, done));
++      assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++      assertThat(replies.getLast().getExitCode())
++          .isEqualTo(id.equals(replacement.getEngineInstanceId()) ? 0 : 36);
++    }
++    assertThat(calls.get()).isEqualTo(1);
++    second.server().shutdown();
++    second.server().awaitTermination();
++  }
++
++  @Test
++  public void engineCleanup_waitsForFinalResponseAndRunsOnce() throws Exception {
++    AtomicInteger cleanupCalls = new AtomicInteger();
++    CountDownLatch finalResponse = new CountDownLatch(1);
++    CountDownLatch allowResponse = new CountDownLatch(1);
++    CommandDispatcher dispatcher =
++        (policy,
++            args,
++            outErr,
++            timeout,
++            verbosity,
++            client,
++            start,
++            options,
++            idle,
++            extensions,
++            reporter) -> BlazeCommandResult.success();
++    ServerAndStub server = createServerAndStub(dispatcher, cleanupCalls::incrementAndGet);
++    // Exercise the byte callback boundary after gRPC has handed off the RPC to its executor.
++    TestThread request =
++        new TestThread(
++            () ->
++                server
++                    .server()
++                    .run(
++                        createRequest("Foo").toByteArray(),
++                        new GrpcCommandServer.Responder() {
++                          @Override
++                          public void onNext(byte[] bytes) throws IOException {
++                            if (RunResponse.parseFrom(bytes).getFinished()) {
++                              finalResponse.countDown();
++                              Uninterruptibles.awaitUninterruptibly(allowResponse);
++                            }
++                          }
++
++                          @Override
++                          public void onCompleted() {}
++                        }));
++    request.start();
++    assertThat(finalResponse.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++    server.server().shutdown();
++    TestThread cleanup = new TestThread(server.server()::awaitTermination);
++    cleanup.start();
++    try {
++      long deadline = System.nanoTime() + SECONDS.toNanos(10);
++      while (cleanup.getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
++        Thread.sleep(1);
++      }
++      assertThat(cleanup.getState()).isEqualTo(Thread.State.WAITING);
++      assertThat(cleanupCalls.get()).isEqualTo(0);
++    } finally {
++      allowResponse.countDown();
++      request.joinAndAssertState(TestUtils.WAIT_TIMEOUT_MILLISECONDS);
++      cleanup.joinAndAssertState(TestUtils.WAIT_TIMEOUT_MILLISECONDS);
++    }
++    server.server().awaitTermination();
++    assertThat(cleanupCalls.get()).isEqualTo(1);
++  }
++
++  @Test
++  public void engineCleanup_failureIsNotRetried() throws Exception {
++    AtomicInteger calls = new AtomicInteger();
++    ServerAndStub server =
++        createServerAndStub(
++            throwingDispatcher(),
++            () -> {
++              calls.incrementAndGet();
++              throw new IllegalArgumentException("cleanup failed");
++            });
++    server.server().shutdown();
++    assertThrows(IllegalArgumentException.class, server.server()::awaitTermination);
++    assertThrows(IllegalStateException.class, server.server()::awaitTermination);
++    assertThat(calls.get()).isEqualTo(1);
++    List<RunResponse> replies = new ArrayList<>();
++    server
++        .server()
++        .run(
++            createRequest("Foo").toByteArray(),
++            new GrpcCommandServer.Responder() {
++              @Override
++              public void onNext(byte[] bytes) throws IOException {
++                replies.add(RunResponse.parseFrom(bytes));
++              }
++
++              @Override
++              public void onCompleted() {}
++            });
++    assertThat(replies.getFirst().getFailureDetail().getGrpcServer().getCode())
++        .isEqualTo(GrpcServer.Code.ENGINE_UNAVAILABLE);
++  }
++
+   @Test
+   public void emptyClientDescription() throws Exception {
+     runBadCommandTest(
+@@ -543,6 +712,25 @@ public final class CommandServerTest {
+ 
+   @Test
+   public void engineIdentity_mismatchDoesNotPreemptExistingCommand() throws Exception {
++    assertRejectedRequestDoesNotPreempt(
++        createRequest("Bar").toBuilder()
++            .setEngineIdentity(
++                EngineIdentity.newBuilder()
++                    .setWorkspaceDirectory(ByteString.copyFromUtf8("/other-worktree"))
++                    .setOutputBase(ByteString.copyFromUtf8("/output-base")))
++            .build(),
++        GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++  }
++
++  @Test
++  public void engineInstance_staleRequestDoesNotPreemptExistingCommand() throws Exception {
++    assertRejectedRequestDoesNotPreempt(
++        createRequest("Bar").toBuilder().setEngineInstanceId("stale").build(),
++        GrpcServer.Code.ENGINE_UNAVAILABLE);
++  }
++
++  private void assertRejectedRequestDoesNotPreempt(
++      RunRequest rejectedRequest, GrpcServer.Code expectedCode) throws Exception {
+     CountDownLatch started = new CountDownLatch(1);
+     CountDownLatch proceed = new CountDownLatch(1);
+     AtomicInteger calls = new AtomicInteger();
+@@ -575,20 +763,11 @@ public final class CommandServerTest {
+       assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+       CountDownLatch rejected = new CountDownLatch(1);
+       List<RunResponse> responses = new ArrayList<>();
+-      serverAndStub
+-          .stub()
+-          .run(
+-              createRequest("Bar").toBuilder()
+-                  .setEngineIdentity(
+-                      EngineIdentity.newBuilder()
+-                          .setWorkspaceDirectory(ByteString.copyFromUtf8("/other-worktree"))
+-                          .setOutputBase(ByteString.copyFromUtf8("/output-base")))
+-                  .build(),
+-              createResponseObserver(responses, rejected));
++      serverAndStub.stub().run(rejectedRequest, createResponseObserver(responses, rejected));
+       assertThat(rejected.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+       assertThat(responses).hasSize(1);
+       assertThat(responses.getFirst().getFailureDetail().getGrpcServer().getCode())
+-          .isEqualTo(GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
++          .isEqualTo(expectedCode);
+     } finally {
+       proceed.countDown();
+       assertThat(firstDone.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+@@ -748,6 +927,16 @@ public final class CommandServerTest {
+ 
+   @Test
+   public void testCancel() throws Exception {
++    checkCancellation(false);
++  }
++
++  @Test
++  public void engineInstance_staleCancellationIsIgnoredAndCurrentCancellationWorks()
++      throws Exception {
++    checkCancellation(true);
++  }
++
++  private void checkCancellation(boolean includeInstanceId) throws Exception {
+     CommandDispatcher dispatcher =
+         new CommandDispatcher() {
+           @Override
+@@ -805,8 +994,18 @@ public final class CommandServerTest {
+     gotCommandId.await();
+ 
+     CountDownLatch cancelRequestComplete = new CountDownLatch(1);
+-    CancelRequest cancelRequest =
+-        CancelRequest.newBuilder().setCookie(REQUEST_COOKIE).setCommandId(commandId.get()).build();
++    CancelRequest.Builder cancelRequestBuilder =
++        CancelRequest.newBuilder().setCookie(REQUEST_COOKIE).setCommandId(commandId.get());
++    if (includeInstanceId) {
++      AtomicInteger completed = new AtomicInteger();
++      server.cancel(
++          cancelRequestBuilder.setEngineInstanceId("stale").build().toByteArray(),
++          noValueResponder(completed));
++      assertThat(completed.get()).isEqualTo(1);
++      cancelRequestBuilder.setEngineInstanceId(
++          ping(serverAndStub, REQUEST_COOKIE).getEngineInstanceId());
++    }
++    CancelRequest cancelRequest = cancelRequestBuilder.build();
+     stub.cancel(
+         cancelRequest,
+         new StreamObserver<CancelResponse>() {
+@@ -836,6 +1035,15 @@ public final class CommandServerTest {
+ 
+   @Test
+   public void updateTerminalSize_updatesRunningCommandMonitor() throws Exception {
++    checkTerminalSize(false);
++  }
++
++  @Test
++  public void engineInstance_staleResizeIsIgnoredAndCurrentResizeWorks() throws Exception {
++    checkTerminalSize(true);
++  }
++
++  private void checkTerminalSize(boolean includeInstanceId) throws Exception {
+     CountDownLatch execStarted = new CountDownLatch(1);
+     CountDownLatch allowListenerRegistration = new CountDownLatch(1);
+     CountDownLatch resizeSeen = new CountDownLatch(1);
+@@ -928,6 +1136,17 @@ public final class CommandServerTest {
+             .setColumns(47)
+             .setRows(12)
+             .build();
++    if (includeInstanceId) {
++      AtomicInteger completed = new AtomicInteger();
++      server.updateTerminalSize(
++          terminalSizeRequest.toBuilder().setEngineInstanceId("stale").build().toByteArray(),
++          noValueResponder(completed));
++      assertThat(completed.get()).isEqualTo(1);
++      terminalSizeRequest =
++          terminalSizeRequest.toBuilder()
++              .setEngineInstanceId(ping(serverAndStub, REQUEST_COOKIE).getEngineInstanceId())
++              .build();
++    }
+     stub.updateTerminalSize(
+         terminalSizeRequest,
+         new StreamObserver<TerminalSizeResponse>() {
+diff --git a/src/test/java/com/google/devtools/build/lib/server/EngineRegistryTest.java b/src/test/java/com/google/devtools/build/lib/server/EngineRegistryTest.java
+new file mode 100644
+index 00000000..0e745935
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/server/EngineRegistryTest.java
+@@ -0,0 +1,219 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package com.google.devtools.build.lib.server;
++
++import static com.google.common.truth.Truth.assertThat;
++import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_MILLISECONDS;
++import static org.junit.Assert.assertThrows;
++
++import com.google.devtools.build.lib.runtime.BlazeCommandResult;
++import com.google.devtools.build.lib.runtime.CommandDispatcher;
++import com.google.devtools.build.lib.server.EngineRegistry.Key;
++import com.google.devtools.build.lib.server.EngineRegistry.Lease;
++import com.google.devtools.build.lib.server.EngineRegistry.Registration;
++import com.google.devtools.build.lib.server.EngineRegistry.State;
++import com.google.devtools.build.lib.testutil.TestThread;
++import com.google.devtools.build.lib.vfs.PathFragment;
++import java.util.concurrent.CyclicBarrier;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.atomic.AtomicReference;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++@RunWith(JUnit4.class)
++public final class EngineRegistryTest {
++  private final EngineRegistry registry = new EngineRegistry();
++  private static final Key A = key("/worktree-a", "/output-a");
++  private static final Key B = key("/worktree-b", "/output-b");
++
++  private static Key key(String workspace, String output) {
++    return new Key(PathFragment.create(workspace), PathFragment.create(output));
++  }
++
++  private static CommandDispatcher dispatcher() {
++    AtomicInteger calls = new AtomicInteger();
++    return (policy,
++        args,
++        outErr,
++        timeout,
++        verbosity,
++        client,
++        start,
++        options,
++        idle,
++        extensions,
++        reporter) -> {
++      calls.incrementAndGet();
++      return BlazeCommandResult.success();
++    };
++  }
++
++  @Test
++  public void creationCannotDispatchAndFailureReleasesReservation() {
++    Registration first = registry.reserve(A);
++    assertThat(first.state()).isEqualTo(State.CREATING);
++    assertThat(registry.acquire(A, first.instanceId())).isNull();
++    assertThrows(IllegalStateException.class, () -> registry.reserve(A));
++    first.close();
++    Registration replacement = registry.reserve(A);
++    assertThat(replacement.instanceId()).isNotEqualTo(first.instanceId());
++    replacement.close();
++  }
++
++  @Test
++  public void outputBaseCannotBeOwnedByTwoWorkspaces() {
++    Registration first = registry.reserve(A);
++    Key collision = key("/worktree-b", "/output-a");
++    assertThrows(IllegalStateException.class, () -> registry.reserve(collision));
++    first.activate(dispatcher());
++    assertThrows(IllegalStateException.class, () -> registry.reserve(collision));
++    assertThat(registry.acquire(collision, first.instanceId())).isNull();
++    first.beginDrain();
++    // Ownership persists during cleanup, even with no active requests.
++    assertThrows(IllegalStateException.class, () -> registry.reserve(collision));
++    first.close();
++    registry.reserve(collision).close();
++  }
++
++  @Test
++  public void concurrentCreationHasExactlyOneOwner() throws Exception {
++    CyclicBarrier barrier = new CyclicBarrier(2);
++    AtomicReference<Registration> winner = new AtomicReference<>();
++    AtomicInteger collisions = new AtomicInteger();
++    TestThread[] threads = new TestThread[2];
++    for (int i = 0; i < threads.length; i++) {
++      Key key = key("/worktree-" + i, "/shared-output");
++      threads[i] =
++          new TestThread(
++              () -> {
++                barrier.await();
++                try {
++                  winner.set(registry.reserve(key));
++                } catch (IllegalStateException expected) {
++                  collisions.incrementAndGet();
++                }
++              });
++      threads[i].start();
++    }
++    for (TestThread thread : threads) {
++      thread.joinAndAssertState(WAIT_TIMEOUT_MILLISECONDS);
++    }
++    assertThat(collisions.get()).isEqualTo(1);
++    assertThat(winner.get()).isNotNull();
++    winner.get().close();
++  }
++
++  @Test
++  public void drainRetainsLeasedDispatcherAndDoesNotAffectOtherEngine() throws Exception {
++    Registration a = registry.reserve(A);
++    CommandDispatcher dispatcherA = dispatcher();
++    a.activate(dispatcherA);
++    Registration b = registry.reserve(B);
++    CommandDispatcher dispatcherB = dispatcher();
++    b.activate(dispatcherB);
++    Lease lease = registry.acquire(A, a.instanceId());
++    a.beginDrain();
++    assertThat(registry.acquire(A, a.instanceId())).isNull();
++    assertThrows(IllegalStateException.class, a::close);
++    assertThat(lease.dispatcher()).isSameInstanceAs(dispatcherA);
++    TestThread draining = new TestThread(a::awaitDrained);
++    draining.start();
++    try {
++      waitUntilWaiting(draining);
++      try (Lease other = registry.acquire(B, b.instanceId())) {
++        assertThat(other.dispatcher()).isSameInstanceAs(dispatcherB);
++      }
++    } finally {
++      lease.close();
++      lease.close(); // Duplicate release must not underflow the active count.
++      draining.joinAndAssertState(WAIT_TIMEOUT_MILLISECONDS);
++    }
++    assertThrows(IllegalStateException.class, lease::dispatcher);
++    a.close();
++    assertThat(b.state()).isEqualTo(State.READY);
++    b.beginDrain();
++    b.close();
++  }
++
++  @Test
++  public void staleRegistrationCannotAcquireOrRemoveReplacement() throws Exception {
++    Registration first = registry.reserve(A);
++    first.activate(dispatcher());
++    assertThrows(IllegalStateException.class, first::close);
++    first.beginDrain();
++    first.awaitDrained();
++    first.close();
++    Registration second = registry.reserve(A);
++    second.activate(dispatcher());
++    first.close();
++    assertThat(registry.acquire(A, first.instanceId())).isNull();
++    try (Lease lease = registry.acquire(A, second.instanceId())) {
++      assertThat(lease).isNotNull();
++    }
++    second.beginDrain();
++    second.close();
++  }
++
++  @Test
++  public void interruptedDrainKeepsOutputBaseReserved() throws Exception {
++    Registration registration = registry.reserve(A);
++    registration.activate(dispatcher());
++    Lease lease = registry.acquire(A, registration.instanceId());
++    registration.beginDrain();
++    TestThread waiting =
++        new TestThread(() -> assertThrows(InterruptedException.class, registration::awaitDrained));
++    waiting.start();
++    try {
++      waitUntilWaiting(waiting);
++      waiting.interrupt();
++      waiting.joinAndAssertState(WAIT_TIMEOUT_MILLISECONDS);
++      assertThat(registration.state()).isEqualTo(State.DRAINING);
++      assertThrows(IllegalStateException.class, () -> registry.reserve(A));
++      assertThat(registry.acquire(A, registration.instanceId())).isNull();
++    } finally {
++      lease.close();
++      waiting.interrupt();
++    }
++    registration.awaitDrained();
++    registration.close();
++  }
++
++  @Test
++  public void lifecycleCannotBeReactivated() {
++    Registration registration = registry.reserve(A);
++    registration.activate(dispatcher());
++    assertThrows(IllegalStateException.class, () -> registration.activate(dispatcher()));
++    registration.beginDrain();
++    assertThrows(IllegalStateException.class, () -> registration.activate(dispatcher()));
++    registration.close();
++    assertThrows(IllegalStateException.class, () -> registration.activate(dispatcher()));
++  }
++
++  @Test
++  public void pathsMustBeAbsoluteExceptOutsideWorkspace() {
++    assertThrows(IllegalArgumentException.class, () -> key("relative", "/output"));
++    assertThrows(IllegalArgumentException.class, () -> key("/workspace", "relative"));
++    registry.reserve(key("", "/output")).close();
++  }
++
++  private static void waitUntilWaiting(Thread thread) throws InterruptedException {
++    long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
++    while (thread.getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
++      Thread.sleep(1);
++    }
++    assertThat(thread.getState()).isEqualTo(Thread.State.WAITING);
++  }
++}

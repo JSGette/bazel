@@ -1,0 +1,38 @@
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //src/test/java/com/google/devtools/build/lib/server:ServerTests
+-----------------------------------------------------------------------------
+JUnit4 Test Runner
+................Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/jgett/bazel-multiworktree-20261031/control/output-base/execroot/_main/bazel-out/k8-fastbuild/bin/external/rules_jvm_external++maven+maven/net/bytebuddy/byte-buddy-agent/1.17.7/processed_byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+..Oct 31, 2026 2:06:31 PM com.google.devtools.build.lib.server.IdleTaskManager$IdleTaskWrapper call
+WARNING: task idle task interrupted
+java.lang.InterruptedException: sleep interrupted
+	at java.base/java.lang.Thread.sleepNanos0(Native Method)
+	at java.base/java.lang.Thread.sleepNanos(Thread.java:509)
+	at java.base/java.lang.Thread.sleep(Thread.java:601)
+	at com.google.devtools.build.lib.server.IdleTaskManagerTest.lambda$registeredTask_taskInterrupted$0(IdleTaskManagerTest.java:92)
+	at com.google.devtools.build.lib.server.IdleTaskManagerTest$1.run(IdleTaskManagerTest.java:187)
+	at com.google.devtools.build.lib.server.IdleTaskManager$IdleTaskWrapper.call(IdleTaskManager.java:62)
+	at com.google.devtools.build.lib.server.IdleTaskManager$IdleTaskWrapper.call(IdleTaskManager.java:49)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+........
+Time: 1.204
+
+OK (26 tests)
+
+
+BazelTestRunner exiting with a return value of 0
+JVM shutdown hooks (if any) will run now.
+The JVM will exit once they complete.
+
+-- JVM shutdown starting at 2026-10-31 14:06:31 --
+

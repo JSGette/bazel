@@ -20,6 +20,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.devtools.build.lib.clock.JavaClock;
 import com.google.devtools.build.lib.runtime.BlazeCommandResult;
 import com.google.devtools.build.lib.runtime.CommandDispatcher;
@@ -28,6 +29,8 @@ import com.google.devtools.build.lib.server.CommandProtos.CancelRequest;
 import com.google.devtools.build.lib.server.CommandProtos.CancelResponse;
 import com.google.devtools.build.lib.server.CommandProtos.EngineIdentity;
 import com.google.devtools.build.lib.server.CommandProtos.EnvironmentVariable;
+import com.google.devtools.build.lib.server.CommandProtos.PingRequest;
+import com.google.devtools.build.lib.server.CommandProtos.PingResponse;
 import com.google.devtools.build.lib.server.CommandProtos.RunRequest;
 import com.google.devtools.build.lib.server.CommandProtos.RunResponse;
 import com.google.devtools.build.lib.server.CommandProtos.TerminalSizeRequest;
@@ -38,6 +41,7 @@ import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
 import com.google.devtools.build.lib.server.FailureDetails.GrpcServer;
 import com.google.devtools.build.lib.server.FailureDetails.Interrupted;
 import com.google.devtools.build.lib.server.FailureDetails.Interrupted.Code;
+import com.google.devtools.build.lib.testutil.TestThread;
 import com.google.devtools.build.lib.testutil.TestUtils;
 import com.google.devtools.build.lib.util.Pair;
 import com.google.devtools.build.lib.util.io.CommandExtensionReporter;
@@ -85,6 +89,11 @@ public final class CommandServerTest {
   record ServerAndStub(CommandServer server, CommandServerStub stub) {}
 
   private ServerAndStub createServerAndStub(CommandDispatcher dispatcher) throws Exception {
+    return createServerAndStub(dispatcher, () -> {});
+  }
+
+  private ServerAndStub createServerAndStub(CommandDispatcher dispatcher, Runnable engineShutdown)
+      throws Exception {
     Path serverDirectory = fileSystem.getPath("/bazel_server_directory");
     serverDirectory.createDirectoryAndParents();
 
@@ -106,6 +115,7 @@ public final class CommandServerTest {
         new CommandServer(
             grpcCommandServer,
             dispatcher,
+            engineShutdown,
             ShutdownHooks.createUnregistered(),
             new PidFileWatcher(fileSystem.getPath("/thread-not-running-dont-need"), SERVER_PID),
             new JavaClock(),
@@ -478,6 +488,165 @@ public final class CommandServerTest {
             .build());
   }
 
+  private static GrpcCommandServer.Responder noValueResponder(AtomicInteger completed) {
+    return new GrpcCommandServer.Responder() {
+      @Override
+      public void onNext(byte[] bytes) {
+        throw new AssertionError("Stale control request must not be acknowledged");
+      }
+
+      @Override
+      public void onCompleted() {
+        completed.incrementAndGet();
+      }
+    };
+  }
+
+  private static PingResponse ping(ServerAndStub server, String cookie) {
+    return CommandServerGrpc.newBlockingStub(server.stub().getChannel())
+        .withDeadlineAfter(WAIT_TIMEOUT_SECONDS, SECONDS)
+        .ping(PingRequest.newBuilder().setCookie(cookie).build());
+  }
+
+  @Test
+  public void engineInstance_pingAuthenticatesAndPinsRegistration() throws Exception {
+    AtomicInteger calls = new AtomicInteger();
+    CommandDispatcher dispatcher =
+        (policy,
+            args,
+            outErr,
+            timeout,
+            verbosity,
+            client,
+            start,
+            options,
+            idle,
+            extensions,
+            reporter) -> {
+          calls.incrementAndGet();
+          return BlazeCommandResult.success();
+        };
+    ServerAndStub first = createServerAndStub(dispatcher);
+    PingResponse response = ping(first, REQUEST_COOKIE);
+    assertThat(response.getCookie()).isEqualTo(RESPONSE_COOKIE);
+    assertThat(response.getEngineInstanceId()).isNotEmpty();
+    assertThat(ping(first, REQUEST_COOKIE)).isEqualTo(response);
+    assertThat(ping(first, "invalid").getEngineInstanceId()).isEmpty();
+    first.server().shutdown();
+    first.server().awaitTermination();
+
+    ServerAndStub second = createServerAndStub(dispatcher);
+    PingResponse replacement = ping(second, REQUEST_COOKIE);
+    assertThat(replacement.getEngineInstanceId()).isNotEqualTo(response.getEngineInstanceId());
+    for (String id :
+        ImmutableList.of(response.getEngineInstanceId(), replacement.getEngineInstanceId())) {
+      CountDownLatch done = new CountDownLatch(1);
+      List<RunResponse> replies = new ArrayList<>();
+      second
+          .stub()
+          .run(
+              createRequest("Foo").toBuilder().setEngineInstanceId(id).build(),
+              createResponseObserver(replies, done));
+      assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+      assertThat(replies.getLast().getExitCode())
+          .isEqualTo(id.equals(replacement.getEngineInstanceId()) ? 0 : 36);
+    }
+    assertThat(calls.get()).isEqualTo(1);
+    second.server().shutdown();
+    second.server().awaitTermination();
+  }
+
+  @Test
+  public void engineCleanup_waitsForFinalResponseAndRunsOnce() throws Exception {
+    AtomicInteger cleanupCalls = new AtomicInteger();
+    CountDownLatch finalResponse = new CountDownLatch(1);
+    CountDownLatch allowResponse = new CountDownLatch(1);
+    CommandDispatcher dispatcher =
+        (policy,
+            args,
+            outErr,
+            timeout,
+            verbosity,
+            client,
+            start,
+            options,
+            idle,
+            extensions,
+            reporter) -> BlazeCommandResult.success();
+    ServerAndStub server = createServerAndStub(dispatcher, cleanupCalls::incrementAndGet);
+    // Exercise the byte callback boundary after gRPC has handed off the RPC to its executor.
+    TestThread request =
+        new TestThread(
+            () ->
+                server
+                    .server()
+                    .run(
+                        createRequest("Foo").toByteArray(),
+                        new GrpcCommandServer.Responder() {
+                          @Override
+                          public void onNext(byte[] bytes) throws IOException {
+                            if (RunResponse.parseFrom(bytes).getFinished()) {
+                              finalResponse.countDown();
+                              Uninterruptibles.awaitUninterruptibly(allowResponse);
+                            }
+                          }
+
+                          @Override
+                          public void onCompleted() {}
+                        }));
+    request.start();
+    assertThat(finalResponse.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+    server.server().shutdown();
+    TestThread cleanup = new TestThread(server.server()::awaitTermination);
+    cleanup.start();
+    try {
+      long deadline = System.nanoTime() + SECONDS.toNanos(10);
+      while (cleanup.getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
+        Thread.sleep(1);
+      }
+      assertThat(cleanup.getState()).isEqualTo(Thread.State.WAITING);
+      assertThat(cleanupCalls.get()).isEqualTo(0);
+    } finally {
+      allowResponse.countDown();
+      request.joinAndAssertState(TestUtils.WAIT_TIMEOUT_MILLISECONDS);
+      cleanup.joinAndAssertState(TestUtils.WAIT_TIMEOUT_MILLISECONDS);
+    }
+    server.server().awaitTermination();
+    assertThat(cleanupCalls.get()).isEqualTo(1);
+  }
+
+  @Test
+  public void engineCleanup_failureIsNotRetried() throws Exception {
+    AtomicInteger calls = new AtomicInteger();
+    ServerAndStub server =
+        createServerAndStub(
+            throwingDispatcher(),
+            () -> {
+              calls.incrementAndGet();
+              throw new IllegalArgumentException("cleanup failed");
+            });
+    server.server().shutdown();
+    assertThrows(IllegalArgumentException.class, server.server()::awaitTermination);
+    assertThrows(IllegalStateException.class, server.server()::awaitTermination);
+    assertThat(calls.get()).isEqualTo(1);
+    List<RunResponse> replies = new ArrayList<>();
+    server
+        .server()
+        .run(
+            createRequest("Foo").toByteArray(),
+            new GrpcCommandServer.Responder() {
+              @Override
+              public void onNext(byte[] bytes) throws IOException {
+                replies.add(RunResponse.parseFrom(bytes));
+              }
+
+              @Override
+              public void onCompleted() {}
+            });
+    assertThat(replies.getFirst().getFailureDetail().getGrpcServer().getCode())
+        .isEqualTo(GrpcServer.Code.ENGINE_UNAVAILABLE);
+  }
+
   @Test
   public void emptyClientDescription() throws Exception {
     runBadCommandTest(
@@ -543,6 +712,25 @@ public final class CommandServerTest {
 
   @Test
   public void engineIdentity_mismatchDoesNotPreemptExistingCommand() throws Exception {
+    assertRejectedRequestDoesNotPreempt(
+        createRequest("Bar").toBuilder()
+            .setEngineIdentity(
+                EngineIdentity.newBuilder()
+                    .setWorkspaceDirectory(ByteString.copyFromUtf8("/other-worktree"))
+                    .setOutputBase(ByteString.copyFromUtf8("/output-base")))
+            .build(),
+        GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+  }
+
+  @Test
+  public void engineInstance_staleRequestDoesNotPreemptExistingCommand() throws Exception {
+    assertRejectedRequestDoesNotPreempt(
+        createRequest("Bar").toBuilder().setEngineInstanceId("stale").build(),
+        GrpcServer.Code.ENGINE_UNAVAILABLE);
+  }
+
+  private void assertRejectedRequestDoesNotPreempt(
+      RunRequest rejectedRequest, GrpcServer.Code expectedCode) throws Exception {
     CountDownLatch started = new CountDownLatch(1);
     CountDownLatch proceed = new CountDownLatch(1);
     AtomicInteger calls = new AtomicInteger();
@@ -575,20 +763,11 @@ public final class CommandServerTest {
       assertThat(started.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
       CountDownLatch rejected = new CountDownLatch(1);
       List<RunResponse> responses = new ArrayList<>();
-      serverAndStub
-          .stub()
-          .run(
-              createRequest("Bar").toBuilder()
-                  .setEngineIdentity(
-                      EngineIdentity.newBuilder()
-                          .setWorkspaceDirectory(ByteString.copyFromUtf8("/other-worktree"))
-                          .setOutputBase(ByteString.copyFromUtf8("/output-base")))
-                  .build(),
-              createResponseObserver(responses, rejected));
+      serverAndStub.stub().run(rejectedRequest, createResponseObserver(responses, rejected));
       assertThat(rejected.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
       assertThat(responses).hasSize(1);
       assertThat(responses.getFirst().getFailureDetail().getGrpcServer().getCode())
-          .isEqualTo(GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
+          .isEqualTo(expectedCode);
     } finally {
       proceed.countDown();
       assertThat(firstDone.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
@@ -748,6 +927,16 @@ public final class CommandServerTest {
 
   @Test
   public void testCancel() throws Exception {
+    checkCancellation(false);
+  }
+
+  @Test
+  public void engineInstance_staleCancellationIsIgnoredAndCurrentCancellationWorks()
+      throws Exception {
+    checkCancellation(true);
+  }
+
+  private void checkCancellation(boolean includeInstanceId) throws Exception {
     CommandDispatcher dispatcher =
         new CommandDispatcher() {
           @Override
@@ -805,8 +994,18 @@ public final class CommandServerTest {
     gotCommandId.await();
 
     CountDownLatch cancelRequestComplete = new CountDownLatch(1);
-    CancelRequest cancelRequest =
-        CancelRequest.newBuilder().setCookie(REQUEST_COOKIE).setCommandId(commandId.get()).build();
+    CancelRequest.Builder cancelRequestBuilder =
+        CancelRequest.newBuilder().setCookie(REQUEST_COOKIE).setCommandId(commandId.get());
+    if (includeInstanceId) {
+      AtomicInteger completed = new AtomicInteger();
+      server.cancel(
+          cancelRequestBuilder.setEngineInstanceId("stale").build().toByteArray(),
+          noValueResponder(completed));
+      assertThat(completed.get()).isEqualTo(1);
+      cancelRequestBuilder.setEngineInstanceId(
+          ping(serverAndStub, REQUEST_COOKIE).getEngineInstanceId());
+    }
+    CancelRequest cancelRequest = cancelRequestBuilder.build();
     stub.cancel(
         cancelRequest,
         new StreamObserver<CancelResponse>() {
@@ -836,6 +1035,15 @@ public final class CommandServerTest {
 
   @Test
   public void updateTerminalSize_updatesRunningCommandMonitor() throws Exception {
+    checkTerminalSize(false);
+  }
+
+  @Test
+  public void engineInstance_staleResizeIsIgnoredAndCurrentResizeWorks() throws Exception {
+    checkTerminalSize(true);
+  }
+
+  private void checkTerminalSize(boolean includeInstanceId) throws Exception {
     CountDownLatch execStarted = new CountDownLatch(1);
     CountDownLatch allowListenerRegistration = new CountDownLatch(1);
     CountDownLatch resizeSeen = new CountDownLatch(1);
@@ -928,6 +1136,17 @@ public final class CommandServerTest {
             .setColumns(47)
             .setRows(12)
             .build();
+    if (includeInstanceId) {
+      AtomicInteger completed = new AtomicInteger();
+      server.updateTerminalSize(
+          terminalSizeRequest.toBuilder().setEngineInstanceId("stale").build().toByteArray(),
+          noValueResponder(completed));
+      assertThat(completed.get()).isEqualTo(1);
+      terminalSizeRequest =
+          terminalSizeRequest.toBuilder()
+              .setEngineInstanceId(ping(serverAndStub, REQUEST_COOKIE).getEngineInstanceId())
+              .build();
+    }
     stub.updateTerminalSize(
         terminalSizeRequest,
         new StreamObserver<TerminalSizeResponse>() {

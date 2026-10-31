@@ -142,6 +142,14 @@ class CommandManager {
     }
   }
 
+  /** Stops idle work after the engine has stopped admitting RPCs and drained its leases. */
+  void shutdown() {
+    synchronized (runningCommandsMap) {
+      checkState(runningCommandsMap.isEmpty(), "commands are still running");
+      busy();
+    }
+  }
+
   long getCommandCounter() {
     synchronized (runningCommandsMap) {
       return commandCounter;

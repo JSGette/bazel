@@ -1363,6 +1363,10 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
           CommandServer.create(
               grpcCommandServerService.getGrpcCommandServer(),
               dispatcher,
+              () -> {
+                runtime.shutdown();
+                dispatcher.shutdown();
+              },
               shutdownHooks,
               pidFileWatcher,
               runtime.clock,
@@ -1388,8 +1392,6 @@ public final class BlazeRuntime implements BugReport.BlazeRuntimeInterface {
           };
 
       commandServer.serveAndAwaitTermination();
-      runtime.shutdown();
-      dispatcher.shutdown();
       return ExitCode.SUCCESS.getNumericExitCode();
     } catch (OptionsParsingException e) {
       outErr.printErrLn(e.getMessage());

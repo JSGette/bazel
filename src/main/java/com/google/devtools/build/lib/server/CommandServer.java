@@ -14,6 +14,7 @@
 
 package com.google.devtools.build.lib.server;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -38,6 +39,7 @@ import com.google.devtools.build.lib.server.CommandProtos.ServerInfo;
 import com.google.devtools.build.lib.server.CommandProtos.StartupOption;
 import com.google.devtools.build.lib.server.CommandProtos.TerminalSizeRequest;
 import com.google.devtools.build.lib.server.CommandProtos.TerminalSizeResponse;
+import com.google.devtools.build.lib.server.EngineRegistry.Lease;
 import com.google.devtools.build.lib.server.FailureDetails.Command;
 import com.google.devtools.build.lib.server.FailureDetails.FailureDetail;
 import com.google.devtools.build.lib.server.FailureDetails.Filesystem;
@@ -91,6 +93,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
   public static CommandServer create(
       GrpcCommandServer grpcCommandServer,
       CommandDispatcher dispatcher,
+      Runnable engineShutdown,
       ShutdownHooks shutdownHooks,
       PidFileWatcher pidFileWatcher,
       Clock clock,
@@ -107,6 +110,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     return new CommandServer(
         grpcCommandServer,
         dispatcher,
+        engineShutdown,
         shutdownHooks,
         pidFileWatcher,
         clock,
@@ -237,7 +241,12 @@ public class CommandServer implements GrpcCommandServer.Callback {
 
   private final GrpcCommandServer grpcCommandServer;
   private final CommandManager commandManager;
-  private final CommandDispatcher dispatcher;
+  private final EngineRegistry engines = new EngineRegistry();
+  private final EngineRegistry.Key engineKey;
+  private final EngineRegistry.Registration engine;
+  private final Runnable engineShutdown;
+  // Guarded by this; cleanup must never be retried after a partial failure.
+  private boolean engineCleanupStarted;
   private final ShutdownHooks shutdownHooks;
   private final Clock clock;
   private final Path serverDirectory;
@@ -255,6 +264,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
   CommandServer(
       GrpcCommandServer grpcCommandServer,
       CommandDispatcher dispatcher,
+      Runnable engineShutdown,
       ShutdownHooks shutdownHooks,
       PidFileWatcher pidFileWatcher,
       Clock clock,
@@ -270,7 +280,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
       boolean doIdleServerTasks,
       @Nullable String slowInterruptMessageSuffix) {
     this.grpcCommandServer = grpcCommandServer;
-    this.dispatcher = dispatcher;
+    this.engineKey = new EngineRegistry.Key(workspaceDirectory, outputBase);
+    this.engine = engines.reserve(engineKey);
+    this.engineShutdown = engineShutdown;
     this.shutdownHooks = shutdownHooks;
     this.pidFileWatcher = pidFileWatcher;
     this.clock = clock;
@@ -285,6 +297,7 @@ public class CommandServer implements GrpcCommandServer.Callback {
     this.shutdownOnLowSysMem = shutdownOnLowSysMem;
 
     commandManager = new CommandManager(doIdleServerTasks, slowInterruptMessageSuffix);
+    engine.activate(dispatcher);
   }
 
   private static String generateCookie(SecureRandom random, int byteCount) {
@@ -381,6 +394,20 @@ public class CommandServer implements GrpcCommandServer.Callback {
   @VisibleForTesting
   void awaitTermination() throws InterruptedException {
     grpcCommandServer.awaitTermination();
+    shutdownEngine();
+  }
+
+  private synchronized void shutdownEngine() throws InterruptedException {
+    if (engine.state() == EngineRegistry.State.CLOSED) {
+      return;
+    }
+    engine.beginDrain();
+    engine.awaitDrained();
+    checkState(!engineCleanupStarted, "engine cleanup previously failed");
+    engineCleanupStarted = true;
+    commandManager.shutdown();
+    engineShutdown.run();
+    engine.close();
   }
 
   private void writeServerStatusFiles(SocketAddress address) throws AbruptExitException {
@@ -476,25 +503,45 @@ public class CommandServer implements GrpcCommandServer.Callback {
             || !outputBase.equals(
                 PathFragment.create(
                     platformBytesToInternalString(request.getEngineIdentity().getOutputBase()))))) {
-      String message = "Invalid RunRequest: engine identity does not match this server";
-      try {
-        responder.onNext(
-            RunResponse.newBuilder()
-                .setCookie(responseCookie)
-                .setFinished(true)
-                .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
-                .setStandardError(ByteString.copyFromUtf8(message + "\n"))
-                .setFailureDetail(
-                    createFailureDetail(message, GrpcServer.Code.ENGINE_IDENTITY_MISMATCH))
-                .build()
-                .toByteArray());
-        responder.onCompleted();
-      } catch (IOException e) {
-        logger.atInfo().withCause(e).log("Error while sending RunResponse");
-      }
+      rejectRun(
+          responder,
+          "Invalid RunRequest: engine identity does not match this server",
+          GrpcServer.Code.ENGINE_IDENTITY_MISMATCH);
       return;
     }
 
+    try (Lease lease = engines.acquire(engineKey, request.getEngineInstanceId())) {
+      if (lease == null) {
+        rejectRun(
+            responder,
+            "Invalid RunRequest: engine registration is unavailable",
+            GrpcServer.Code.ENGINE_UNAVAILABLE);
+        return;
+      }
+      execute(request, responder, lease.dispatcher());
+    }
+  }
+
+  private void rejectRun(
+      GrpcCommandServer.Responder responder, String message, GrpcServer.Code code) {
+    try {
+      responder.onNext(
+          RunResponse.newBuilder()
+              .setCookie(responseCookie)
+              .setFinished(true)
+              .setExitCode(ExitCode.LOCAL_ENVIRONMENTAL_ERROR.getNumericExitCode())
+              .setStandardError(ByteString.copyFromUtf8(message + "\n"))
+              .setFailureDetail(createFailureDetail(message, code))
+              .build()
+              .toByteArray());
+      responder.onCompleted();
+    } catch (IOException e) {
+      logger.atInfo().withCause(e).log("Error while sending RunResponse");
+    }
+  }
+
+  private void execute(
+      RunRequest request, GrpcCommandServer.Responder responder, CommandDispatcher dispatcher) {
     String commandId;
     BlazeCommandResult result;
 
@@ -629,13 +676,19 @@ public class CommandServer implements GrpcCommandServer.Callback {
       // Programming error: the SC proto must remain backwards-compatible with the LC proto.
       throw new IllegalStateException(e);
     }
-    try (RunningCommand command = commandManager.createCommand()) {
+    try (Lease lease =
+        isValidRequestCookie(request.getCookie()) ? engines.acquire(engineKey, "") : null) {
       PingResponse.Builder response = PingResponse.newBuilder();
-      if (isValidRequestCookie(request.getCookie())) {
-        response.setCookie(responseCookie);
+      if (lease != null) {
+        try (RunningCommand command = commandManager.createCommand()) {
+          response.setCookie(responseCookie).setEngineInstanceId(engine.instanceId());
+          responder.onNext(response.build().toByteArray());
+          responder.onCompleted();
+        }
+      } else {
+        responder.onNext(response.build().toByteArray());
+        responder.onCompleted();
       }
-      responder.onNext(response.build().toByteArray());
-      responder.onCompleted();
     } catch (IOException e) {
       // There is no one to report the failure to.
       logger.atInfo().withCause(e).log("Error while sending PingResponse");
@@ -652,8 +705,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
       throw new IllegalStateException(e);
     }
     logger.atInfo().log("Got CancelRequest for command id %s", request.getCommandId());
-    try {
-      if (isValidRequestCookie(request.getCookie())) {
+    try (Lease lease =
+        isValidRequestCookie(request.getCookie())
+            ? engines.acquire(engineKey, request.getEngineInstanceId())
+            : null) {
+      if (lease != null) {
         commandManager.doCancel(request);
         responder.onNext(
             CancelResponse.newBuilder().setCookie(responseCookie).build().toByteArray());
@@ -676,8 +732,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
       throw new IllegalStateException(e);
     }
     logger.atInfo().log("Got TerminalSizeRequest for command id %s", request.getCommandId());
-    try {
-      if (isValidRequestCookie(request.getCookie())) {
+    try (Lease lease =
+        isValidRequestCookie(request.getCookie())
+            ? engines.acquire(engineKey, request.getEngineInstanceId())
+            : null) {
+      if (lease != null) {
         commandManager.doUpdateTerminalSize(request);
         responder.onNext(
             TerminalSizeResponse.newBuilder().setCookie(responseCookie).build().toByteArray());
