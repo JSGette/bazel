@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 324, in <module>
+    main()
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 318, in main
+    acceptance.test()
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 165, in test
+    assert "0 processes" in self.commands[-1]["stderr"], self.commands[-1]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'argv': ['/usr/bin/python3', '/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/bazel_multiworktree.py', '--state', '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-2/state', 'build', '--repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache', '--define=FLAVOR=flag-a', '--action_env=WORKTREE_ENV', '--test_env=WORKTREE_ENV', '--color=no', '--curses=no', '//:value'], 'workspace': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-2/a', 'stdout_path': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-2/command-04.out', 'stderr_path': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-2/command-04.err', 'started': 11047.538021544, 'returncode': 0, 'seconds': 0.264757818000362, 'stdout': '', 'stderr': 'Computing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: target //:value (0 packages loaded, 0 targets configured)\nAnalyzing: target //:value (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed target //:value (0 packages loaded, 0 targets configured).\nINFO: Found 1 target...\nTarget //:value up-to-date:\n  bazel-bin/value.txt\nINFO: Elapsed time: 0.176s, Critical Path: 0.00s\nINFO: 1 process: 1 internal.\nINFO: Build completed successfully, 1 total action\n'}

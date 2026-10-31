@@ -1,0 +1,2025 @@
+diff --git a/tools/BUILD b/tools/BUILD
+index c24b1c19..18cb1f9d 100644
+--- a/tools/BUILD
++++ b/tools/BUILD
+@@ -25,6 +25,7 @@ filegroup(
+         "//tools/java:srcs",
+         "//tools/jdk:srcs",
+         "//tools/launcher:srcs",
++        "//tools/multiworktree:srcs",
+         "//tools/objc:srcs",
+         "//tools/osx:srcs",
+         "//tools/proto:srcs",
+diff --git a/tools/multiworktree/.gitignore b/tools/multiworktree/.gitignore
+new file mode 100644
+index 00000000..c18dd8d8
+--- /dev/null
++++ b/tools/multiworktree/.gitignore
+@@ -0,0 +1 @@
++__pycache__/
+diff --git a/tools/multiworktree/BUILD b/tools/multiworktree/BUILD
+new file mode 100644
+index 00000000..7a9e00ed
+--- /dev/null
++++ b/tools/multiworktree/BUILD
+@@ -0,0 +1,35 @@
++load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
++
++package(default_visibility = ["//visibility:public"])
++
++filegroup(
++    name = "srcs",
++    srcs = glob(
++        ["**"],
++        exclude = ["**/__pycache__/**"],
++    ),
++)
++
++py_library(
++    name = "supervisor",
++    srcs = ["bazel_multiworktree.py"],
++    imports = ["."],
++)
++
++py_binary(
++    name = "bazel_multiworktree",
++    srcs = ["bazel_multiworktree.py"],
++    legacy_create_init = False,
++    main = "bazel_multiworktree.py",
++)
++
++py_test(
++    name = "bazel_multiworktree_test",
++    srcs = ["bazel_multiworktree_test.py"],
++    legacy_create_init = False,
++    target_compatible_with = ["@platforms//os:linux"],
++    deps = [
++        ":supervisor",
++        "//third_party/py/abseil",
++    ],
++)
+diff --git a/tools/multiworktree/README.md b/tools/multiworktree/README.md
+new file mode 100644
+index 00000000..5483ff40
+--- /dev/null
++++ b/tools/multiworktree/README.md
+@@ -0,0 +1,136 @@
++# Concurrent worktree MVP (Linux)
++
++This is the implementation plan's **private-process fallback**: one local Python
++supervisor routes simultaneous `build` and `test` invocations to retained,
++workspace-private Bazel JVMs. It also supports `info` and workspace `shutdown`.
++It does **not** implement multiple BlazeRuntimes in one JVM, share Skyframe graphs,
++or demonstrate a memory/performance improvement. The native
++`--experimental_shared_server` flag remains single-engine; this wrapper gives
++each worker its own name in that protected namespace.
++
++Requires Linux, Python 3.11+, and a copied binary built from this checkout (with
++the v2 process-lifetime ownership implementation). No Python packages are needed.
++Ordinary Bazel remains unchanged.
++
++## Start and use
++
++Build and copy the candidate, then run a supervisor in a dedicated terminal:
++
++```sh
++bazel build //src:bazel-dev
++cp bazel-bin/src/bazel-dev /tmp/bazel-mw-candidate
++python3 tools/multiworktree/bazel_multiworktree.py \
++  --state /tmp/bazel-mw-state --bazel /tmp/bazel-mw-candidate \
++  --max-engines 2 --cpus 4 --memory-mb 4096 --heap-mb 768 serve
++```
++
++Use the absolute path to the script from each worktree. For example, in two
++terminals, these commands can execute at the same time:
++
++```sh
++cd /path/to/worktree-a
++python3 /path/to/bazel/tools/multiworktree/bazel_multiworktree.py \
++  --state /tmp/bazel-mw-state build //your/package:target
++```
++
++```sh
++cd /path/to/worktree-b
++python3 /path/to/bazel/tools/multiworktree/bazel_multiworktree.py \
++  --state /tmp/bazel-mw-state test //your/package:test
++```
++
++The supervisor ignores system, home, and workspace `.bazelrc` files for this MVP.
++Pass build/test options explicitly, including `--repository_cache` if desired.
++Startup settings belong to `serve`; arbitrary client startup options are not
++supported. Build arguments and the complete invocation environment are forwarded
++without shell interpolation. Input is noninteractive; stdout/stderr are streamed
++as bytes, exit codes propagate, and Ctrl-C or client disconnection cancels the
++request. Terminal resize forwarding is not implemented.
++
++```sh
++# Process identities, active engines, queue length and budget (no environment values):
++python3 /path/to/bazel/tools/multiworktree/bazel_multiworktree.py --state /tmp/bazel-mw-state status
++
++# Exit 9 instead of waiting for this workspace or a free engine slot:
++python3 /path/to/bazel/tools/multiworktree/bazel_multiworktree.py --state /tmp/bazel-mw-state --no-wait build //:target
++
++# Shut down only the engine for the current workspace:
++python3 /path/to/bazel/tools/multiworktree/bazel_multiworktree.py --state /tmp/bazel-mw-state shutdown
++
++# Drain all idle engines and stop the supervisor; exits 9 if work is active/queued:
++python3 /path/to/bazel/tools/multiworktree/bazel_multiworktree.py --state /tmp/bazel-mw-state stop
++```
++
++SIGINT/SIGTERM to the supervisor cancels active/queued requests and attempts a
++clean worker drain. Normal `stop` reaps the worker JVMs and marks the session
++closed. A subsequent `serve` uses a fresh namespace. Idle slots are evicted by
++least recent use when another workspace needs capacity. Commands for one engine
++serialize; requests for a different engine can make progress. The first eligible
++queued request gets admission, and at most 64 requests wait.
++
++## Ownership and resource contract
++
++* The default pool retains at most two complete engines, each with a private
++  evaluator, modules, output base, execroot, external dependencies, action cache,
++  worker/sandbox state, logs, and native command endpoint.
++* Canonical workspace aliases select the same engine. Nested workspace markers
++  select distinct engines. Workspace replacement fences ordinary requests;
++  restoring the original directory permits shutdown. These are admission checks,
++  not filesystem snapshots or protection against edits during actions.
++* Environment changes drain and replace only that workspace's engine. This keeps
++  the native conservative full-environment startup contract; it can reduce warm
++  reuse even for benign shell environment changes. Explicit per-command flags
++  such as `--action_env=NAME=value` work normally.
++* Binary identity is fixed for a supervisor session. Copy a new binary to a new
++  path and stop the old supervisor before changing its configured executable.
++* Each engine receives `floor(cpus / max_engines)` action slots, loading threads
++  and JVM active processors. A final Bazel invocation policy enforces `jobs`,
++  `local_test_jobs`, and CPU/memory `local_resources` even when a command tries
++  to override them. Parallel analysis is bounded by the engine count and JVM heap
++  limits. Resource limits apply to this supervisor's pool, not unrelated Bazel
++  processes on the host.
++* Estimated action memory per engine is
++  `floor((memory_mb - 256) / max_engines) - heap_mb`. The 256 MiB allowance is
++  supervisor headroom. These are scheduling estimates, **not hard RSS/cgroup
++  limits**: JVM non-heap memory, native allocations, action resource declarations,
++  and arbitrary multithreaded subprocesses still require workload qualification.
++* State must be owned by the invoking user with mode `0700`. Local UNIX sockets
++  verify the connecting UID. Logical and physical supervisor ownership are
++  reserved separately; native workers retain the existing process-lifetime
++  output/control reservations. This is cooperative local coordination, not a
++  hostile-user security boundary or cross-host locking scheme.
++
++## Failure and recovery limits
++
++An unexpected worker exit quarantines its slot. Other engines continue; the
++supervisor does not restart against potentially orphaned work. A failed shutdown
++also retains the slot. An unclean supervisor journal blocks automatic restart
++of that state directory, even when its listener is gone. The journal records
++worker registrations/PIDs and output roots without command arguments or environment
++values. Original native worker ownership remains effective after supervisor death.
++
++Automatic crash recovery and orphan-action cleanup are deliberately not part of
++this MVP. Account for the recorded worker processes and their descendants before
++starting another pool with a fresh state directory. Do not delete the journal to
++force reuse. Old generation directories are retained for inspection; disk garbage
++collection is manual. The full in-process ownership/global-state refactor, shared
++immutable compilation cache, and DataDog performance qualification remain later
++plan work.
++
++## Verification
++
++```sh
++bazel test //tools/multiworktree:bazel_multiworktree_test
++python3 tools/multiworktree/integration_test.py \
++  --bazel /tmp/bazel-mw-candidate --repository-cache /path/to/repository-cache \
++  --root /tmp/new-mw-acceptance-directory --result /tmp/mw-acceptance.json
++```
++
++The real-binary test requires a **new** root directory. It checks A→B→A warm state,
++conflicting sources/dependencies/configuration/environment, a simultaneous build
++and test at an execution barrier, same-engine queueing, running/queued/disconnected
++cancellation, isolated failures/shutdown, enforced resource policy through BEP,
++canonical/non-ASCII paths, idle eviction, directory replacement, clean drain,
++worker crash quarantine, and refusal to replace an unclean supervisor. It retains
++command logs and machine-readable results. This is a correctness acceptance test,
++not a benchmark.
+diff --git a/tools/multiworktree/bazel_multiworktree.py b/tools/multiworktree/bazel_multiworktree.py
+new file mode 100755
+index 00000000..82927535
+--- /dev/null
++++ b/tools/multiworktree/bazel_multiworktree.py
+@@ -0,0 +1,926 @@
++#!/usr/bin/env python3
++# Copyright 2026 The Bazel Authors. All rights reserved.
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++# https://www.apache.org/licenses/LICENSE-2.0
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++"""Linux concurrent-worktree MVP using the plan's private-process fallback.
++
++One foreground supervisor, bounded retained engines, per-engine serialization.
++Requires this checkout's Bazel binary with v2 shared-server ownership support.
++See README.md for the supported contract and deliberate limitations.
++"""
++
++import argparse
++import base64
++import ctypes
++import dataclasses
++import hashlib
++import json
++import os
++from pathlib import Path
++import selectors
++import signal
++import socket
++import stat
++import struct
++import subprocess
++import sys
++import threading
++import time
++import uuid
++
++MAX_FRAME = 8 * 1024 * 1024
++MAX_QUEUE = 64
++COMMANDS = ("build", "test", "info", "shutdown", "status", "stop")
++
++
++class Rejected(Exception):
++
++  def __init__(self, message, code=36):
++    super().__init__(message)
++    self.code = code
++
++
++def encode_frame(value):
++  data = json.dumps(value, ensure_ascii=True, separators=(",", ":")).encode()
++  if len(data) > MAX_FRAME:
++    raise Rejected("Request exceeds the 8 MiB protocol limit", 2)
++  return struct.pack("!I", len(data)) + data
++
++
++def read_exact(conn, size, deadline=None):
++  data = bytearray()
++  while len(data) < size:
++    if deadline is not None and time.monotonic() >= deadline:
++      raise Rejected("Request timed out", 2)
++    try:
++      block = conn.recv(size - len(data))
++    except socket.timeout:
++      continue
++    if not block:
++      raise EOFError()
++    data.extend(block)
++  return bytes(data)
++
++
++def read_frame(conn, deadline=None):
++  size = struct.unpack("!I", read_exact(conn, 4, deadline))[0]
++  if size > MAX_FRAME:
++    raise Rejected("Request exceeds the 8 MiB protocol limit", 2)
++  try:
++    result = json.loads(read_exact(conn, size, deadline))
++  except (ValueError, UnicodeError) as error:
++    raise Rejected("Invalid protocol JSON", 2) from error
++  if not isinstance(result, dict):
++    raise Rejected("Expected a protocol object", 2)
++  return result
++
++
++def endpoint(root):
++  digest = hashlib.sha256(os.fsencode(root)).hexdigest()
++  return "\0bazel-multiworktree-v1:%s:%s" % (os.getuid(), digest)
++
++
++class DirectoryPin:
++  """Admission guard; this does not snapshot files while actions are running."""
++
++  def __init__(self, path):
++    self.path = Path(path)
++    self.fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
++    self.identity = self.key(os.fstat(self.fd))
++    self.fenced = False
++    try:
++      self.check()
++    except BaseException:
++      os.close(self.fd)
++      raise
++
++  @staticmethod
++  def key(value):
++    return value.st_dev, value.st_ino
++
++  def check(self, allow_restored=False):
++    try:
++      valid = self.key(self.path.lstat()) == self.identity
++    except OSError:
++      valid = False
++    self.fenced |= not valid
++    if self.fenced and not (valid and allow_restored):
++      raise Rejected("Directory identity changed: " + str(self.path))
++
++  def close(self):
++    os.close(self.fd)
++
++
++@dataclasses.dataclass(frozen=True)
++class Budget:
++  engines: int
++  cpus: int
++  memory_mb: int
++  heap_mb: int
++
++  def __post_init__(self):
++    if not 1 <= self.engines <= 8:
++      raise Rejected("--max-engines must be between 1 and 8", 2)
++    if self.cpus < self.engines:
++      raise Rejected(
++          "The CPU budget must provide at least one CPU per engine", 2
++      )
++    if self.heap_mb < 256 or self.action_memory < 256:
++      raise Rejected(
++          "Memory budget needs >=256 MiB heap and action memory per engine,"
++          " plus 256 MiB supervisor headroom",
++          2,
++      )
++
++  @property
++  def jobs(self):
++    return self.cpus // self.engines
++
++  @property
++  def action_memory(self):
++    return (self.memory_mb - 256) // self.engines - self.heap_mb
++
++  def policy(self):
++    # Enforced after all flag/config expansion, not an overrideable --jobs suffix.
++    values = {
++        "jobs": [str(self.jobs)],
++        "loading_phase_threads": [str(self.jobs)],
++        "local_test_jobs": [str(self.jobs)],
++        "local_resources": [
++            "cpu=" + str(self.jobs),
++            "memory=" + str(self.action_memory),
++        ],
++    }
++    return " ".join(
++        'flag_policies { flag_name: "'
++        + key
++        + '" commands: "build" set_value { '
++        + " ".join('flag_value: "' + value + '"' for value in values[key])
++        + " behavior: FINAL_VALUE_IGNORE_OVERRIDES } }"
++        for key in values
++    )
++
++
++@dataclasses.dataclass
++class Engine:
++  workspace: str
++  environment: dict
++  name: str
++  pin: DirectoryPin
++  pid: int = 0
++  ticks: str = ""
++  quarantined: bool = False
++
++  def public(self):
++    return {
++        "workspace": self.workspace,
++        "registration": self.name,
++        "pid": self.pid,
++        "start_ticks": self.ticks,
++        "quarantined": self.quarantined,
++    }
++
++
++@dataclasses.dataclass
++class Slot:
++  engine: object = None
++  busy: bool = False
++  target: str = ""
++  touched: float = 0
++
++
++class Scheduler:
++  """FIFO among eligible requests, allowing independent engines to progress."""
++
++  def __init__(self, count):
++    self.condition = threading.Condition(threading.RLock())
++    self.slots = [Slot() for _ in range(count)]
++    self.queue = []
++    self.stopping = False
++
++  def candidate(self, workspace, earlier, shutdown):
++    for slot in self.slots:
++      if slot.target == workspace or (
++          slot.engine and slot.engine.workspace == workspace
++      ):
++        if slot.engine and slot.engine.quarantined and not shutdown:
++          raise Rejected(
++              "Engine is quarantined; inspect status and shut down its original"
++              " worker"
++          )
++        return None if slot.busy or workspace in earlier else slot
++    eligible = [
++        s
++        for s in self.slots
++        if not s.busy
++        and (
++            s.engine is None
++            or (not s.engine.quarantined and s.engine.workspace not in earlier)
++        )
++    ]
++    return (
++        min(eligible, key=lambda s: (s.engine is not None, s.touched))
++        if eligible
++        else None
++    )
++
++  def acquire(self, workspace, cancelled, no_wait=False, shutdown=False):
++    ticket = (object(), workspace)
++    with self.condition:
++      if len(self.queue) >= MAX_QUEUE:
++        raise Rejected("Admission queue is full", 9)
++      self.queue.append(ticket)
++      try:
++        while True:
++          if self.stopping or cancelled.is_set():
++            raise Rejected("Command cancelled before admission", 8)
++          earlier_tickets = self.queue[: self.queue.index(ticket)]
++          earlier = {key for _, key in earlier_tickets}
++          slot = self.candidate(workspace, earlier, shutdown)
++          # Let the first eligible waiter claim capacity before later requests.
++          preceding = set()
++          for _, key in earlier_tickets:
++            try:
++              if self.candidate(key, preceding, shutdown=True) is not None:
++                slot = None
++                break
++            except Rejected:
++              pass
++            preceding.add(key)
++          if slot is not None:
++            slot.busy = True
++            slot.target = workspace
++            return slot
++          if no_wait:
++            raise Rejected(
++                "Engine or supervisor capacity is busy (--no-wait)", 9
++            )
++          if all(
++              s.engine and s.engine.quarantined and not s.busy
++              for s in self.slots
++          ):
++            raise Rejected("All engine slots are quarantined")
++          self.condition.wait(0.1)
++      finally:
++        self.queue.remove(ticket)
++        self.condition.notify_all()
++
++  def release(self, slot):
++    with self.condition:
++      slot.busy = False
++      slot.target = ""
++      slot.touched = time.monotonic()
++      self.condition.notify_all()
++
++
++def process_ticks(pid):
++  try:
++    fields = Path("/proc/%s/stat" % pid).read_text().rsplit(")", 1)[1].split()
++    return "" if fields[0] == "Z" else fields[19]
++  except (OSError, IndexError):
++    return ""
++
++
++def workspace_for(cwd):
++  path = Path(cwd).resolve(strict=True)
++  if not path.is_dir():
++    raise Rejected("Client working directory is not a directory", 2)
++  for candidate in (path, *path.parents):
++    if any(
++        (candidate / name).is_file()
++        for name in (
++            "MODULE.bazel",
++            "REPO.bazel",
++            "WORKSPACE.bazel",
++            "WORKSPACE",
++        )
++    ):
++      return str(candidate)
++  raise Rejected("Run this command inside a Bazel workspace", 2)
++
++
++def validate_request(request):
++  if request.get("version") != 1 or request.get("command") not in COMMANDS:
++    raise Rejected("Unsupported protocol version or command", 2)
++  if request["command"] in ("status", "stop"):
++    if request.get("args", []) or request.get("no_wait", False):
++      raise Rejected(
++          "status and stop accept no command arguments or --no-wait", 2
++      )
++    return
++  for name in ("cwd",):
++    if not isinstance(request.get(name), str) or "\0" in request[name]:
++      raise Rejected("Invalid " + name, 2)
++  args = request.get("args")
++  env = request.get("environment")
++  if not isinstance(args, list) or not all(
++      isinstance(a, str) and "\0" not in a for a in args
++  ):
++    raise Rejected("Invalid command arguments", 2)
++  if not isinstance(env, dict) or not all(
++      isinstance(k, str)
++      and k
++      and "=" not in k
++      and "\0" not in k
++      and isinstance(v, str)
++      and "\0" not in v
++      for k, v in env.items()
++  ):
++    raise Rejected("Invalid environment", 2)
++  if type(request.get("no_wait", False)) is not bool:
++    raise Rejected("Invalid no_wait", 2)
++  if request["command"] == "shutdown" and args:
++    raise Rejected("Workspace shutdown does not accept command arguments", 2)
++
++
++class Connection:
++
++  def __init__(self, conn):
++    self.conn = conn
++    self.cancelled = threading.Event()
++    self.dead = False
++
++  def send(self, value):
++    if not self.dead:
++      try:
++        self.conn.sendall(encode_frame(value))
++      except OSError:
++        self.dead = True
++        self.cancelled.set()
++        self.conn.close()
++
++  def output(self, stream, data):
++    self.send({stream: base64.b64encode(data).decode()})
++
++  def monitor(self):
++    try:
++      while True:
++        message = read_frame(self.conn)
++        if message != {"cancel": True}:
++          raise Rejected("Invalid control message", 2)
++        self.cancelled.set()
++    except (OSError, EOFError, Rejected):
++      self.cancelled.set()
++
++
++class Supervisor:
++
++  def __init__(self, root, bazel, budget):
++    self.root = root
++    self.bazel = bazel
++    self.budget = budget
++    self.scheduler = Scheduler(budget.engines)
++    self.done = threading.Event()
++    self.threads = set()
++    self.connections = set()
++    self.session = uuid.uuid4().hex
++    self.output_root = root / "runs" / self.session
++    self.root_pin = DirectoryPin(root)
++    self.binary_stat = bazel.stat()
++    with bazel.open("rb") as binary:
++      self.binary_sha256 = hashlib.file_digest(binary, "sha256").hexdigest()
++    self.listener = socket.socket(socket.AF_UNIX)
++    self.object_owner = socket.socket(socket.AF_UNIX)
++    try:
++      self.listener.bind(endpoint(root))
++      self.object_owner.bind(
++          "\0bazel-multiworktree-object-v1:%s:%s:%s"
++          % (os.getuid(), *self.root_pin.identity)
++      )
++      journal = root / "session.json"
++      if journal.exists() and not json.loads(journal.read_text()).get(
++          "closed", False
++      ):
++        raise Rejected(
++            "Unclean supervisor state: retained workers may still own it."
++            " Inspect session.json; this MVP refuses automatic recovery. Use a"
++            " fresh state directory only after accounting for those workers."
++        )
++      self.output_root.mkdir(parents=True)
++      self.run_pin = DirectoryPin(self.output_root)
++      self.persist()
++      self.listener.listen(64)
++      self.listener.settimeout(0.2)
++    except BaseException:
++      self.listener.close()
++      self.object_owner.close()
++      self.root_pin.close()
++      raise
++
++  def check(self):
++    self.root_pin.check()
++    self.run_pin.check()
++    current = self.bazel.stat()
++    if (
++        current.st_dev,
++        current.st_ino,
++        current.st_size,
++        current.st_mtime_ns,
++    ) != (
++        self.binary_stat.st_dev,
++        self.binary_stat.st_ino,
++        self.binary_stat.st_size,
++        self.binary_stat.st_mtime_ns,
++    ):
++      raise Rejected(
++          "Bazel binary changed; stop this supervisor with its original binary"
++      )
++
++  def status(self):
++    with self.scheduler.condition:
++      return {
++          "version": 1,
++          "mode": "private-process-fallback",
++          "session": self.session,
++          "supervisor_pid": os.getpid(),
++          "bazel": str(self.bazel),
++          "binary_sha256": self.binary_sha256,
++          "output_user_root": str(self.output_root),
++          "budget": dataclasses.asdict(self.budget),
++          "action_memory_per_engine_mb": self.budget.action_memory,
++          "jobs_per_engine": self.budget.jobs,
++          "queued": len(self.scheduler.queue),
++          "engines": [
++              dict(s.engine.public(), busy=s.busy, target=s.target)
++              for s in self.scheduler.slots
++              if s.engine
++          ],
++      }
++
++  def persist(self, closed=False):
++    # No environment or command arguments are written to the journal.
++    with self.scheduler.condition:
++      self.root_pin.check()
++      data = dict(self.status(), closed=closed)
++      temporary = ".session-" + uuid.uuid4().hex
++      fd = os.open(
++          temporary,
++          os.O_WRONLY | os.O_CREAT | os.O_EXCL,
++          0o600,
++          dir_fd=self.root_pin.fd,
++      )
++      with os.fdopen(fd, "w") as output:
++        json.dump(data, output, indent=2)
++        output.write("\n")
++        output.flush()
++        os.fsync(output.fileno())
++      os.replace(
++          temporary,
++          "session.json",
++          src_dir_fd=self.root_pin.fd,
++          dst_dir_fd=self.root_pin.fd,
++      )
++      os.fsync(self.root_pin.fd)
++
++  def startup(self, engine):
++    return [
++        str(self.bazel),
++        "--nosystem_rc",
++        "--nohome_rc",
++        "--noworkspace_rc",
++        "--output_user_root=" + str(self.output_root),
++        "--experimental_shared_server=" + engine.name,
++        "--host_jvm_args=-Xmx%sm" % self.budget.heap_mb,
++        "--host_jvm_args=-XX:ActiveProcessorCount=%s" % self.budget.jobs,
++        "--max_idle_secs=0",
++        "--invocation_policy=" + self.budget.policy(),
++    ]
++
++  def pump(
++      self,
++      engine,
++      command,
++      args,
++      cwd,
++      connection,
++      capture=False,
++      cancellable=True,
++  ):
++    self.check()
++    engine.pin.check(allow_restored=command == "shutdown")
++    if cancellable and connection.cancelled.is_set():
++      raise Rejected("Command cancelled", 8)
++    proc = subprocess.Popen(
++        self.startup(engine) + [command] + args,
++        cwd=cwd,
++        env=engine.environment,
++        stdin=subprocess.DEVNULL,
++        stdout=subprocess.PIPE,
++        stderr=subprocess.PIPE,
++        start_new_session=True,
++    )
++    collected = bytearray()
++    interrupted = False
++    with selectors.DefaultSelector() as selector:
++      selector.register(proc.stdout, selectors.EVENT_READ, "stdout")
++      selector.register(proc.stderr, selectors.EVENT_READ, "stderr")
++      try:
++        while selector.get_map():
++          if cancellable and connection.cancelled.is_set() and not interrupted:
++            try:
++              proc.send_signal(signal.SIGINT)
++            except ProcessLookupError:
++              pass
++            interrupted = True
++          for key, _ in selector.select(0.1):
++            block = os.read(key.fileobj.fileno(), 16384)
++            if not block:
++              selector.unregister(key.fileobj)
++            elif capture and key.data == "stdout":
++              if len(collected) + len(block) > MAX_FRAME:
++                raise Rejected("Unexpected oversized engine startup output")
++              collected.extend(block)
++            else:
++              connection.output(key.data, block)
++        result = proc.wait()
++      finally:
++        if proc.poll() is None:
++          proc.send_signal(signal.SIGINT)
++          proc.wait()
++        proc.stdout.close()
++        proc.stderr.close()
++    return (result if result >= 0 else 128 - result), bytes(collected)
++
++  def verify_engine(self, engine, shutdown=False):
++    engine.pin.check(allow_restored=shutdown)
++    if not engine.pid or process_ticks(engine.pid) != engine.ticks:
++      engine.quarantined = True
++      self.persist()
++      raise Rejected(
++          "Worker exited unexpectedly; its slot is quarantined (no automatic"
++          " output reuse)"
++      )
++
++  def shutdown_engine(self, slot, connection):
++    engine = slot.engine
++    if engine is None:
++      return
++    self.verify_engine(engine, shutdown=True)
++    code, _ = self.pump(
++        engine, "shutdown", [], engine.workspace, connection, cancellable=False
++    )
++    if code or process_ticks(engine.pid):
++      engine.quarantined = True
++      self.persist()
++      raise Rejected(
++          "Worker shutdown failed; engine ownership retained", code or 36
++      )
++    try:
++      os.waitpid(engine.pid, 0)
++    except ChildProcessError:
++      pass
++    engine.pin.close()
++    with self.scheduler.condition:
++      slot.engine = None
++      self.persist()
++
++  def prepare(self, slot, workspace, environment, connection):
++    engine = slot.engine
++    if engine and (
++        engine.workspace != workspace or engine.environment != environment
++    ):
++      connection.output(
++          "stderr",
++          b"multiworktree: retiring idle engine for workspace/environment"
++          b" change\n",
++      )
++      self.shutdown_engine(slot, connection)
++      engine = None
++    if engine is None:
++      engine = Engine(
++          workspace,
++          environment,
++          "e" + uuid.uuid4().hex,
++          DirectoryPin(workspace),
++      )
++      with self.scheduler.condition:
++        slot.engine = engine
++        self.persist()  # Record the private namespace before any JVM can be started.
++      # Startup is drained even if the requester disconnects, so the worker remains tracked.
++      code, output = self.pump(
++          engine,
++          "info",
++          ["server_pid"],
++          workspace,
++          connection,
++          capture=True,
++          cancellable=False,
++      )
++      try:
++        engine.pid = int(output.strip()) if code == 0 else 0
++        engine.ticks = process_ticks(engine.pid) if engine.pid else ""
++        if not engine.ticks:
++          raise ValueError("Missing worker identity")
++      except ValueError as error:
++        engine.quarantined = True
++        self.persist()
++        raise Rejected(
++            "Engine startup failed; slot quarantined", code or 36
++        ) from error
++      self.persist()
++    self.verify_engine(engine)
++    return engine
++
++  def execute(self, request, connection):
++    self.check()
++    command = request["command"]
++    if command == "status":
++      connection.send({"status": self.status()})
++      return 0
++    if command == "stop":
++      return self.stop(connection)
++    workspace = workspace_for(request["cwd"])
++    if command == "shutdown":
++      with self.scheduler.condition:
++        if not any(
++            s.target == workspace
++            or (s.engine and s.engine.workspace == workspace)
++            for s in self.scheduler.slots
++        ):
++          return 0
++    slot = self.scheduler.acquire(
++        workspace,
++        connection.cancelled,
++        request.get("no_wait", False),
++        command == "shutdown",
++    )
++    try:
++      if command == "shutdown":
++        # The engine may have been evicted while this request waited.
++        if slot.engine and slot.engine.workspace == workspace:
++          self.shutdown_engine(slot, connection)
++        return 0
++      engine = self.prepare(slot, workspace, request["environment"], connection)
++      code, _ = self.pump(
++          engine, command, request["args"], request["cwd"], connection
++      )
++      self.verify_engine(engine)
++      return code
++    except (OSError, Rejected) as error:
++      # Ordinary command failures are returned above; only lifecycle failures fence.
++      if slot.engine and (not isinstance(error, Rejected) or error.code != 8):
++        slot.engine.quarantined = True
++      raise
++    finally:
++      with self.scheduler.condition:
++        self.scheduler.release(slot)
++        self.persist()
++
++  def stop(self, connection):
++    with self.scheduler.condition:
++      if any(s.busy for s in self.scheduler.slots) or self.scheduler.queue:
++        raise Rejected(
++            "Builds are active or queued; cancel/wait before stopping the"
++            " supervisor",
++            9,
++        )
++      if self.scheduler.stopping:
++        raise Rejected("Supervisor is already stopping", 9)
++      self.scheduler.stopping = True
++    try:
++      for slot in self.scheduler.slots:
++        self.shutdown_engine(slot, connection)
++      self.persist(closed=True)
++      self.done.set()
++      return 0
++    except BaseException:
++      with self.scheduler.condition:
++        self.scheduler.stopping = False
++        self.scheduler.condition.notify_all()
++      raise
++
++  def handle(self, conn):
++    connection = Connection(conn)
++    monitor = None
++    with self.scheduler.condition:
++      self.connections.add(connection)
++    try:
++      _, uid, _ = struct.unpack(
++          "3i", conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
++      )
++      if uid != os.getuid():
++        raise Rejected("Supervisor accepts only clients owned by its user")
++      request = read_frame(conn, time.monotonic() + 10)
++      validate_request(request)
++      monitor = threading.Thread(target=connection.monitor, daemon=True)
++      monitor.start()
++      code = self.execute(request, connection)
++      connection.send({"exit_code": code})
++    except Rejected as error:
++      connection.output(
++          "stderr", ("multiworktree: " + str(error) + "\n").encode()
++      )
++      connection.send({"exit_code": error.code})
++    except (OSError, EOFError, ValueError) as error:
++      connection.output(
++          "stderr", ("multiworktree: " + str(error) + "\n").encode()
++      )
++      connection.send({"exit_code": 36})
++    finally:
++      try:
++        conn.shutdown(socket.SHUT_RDWR)
++      except OSError:
++        pass
++      conn.close()
++      if monitor:
++        monitor.join()
++      with self.scheduler.condition:
++        self.connections.discard(connection)
++        self.threads.discard(threading.current_thread())
++
++  def serve(self):
++    # Reap the daemonized worker JVMs after their normal shutdown.
++    if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
++      raise Rejected("Cannot establish Linux child subreaper ownership")
++    print(json.dumps(self.status()), flush=True)
++    interrupted = threading.Event()
++
++    def interrupt(_signum, _frame):
++      interrupted.set()
++
++    old_int = signal.signal(signal.SIGINT, interrupt)
++    old_term = signal.signal(signal.SIGTERM, interrupt)
++    try:
++      while not self.done.is_set() and not interrupted.is_set():
++        try:
++          conn, _ = self.listener.accept()
++        except socket.timeout:
++          continue
++        conn.settimeout(1)
++        with self.scheduler.condition:
++          if len(self.threads) >= MAX_QUEUE + self.budget.engines + 4:
++            conn.close()
++            continue
++          thread = threading.Thread(target=self.handle, args=(conn,))
++          self.threads.add(thread)
++          thread.start()
++      if interrupted.is_set() and not self.done.is_set():
++        with self.scheduler.condition:
++          self.scheduler.stopping = True
++          for connection in self.connections:
++            connection.cancelled.set()
++          self.scheduler.condition.notify_all()
++        for thread in list(self.threads):
++          thread.join()
++        self.scheduler.stopping = False
++        self.stop(LocalConnection())
++    finally:
++      signal.signal(signal.SIGINT, old_int)
++      signal.signal(signal.SIGTERM, old_term)
++      self.listener.close()
++      for thread in list(self.threads):
++        thread.join()
++      self.object_owner.close()
++      self.run_pin.close()
++      self.root_pin.close()
++
++
++class LocalConnection:
++  """Output sink used while draining the supervisor after a termination signal."""
++
++  def __init__(self):
++    self.cancelled = threading.Event()
++
++  def output(self, _stream, data):
++    sys.stderr.buffer.write(data)
++    sys.stderr.buffer.flush()
++
++
++def client(root, command, args, no_wait=False):
++  request = {
++      "version": 1,
++      "command": command,
++      "args": args,
++      "cwd": os.getcwd(),
++      "environment": dict(os.environ),
++      "no_wait": no_wait,
++  }
++  with socket.socket(socket.AF_UNIX) as conn:
++    conn.settimeout(1)
++    conn.connect(endpoint(root))
++    conn.sendall(encode_frame(request))
++
++    def cancel(_signum, _frame):
++      try:
++        conn.sendall(encode_frame({"cancel": True}))
++      except OSError:
++        pass
++
++    old_int = signal.signal(signal.SIGINT, cancel)
++    old_term = signal.signal(signal.SIGTERM, cancel)
++    try:
++      while True:
++        response = read_frame(conn)
++        for key, stream in (
++            ("stdout", sys.stdout.buffer),
++            ("stderr", sys.stderr.buffer),
++        ):
++          if key in response:
++            stream.write(base64.b64decode(response[key], validate=True))
++            stream.flush()
++        if "status" in response:
++          print(json.dumps(response["status"], indent=2), flush=True)
++        if "exit_code" in response:
++          return response["exit_code"]
++    finally:
++      signal.signal(signal.SIGINT, old_int)
++      signal.signal(signal.SIGTERM, old_term)
++
++
++def main(argv=None):
++  parser = argparse.ArgumentParser(description=__doc__)
++  parser.add_argument(
++      "--state",
++      type=Path,
++      required=True,
++      help="Private supervisor state directory",
++  )
++  parser.add_argument(
++      "--no-wait", action="store_true", help="Reject busy admission with exit 9"
++  )
++  parser.add_argument(
++      "--bazel", type=Path, help="Copied Bazel candidate (serve only)"
++  )
++  parser.add_argument(
++      "--max-engines", type=int, help="Retained engine limit (default: 2)"
++  )
++  parser.add_argument(
++      "--cpus", type=int, help="Aggregate scheduler CPU budget (default: 4)"
++  )
++  parser.add_argument(
++      "--memory-mb",
++      type=int,
++      help="Aggregate estimated memory budget (default: 4096)",
++  )
++  parser.add_argument(
++      "--heap-mb", type=int, help="JVM heap per engine (default: 768)"
++  )
++  parser.add_argument("command", choices=("serve", *COMMANDS))
++  parser.add_argument("args", nargs=argparse.REMAINDER)
++  options = parser.parse_args(argv)
++  try:
++    if not sys.platform.startswith("linux"):
++      raise Rejected(
++          "The concurrent-worktree MVP currently supports Linux only", 2
++      )
++    if options.command == "serve":
++      if not options.bazel or options.args or options.no_wait:
++        raise Rejected(
++            "serve requires --bazel and accepts no command arguments or"
++            " --no-wait",
++            2,
++        )
++      options.state.mkdir(mode=0o700, parents=True, exist_ok=True)
++      root = options.state.resolve(strict=True)
++      mode = root.stat()
++      if mode.st_uid != os.getuid() or stat.S_IMODE(mode.st_mode) & 0o077:
++        raise Rejected(
++            "Supervisor state must be owned by you with mode 0700", 2
++        )
++      budget = Budget(*(
++          default if value is None else value
++          for value, default in (
++              (options.max_engines, 2),
++              (options.cpus, 4),
++              (options.memory_mb, 4096),
++              (options.heap_mb, 768),
++          )
++      ))
++      supervisor = Supervisor(root, options.bazel.resolve(strict=True), budget)
++      # A crash or failed drain leaves the journal unclean and blocks automatic reuse.
++      supervisor.serve()
++      return 0
++    if options.bazel or any(
++        value is not None
++        for value in (
++            options.max_engines,
++            options.cpus,
++            options.memory_mb,
++            options.heap_mb,
++        )
++    ):
++      raise Rejected("--bazel and resource budgets apply only to serve", 2)
++    return client(
++        options.state.resolve(strict=True),
++        options.command,
++        options.args,
++        options.no_wait,
++    )
++  except (Rejected, OSError, EOFError, KeyboardInterrupt) as error:
++    print(
++        "multiworktree: " + (str(error) or "Supervisor connection closed"),
++        file=sys.stderr,
++    )
++    return error.code if isinstance(error, Rejected) else 36
++
++
++if __name__ == "__main__":
++  sys.exit(main())
+diff --git a/tools/multiworktree/bazel_multiworktree_test.py b/tools/multiworktree/bazel_multiworktree_test.py
+new file mode 100644
+index 00000000..165fd7f1
+--- /dev/null
++++ b/tools/multiworktree/bazel_multiworktree_test.py
+@@ -0,0 +1,291 @@
++# Copyright 2026 The Bazel Authors. All rights reserved.
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++import json
++import os
++from pathlib import Path
++import socket
++import struct
++import tempfile
++import threading
++import time
++import unittest
++
++import bazel_multiworktree as mw
++
++
++def engine(workspace, quarantined=False):
++  return mw.Engine(workspace, {}, "registration", None, quarantined=quarantined)
++
++
++def eventually(predicate):
++  deadline = time.monotonic() + 3
++  while not predicate():
++    if time.monotonic() > deadline:
++      raise AssertionError("Timed out")
++    time.sleep(0.01)
++
++
++class SchedulerTest(unittest.TestCase):
++
++  def setUp(self):
++    self.scheduler = mw.Scheduler(2)
++    self.cancelled = threading.Event()
++    self.threads = []
++
++  def tearDown(self):
++    self.cancelled.set()
++    for thread in self.threads:
++      thread.join(3)
++      self.assertFalse(thread.is_alive())
++
++  def acquire(self, workspace, **kwargs):
++    return self.scheduler.acquire(workspace, self.cancelled, **kwargs)
++
++  def background(self, workspace):
++    result = []
++
++    def run():
++      try:
++        result.append(self.acquire(workspace))
++      except mw.Rejected as error:
++        result.append(error.code)
++
++    thread = threading.Thread(target=run)
++    thread.start()
++    self.threads.append(thread)
++    return result
++
++  def test_independent_engines_overlap_but_third_waits(self):
++    first = self.acquire("a")
++    second = self.acquire("b")
++    self.assertIsNot(first, second)
++    third = self.background("c")
++    eventually(lambda: len(self.scheduler.queue) == 1)
++    self.assertEqual([], third)
++    self.scheduler.release(first)
++    eventually(lambda: bool(third))
++    self.assertIs(first, third[0])
++
++  def test_same_engine_serializes_even_when_other_slot_free(self):
++    first = self.acquire("a")
++    first.engine = engine("a")
++    second = self.background("a")
++    eventually(lambda: len(self.scheduler.queue) == 1)
++    self.assertEqual([], second)
++    self.scheduler.release(first)
++    eventually(lambda: bool(second))
++    self.assertIs(first, second[0])
++
++  def test_busy_engine_does_not_block_independent_request(self):
++    self.acquire("a")
++    waiting = self.background("a")
++    eventually(lambda: len(self.scheduler.queue) == 1)
++    self.acquire("b", no_wait=True)
++    self.assertEqual([], waiting)
++
++  def test_same_engine_fifo(self):
++    first = self.acquire("a")
++    earlier = self.background("a")
++    eventually(lambda: len(self.scheduler.queue) == 1)
++    later = self.background("a")
++    eventually(lambda: len(self.scheduler.queue) == 2)
++    self.scheduler.release(first)
++    eventually(lambda: bool(earlier))
++    self.assertEqual([], later)
++    self.scheduler.release(earlier[0])
++    eventually(lambda: bool(later))
++
++  def test_queued_cancellation_removes_ticket(self):
++    self.acquire("a")
++    result = self.background("a")
++    eventually(lambda: len(self.scheduler.queue) == 1)
++    self.cancelled.set()
++    eventually(lambda: bool(result))
++    self.assertEqual([8], result)
++    self.assertEqual([], self.scheduler.queue)
++
++  def test_nonblocking_rejects_without_queue_leak(self):
++    self.acquire("a")
++    with self.assertRaises(mw.Rejected) as failure:
++      self.acquire("a", no_wait=True)
++    self.assertEqual(9, failure.exception.code)
++    self.assertEqual([], self.scheduler.queue)
++
++  def test_later_workspace_cannot_steal_capacity_from_eligible_waiter(self):
++    self.scheduler.queue.append((object(), "earlier"))
++    with self.assertRaises(mw.Rejected) as failure:
++      self.acquire("later", no_wait=True)
++    self.assertEqual(9, failure.exception.code)
++    self.assertEqual(1, len(self.scheduler.queue))
++
++  def test_idle_lru_eviction(self):
++    a, b = self.scheduler.slots
++    a.engine, b.engine = engine("a"), engine("b")
++    a.touched, b.touched = 2, 1
++    self.assertIs(b, self.acquire("c"))
++
++  def test_empty_slot_preferred_over_warm_engine(self):
++    a, b = self.scheduler.slots
++    a.engine = engine("a")
++    self.assertIs(b, self.acquire("b"))
++
++  def test_quarantined_slot_never_evicted(self):
++    a, b = self.scheduler.slots
++    a.engine = engine("a", quarantined=True)
++    self.assertIs(b, self.acquire("b"))
++    with self.assertRaises(mw.Rejected):
++      self.acquire("c", no_wait=True)
++    with self.assertRaises(mw.Rejected):
++      self.acquire("a")
++    self.assertIs(a, self.acquire("a", shutdown=True))
++
++  def test_stop_rejects_new_admission(self):
++    self.scheduler.stopping = True
++    with self.assertRaises(mw.Rejected) as failure:
++      self.acquire("a")
++    self.assertEqual(8, failure.exception.code)
++
++  def test_bounded_queue(self):
++    self.scheduler.queue = [(object(), "a") for _ in range(mw.MAX_QUEUE)]
++    with self.assertRaises(mw.Rejected) as failure:
++      self.acquire("a")
++    self.assertEqual(9, failure.exception.code)
++
++
++class ProtocolTest(unittest.TestCase):
++
++  def test_round_trip_non_ascii_and_bytes(self):
++    a, b = socket.socketpair()
++    with a, b:
++      original = {"args": ["café", "x\udc80"], "version": 1}
++      a.sendall(mw.encode_frame(original))
++      self.assertEqual(original, mw.read_frame(b))
++
++  def test_rejects_oversized_before_allocating_body(self):
++    a, b = socket.socketpair()
++    with a, b:
++      a.sendall(struct.pack("!I", mw.MAX_FRAME + 1))
++      with self.assertRaises(mw.Rejected):
++        mw.read_frame(b)
++
++  def test_truncated_frame(self):
++    a, b = socket.socketpair()
++    with a, b:
++      a.sendall(struct.pack("!I", 100) + b"{")
++      a.shutdown(socket.SHUT_WR)
++      with self.assertRaises(EOFError):
++        mw.read_frame(b)
++
++  def test_invalid_shapes_and_command(self):
++    good = {
++        "version": 1,
++        "command": "build",
++        "cwd": "/a",
++        "args": [],
++        "environment": {},
++    }
++    for patch in (
++        {"command": "clean"},
++        {"environment": {"A=B": "x"}},
++        {"args": [1]},
++        {"cwd": None},
++        {"no_wait": "false"},
++    ):
++      with self.subTest(patch=patch), self.assertRaises(mw.Rejected):
++        mw.validate_request(dict(good, **patch))
++    mw.validate_request(good)
++
++  def test_disconnect_cancels(self):
++    a, b = socket.socketpair()
++    connection = mw.Connection(b)
++    a.close()
++    with b:
++      connection.monitor()
++    self.assertTrue(connection.cancelled.is_set())
++
++
++class OwnershipTest(unittest.TestCase):
++
++  def test_directory_replacement_sticky_fence(self):
++    with tempfile.TemporaryDirectory() as root:
++      original = Path(root) / "workspace"
++      original.mkdir()
++      pin = mw.DirectoryPin(original)
++      try:
++        saved = original.with_name("saved")
++        original.rename(saved)
++        original.mkdir()
++        with self.assertRaises(mw.Rejected):
++          pin.check()
++        original.rmdir()
++        saved.rename(original)
++        with self.assertRaises(mw.Rejected):
++          pin.check()
++      finally:
++        pin.close()
++
++  def test_canonical_alias_and_nested_discovery(self):
++    with tempfile.TemporaryDirectory() as root:
++      workspace = Path(root) / "workspace"
++      (workspace / "nested").mkdir(parents=True)
++      (workspace / "MODULE.bazel").touch()
++      alias = Path(root) / "alias"
++      alias.symlink_to(workspace)
++      self.assertEqual(str(workspace), mw.workspace_for(alias / "nested"))
++      (workspace / "nested/MODULE.bazel").touch()
++      self.assertEqual(
++          str(workspace / "nested"), mw.workspace_for(alias / "nested")
++      )
++
++  def test_supervisor_collision_unclean_and_clean_restart(self):
++    with tempfile.TemporaryDirectory() as directory:
++      root = Path(directory)
++      budget = mw.Budget(2, 4, 2048, 512)
++      bazel = Path("/usr/bin/true").resolve()
++      supervisor = mw.Supervisor(root, bazel, budget)
++      try:
++        with self.assertRaises(OSError):
++          mw.Supervisor(root, bazel, budget)
++        journal = json.loads((root / "session.json").read_text())
++        self.assertFalse(journal["closed"])
++        self.assertNotIn("environment", json.dumps(journal))
++      finally:
++        supervisor.listener.close()
++        supervisor.object_owner.close()
++        supervisor.run_pin.close()
++        supervisor.root_pin.close()
++      with self.assertRaises(mw.Rejected):
++        mw.Supervisor(root, bazel, budget)
++      journal["closed"] = True
++      (root / "session.json").write_text(json.dumps(journal))
++      next_supervisor = mw.Supervisor(root, bazel, budget)
++      try:
++        self.assertNotEqual(supervisor.session, next_supervisor.session)
++      finally:
++        next_supervisor.listener.close()
++        next_supervisor.object_owner.close()
++        next_supervisor.run_pin.close()
++        next_supervisor.root_pin.close()
++
++  def test_budget_rejects_impossible_allocations(self):
++    for arguments in ((0, 4, 4096, 768), (2, 1, 4096, 768), (2, 4, 1024, 768)):
++      with self.subTest(arguments=arguments), self.assertRaises(mw.Rejected):
++        mw.Budget(*arguments)
++    budget = mw.Budget(2, 4, 4096, 768)
++    self.assertEqual(1152, budget.action_memory)
++    self.assertEqual(2, budget.jobs)
++    self.assertIn("FINAL_VALUE_IGNORE_OVERRIDES", budget.policy())
++
++
++if __name__ == "__main__":
++  from absl.testing import absltest
++
++  absltest.main()
+diff --git a/tools/multiworktree/integration_test.py b/tools/multiworktree/integration_test.py
+new file mode 100755
+index 00000000..46d536a1
+--- /dev/null
++++ b/tools/multiworktree/integration_test.py
+@@ -0,0 +1,588 @@
++#!/usr/bin/env python3
++# Copyright 2026 The Bazel Authors. All rights reserved.
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++"""Real copied-binary acceptance, including a build/test execution barrier.
++
++Run explicitly, outside a Bazel sandbox. Creates only under a new --root.
++"""
++
++import argparse
++import ctypes
++import hashlib
++import json
++import os
++from pathlib import Path
++import shlex
++import signal
++import subprocess
++import sys
++import time
++
++import bazel_multiworktree as mw
++
++
++def wait_until(predicate, message, timeout=120):
++  deadline = time.monotonic() + timeout
++  while not predicate():
++    if time.monotonic() >= deadline:
++      raise AssertionError(message)
++    time.sleep(0.05)
++
++
++class Acceptance:
++
++  def __init__(self, options):
++    self.options = options
++    self.root = options.root.resolve()
++    self.root.mkdir(parents=True, exist_ok=False)
++    self.script = Path(__file__).with_name("bazel_multiworktree.py").resolve()
++    self.state = self.root / "state"
++    self.base = [sys.executable, str(self.script), "--state", str(self.state)]
++    self.server_count = 0
++    self.events = []
++    self.commands = []
++    self.pending = []
++    self.release = self.root / "release"
++    self.server = None
++    self.environments = {}
++    self.workspaces = {}
++    for name in ("a", "b", "café"):
++      self.workspace(name)
++
++  def workspace(self, name):
++    def quote(value):
++      return json.dumps(value, ensure_ascii=False)
++
++    path = self.root / name
++    path.mkdir()
++    (path / "MODULE.bazel").touch()
++    (path / "input.txt").write_text(name + "\n")
++    # A private local dependency differs across the workspaces too.
++    dependency = path / "dep"
++    dependency.mkdir()
++    (dependency / "MODULE.bazel").write_text('module(name="private_dep")\n')
++    (dependency / "BUILD.bazel").write_text('exports_files(["value.txt"])\n')
++    (dependency / "value.txt").write_text("dep-" + name + "\n")
++    (path / "MODULE.bazel").write_text(
++        'bazel_dep(name="private_dep", version="1.0")\n'
++        'local_path_override(module_name="private_dep", path="dep")\n'
++    )
++    ready = self.root / (name + ".ready")
++    gate = (
++        "touch "
++        + shlex.quote(str(ready))
++        + "; while [ ! -f "
++        + shlex.quote(str(self.release))
++        + " ]; do sleep 0.1; done; "
++    )
++    (path / "checks.bzl").write_text(
++        "def _impl(ctx):\n    out = ctx.actions.declare_file(ctx.label.name +"
++        ' ".sh")\n    ctx.actions.write(out, "#!/bin/sh\\n" + ctx.attr.body,'
++        " is_executable=True)\n    return"
++        " [DefaultInfo(executable=out)]\ncheck_test ="
++        ' rule(implementation=_impl, test=True, attrs={"body":'
++        " attr.string()})\n"
++    )
++    command = (
++        "cat $(location input.txt) $(location @private_dep//:value.txt) >$@;"
++        " echo $(FLAVOR) >>$@; echo $$WORKTREE_ENV >>$@"
++    )
++    (path / "BUILD.bazel").write_text(
++        'load(":checks.bzl", "check_test")\ngenrule(name="value",'
++        ' srcs=["input.txt", "@private_dep//:value.txt"], outs=["value.txt"],'
++        " cmd="
++        + quote(command)
++        + ')\ngenrule(name="gate", srcs=["input.txt"], outs=["gate.txt"],'
++        " local=True, cmd="
++        + quote(gate + "cat $(location input.txt) >$@")
++        + ')\ncheck_test(name="gate_test", tags=["local"], body='
++        + quote(gate + 'test "$WORKTREE_ENV" = ' + shlex.quote(name) + "\n")
++        + ')\ncheck_test(name="pass_test", body='
++        + quote('test "$WORKTREE_ENV" = ' + shlex.quote(name) + "\n")
++        + ')\ncheck_test(name="fail_test", body="exit 1\\n")\n'
++    )
++    self.workspaces[name] = path
++    self.environments[name] = dict(os.environ, WORKTREE_ENV=name)
++    return path
++
++  def start(self):
++    if self.server:
++      self.server_log.close()
++    self.server_count += 1
++    log_path = self.root / ("supervisor-%d.log" % self.server_count)
++    self.server_log = log_path.open("wb")
++    journal = self.state / "session.json"
++    previous = (
++        json.loads(journal.read_text())["session"] if journal.exists() else None
++    )
++    self.server = subprocess.Popen(
++        self.base
++        + [
++            "--bazel",
++            str(self.options.bazel),
++            "--max-engines=2",
++            "--cpus=4",
++            "--memory-mb=4096",
++            "--heap-mb=512",
++            "serve",
++        ],
++        stdout=self.server_log,
++        stderr=self.server_log,
++    )
++    wait_until(
++        lambda: (
++            journal.exists()
++            and json.loads(journal.read_text())["session"] != previous
++        )
++        or self.server.poll() is not None,
++        "Supervisor did not start",
++    )
++    assert self.server.poll() is None, log_path.read_text()
++
++  def launch(self, name, arguments, no_wait=False):
++    argv = self.base + (["--no-wait"] if no_wait else []) + arguments
++    index = len(self.commands)
++    log = self.root / ("command-%02d" % index)
++    stdout = log.with_suffix(".out").open("wb")
++    stderr = log.with_suffix(".err").open("wb")
++    record = dict(
++        argv=argv,
++        workspace=str(self.workspaces[name]),
++        stdout_path=stdout.name,
++        stderr_path=stderr.name,
++        started=time.monotonic(),
++    )
++    self.commands.append(record)
++    proc = subprocess.Popen(
++        argv,
++        cwd=self.workspaces[name],
++        env=self.environments[name],
++        stdout=stdout,
++        stderr=stderr,
++    )
++    self.pending.append(proc)
++    return proc, record, stdout, stderr
++
++  def finish(self, task, code=0):
++    proc, record, stdout, stderr = task
++    actual = proc.wait(timeout=120)
++    stdout.close()
++    stderr.close()
++    self.pending.remove(proc)
++    record.update(
++        returncode=actual, seconds=time.monotonic() - record["started"]
++    )
++    record["stdout"] = Path(record["stdout_path"]).read_text(errors="replace")
++    record["stderr"] = Path(record["stderr_path"]).read_text(errors="replace")
++    assert actual == code, record
++    return record["stdout"].strip()
++
++  def run(self, name, arguments, code=0, no_wait=False):
++    return self.finish(self.launch(name, arguments, no_wait), code)
++
++  def build_args(self, name, command="build", target="//:value"):
++    return [
++        command,
++        "--repository_cache=" + str(self.options.repository_cache),
++        "--define=FLAVOR=flag-" + name,
++        "--action_env=WORKTREE_ENV",
++        "--test_env=WORKTREE_ENV",
++        "--color=no",
++        "--curses=no",
++        target,
++    ]
++
++  def status(self):
++    # Status polling isn't part of the performance cohort or a workspace command.
++    proc = subprocess.run(
++        self.base + ["status"], capture_output=True, text=True, timeout=10
++    )
++    assert proc.returncode == 0, proc.stderr
++    return json.loads(proc.stdout)
++
++  def pid(self, name):
++    return int(self.run(name, ["info", "server_pid"]))
++
++  def check_value(self, name, environment=None):
++    actual = (
++        (self.workspaces[name] / "bazel-bin/value.txt").read_text().splitlines()
++    )
++    assert actual == [
++        name,
++        "dep-" + name,
++        "flag-" + name,
++        environment or name,
++    ], actual
++
++  def record(self, name, **details):
++    self.events.append(dict(check=name, **details))
++    print("PASS " + name, flush=True)
++
++  def test(self):
++    self.start()
++    # A -> B -> A: distinct dependency/config/environment values, retained warm JVMs.
++    pid_a, pid_b = self.pid("a"), self.pid("b")
++    assert pid_a != pid_b
++    for name in ("a", "b"):
++      self.run(name, self.build_args(name))
++      self.check_value(name)
++    output = self.workspaces["a"] / "bazel-bin/value.txt"
++    mtime = output.stat().st_mtime_ns
++    self.run("a", self.build_args("a"))
++    assert output.stat().st_mtime_ns == mtime
++    assert (
++        "0 packages loaded, 0 targets configured" in self.commands[-1]["stderr"]
++    ), self.commands[-1]
++    assert (
++        "1 process: 1 internal" in self.commands[-1]["stderr"]
++    ), self.commands[-1]
++    assert self.pid("a") == pid_a and self.pid("b") == pid_b
++    self.record(
++        "warm_A_B_A_private_sources_dependencies_flags_environment",
++        pids=[pid_a, pid_b],
++    )
++
++    # One build and one test must both execute before either barrier is released.
++    a = self.launch("a", self.build_args("a", target="//:gate"))
++    b = self.launch("b", self.build_args("b", "test", "//:gate_test"))
++    wait_until(
++        lambda: (self.root / "a.ready").exists()
++        and (self.root / "b.ready").exists(),
++        "Both build and test did not reach the execution barrier",
++    )
++    assert (
++        a[0].poll() is None
++        and b[0].poll() is None
++        and not self.release.exists()
++    )
++    snapshot = self.status()
++    assert sum(e["busy"] for e in snapshot["engines"]) == 2
++    self.record("build_and_test_overlap_at_barrier", status=snapshot)
++    self.run("a", ["info", "server_pid"], code=9, no_wait=True)
++    self.run("a", ["stop"], code=9)
++    queued = self.launch("a", ["info", "server_pid"])
++    wait_until(
++        lambda: self.status()["queued"] == 1,
++        "Same-engine request did not queue",
++    )
++    queued[0].send_signal(signal.SIGINT)
++    self.finish(queued, 8)
++    assert (
++        self.status()["queued"] == 0
++        and a[0].poll() is None
++        and b[0].poll() is None
++    )
++    self.record("same_engine_serialization_nonblocking_and_queued_cancel")
++    # Complete both overlapping commands successfully before the cancellation cohort.
++    self.release.touch()
++    self.finish(a)
++    self.finish(b)
++    assert (self.workspaces["a"] / "bazel-bin/gate.txt").read_text() == "a\n"
++    assert self.pid("a") == pid_a and self.pid("b") == pid_b
++    self.record("overlapping_build_and_test_both_complete_successfully")
++    self.release.unlink()
++    (self.root / "a.ready").unlink()
++    (self.root / "b.ready").unlink()
++    a = self.launch(
++        "a",
++        self.build_args("a", target="//:gate") + ["--action_env=GATE_EPOCH=2"],
++    )
++    b = self.launch(
++        "b",
++        self.build_args("b", "test", "//:gate_test")
++        + ["--nocache_test_results"],
++    )
++    wait_until(
++        lambda: (self.root / "a.ready").exists()
++        and (self.root / "b.ready").exists(),
++        "Cancellation cohort did not reach both barriers",
++    )
++    # Failure and shutdown of A cannot terminate B's active test.
++    # Cancel A while B stays at the barrier, then shut down and recreate A.
++    a[0].send_signal(signal.SIGINT)
++    self.finish(a, 8)
++    assert b[0].poll() is None and mw.process_ticks(pid_b)
++    self.run("a", ["shutdown"])
++    assert not mw.process_ticks(pid_a) and b[0].poll() is None
++    self.run("a", self.build_args("a", target="//:missing"), code=1)
++    assert b[0].poll() is None and mw.process_ticks(pid_b)
++    self.record(
++        "running_cancel_failure_and_workspace_shutdown_isolate_other_test"
++    )
++    self.release.touch()
++    self.finish(b)
++    assert self.pid("b") == pid_b
++    self.run("a", self.build_args("a"))
++    self.check_value("a")
++
++    # Resource policy survives direct overrides; inspect canonical BEP command options.
++    bep = self.root / "policy.json"
++    arguments = self.build_args("a") + [
++        "--jobs=999",
++        "--loading_phase_threads=999",
++        "--local_resources=cpu=999",
++        "--local_resources=memory=999999",
++        "--local_test_jobs=999",
++        "--build_event_json_file=" + str(bep),
++    ]
++    self.run("a", arguments)
++    options = {}
++    for line in bep.read_text().splitlines():
++      command_line = json.loads(line).get("structuredCommandLine", {})
++      if command_line.get("commandLineLabel") == "canonical":
++        for section in command_line.get("sections", []):
++          for option in section.get("optionList", {}).get("option", []):
++            options.setdefault(option["optionName"], []).append(
++                option["optionValue"]
++            )
++    assert options["jobs"] == ["2"] and options["loading_phase_threads"] == [
++        "2"
++    ], options
++    assert set(options["local_resources"]) == {"cpu=2", "memory=1408"}, options
++    assert options["local_test_jobs"] == ["2"], options
++    self.record(
++        "aggregate_resource_policy_cannot_be_overridden",
++        enforced={
++            key: options[key]
++            for key in (
++                "jobs",
++                "loading_phase_threads",
++                "local_resources",
++                "local_test_jobs",
++            )
++        },
++    )
++
++    # Environment changes retire only the requesting engine, preserving normal env semantics.
++    previous = self.pid("a")
++    self.environments["a"]["WORKTREE_ENV"] = "changed"
++    self.run("a", self.build_args("a"))
++    self.check_value("a", "changed")
++    assert self.pid("a") != previous and not mw.process_ticks(previous)
++    assert self.pid("b") == pid_b
++    self.record("environment_change_drains_only_own_engine")
++
++    # Alias resolves to the same warm engine, and a third workspace evicts only an idle LRU.
++    alias = self.root / "alias-a"
++    alias.symlink_to(self.workspaces["a"])
++    original = self.workspaces["a"]
++    self.workspaces["a"] = alias
++    current_a = self.pid("a")
++    self.workspaces["a"] = original
++    assert self.pid("a") == current_a
++    self.run("café", self.build_args("café"))
++    self.check_value("café")
++    snapshot = self.status()
++    assert len(snapshot["engines"]) == 2 and not mw.process_ticks(pid_b)
++    assert self.pid("a") == current_a
++    self.record(
++        "canonical_alias_non_ascii_and_bounded_idle_eviction", status=snapshot
++    )
++
++    # A disconnected client cancels its action; another engine remains available.
++    self.release.unlink()
++    (self.root / "a.ready").unlink()
++    disconnected = self.launch("a", self.build_args("a", target="//:gate"))
++    wait_until(
++        lambda: (self.root / "a.ready").exists(),
++        "Disconnect action did not start",
++    )
++    disconnected[0].kill()
++    self.finish(disconnected, -signal.SIGKILL)
++    wait_until(
++        lambda: not any(e["busy"] for e in self.status()["engines"]),
++        "Disconnected action was not cancelled",
++    )
++    assert self.pid("a") == current_a
++    self.run("café", self.build_args("café", "test", "//:pass_test"))
++    self.run("café", self.build_args("café", "test", "//:fail_test"), code=3)
++    assert self.pid("a") == current_a
++    self.record("disconnect_cancellation_and_test_status_isolation")
++
++    # A workspace replacement is fenced; restoring it allows only shutdown.
++    saved = original.with_name("a.saved")
++    original.rename(saved)
++    original.mkdir()
++    (original / "MODULE.bazel").touch()
++    (original / "sentinel").write_text("untouched")
++    self.run("a", ["info", "server_pid"], code=36)
++    assert (original / "sentinel").read_text() == "untouched"
++    replacement = original.with_name("a.replacement")
++    original.rename(replacement)
++    saved.rename(original)
++    self.run("a", ["info", "server_pid"], code=36)
++    self.run("a", ["shutdown"])
++    self.record("directory_replacement_fenced_and_restored_shutdown")
++
++    remaining = [e["pid"] for e in self.status()["engines"]]
++    self.run("a", ["stop"])
++    assert self.server.wait(timeout=30) == 0
++    assert all(not mw.process_ticks(pid) for pid in remaining)
++    assert json.loads((self.root / "state/session.json").read_text())["closed"]
++    self.record("clean_stop_drains_and_reaps_workers")
++
++  def test_faults(self):
++    # Clean restart gets a fresh generation and supports graceful signal cancellation.
++    self.start()
++    self.release.unlink(missing_ok=True)
++    (self.root / "a.ready").unlink(missing_ok=True)
++    active = self.launch("a", self.build_args("a", target="//:gate"))
++    wait_until(
++        lambda: (self.root / "a.ready").exists(),
++        "Signal-drain action did not start",
++    )
++    pid = self.status()["engines"][0]["pid"]
++    self.server.terminate()
++    self.finish(active, 8)
++    assert self.server.wait(timeout=60) == 0
++    assert not mw.process_ticks(pid)
++    assert json.loads((self.state / "session.json").read_text())["closed"]
++    self.record("supervisor_signal_cancels_drains_and_reaps")
++
++    # A worker crash fences its slot without replacing outputs or stopping its peer.
++    self.start()
++    pid_a, pid_b = self.pid("a"), self.pid("b")
++    os.kill(pid_a, signal.SIGKILL)
++    wait_until(lambda: not mw.process_ticks(pid_a), "Worker did not exit")
++    self.run("a", ["info", "server_pid"], code=36)
++    assert self.pid("b") == pid_b
++    snapshot = self.status()
++    assert any(
++        e["pid"] == pid_a and e["quarantined"] for e in snapshot["engines"]
++    )
++    self.run("a", ["stop"], code=36)
++    self.run("b", ["shutdown"])
++    self.server.terminate()
++    assert self.server.wait(timeout=60) == 36
++    reaped, code = os.waitpid(pid_a, 0)
++    assert reaped == pid_a and os.WTERMSIG(code) == signal.SIGKILL
++    assert not json.loads((self.state / "session.json").read_text())["closed"]
++    self.record(
++        "worker_crash_quarantines_without_output_reuse_or_peer_shutdown",
++        status=snapshot,
++    )
++
++    # Supervisor crash leaves the worker's native lifetime reservations intact.
++    self.state = self.root / "crash-state"
++    self.base = [sys.executable, str(self.script), "--state", str(self.state)]
++    self.start()
++    pid_a = self.pid("a")
++    snapshot = self.status()
++    engine = snapshot["engines"][0]
++    metadata = (
++        Path(snapshot["output_user_root"])
++        / "shared_servers/v2"
++        / engine["registration"]
++        / "control/server/startup_profile"
++    )
++    original_metadata = metadata.read_bytes()
++    self.server.kill()
++    assert self.server.wait(timeout=30) == -signal.SIGKILL
++    assert mw.process_ticks(pid_a)
++    restart = subprocess.run(
++        self.base + ["--bazel", str(self.options.bazel), "serve"],
++        capture_output=True,
++        text=True,
++        timeout=15,
++    )
++    assert (
++        restart.returncode == 36
++        and "Unclean supervisor state" in restart.stderr
++    ), restart
++    assert metadata.read_bytes() == original_metadata and mw.process_ticks(
++        pid_a
++    )
++    # Explicit test cleanup uses the original worker profile/environment, never a new owner.
++    budget = mw.Budget(2, 4, 4096, 512)
++    argv = [
++        str(self.options.bazel),
++        "--nosystem_rc",
++        "--nohome_rc",
++        "--noworkspace_rc",
++        "--output_user_root=" + snapshot["output_user_root"],
++        "--experimental_shared_server=" + engine["registration"],
++        "--host_jvm_args=-Xmx512m",
++        "--host_jvm_args=-XX:ActiveProcessorCount=2",
++        "--max_idle_secs=0",
++        "--invocation_policy=" + budget.policy(),
++        "shutdown",
++    ]
++    cleanup = subprocess.run(
++        argv,
++        cwd=self.workspaces["a"],
++        env=self.environments["a"],
++        capture_output=True,
++        text=True,
++        timeout=90,
++    )
++    assert cleanup.returncode == 0, cleanup
++    assert os.waitpid(pid_a, 0) == (pid_a, 0)
++    self.record(
++        "supervisor_crash_refuses_restart_and_preserves_worker_ownership",
++        rejected_restart=restart.stderr,
++        original_worker_reaped=True,
++    )
++
++  def cleanup(self):
++    self.release.touch()
++    for proc in self.pending:
++      if proc.poll() is None:
++        proc.send_signal(signal.SIGTERM)
++    for proc in self.pending:
++      try:
++        proc.wait(timeout=30)
++      except subprocess.TimeoutExpired:
++        proc.kill()
++        proc.wait()
++    if self.server and self.server.poll() is None:
++      self.server.terminate()
++      try:
++        self.server.wait(timeout=90)
++      except subprocess.TimeoutExpired:
++        self.server.kill()
++        self.server.wait()
++    if self.server:
++      self.server_log.close()
++    self.options.result.write_text(
++        json.dumps(
++            dict(
++                binary_sha256=hashlib.file_digest(
++                    self.options.bazel.open("rb"), "sha256"
++                ).hexdigest(),
++                checks=self.events,
++                commands=self.commands,
++            ),
++            indent=2,
++        )
++        + "\n"
++    )
++
++
++def main():
++  parser = argparse.ArgumentParser(description=__doc__)
++  parser.add_argument("--bazel", type=Path, required=True)
++  parser.add_argument("--repository-cache", type=Path, required=True)
++  parser.add_argument("--root", type=Path, required=True)
++  parser.add_argument("--result", type=Path, required=True)
++  options = parser.parse_args()
++  options.bazel = options.bazel.resolve(strict=True)
++  options.repository_cache = options.repository_cache.resolve(strict=True)
++  assert ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) == 0
++  acceptance = Acceptance(options)
++  try:
++    acceptance.test()
++    acceptance.test_faults()
++  finally:
++    acceptance.cleanup()
++
++
++if __name__ == "__main__":
++  main()

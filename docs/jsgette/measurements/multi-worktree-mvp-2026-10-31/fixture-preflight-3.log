@@ -1,0 +1,20 @@
+PASS warm_A_B_A_private_sources_dependencies_flags_environment
+PASS build_and_test_overlap_at_barrier
+PASS same_engine_serialization_nonblocking_and_queued_cancel
+PASS running_cancel_failure_and_workspace_shutdown_isolate_other_test
+PASS aggregate_resource_policy_cannot_be_overridden
+PASS environment_change_drains_only_own_engine
+Traceback (most recent call last):
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 397, in <module>
+    main()
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 390, in main
+    acceptance.test()
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 247, in test
+    self.run("café", self.build_args("café"))
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 137, in run
+    return self.finish(self.launch(name, arguments, no_wait), code)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 133, in finish
+    assert actual == code, record
+           ^^^^^^^^^^^^^^
+AssertionError: {'argv': ['/usr/bin/python3', '/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/bazel_multiworktree.py', '--state', '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/state', 'build', '--repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache', '--define=FLAVOR=flag-café', '--action_env=WORKTREE_ENV', '--test_env=WORKTREE_ENV', '--color=no', '--curses=no', '//:value'], 'workspace': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café', 'stdout_path': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/command-23.out', 'stderr_path': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/command-23.err', 'started': 11217.208161172, 'returncode': 1, 'seconds': 9.354741535998983, 'stdout': '', 'stderr': "multiworktree: retiring idle engine for workspace/environment change\nStarting local Bazel server (no_version) and connecting to it...\nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nERROR: /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café/BUILD.bazel:3:147: invalid escape sequence: \\u. Use '\\\\' to insert '\\'.\nERROR: /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café/BUILD.bazel:4:121: invalid escape sequence: \\u. Use '\\\\' to insert '\\'.\nERROR: /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café/BUILD.bazel:4:267: invalid escape sequence: \\u. Use '\\\\' to insert '\\'.\nERROR: /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café/BUILD.bazel:5:66: invalid escape sequence: \\u. Use '\\\\' to insert '\\'.\nERROR: no such target '//:value': target 'value' not declared in package '' defined by /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café/BUILD.bazel\nERROR: no such target '//:value': target 'value' not declared in package '' defined by /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-3/café/BUILD.bazel\nINFO: Elapsed time: 7.745s\nINFO: 0 processes.\nERROR: Build did NOT complete successfully\n"}

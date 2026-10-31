@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 326, in <module>
+    main()
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 320, in main
+    acceptance.test()
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 159, in test
+    self.run(name, self.build_args(name))
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 129, in run
+    return self.finish(self.launch(name, arguments, no_wait), code)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/integration_test.py", line 125, in finish
+    assert actual == code, record
+           ^^^^^^^^^^^^^^
+AssertionError: {'argv': ['/usr/bin/python3', '/home/jgett/bazel-multiworktree-20261031/bazel/tools/multiworktree/bazel_multiworktree.py', '--state', '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-1/state', 'build', '--repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache', '--define=FLAVOR=flag-a', '--action_env=WORKTREE_ENV', '--test_env=WORKTREE_ENV', '--color=no', '--curses=no', '//:value'], 'workspace': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-1/a', 'stdout_path': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-1/command-02.out', 'stderr_path': '/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-1/command-02.err', 'started': 10985.700860454, 'returncode': 1, 'seconds': 8.081122734998644, 'stdout': '', 'stderr': "Computing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nERROR: /home/jgett/bazel-multiworktree-20261031/mvp-acceptance-1/a/checks.bzl:5:13: Invalid rule class name 'check', test rule class names must end with '_test' and other rule classes must not\nERROR: error loading package '': initialization of module 'checks.bzl' failed\nERROR: error loading package '': initialization of module 'checks.bzl' failed\nINFO: Elapsed time: 7.124s\nINFO: 0 processes.\nERROR: Build did NOT complete successfully\n"}

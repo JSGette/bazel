@@ -1,0 +1,5 @@
+cd /home/jgett/bazel-multiworktree-20261031/bazel
+/home/jgett/bazel-multiworktree-20261031/local-tools/bazel-9.3.1 --nosystem_rc --nohome_rc --output_base=/home/jgett/bazel-multiworktree-20261031/control/output-base --host_jvm_args=-Xmx4g test //src:bazel-dev //tools/multiworktree:bazel_multiworktree //tools/multiworktree:bazel_multiworktree_test --jobs=6 --local_resources=memory=8192 --repository_cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache --test_output=errors
+python3 /home/jgett/bazel-multiworktree-20261031/mvp/integration_test.py --bazel=/home/jgett/bazel-multiworktree-20261031/mvp/bazel --repository-cache=/home/jgett/bazel-multiworktree-20261031/control/repository-cache --root=/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-complete --result=/home/jgett/bazel-multiworktree-20261031/mvp-acceptance-complete.json
+PYTHONPATH=/home/jgett/bazel-multiworktree-20261031/local-tools/pyink python3 -m pyink --check tools/multiworktree/*.py
+/home/jgett/bazel-multiworktree-20261031/local-tools/buildifier-8.2.1 -mode=check tools/multiworktree/BUILD tools/BUILD

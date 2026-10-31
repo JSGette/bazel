@@ -2,7 +2,13 @@
 
 Date: 2026-10-31
 
-Status: implementation plan; the architecture and interfaces below are proposed, not implemented
+Status: staged implementation plan; see execution reports for implemented subsets.
+The [concurrent private-process MVP](../../../tools/multiworktree/README.md) now
+provides simultaneous build/test through a local supervisor and retained worker
+JVMs. This is the explicitly allowed operational fallback, not completion of
+in-process stages 3–5 or immutable sharing stages 2/6. Native multi-runtime global
+state remains unresolved; no memory/performance qualification is claimed. See the
+[MVP execution report](multi-worktree-mvp-2026-10-31.md) for acceptance evidence.
 
 Initial supported commands: `build` and `test`
 
