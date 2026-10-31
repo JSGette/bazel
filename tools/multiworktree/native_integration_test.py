@@ -244,6 +244,49 @@ class Harness:
       )
     self.check("warm A-B-A retains private incremental state")
 
+    d = self.root / "glob-isolation"
+    d.mkdir()
+    for name in ("a", "b"):
+      package = self.root / name / "globcase"
+      package.mkdir()
+      (package / "BUILD.bazel").write_text(
+          'genrule(name="listing", srcs=glob(["*.txt"]), outs=["listing.out"], '
+          'cmd="cat $(SRCS) > $@")\n'
+      )
+      (package / "common.txt").write_text("common\n")
+      (package / "item.txt").write_text("item\n")
+    edited = self.root / "a/globcase"
+    for step in ("same", "different", "restored"):
+      if step == "different":
+        (edited / "item.txt").unlink()
+        (edited / "item.txt").mkdir()
+        (edited / "extra.txt").write_text("a-only\n")
+      elif step == "restored":
+        (edited / "extra.txt").unlink()
+        (edited / "item.txt").rmdir()
+        (edited / "item.txt").write_text("item\n")
+      pair = [
+          self.start(
+              n, "build", ["//globcase:listing"], d, label=n + "-" + step
+          )
+          for n in ("a", "b")
+      ]
+      for proc in pair:
+        self.finish(proc)
+      for name in ("a", "b"):
+        expected = (
+            "common\na-only\n"
+            if name == "a" and step == "different"
+            else "common\nitem\n"
+        )
+        assert (
+            self.root / name / "bazel-bin/globcase/listing.out"
+        ).read_text() == expected
+    self.check(
+        "shared listings preserve private glob additions, entry types, and"
+        " restoration"
+    )
+
     for kind in ("environment", "configuration"):
       d = self.case(kind, ("same", "same"), action_env=kind == "environment")
       pair = [
@@ -371,7 +414,7 @@ class Harness:
         json.dumps(
             {
                 "checks": self.checks,
-                "success": len(self.checks) == 14,
+                "success": len(self.checks) == 15,
                 "server_pid": getattr(self, "pid", None),
                 "binary_sha256": self.binary_sha256,
             },

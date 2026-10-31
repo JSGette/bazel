@@ -1,0 +1,340 @@
+{
+  "target": "//pkg/util/strings:strings_test",
+  "source_commit": "a83c9fa5161b775ed24b1df825db4817ea562a89",
+  "method": "One fresh daemon per candidate; build A, capture two live GC.class_histogram snapshots, build B in the same PID, capture two more. Fetched repositories and action outputs retained. Four CPU affinity slots, Xmx4g. Byte figures below are sums of live shallow object sizes after full GC, including JVM housekeeping objects; they are not graph-retained heap or RSS. Use the second capture at each stage.",
+  "scope": "Equal immutable directory-entry payloads and line-offset arrays only; paths, AST nodes, evaluator maps, edges, values and invalidation state remain engine-local. Line tables depend only on newline offsets. No source text is canonicalized or substituted.",
+  "before": {
+    "binary_sha256": "be6b153b7b233aa7a11eaf20c6363bda53e8de12cad0333bdb1e069d0e8b0966",
+    "raw_evidence": "/home/jgett/bazel-multiworktree-20261031/native-graph-investigation-20261031",
+    "all_snapshots": [
+      {
+        "label": "a-1",
+        "pid": 415,
+        "live_objects": 2994837,
+        "live_object_bytes": 112607704,
+        "node_entries": {
+          "count": 80847,
+          "shallow_bytes": 2587104
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/6f689bc5da84d4f8229f7d65c4468cef/embedded_tools/jdk/bin/jcmd"
+      },
+      {
+        "label": "a-2",
+        "pid": 415,
+        "live_objects": 2994886,
+        "live_object_bytes": 112609296,
+        "node_entries": {
+          "count": 80847,
+          "shallow_bytes": 2587104
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/6f689bc5da84d4f8229f7d65c4468cef/embedded_tools/jdk/bin/jcmd"
+      },
+      {
+        "label": "b-1",
+        "pid": 415,
+        "live_objects": 4968541,
+        "live_object_bytes": 177750464,
+        "node_entries": {
+          "count": 161694,
+          "shallow_bytes": 5174208
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/6f689bc5da84d4f8229f7d65c4468cef/embedded_tools/jdk/bin/jcmd"
+      },
+      {
+        "label": "b-2",
+        "pid": 415,
+        "live_objects": 4968542,
+        "live_object_bytes": 177750528,
+        "node_entries": {
+          "count": 161694,
+          "shallow_bytes": 5174208
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/6f689bc5da84d4f8229f7d65c4468cef/embedded_tools/jdk/bin/jcmd"
+      }
+    ],
+    "one_engine": {
+      "live_object_bytes": 112609296,
+      "classes": {
+        "com.google.devtools.build.skyframe.IncrementalInMemoryNodeEntry": {
+          "count": 80847,
+          "shallow_bytes": 2587104
+        },
+        "com.google.devtools.build.lib.skyframe.CompactSortedDirents": {
+          "count": 2125,
+          "shallow_bytes": 34000
+        },
+        "com.google.devtools.build.lib.skyframe.DirectoryListingStateValue": {
+          "count": 2125,
+          "shallow_bytes": 34000
+        },
+        "net.starlark.java.syntax.FileLocations": {
+          "count": 827,
+          "shallow_bytes": 19848
+        },
+        "net.starlark.java.syntax.FileLocations$LineStarts": {
+          "count": 0,
+          "shallow_bytes": 0
+        },
+        "com.google.devtools.build.lib.cmdline.Label": {
+          "count": 43694,
+          "shallow_bytes": 699104
+        },
+        "com.google.devtools.build.lib.skyframe.ConfiguredTargetKey": {
+          "count": 19973,
+          "shallow_bytes": 479352
+        },
+        "[I": {
+          "count": 14311,
+          "shallow_bytes": 2092912
+        },
+        "[Ljdk.internal.vm.FillerElement;": {
+          "count": 6979,
+          "shallow_bytes": 1722120
+        }
+      }
+    },
+    "two_engines": {
+      "live_object_bytes": 177750528,
+      "classes": {
+        "com.google.devtools.build.skyframe.IncrementalInMemoryNodeEntry": {
+          "count": 161694,
+          "shallow_bytes": 5174208
+        },
+        "com.google.devtools.build.lib.skyframe.CompactSortedDirents": {
+          "count": 4249,
+          "shallow_bytes": 67984
+        },
+        "com.google.devtools.build.lib.skyframe.DirectoryListingStateValue": {
+          "count": 4250,
+          "shallow_bytes": 68000
+        },
+        "net.starlark.java.syntax.FileLocations": {
+          "count": 1655,
+          "shallow_bytes": 39720
+        },
+        "net.starlark.java.syntax.FileLocations$LineStarts": {
+          "count": 0,
+          "shallow_bytes": 0
+        },
+        "com.google.devtools.build.lib.cmdline.Label": {
+          "count": 43694,
+          "shallow_bytes": 699104
+        },
+        "com.google.devtools.build.lib.skyframe.ConfiguredTargetKey": {
+          "count": 19973,
+          "shallow_bytes": 479352
+        },
+        "[I": {
+          "count": 24485,
+          "shallow_bytes": 3507664
+        },
+        "[Ljdk.internal.vm.FillerElement;": {
+          "count": 15735,
+          "shallow_bytes": 2248920
+        }
+      }
+    },
+    "second_engine_increment_bytes": 65141232
+  },
+  "after": {
+    "binary_sha256": "c5d3867ac6a1d0c22a9c43c51edc0192c8cb670ead0f51c789227275f4d2b643",
+    "raw_evidence": "/home/jgett/bazel-multiworktree-20261031/native-payload-reuse-20261031",
+    "all_snapshots": [
+      {
+        "label": "a-1",
+        "pid": 31961,
+        "live_objects": 2997488,
+        "live_object_bytes": 112799288,
+        "node_entries": {
+          "count": 80847,
+          "shallow_bytes": 2587104
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/1d1c76a16f137c74cf20ed74022d5d1c/embedded_tools/jdk/bin/jcmd"
+      },
+      {
+        "label": "a-2",
+        "pid": 31961,
+        "live_objects": 2997535,
+        "live_object_bytes": 112800864,
+        "node_entries": {
+          "count": 80847,
+          "shallow_bytes": 2587104
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/1d1c76a16f137c74cf20ed74022d5d1c/embedded_tools/jdk/bin/jcmd"
+      },
+      {
+        "label": "b-1",
+        "pid": 31961,
+        "live_objects": 4896786,
+        "live_object_bytes": 175434024,
+        "node_entries": {
+          "count": 161694,
+          "shallow_bytes": 5174208
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/1d1c76a16f137c74cf20ed74022d5d1c/embedded_tools/jdk/bin/jcmd"
+      },
+      {
+        "label": "b-2",
+        "pid": 31961,
+        "live_objects": 4896788,
+        "live_object_bytes": 175434120,
+        "node_entries": {
+          "count": 161694,
+          "shallow_bytes": 5174208
+        },
+        "jcmd": "/home/jgett/bazel-multiworktree-20261031/native-agent-20261031/state/install/1d1c76a16f137c74cf20ed74022d5d1c/embedded_tools/jdk/bin/jcmd"
+      }
+    ],
+    "one_engine": {
+      "live_object_bytes": 112800864,
+      "classes": {
+        "com.google.devtools.build.skyframe.IncrementalInMemoryNodeEntry": {
+          "count": 80847,
+          "shallow_bytes": 2587104
+        },
+        "com.google.devtools.build.lib.skyframe.CompactSortedDirents": {
+          "count": 1729,
+          "shallow_bytes": 27664
+        },
+        "com.google.devtools.build.lib.skyframe.DirectoryListingStateValue": {
+          "count": 2125,
+          "shallow_bytes": 34000
+        },
+        "net.starlark.java.syntax.FileLocations": {
+          "count": 828,
+          "shallow_bytes": 19872
+        },
+        "net.starlark.java.syntax.FileLocations$LineStarts": {
+          "count": 698,
+          "shallow_bytes": 11168
+        },
+        "com.google.devtools.build.lib.cmdline.Label": {
+          "count": 43694,
+          "shallow_bytes": 699104
+        },
+        "com.google.devtools.build.lib.skyframe.ConfiguredTargetKey": {
+          "count": 19973,
+          "shallow_bytes": 479352
+        },
+        "[I": {
+          "count": 14212,
+          "shallow_bytes": 1945064
+        },
+        "[Ljdk.internal.vm.FillerElement;": {
+          "count": 7189,
+          "shallow_bytes": 1940304
+        }
+      }
+    },
+    "two_engines": {
+      "live_object_bytes": 175434120,
+      "classes": {
+        "com.google.devtools.build.skyframe.IncrementalInMemoryNodeEntry": {
+          "count": 161694,
+          "shallow_bytes": 5174208
+        },
+        "com.google.devtools.build.lib.skyframe.CompactSortedDirents": {
+          "count": 1729,
+          "shallow_bytes": 27664
+        },
+        "com.google.devtools.build.lib.skyframe.DirectoryListingStateValue": {
+          "count": 4250,
+          "shallow_bytes": 68000
+        },
+        "net.starlark.java.syntax.FileLocations": {
+          "count": 1654,
+          "shallow_bytes": 39696
+        },
+        "net.starlark.java.syntax.FileLocations$LineStarts": {
+          "count": 698,
+          "shallow_bytes": 11168
+        },
+        "com.google.devtools.build.lib.cmdline.Label": {
+          "count": 43694,
+          "shallow_bytes": 699104
+        },
+        "com.google.devtools.build.lib.skyframe.ConfiguredTargetKey": {
+          "count": 19973,
+          "shallow_bytes": 479352
+        },
+        "[I": {
+          "count": 23526,
+          "shallow_bytes": 2571688
+        },
+        "[Ljdk.internal.vm.FillerElement;": {
+          "count": 15284,
+          "shallow_bytes": 2784736
+        }
+      }
+    },
+    "second_engine_increment_bytes": 62633256
+  },
+  "two_engine_saving_bytes": 2316408,
+  "second_engine_increment_reduction_bytes": 2507976,
+  "caveats": [
+    "Single sequential heap trial per binary; two full-GC samples at each stage.",
+    "One-engine total was 0.183 MiB higher after the change; JVM filler-object allocation differed by 0.208 MiB at this stage. Raw totals are retained without subtracting this variation.",
+    "Two-engine raw total fell by 2.209 MiB (1.30%); second-engine increment fell from 62.124 to 59.732 MiB (3.85%). Do not extrapolate to arbitrary targets.",
+    "Canonical directory payload count stayed 1729 after both A and B. Canonical line table count stayed 698. Graph nodes still doubled from 80847 to 161694."
+  ],
+  "validation": [
+    {
+      "target": "//src/test/java/net/starlark/java/syntax:SyntaxTests",
+      "tests": 494,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "target": "//src/test/java/com/google/devtools/build/lib/skyframe:CompactSortedDirentsTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "target": "//src/test/java/com/google/devtools/build/lib/skyframe:GlobFunctionTest",
+      "tests": 126,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization:DirectoryListingStateValueCodecTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization:ExpressionCodecTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization:StatementCodecTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "native_acceptance": {
+    "checks": [
+      "two workspaces report one server PID",
+      "third engine rejected by admission bound",
+      "divergent builds overlap at execution barrier and preserve outputs",
+      "identical action digest executes once and materializes twice",
+      "warm A-B-A retains private incremental state",
+      "shared listings preserve private glob additions, entry types, and restoration",
+      "environment differences remain private and execute independently",
+      "configuration differences remain private and execute independently",
+      "two test commands overlap at execution barrier",
+      "ordinary failure does not cancel another engine",
+      "same-engine command lock rejects nonblocking competitor",
+      "cancelled waiter leaves other consumer able to complete",
+      "cancelled producer leaves other consumer able to complete",
+      "engine shutdown leaves another engine running in same PID",
+      "last engine shutdown terminates daemon"
+    ],
+    "success": true,
+    "server_pid": 26485,
+    "binary_sha256": "c5d3867ac6a1d0c22a9c43c51edc0192c8cb670ead0f51c789227275f4d2b643"
+  }
+}

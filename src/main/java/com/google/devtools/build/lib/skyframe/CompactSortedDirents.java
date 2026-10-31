@@ -14,6 +14,8 @@
 package com.google.devtools.build.lib.skyframe;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Interner;
+import com.google.devtools.build.lib.concurrent.BlazeInterners;
 import com.google.devtools.build.lib.vfs.Dirent;
 import java.util.AbstractCollection;
 import java.util.Arrays;
@@ -25,6 +27,10 @@ import javax.annotation.Nullable;
 
 /** A space-efficient, sorted, immutable dirent structure. */
 final class CompactSortedDirents extends AbstractCollection<Dirent> implements Dirents {
+
+  // Only names and entry types are retained, never a path or filesystem owner. Weak entries
+  // allow equal listings in different graphs to share storage without extending graph lifetimes.
+  private static final Interner<CompactSortedDirents> interner = BlazeInterners.newWeakInterner();
 
   static final CompactSortedDirents EMPTY = new CompactSortedDirents(new String[0], new BitSet(0));
 
@@ -52,7 +58,7 @@ final class CompactSortedDirents extends AbstractCollection<Dirent> implements D
       names[i] = dirent.getName();
       packType(packedTypes, dirent.getType(), i);
     }
-    return new CompactSortedDirents(names, packedTypes);
+    return interner.intern(new CompactSortedDirents(names, packedTypes));
   }
 
   @Override

@@ -1,0 +1,92 @@
+{
+  "manifest": {
+    "target": "//pkg/util/strings:strings_test",
+    "source_commit": "a83c9fa5161b775ed24b1df825db4817ea562a89",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "heap": "4 GiB per daemon",
+    "vanilla_action_jobs": 4,
+    "shared_action_jobs": 2,
+    "shared_engines": 2,
+    "method": "One follow-up round per mode; earlier baseline runs and the heap diagnostic supplied preparation; fresh JVM and cleared local/disk action caches and execroots each run; fetched repositories and OS page cache retained; wall clock from before Popen to blocking wait return; build excludes later info/test/shutdown",
+    "binaries": {
+      "vanilla": {
+        "path": "/home/jgett/bazel-multiworktree-20261031/control/bazel-control",
+        "sha256": "9b2fdd2e5c4a8a8474197a1e20608ddd710b5258eb55280fad687b5be57b59a2"
+      },
+      "shared": {
+        "path": "/home/jgett/bazel-multiworktree-20261031/native-mvp/bazel-payload-reuse",
+        "sha256": "c5d3867ac6a1d0c22a9c43c51edc0192c8cb670ead0f51c789227275f4d2b643"
+      }
+    }
+  },
+  "results": [
+    {
+      "label": "round-1-vanilla",
+      "mode": "vanilla",
+      "records": [
+        {
+          "mode": "vanilla",
+          "workspace": "a",
+          "exit_code": 0,
+          "start_ns": 280041328081,
+          "end_ns": 316709266838,
+          "wall_seconds": 36.667938757,
+          "bazel_elapsed_seconds": 36.461,
+          "critical_path_seconds": 21.27,
+          "spawn_count": 15,
+          "local_executions": 15,
+          "cache_hits": 0,
+          "server_pid": 428,
+          "output_sha256": "fc412a3056d67e88fd6ed38c83da578135669514c661893bbefdabdd6e302de8",
+          "test_exit_code": 0
+        }
+      ],
+      "pair_completion_seconds": 36.667938757
+    },
+    {
+      "label": "round-1-shared",
+      "mode": "shared",
+      "records": [
+        {
+          "mode": "shared",
+          "workspace": "a",
+          "exit_code": 0,
+          "start_ns": 317473788225,
+          "end_ns": 356404296208,
+          "wall_seconds": 38.930507983,
+          "bazel_elapsed_seconds": 38.616,
+          "critical_path_seconds": 19.27,
+          "spawn_count": 15,
+          "local_executions": 8,
+          "cache_hits": 7,
+          "server_pid": 10708,
+          "output_sha256": "fc412a3056d67e88fd6ed38c83da578135669514c661893bbefdabdd6e302de8",
+          "test_exit_code": 0
+        },
+        {
+          "mode": "shared",
+          "workspace": "b",
+          "exit_code": 0,
+          "start_ns": 317473888233,
+          "end_ns": 356417212760,
+          "wall_seconds": 38.943324527,
+          "bazel_elapsed_seconds": 38.602,
+          "critical_path_seconds": 21.64,
+          "spawn_count": 15,
+          "local_executions": 7,
+          "cache_hits": 8,
+          "server_pid": 10708,
+          "output_sha256": "fc412a3056d67e88fd6ed38c83da578135669514c661893bbefdabdd6e302de8",
+          "test_exit_code": 0
+        }
+      ],
+      "pair_completion_seconds": 38.943424535
+    }
+  ],
+  "scope": "One cold-action follow-up per mode, not a replacement for the previous three-round timing baseline and not a speedup claim. Both modes retain downloaded dependencies and OS page cache. Each of the fifteen shared REAPI action digests executed once across the two engines. Outputs matched the preserved control and tests passed."
+}

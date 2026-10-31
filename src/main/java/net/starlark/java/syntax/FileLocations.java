@@ -14,6 +14,8 @@
 
 package net.starlark.java.syntax;
 
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 import java.util.Arrays;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
@@ -25,11 +27,15 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class FileLocations {
 
-  private final int[] linestart; // maps line number (line >= 1) to char offset
+  // A line map depends only on newline offsets, so it can be shared across files and workspaces.
+  // Filenames and input sizes remain local. Weak interning does not retain discarded syntax trees.
+  private static final Interner<LineStarts> lineStartsInterner = Interners.newWeakInterner();
+
+  private final LineStarts linestart; // maps line number (line >= 1) to char offset
   private final String file;
   private final int size; // size of file in chars
 
-  private FileLocations(int[] linestart, String file, int size) {
+  private FileLocations(LineStarts linestart, String file, int size) {
     this.linestart = linestart;
     this.file = file;
     this.size = size;
@@ -37,6 +43,10 @@ final class FileLocations {
 
   static FileLocations create(char[] buffer, String file) {
     return new FileLocations(computeLinestart(buffer), file, buffer.length);
+  }
+
+  LineStarts lineStarts() {
+    return linestart;
   }
 
   String file() {
@@ -48,17 +58,17 @@ final class FileLocations {
       throw new IllegalStateException("Illegal position: " + offset);
     }
     int lowBoundary = 1;
-    int highBoundary = linestart.length - 1;
+    int highBoundary = linestart.length() - 1;
     while (true) {
       if ((highBoundary - lowBoundary) <= 1) {
-        if (linestart[highBoundary] > offset) {
+        if (linestart.get(highBoundary) > offset) {
           return lowBoundary;
         } else {
           return highBoundary;
         }
       }
       int medium = lowBoundary + ((highBoundary - lowBoundary) >> 1);
-      if (linestart[medium] > offset) {
+      if (linestart.get(medium) > offset) {
         highBoundary = medium;
       } else {
         lowBoundary = medium;
@@ -68,7 +78,7 @@ final class FileLocations {
 
   Location getLocation(int offset) {
     int line = getLineAt(offset);
-    int column = offset - linestart[line] + 1;
+    int column = offset - linestart.get(line) + 1;
     return new Location(file, line, column);
   }
 
@@ -78,7 +88,7 @@ final class FileLocations {
 
   @Override
   public int hashCode() {
-    return Objects.hash(Arrays.hashCode(linestart), file, size);
+    return Objects.hash(linestart.hashCode(), file, size);
   }
 
   @Override
@@ -88,11 +98,11 @@ final class FileLocations {
     }
     FileLocations that = (FileLocations) other;
     return this.size == that.size
-        && Arrays.equals(this.linestart, that.linestart)
+        && this.linestart.equals(that.linestart)
         && this.file.equals(that.file);
   }
 
-  private static int[] computeLinestart(char[] buffer) {
+  private static LineStarts computeLinestart(char[] buffer) {
     // Compute the size.
     int size = 2;
     for (int i = 0; i < buffer.length; i++) {
@@ -101,7 +111,6 @@ final class FileLocations {
       }
     }
     int[] linestart = new int[size];
-
     int index = 0;
     linestart[index++] = 0; // The 0th line does not exist - so we fill something in
     // to make sure the start pos for the 1st line ends up at
@@ -117,6 +126,34 @@ final class FileLocations {
         linestart[index++] = i + 1;
       }
     }
-    return linestart;
+    return lineStartsInterner.intern(new LineStarts(linestart));
+  }
+
+  /** Owns a line-offset array which is never exposed or modified after construction. */
+  @Immutable
+  static final class LineStarts {
+    private final int[] offsets;
+
+    private LineStarts(int[] offsets) {
+      this.offsets = offsets;
+    }
+
+    int length() {
+      return offsets.length;
+    }
+
+    int get(int line) {
+      return offsets[line];
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(offsets);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof LineStarts other && Arrays.equals(offsets, other.offsets);
+    }
   }
 }

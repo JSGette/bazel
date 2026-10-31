@@ -40,8 +40,12 @@ This experimental slice disables persistent workers, dynamic execution, sandbox
 reuse, global profiling/debugging, allocation tracking and process-wide metrics.
 BEP and execution logs remain supported. The policy overrides conflicting execution,
 cache and resource settings; inspect the canonical command line in the BEP. No
-shared Skyframe graphs, Starlark compilation reuse, or measured memory saving is
-claimed. The process remains a shared failure domain.
+shared Skyframe graphs or Starlark compilation reuse is claimed. Equal immutable
+directory-entry lists and Starlark line-offset tables are weakly interned across
+engines. Workspace paths, AST nodes, graph edges and invalidation state remain
+private. The Agent sample retained about 2.2 MiB less live heap with two engines;
+see the report for the measurement scope. The process remains a shared failure
+domain.
 
 `shutdown` drains only the selected engine. Another engine can continue in the
 same PID. The last engine's shutdown terminates the daemon. Closed or failed
@@ -59,7 +63,8 @@ python3 tools/multiworktree/native_integration_test.py \
 ```
 
 The harness proves one PID, divergent build/test barriers, equal-action sharing,
-warm A/B/A, source/environment/configuration isolation, failure and cancellation
+warm A/B/A, glob additions/type changes/restoration, source/environment/configuration
+isolation, failure and cancellation
 isolation, same-engine serialization, bounded
 engine admission, scoped shutdown and final daemon exit. It retains commands,
 BEP, execution logs and a machine-readable result. See the

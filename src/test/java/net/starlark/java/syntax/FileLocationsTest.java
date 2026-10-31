@@ -13,6 +13,9 @@
 // limitations under the License.
 package net.starlark.java.syntax;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -84,5 +87,37 @@ public class FileLocationsTest {
 
     // start of final empty line
     checkOffset(table, 17, "6:1"); // EOF
+  }
+
+  @Test
+  public void equalLineMapsKeepEachFilesNameAndBounds() {
+    FileLocations a = FileLocations.create("a\nb".toCharArray(), "/workspace-a/file.bzl");
+    FileLocations b = FileLocations.create("x\nlonger".toCharArray(), "/workspace-b/file.bzl");
+    assertThat(a.lineStarts()).isSameInstanceAs(b.lineStarts());
+    assertThat(a.getLocation(2).file()).isEqualTo("/workspace-a/file.bzl");
+    assertThat(b.getLocation(2).file()).isEqualTo("/workspace-b/file.bzl");
+    checkOffset(a, 2, "2:1");
+    checkOffset(b, 7, "2:6");
+    assertThrows(IllegalStateException.class, () -> a.getLocation(7));
+    assertThat(a).isNotEqualTo(b);
+  }
+
+  @Test
+  public void editingNewlinesDoesNotChangeOtherFilesLocations() {
+    FileLocations original = create("a\nb");
+    FileLocations edited = create("ab\n");
+    assertThat(edited.lineStarts()).isNotSameInstanceAs(original.lineStarts());
+    checkOffset(original, 2, "2:1");
+    checkOffset(edited, 2, "1:3");
+    assertThat(create("a\nb").lineStarts()).isSameInstanceAs(original.lineStarts());
+  }
+
+  @Test
+  public void sharedLineMapsPreserveUtf16Offsets() {
+    FileLocations a = FileLocations.create("\uD83D\uDE00\nlast".toCharArray(), "a.bzl");
+    FileLocations b = FileLocations.create("ab\nmore".toCharArray(), "b.bzl");
+    assertThat(a.lineStarts()).isSameInstanceAs(b.lineStarts());
+    checkOffset(a, 3, "2:1");
+    checkOffset(b, 6, "2:4");
   }
 }
