@@ -125,6 +125,73 @@ Source, BUILD and `.bzl` divergence, optional-file appearance, glob additions an
 
 A second run in fresh state/results directories repeated the prime, two-worktree cold-server cohort and one warm repeat. All **5 additional build commands** passed; all **3 servers** shut down and were reaped. [Raw reproduction evidence](../measurements/multi-worktree-phase0-2026-10-31/reproduction/summary.json) and [verified observations](../measurements/multi-worktree-phase0-2026-10-31/reproduction-observations.json) are retained. Binary, harness and fixture content hashes match the full matrix. All successful-run server PIDs were absent on final verification. This reproduces the core setup and two-worktree path, not every mutation cohort or a performance conclusion.
 
+### Local WSL implementation increment
+
+The handoff was verified (749 packaged files/symlinks), restored into a full,
+separate Ubuntu WSL2 checkout at the pinned source base, and checkpointed locally
+as `e3508a09a5399e0a602541654c4f79ac6fd5b2ab`. The original archive and prior raw
+results remain unchanged. This increment implements more of the Phase 0 harness;
+it does not implement the shared daemon.
+
+The fixture now covers local module overrides, apparent repository-name mapping,
+Starlark toolchain selection, action environment, and configuration divergence.
+Each mutation is followed by a verified baseline restore using the same output
+bases. Warm commands check server PID and process start identity before/after
+the invocation. The runner retains its exact fixture and scripts with new runs;
+its focused suite now passes **17 tests**. Real compiler toolchains, arbitrary
+repository rules, test environments, and lifecycle faults still need broader
+coverage.
+
+The [WSL release-binary matrix](../measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/summary.json)
+passed **253 builds in 109 cohorts**, with **8 successful server shutdowns**.
+All 1/2/4-worktree groups cover the original and new cases, two repetitions per
+case, and one restore per mutation. The independently checked
+[observations](../measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke-observations.json)
+preserve BEP/profile metrics. These runs overlapped the control's source build,
+so their timings are correctness-smoke evidence only.
+
+The pinned product source successfully built `//src:bazel-dev` with Bazel 9.3.1.
+The [build log and provenance](../measurements/multi-worktree-phase0-2026-10-31/wsl-control-build/provenance.json)
+record the exact argv, binary hashes, source rc and module lock, compiler/runtime,
+and host. The diff from the pinned base is empty outside `docs/jsgette`.
+
+| Item | Local control observation |
+| --- | --- |
+| Control executable | `/home/jgett/bazel-multiworktree-20261031/control/bazel-control` |
+| Control SHA-256 | `9b2fdd2e5c4a8a8474197a1e20608ddd710b5258eb55280fad687b5be57b59a2` |
+| Build resources | 6 jobs, 8 GiB configured local memory resources, 4 GiB build-server heap |
+| C++ toolchain | Ubuntu GCC/G++ 13.3.0, GNU ld 2.42 |
+| Java compilation toolchain | Azul JDK 25.0.4+7-LTS |
+| Bootstrap server runtime | Azul JDK 25.0.2+10-LTS |
+| Source-built executable runtime | Azul OpenJDK 27+35, queried using `info java-runtime` |
+| Host | Ubuntu WSL2, Linux 6.6.87.2, x86_64, ext filesystem |
+| Visible resources | 32 logical CPUs, 20,476,040 KiB RAM, 5 GiB swap |
+
+The runtime difference further rules out treating these release/control smoke
+durations as a matched performance comparison. Future candidate comparisons must
+use this source-built control and equivalent build/toolchain settings.
+
+The [source-control reproduction](../measurements/multi-worktree-phase0-2026-10-31/wsl-control-smoke/summary.json)
+then passed **169 builds in 73 cohorts**, with **8 successful server shutdowns**,
+using fresh state/results directories, all 1/2/4-worktree groups and mutation
+cases, one repetition, and baseline restores. Its
+[verified observations](../measurements/multi-worktree-phase0-2026-10-31/wsl-control-smoke-observations.json)
+match the release run's fixture and runner hashes. Across both runs, every
+worker retained the same PID/start identity from its first build through the
+last restore, and all 16 server PIDs were absent after shutdown. Final module
+lockfiles are archived under each run's `module-locks/`; they were captured after
+the runs, not asserted to exist before priming. The separate source-build server
+also shut down successfully. These 422 builds are correctness evidence, not
+shared-daemon or performance qualification.
+
+To reproduce locally, use new, separate state/results directories and either
+verified executable with `harness/run.py --concurrency 1,2,4 --repetitions 2`, then
+run `harness/verify_results.py` against the results. No custom Java trust store
+was needed on this machine. Each run's manifest records complete configuration;
+the control's provenance records the source-build command. The next Phase 0 work
+is executing the pinned DataDog tests, profiling representative loading/analysis
+and memory, and collecting controlled repeated observations.
+
 ## Completion checklist
 
 - [x] Pin implementation source and stock smoke executable; distinguish their identities.
@@ -133,8 +200,9 @@ A second run in fresh state/results directories repeated the prime, two-worktree
 - [x] Freeze a reusable fixture and a self-describing, failure-sensitive harness.
 - [x] Run and archive real concurrent worktree smoke builds and validate outputs.
 - [x] Exercise source/BUILD/`.bzl`/missing-file/glob/symlink mutations in the synthetic fixture.
-- [ ] Complete module/repository-mapping/toolchain/environment divergence and the broader mutation matrix.
-- [ ] Build and hash a stock control from the pinned implementation source.
+- [x] Exercise synthetic module/repository-mapping/toolchain/action-environment/configuration divergence and baseline restores.
+- [ ] Extend context coverage to production toolchains/repository rules and the broader mutation/lifecycle matrix.
+- [x] Build and hash a stock control from the pinned implementation source.
 - [ ] Pin and execute representative DataDog build and test cohorts.
 - [ ] Attribute loading/compilation, ordinary analysis, execution and retained memory on representative commands.
 - [x] Reproduce the core setup and two-worktree path from the saved harness in fresh experiment directories.

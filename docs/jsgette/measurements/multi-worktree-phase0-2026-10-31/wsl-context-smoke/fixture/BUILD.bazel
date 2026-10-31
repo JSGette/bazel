@@ -1,0 +1,27 @@
+load(":fixture.bzl", "fixture", "message_toolchain")
+
+toolchain_type(name = "message_toolchain_type")
+
+message_toolchain(name = "message_a", message = "toolchain-a")
+message_toolchain(name = "message_b", message = "toolchain-b")
+
+toolchain(
+    name = "toolchain_a",
+    toolchain = ":message_a",
+    toolchain_type = ":message_toolchain_type",
+)
+
+toolchain(
+    name = "toolchain_b",
+    toolchain = ":message_b",
+    toolchain_type = ":message_toolchain_type",
+)
+
+fixture(
+    name = "check",
+    src = "source.txt",
+    alias = "link.txt",
+    extras = glob(["extras/*.txt"]),
+    optional = glob(["optional.txt"], allow_empty = True),
+    message = "base-build",
+)

@@ -1,0 +1,730 @@
+{
+  "case": "glob_added",
+  "commands": [
+    {
+      "artifacts": {
+        "bep.jsonl": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w0/bep.jsonl",
+        "command.json": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w0/command.json",
+        "command.log": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w0/command.log",
+        "profile.json.gz": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w0/profile.json.gz"
+      },
+      "end_monotonic_ns": 300104878308,
+      "end_unix_ns": 1793450820854373188,
+      "evidence_nonempty": {
+        "bep.jsonl": true,
+        "profile.json.gz": true
+      },
+      "exit_code": 0,
+      "fixture_expected_state": {
+        "action_environment": "base-env",
+        "added_extra": "extra-worktree-0\n",
+        "build_message": "base-build",
+        "bzl_version": "base-bzl",
+        "configuration": "base-config",
+        "module_override": "dep_a",
+        "optional": "",
+        "payload": "payload-a\n",
+        "repository_mapping": "primary",
+        "source": "base-source\n",
+        "toolchain": "a"
+      },
+      "fixture_input_snapshot": {
+        "inputs": [
+          {
+            "bytes": 28,
+            "path": ".gitignore",
+            "sha256": "4882a9764e9c790c56b134213efe0e6ba843c746fb101df12e1f151c83c8de17",
+            "type": "file"
+          },
+          {
+            "bytes": 669,
+            "path": "BUILD.bazel",
+            "sha256": "65515b5c438117289e5ee66b79452baf5ebdd16eeb54d3a14c54a43494c0d47b",
+            "type": "file"
+          },
+          {
+            "bytes": 359,
+            "path": "MODULE.bazel",
+            "sha256": "08a44bfebc1f196ef26a200ad2d768a942f95fe1ea3f0b5d390075f41c29a5fd",
+            "type": "file"
+          },
+          {
+            "bytes": 11,
+            "path": "extras/base.txt",
+            "sha256": "81b2eafdc9b9c17c807c29a4b6b8b54ccc3a1a842c7a28c7cebe3d8ec42c5e57",
+            "type": "file"
+          },
+          {
+            "bytes": 17,
+            "path": "extras/extra.txt",
+            "sha256": "835bf008417555783ae3504e7f5385b67ddfd8b82ed7eb8a9536c3fe21ae7122",
+            "type": "file"
+          },
+          {
+            "bytes": 1702,
+            "path": "fixture.bzl",
+            "sha256": "b5aa811ae8cf086ce1230e39f7bbe6d1b905523964be55888f48cf78453755af",
+            "type": "file"
+          },
+          {
+            "path": "link.txt",
+            "target": "payload_a.txt",
+            "type": "symlink"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_a/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_a/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_a/value.bzl",
+            "sha256": "1bc41e9f84b81220e908940736e7c1769530274669259ce67864acdbf1ae3866",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_b/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_b/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_b/value.bzl",
+            "sha256": "1f539a3672f33a8cad149e1b13d9642e96dd68822e879ca2b2120d3248109151",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/other/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 49,
+            "path": "modules/other/MODULE.bazel",
+            "sha256": "ce601c74fd289c7b10242fd0d394db8902f78390d982d7d8b97819aa58e69da0",
+            "type": "file"
+          },
+          {
+            "bytes": 30,
+            "path": "modules/other/value.bzl",
+            "sha256": "18977bcf74fdd440b0ba36cb869ddad1ccbf97fa60da8e5110da9f0d9259c280",
+            "type": "file"
+          },
+          {
+            "path": "optional.txt",
+            "type": "missing"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_a.txt",
+            "sha256": "fe2e4485e53d99f52cc60b0fdd517a47d2b30adad1ed103a32f09a01ae1b0546",
+            "type": "file"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_b.txt",
+            "sha256": "3cc83b8abe45f1bfb461f3cd276f09c57433e9532979d08510d1542f27094e1b",
+            "type": "file"
+          },
+          {
+            "bytes": 12,
+            "path": "source.txt",
+            "sha256": "8cf92f376502d0d456066600d25d107cf8cd879d0d176b6618c7a0cc9ef4372c",
+            "type": "file"
+          }
+        ],
+        "sha256": "8854b6024b531883ff2425861f8fe2abcdc4750f7a63059d81bbdb41d814bd92"
+      },
+      "output_base": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/output-bases/n4-w0",
+      "server": {
+        "pid": 83820,
+        "rss_bytes": 578891776,
+        "starttime_ticks": 28417
+      },
+      "server_before": {
+        "pid": 83820,
+        "rss_bytes": 578211840,
+        "starttime_ticks": 28417
+      },
+      "start_monotonic_ns": 299839829991,
+      "start_unix_ns": 1793450820589323557,
+      "timed_out": false,
+      "validation": {
+        "actual_bytes": 128,
+        "actual_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-0\n",
+        "actual_sha256": "802fc18664204b444c2edd2e7d802b5e054439fe94406a28fe96f669c9e28af2",
+        "expected_bytes": 128,
+        "expected_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-0\n",
+        "expected_sha256": "802fc18664204b444c2edd2e7d802b5e054439fe94406a28fe96f669c9e28af2",
+        "valid": true
+      },
+      "wall_seconds": 0.265048317,
+      "worker": "n4-w0",
+      "worktree": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/worktrees/n4-w0"
+    },
+    {
+      "artifacts": {
+        "bep.jsonl": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w1/bep.jsonl",
+        "command.json": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w1/command.json",
+        "command.log": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w1/command.log",
+        "profile.json.gz": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w1/profile.json.gz"
+      },
+      "end_monotonic_ns": 300105568468,
+      "end_unix_ns": 1793450820855062582,
+      "evidence_nonempty": {
+        "bep.jsonl": true,
+        "profile.json.gz": true
+      },
+      "exit_code": 0,
+      "fixture_expected_state": {
+        "action_environment": "base-env",
+        "added_extra": "extra-worktree-1\n",
+        "build_message": "base-build",
+        "bzl_version": "base-bzl",
+        "configuration": "base-config",
+        "module_override": "dep_a",
+        "optional": "",
+        "payload": "payload-a\n",
+        "repository_mapping": "primary",
+        "source": "base-source\n",
+        "toolchain": "a"
+      },
+      "fixture_input_snapshot": {
+        "inputs": [
+          {
+            "bytes": 28,
+            "path": ".gitignore",
+            "sha256": "4882a9764e9c790c56b134213efe0e6ba843c746fb101df12e1f151c83c8de17",
+            "type": "file"
+          },
+          {
+            "bytes": 669,
+            "path": "BUILD.bazel",
+            "sha256": "65515b5c438117289e5ee66b79452baf5ebdd16eeb54d3a14c54a43494c0d47b",
+            "type": "file"
+          },
+          {
+            "bytes": 359,
+            "path": "MODULE.bazel",
+            "sha256": "08a44bfebc1f196ef26a200ad2d768a942f95fe1ea3f0b5d390075f41c29a5fd",
+            "type": "file"
+          },
+          {
+            "bytes": 11,
+            "path": "extras/base.txt",
+            "sha256": "81b2eafdc9b9c17c807c29a4b6b8b54ccc3a1a842c7a28c7cebe3d8ec42c5e57",
+            "type": "file"
+          },
+          {
+            "bytes": 17,
+            "path": "extras/extra.txt",
+            "sha256": "e514987011583f103751a23ca3f046eb492dfebba26c09d607925221bb0a8e22",
+            "type": "file"
+          },
+          {
+            "bytes": 1702,
+            "path": "fixture.bzl",
+            "sha256": "b5aa811ae8cf086ce1230e39f7bbe6d1b905523964be55888f48cf78453755af",
+            "type": "file"
+          },
+          {
+            "path": "link.txt",
+            "target": "payload_a.txt",
+            "type": "symlink"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_a/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_a/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_a/value.bzl",
+            "sha256": "1bc41e9f84b81220e908940736e7c1769530274669259ce67864acdbf1ae3866",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_b/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_b/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_b/value.bzl",
+            "sha256": "1f539a3672f33a8cad149e1b13d9642e96dd68822e879ca2b2120d3248109151",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/other/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 49,
+            "path": "modules/other/MODULE.bazel",
+            "sha256": "ce601c74fd289c7b10242fd0d394db8902f78390d982d7d8b97819aa58e69da0",
+            "type": "file"
+          },
+          {
+            "bytes": 30,
+            "path": "modules/other/value.bzl",
+            "sha256": "18977bcf74fdd440b0ba36cb869ddad1ccbf97fa60da8e5110da9f0d9259c280",
+            "type": "file"
+          },
+          {
+            "path": "optional.txt",
+            "type": "missing"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_a.txt",
+            "sha256": "fe2e4485e53d99f52cc60b0fdd517a47d2b30adad1ed103a32f09a01ae1b0546",
+            "type": "file"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_b.txt",
+            "sha256": "3cc83b8abe45f1bfb461f3cd276f09c57433e9532979d08510d1542f27094e1b",
+            "type": "file"
+          },
+          {
+            "bytes": 12,
+            "path": "source.txt",
+            "sha256": "8cf92f376502d0d456066600d25d107cf8cd879d0d176b6618c7a0cc9ef4372c",
+            "type": "file"
+          }
+        ],
+        "sha256": "389e2f444411dd099e061e4865297dc84601b28d8a37955898cf1dd7f5c95bb0"
+      },
+      "output_base": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/output-bases/n4-w1",
+      "server": {
+        "pid": 83822,
+        "rss_bytes": 618000384,
+        "starttime_ticks": 28417
+      },
+      "server_before": {
+        "pid": 83822,
+        "rss_bytes": 612003840,
+        "starttime_ticks": 28417
+      },
+      "start_monotonic_ns": 299839563690,
+      "start_unix_ns": 1793450820589057157,
+      "timed_out": false,
+      "validation": {
+        "actual_bytes": 128,
+        "actual_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-1\n",
+        "actual_sha256": "ae434743c012768403b2ac13b4863ff9ce3671ccf3473e7306d9cc8b2eb80b98",
+        "expected_bytes": 128,
+        "expected_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-1\n",
+        "expected_sha256": "ae434743c012768403b2ac13b4863ff9ce3671ccf3473e7306d9cc8b2eb80b98",
+        "valid": true
+      },
+      "wall_seconds": 0.266004778,
+      "worker": "n4-w1",
+      "worktree": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/worktrees/n4-w1"
+    },
+    {
+      "artifacts": {
+        "bep.jsonl": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w2/bep.jsonl",
+        "command.json": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w2/command.json",
+        "command.log": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w2/command.log",
+        "profile.json.gz": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w2/profile.json.gz"
+      },
+      "end_monotonic_ns": 300105422928,
+      "end_unix_ns": 1793450820854917071,
+      "evidence_nonempty": {
+        "bep.jsonl": true,
+        "profile.json.gz": true
+      },
+      "exit_code": 0,
+      "fixture_expected_state": {
+        "action_environment": "base-env",
+        "added_extra": "extra-worktree-2\n",
+        "build_message": "base-build",
+        "bzl_version": "base-bzl",
+        "configuration": "base-config",
+        "module_override": "dep_a",
+        "optional": "",
+        "payload": "payload-a\n",
+        "repository_mapping": "primary",
+        "source": "base-source\n",
+        "toolchain": "a"
+      },
+      "fixture_input_snapshot": {
+        "inputs": [
+          {
+            "bytes": 28,
+            "path": ".gitignore",
+            "sha256": "4882a9764e9c790c56b134213efe0e6ba843c746fb101df12e1f151c83c8de17",
+            "type": "file"
+          },
+          {
+            "bytes": 669,
+            "path": "BUILD.bazel",
+            "sha256": "65515b5c438117289e5ee66b79452baf5ebdd16eeb54d3a14c54a43494c0d47b",
+            "type": "file"
+          },
+          {
+            "bytes": 359,
+            "path": "MODULE.bazel",
+            "sha256": "08a44bfebc1f196ef26a200ad2d768a942f95fe1ea3f0b5d390075f41c29a5fd",
+            "type": "file"
+          },
+          {
+            "bytes": 11,
+            "path": "extras/base.txt",
+            "sha256": "81b2eafdc9b9c17c807c29a4b6b8b54ccc3a1a842c7a28c7cebe3d8ec42c5e57",
+            "type": "file"
+          },
+          {
+            "bytes": 17,
+            "path": "extras/extra.txt",
+            "sha256": "0fc36717684b68527b361bcc674af9bc68c5cc348ad833ddd7d1f6859079017c",
+            "type": "file"
+          },
+          {
+            "bytes": 1702,
+            "path": "fixture.bzl",
+            "sha256": "b5aa811ae8cf086ce1230e39f7bbe6d1b905523964be55888f48cf78453755af",
+            "type": "file"
+          },
+          {
+            "path": "link.txt",
+            "target": "payload_a.txt",
+            "type": "symlink"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_a/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_a/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_a/value.bzl",
+            "sha256": "1bc41e9f84b81220e908940736e7c1769530274669259ce67864acdbf1ae3866",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_b/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_b/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_b/value.bzl",
+            "sha256": "1f539a3672f33a8cad149e1b13d9642e96dd68822e879ca2b2120d3248109151",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/other/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 49,
+            "path": "modules/other/MODULE.bazel",
+            "sha256": "ce601c74fd289c7b10242fd0d394db8902f78390d982d7d8b97819aa58e69da0",
+            "type": "file"
+          },
+          {
+            "bytes": 30,
+            "path": "modules/other/value.bzl",
+            "sha256": "18977bcf74fdd440b0ba36cb869ddad1ccbf97fa60da8e5110da9f0d9259c280",
+            "type": "file"
+          },
+          {
+            "path": "optional.txt",
+            "type": "missing"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_a.txt",
+            "sha256": "fe2e4485e53d99f52cc60b0fdd517a47d2b30adad1ed103a32f09a01ae1b0546",
+            "type": "file"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_b.txt",
+            "sha256": "3cc83b8abe45f1bfb461f3cd276f09c57433e9532979d08510d1542f27094e1b",
+            "type": "file"
+          },
+          {
+            "bytes": 12,
+            "path": "source.txt",
+            "sha256": "8cf92f376502d0d456066600d25d107cf8cd879d0d176b6618c7a0cc9ef4372c",
+            "type": "file"
+          }
+        ],
+        "sha256": "90c73d2041225580645d158d5d43bde895b5ebc2e81369c422c29771b0a82432"
+      },
+      "output_base": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/output-bases/n4-w2",
+      "server": {
+        "pid": 83821,
+        "rss_bytes": 579383296,
+        "starttime_ticks": 28417
+      },
+      "server_before": {
+        "pid": 83821,
+        "rss_bytes": 579178496,
+        "starttime_ticks": 28417
+      },
+      "start_monotonic_ns": 299839447820,
+      "start_unix_ns": 1793450820588940888,
+      "timed_out": false,
+      "validation": {
+        "actual_bytes": 128,
+        "actual_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-2\n",
+        "actual_sha256": "d4b573ef465900fda4a37f2b24c800685342339fef07cc6212c11e18c727633e",
+        "expected_bytes": 128,
+        "expected_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-2\n",
+        "expected_sha256": "d4b573ef465900fda4a37f2b24c800685342339fef07cc6212c11e18c727633e",
+        "valid": true
+      },
+      "wall_seconds": 0.265975108,
+      "worker": "n4-w2",
+      "worktree": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/worktrees/n4-w2"
+    },
+    {
+      "artifacts": {
+        "bep.jsonl": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w3/bep.jsonl",
+        "command.json": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w3/command.json",
+        "command.log": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w3/command.log",
+        "profile.json.gz": "/home/jgett/bazel-multiworktree-20261031/bazel/docs/jsgette/measurements/multi-worktree-phase0-2026-10-31/wsl-context-smoke/n4-glob_added-r0/n4-w3/profile.json.gz"
+      },
+      "end_monotonic_ns": 300155598065,
+      "end_unix_ns": 1793450820905093235,
+      "evidence_nonempty": {
+        "bep.jsonl": true,
+        "profile.json.gz": true
+      },
+      "exit_code": 0,
+      "fixture_expected_state": {
+        "action_environment": "base-env",
+        "added_extra": "extra-worktree-3\n",
+        "build_message": "base-build",
+        "bzl_version": "base-bzl",
+        "configuration": "base-config",
+        "module_override": "dep_a",
+        "optional": "",
+        "payload": "payload-a\n",
+        "repository_mapping": "primary",
+        "source": "base-source\n",
+        "toolchain": "a"
+      },
+      "fixture_input_snapshot": {
+        "inputs": [
+          {
+            "bytes": 28,
+            "path": ".gitignore",
+            "sha256": "4882a9764e9c790c56b134213efe0e6ba843c746fb101df12e1f151c83c8de17",
+            "type": "file"
+          },
+          {
+            "bytes": 669,
+            "path": "BUILD.bazel",
+            "sha256": "65515b5c438117289e5ee66b79452baf5ebdd16eeb54d3a14c54a43494c0d47b",
+            "type": "file"
+          },
+          {
+            "bytes": 359,
+            "path": "MODULE.bazel",
+            "sha256": "08a44bfebc1f196ef26a200ad2d768a942f95fe1ea3f0b5d390075f41c29a5fd",
+            "type": "file"
+          },
+          {
+            "bytes": 11,
+            "path": "extras/base.txt",
+            "sha256": "81b2eafdc9b9c17c807c29a4b6b8b54ccc3a1a842c7a28c7cebe3d8ec42c5e57",
+            "type": "file"
+          },
+          {
+            "bytes": 17,
+            "path": "extras/extra.txt",
+            "sha256": "25b01aa6192b02a7972bb755bed4932aef974a939d2d8ada9e8a8ae53d725c2c",
+            "type": "file"
+          },
+          {
+            "bytes": 1702,
+            "path": "fixture.bzl",
+            "sha256": "b5aa811ae8cf086ce1230e39f7bbe6d1b905523964be55888f48cf78453755af",
+            "type": "file"
+          },
+          {
+            "path": "link.txt",
+            "target": "payload_a.txt",
+            "type": "symlink"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_a/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_a/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_a/value.bzl",
+            "sha256": "1bc41e9f84b81220e908940736e7c1769530274669259ce67864acdbf1ae3866",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/dep_b/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 47,
+            "path": "modules/dep_b/MODULE.bazel",
+            "sha256": "39a6d19f36bf4f9032d2f4a91033d4df2580379c3fb2a298125c84ea62695676",
+            "type": "file"
+          },
+          {
+            "bytes": 26,
+            "path": "modules/dep_b/value.bzl",
+            "sha256": "1f539a3672f33a8cad149e1b13d9642e96dd68822e879ca2b2120d3248109151",
+            "type": "file"
+          },
+          {
+            "bytes": 29,
+            "path": "modules/other/BUILD.bazel",
+            "sha256": "7c3398660aa56e5c79645cb7e2848c5f3dd19c717fb7cd79ed1148fcef2e78e0",
+            "type": "file"
+          },
+          {
+            "bytes": 49,
+            "path": "modules/other/MODULE.bazel",
+            "sha256": "ce601c74fd289c7b10242fd0d394db8902f78390d982d7d8b97819aa58e69da0",
+            "type": "file"
+          },
+          {
+            "bytes": 30,
+            "path": "modules/other/value.bzl",
+            "sha256": "18977bcf74fdd440b0ba36cb869ddad1ccbf97fa60da8e5110da9f0d9259c280",
+            "type": "file"
+          },
+          {
+            "path": "optional.txt",
+            "type": "missing"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_a.txt",
+            "sha256": "fe2e4485e53d99f52cc60b0fdd517a47d2b30adad1ed103a32f09a01ae1b0546",
+            "type": "file"
+          },
+          {
+            "bytes": 10,
+            "path": "payload_b.txt",
+            "sha256": "3cc83b8abe45f1bfb461f3cd276f09c57433e9532979d08510d1542f27094e1b",
+            "type": "file"
+          },
+          {
+            "bytes": 12,
+            "path": "source.txt",
+            "sha256": "8cf92f376502d0d456066600d25d107cf8cd879d0d176b6618c7a0cc9ef4372c",
+            "type": "file"
+          }
+        ],
+        "sha256": "3929aad76f3cc6e29885705eed38ac981a26f36100738e1dca64f240ab2c4dea"
+      },
+      "output_base": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/output-bases/n4-w3",
+      "server": {
+        "pid": 83825,
+        "rss_bytes": 636104704,
+        "starttime_ticks": 28418
+      },
+      "server_before": {
+        "pid": 83825,
+        "rss_bytes": 633888768,
+        "starttime_ticks": 28418
+      },
+      "start_monotonic_ns": 299839627986,
+      "start_unix_ns": 1793450820589121472,
+      "timed_out": false,
+      "validation": {
+        "actual_bytes": 128,
+        "actual_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-3\n",
+        "actual_sha256": "7898fefccd084ed8115f7e934a53a7cd10179fd974a757d3f8fb2f869e9262ff",
+        "expected_bytes": 128,
+        "expected_content": "message=base-build|base-bzl\ncontext=module-a|toolchain-a|base-config|base-env\nbase-source\npayload-a\nbase-extra\nextra-worktree-3\n",
+        "expected_sha256": "7898fefccd084ed8115f7e934a53a7cd10179fd974a757d3f8fb2f869e9262ff",
+        "valid": true
+      },
+      "wall_seconds": 0.315970079,
+      "worker": "n4-w3",
+      "worktree": "/home/jgett/bazel-multiworktree-20261031/context-smoke-state/worktrees/n4-w3"
+    }
+  ],
+  "concurrency": 4,
+  "distinct_server_pids": [
+    83820,
+    83822,
+    83821,
+    83825
+  ],
+  "jobs_per_command": 1,
+  "launch_barrier_release_monotonic_ns": 299787575368,
+  "launch_spread_ms": 0.382171,
+  "memory": {
+    "max_observed_server_count": 4,
+    "peak_aggregate_server_rss_bytes": 2412941312,
+    "sample_count": 7,
+    "sampling": "approximately 50 ms; can miss short peaks",
+    "scope": "owned Bazel server JVM RSS only; excludes client and action children"
+  },
+  "name": "n4-glob_added-r0",
+  "peak_overlapping_command_intervals": 4,
+  "repetition": 0,
+  "valid": true
+}

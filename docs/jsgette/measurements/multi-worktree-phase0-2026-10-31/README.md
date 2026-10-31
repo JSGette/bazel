@@ -10,6 +10,9 @@ The [Phase 0 execution report](../../plans/multi-worktree-phase0-2026-10-31.md) 
 - `smoke-verified/` contains the full worktree smoke matrix; use its manifest and summary as the execution authority.
 - `smoke-observations.json` contains verified counts and per-command BEP metrics derived from the successful archive.
 - `reproduction/` contains the fresh-directory, two-worktree reproduction check.
+- `wsl-context-smoke/` and `wsl-context-smoke-observations.json` contain the expanded 1/2/4-worktree release-binary matrix: 253 builds including context divergence and baseline restores.
+- `wsl-control-build/` contains the successful pinned-source control build log, provenance, rc, and module lock.
+- `wsl-control-smoke/` and `wsl-control-smoke-observations.json` contain the fresh source-control reproduction: 169 builds across the full 1/2/4-worktree mutation/restore matrix.
 
 ## Reproduce the smoke cohort
 
@@ -46,4 +49,8 @@ Adjust only machine-specific paths. Never point the harness at existing personal
 
 The two repetitions per case are pipeline smoke checks. They combine a first invocation after an edit with a warm repeat and must not be pooled as a statistically qualified latency comparison. Groups share increasingly populated caches and resetting a case may restore a previous edit; these are not matched edit-cost arms. A command-overlap interval is not a claim about simultaneous CPU execution. Server-RSS samples exclude clients and action children.
 
-Qualification still requires a source-built control, representative build/test runs, context-divergence fixtures, broader memory attribution and repeated observations under the predeclared acceptance criteria.
+The local WSL continuation adds a source-built control and synthetic context
+divergence. Qualification still requires representative build/test runs, broader
+context/lifecycle coverage and memory attribution, and repeated observations under
+the predeclared acceptance criteria. The release-binary WSL run overlapped the
+control build; its timings must not be used for a performance comparison.
