@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "created_utc_date": "2026-10-31",
+  "status": "phase0-in-progress",
+  "implementation_source": {
+    "repository": "https://github.com/bazelbuild/bazel.git",
+    "commit": "9a2ababbd5cf113c31450fbe9214b501be8c58a2",
+    "commit_subject": "Split shared-value deserialization exception handling at `notifyFetchDone()`.",
+    "bootstrap_bazel_version": "9.3.1",
+    "local_branch": "jsgette/multi-worktree-phase0",
+    "source_built_binary_available": false
+  },
+  "stock_smoke_binary": {
+    "version": "9.3.1",
+    "url": "https://releases.bazel.build/9.3.1/release/bazel-9.3.1-linux-x86_64",
+    "checksum_url": "https://releases.bazel.build/9.3.1/release/bazel-9.3.1-linux-x86_64.sha256",
+    "sha256": "7f775b54bbec487efaf0f49ccda1d2ed02cd34f582edfdd6aeeec76e39ef585c",
+    "release_tag_commit": "fee2bf2d1c14bc2096068a4d46f1842472092044",
+    "runtime": "OpenJDK Runtime Environment (build 25.0.2+10-LTS) by Azul Systems, Inc.",
+    "checksum_verified": true,
+    "use": "Validate the worktree harness and collect stock smoke observations. This executable is not a build of implementation_source.commit."
+  },
+  "host": {
+    "os": "Linux",
+    "kernel": "6.18.57",
+    "architecture": "x86_64",
+    "cgroup_memory_max_bytes": 17179869184,
+    "cgroup_cpu_max": "400000 100000",
+    "effective_cpu_quota": 4,
+    "cpuset_cpus_effective": "0-4",
+    "swap_available": false
+  },
+  "scope": {
+    "smoke_concurrency": [
+      1,
+      2,
+      4
+    ],
+    "concurrency_8": "Deferred: host has four CPU equivalents; do not silently present eight independent --jobs=1 clients as the same aggregate admission budget.",
+    "implementation_comparison": "Blocked until a stock source-built control and candidate can be compared from the pinned implementation baseline.",
+    "representative_workload": "Separate pinned DataDog/datadog-agent build/test cohort required before Phase 0 completion."
+  },
+  "verified_smoke": {
+    "matrix_build_commands": 106,
+    "matrix_cohorts": 46,
+    "matrix_shutdowns": 8,
+    "fresh_reproduction_build_commands": 5,
+    "fresh_reproduction_shutdowns": 3,
+    "harness_unit_tests": 11,
+    "phase0_complete": false,
+    "summary": "smoke-verified/summary.json",
+    "derived_observations": "smoke-observations.json"
+  }
+}

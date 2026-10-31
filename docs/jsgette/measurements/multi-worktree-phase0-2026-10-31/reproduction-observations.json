@@ -1,0 +1,123 @@
+{
+  "command_metrics": [
+    {
+      "bazel_timing_metrics": {
+        "actionsExecutionStartInMs": "6507",
+        "analysisPhaseTimeInMs": "98",
+        "cpuTimeInMs": "7680",
+        "criticalPathTime": "0.073264185s",
+        "executionPhaseTimeInMs": "110",
+        "wallTimeInMs": "6647"
+      },
+      "cohort": "prime-initial_cold-r0",
+      "runners": {
+        "internal": 1,
+        "linux-sandbox": 1,
+        "total": 2
+      },
+      "wall_seconds": 7.607264674,
+      "worker": "prime-w0"
+    },
+    {
+      "bazel_timing_metrics": {
+        "actionsExecutionStartInMs": "7715",
+        "analysisPhaseTimeInMs": "182",
+        "cpuTimeInMs": "8430",
+        "criticalPathTime": "0.094857825s",
+        "executionPhaseTimeInMs": "168",
+        "wallTimeInMs": "7960"
+      },
+      "cohort": "n2-coldgraph_hotdisk-r0",
+      "runners": {
+        "disk cache hit": 1,
+        "internal": 1,
+        "total": 2
+      },
+      "wall_seconds": 9.3346281,
+      "worker": "n2-w0"
+    },
+    {
+      "bazel_timing_metrics": {
+        "actionsExecutionStartInMs": "8388",
+        "analysisPhaseTimeInMs": "91",
+        "cpuTimeInMs": "8420",
+        "criticalPathTime": "0.070548898s",
+        "executionPhaseTimeInMs": "106",
+        "wallTimeInMs": "8539"
+      },
+      "cohort": "n2-coldgraph_hotdisk-r0",
+      "runners": {
+        "disk cache hit": 1,
+        "internal": 1,
+        "total": 2
+      },
+      "wall_seconds": 9.728044458,
+      "worker": "n2-w1"
+    },
+    {
+      "bazel_timing_metrics": {
+        "actionsExecutionStartInMs": "464",
+        "analysisPhaseTimeInMs": "8",
+        "cpuTimeInMs": "920",
+        "criticalPathTime": "0.003797058s",
+        "executionPhaseTimeInMs": "8",
+        "wallTimeInMs": "480"
+      },
+      "cohort": "n2-warm_identical-r0",
+      "runners": {
+        "internal": 1,
+        "total": 1
+      },
+      "wall_seconds": 0.583171794,
+      "worker": "n2-w0"
+    },
+    {
+      "bazel_timing_metrics": {
+        "actionsExecutionStartInMs": "511",
+        "analysisPhaseTimeInMs": "14",
+        "cpuTimeInMs": "1030",
+        "criticalPathTime": "0.009857652s",
+        "executionPhaseTimeInMs": "11",
+        "wallTimeInMs": "531"
+      },
+      "cohort": "n2-warm_identical-r0",
+      "runners": {
+        "internal": 1,
+        "total": 1
+      },
+      "wall_seconds": 0.579958315,
+      "worker": "n2-w1"
+    }
+  ],
+  "fixture_source_sha256": "d887b8454e9b702b0d39649769a39e18b622b4083d4db8812578d33ca54e45e3",
+  "groups_excluding_prime": {
+    "2": {
+      "cohorts": 2,
+      "coldgraph_seconds": [
+        9.3346281,
+        9.728044458
+      ],
+      "commands": 4,
+      "disk_hits_in_coldgraph": 2,
+      "peak_sampled_server_rss_bytes": 647360512,
+      "second_warm_repeat_seconds": []
+    }
+  },
+  "harness_sha256": "591c5becdc91f0af05dea44926fac6a0dde7db8a479586896e9f283aa5553dec",
+  "limitations": [
+    "Smoke observations, not a comparison of implementations or qualified latency estimates",
+    "Server-RSS samples exclude clients/action children and can miss peaks",
+    "BEP CPU and phase counters have Bazel-defined scopes; not whole-host CPU",
+    "Only the synthetic build fixture was executed; representative tests remain pending"
+  ],
+  "runner_counts": {
+    "disk cache hit": 2,
+    "internal": 5,
+    "linux-sandbox": 1,
+    "total": 8
+  },
+  "schema_version": 1,
+  "successful_server_shutdowns": 3,
+  "verified_build_commands": 5,
+  "verified_cohorts": 3
+}

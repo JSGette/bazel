@@ -1,0 +1,10 @@
+load(":fixture.bzl", "fixture")
+
+fixture(
+    name = "check",
+    src = "source.txt",
+    alias = "link.txt",
+    extras = glob(["extras/*.txt"]),
+    optional = glob(["optional.txt"], allow_empty = True),
+    message = "base-build",
+)
