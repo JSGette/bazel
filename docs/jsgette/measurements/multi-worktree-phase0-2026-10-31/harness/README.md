@@ -19,7 +19,10 @@ owned output bases. Each worktree retains its output base throughout its group;
 the groups share disk and repository caches. The initial prime is an ordinary
 cold command. Each concurrency group then starts with new output bases and warmed
 disk cache, followed by warm repeats and source/BUILD/`.bzl`/negative-glob/glob/
-symlink changes. Warm cache status is a setup intention: inspect BEP/profile for
+symlink and context changes. Every mutation is followed by a baseline restore
+build on the same servers, including restoring command options. Warm and mutation
+cohorts reject missing/restarted servers using both PID and process start time.
+Warm cache status is a setup intention: inspect BEP/profile for
 actual action-cache hits. Repetitions include the first invocation after an edit;
 do not aggregate it blindly with its warmed repeat.
 
@@ -27,8 +30,25 @@ All Bazel rc files are ignored. Heap is 512 MiB per server by default (768 MiB i
 optional), loading threads are one per command, and aggregate configured jobs
 are four. Launches use a thread barrier. Recorded launch spread and overlapping
 client-command intervals describe actual overlap; they do not prove simultaneous
-CPU execution. The fixture uses one Starlark action and no compiler toolchain.
+CPU execution. The fixture uses one Starlark action and a small Starlark message
+toolchain, with no compiler toolchain.
 Source/dependency acquisition by Bazel may still need network access.
+
+Context cases exercise separate inputs to loading, analysis, and execution:
+
+| Case | Actual Bazel input varied | Expected effect |
+| --- | --- | --- |
+| `module_override` | Local module override selects `dep_a` or `dep_b`, with equal module name/version | Loaded module value differs |
+| `repository_mapping` | Apparent `@selected` maps to a different module | Identical `.bzl` load text resolves to different values |
+| `toolchain_divergence` | `--extra_toolchains` chooses a message toolchain | Resolved `ToolchainInfo` message differs |
+| `environment_divergence` | Explicit `--action_env=PHASE0_MESSAGE=...` | Shell action reads a different environment value |
+| `configuration_divergence` | `--define=phase0_message=...` | Rule reads a different configuration value |
+
+Module/mapping/toolchain choices alternate between worktrees; environment and
+configuration values are unique per worktree. The output oracle includes these
+values independently of Bazel's output. These are synthetic context checks, not
+coverage of arbitrary repository rules, production compiler toolchains, test
+environments, or the full lifecycle matrix.
 
 The optional `--java-trust-store` passes an existing Java trust store to the
 bundled JVM and records its checksum; it never disables TLS verification. See
@@ -56,6 +76,8 @@ are required. Shutdown failures or remaining server processes set
 
 * `manifest.json`: binary path/version/SHA-256, fixture Git commit/source digest,
   harness digest, options, nonsecret environment allowlist and cgroup limits.
+* `fixture/`, `harness-run.py`, `verify_results.py`: frozen copies of the runner,
+  verifier and fixture used by this run, preserving symlink targets.
 * `<cohort>/<worker>/command.json`, `command.log`, `bep.jsonl`,
   `profile.json.gz`, `result.json`: exact argv/cwd, raw Bazel output, native
   telemetry, start/end clocks, elapsed time, exit/timeout, read-only PID samples,

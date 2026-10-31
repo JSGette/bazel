@@ -21,7 +21,9 @@ import uuid
 HERE = Path(__file__).resolve().parent
 MARKER = ".phase0-harness-owned.json"
 CASES = ("warm_identical", "source_divergence", "build_divergence",
-         "bzl_divergence", "missing_file_added", "glob_added", "symlink_retarget")
+         "bzl_divergence", "missing_file_added", "glob_added", "symlink_retarget",
+         "module_override", "repository_mapping", "toolchain_divergence",
+         "environment_divergence", "configuration_divergence")
 
 
 def digest(data):
@@ -181,14 +183,30 @@ class ExpectedState:
     payload: str = "payload-a\n"
     added_extra: str = ""
     optional: str = ""
+    module_override: str = "dep_a"
+    repository_mapping: str = "primary"
+    toolchain: str = "a"
+    action_environment: str = "base-env"
+    configuration: str = "base-config"
 
     def output_bytes(self):
         # Oracle is defined from the fixture specification, never actual output.
-        return (f"message={self.build_message}|{self.bzl_version}\n" + self.source
+        module = ("module-other" if self.repository_mapping == "other" else
+                  {"dep_a": "module-a", "dep_b": "module-b"}[self.module_override])
+        return (f"message={self.build_message}|{self.bzl_version}\n"
+                + f"context={module}|toolchain-{self.toolchain}|{self.configuration}|{self.action_environment}\n"
+                + self.source
                 + self.payload + "base-extra\n" + self.added_extra + self.optional).encode()
+
+    def build_options(self):
+        return [f"--extra_toolchains=//:toolchain_{self.toolchain}",
+                f"--action_env=PHASE0_MESSAGE={self.action_environment}",
+                f"--define=phase0_message={self.configuration}"]
 
 
 def expected_state(case, index):
+    if case not in CASES:
+        raise ValueError(f"Unknown fixture case: {case}")
     if case == "source_divergence":
         return ExpectedState(source=f"source-worktree-{index}\n")
     if case == "build_divergence":
@@ -201,6 +219,16 @@ def expected_state(case, index):
         return ExpectedState(added_extra=f"extra-worktree-{index}\n")
     if case == "symlink_retarget":
         return ExpectedState(payload="payload-b\n")
+    if case == "module_override":
+        return ExpectedState(module_override="dep_b" if index % 2 == 0 else "dep_a")
+    if case == "repository_mapping":
+        return ExpectedState(repository_mapping="other" if index % 2 == 0 else "primary")
+    if case == "toolchain_divergence":
+        return ExpectedState(toolchain="b" if index % 2 == 0 else "a")
+    if case == "environment_divergence":
+        return ExpectedState(action_environment=f"env-worktree-{index}")
+    if case == "configuration_divergence":
+        return ExpectedState(configuration=f"config-worktree-{index}")
     return ExpectedState()
 
 
@@ -210,6 +238,12 @@ def set_fixture_state(worktree, expected):
     (worktree / "BUILD.bazel").write_text(build.replace('"base-build"', json.dumps(expected.build_message)))
     bzl = (HERE / "fixture/fixture.bzl").read_text()
     (worktree / "fixture.bzl").write_text(bzl.replace('"base-bzl"', json.dumps(expected.bzl_version)))
+    module = (HERE / "fixture/MODULE.bazel").read_text()
+    module = module.replace('"modules/dep_a"', json.dumps("modules/" + expected.module_override))
+    if expected.repository_mapping == "other":
+        module = module.replace('repo_name = "selected"', 'repo_name = "unused"')
+        module = module.replace('repo_name = "unselected"', 'repo_name = "selected"')
+    (worktree / "MODULE.bazel").write_text(module)
     for relative, content in (("optional.txt", expected.optional),
                               ("extras/extra.txt", expected.added_extra)):
         path = worktree / relative
@@ -238,13 +272,19 @@ def validate_output(exit_code, output_path, expected):
     }
 
 
-def cohort_is_valid(records, expected_count, overlap):
+def cohort_is_valid(records, expected_count, overlap, require_warm_servers=False):
     if len(records) != expected_count or overlap != expected_count:
         return False
     if not all(record["validation"]["valid"] and not record["timed_out"]
                and all(record["evidence_nonempty"].values()) for record in records):
         return False
     pids = [record["server"]["pid"] for record in records if record["server"]]
+    if require_warm_servers:
+        for record in records:
+            before, after = record.get("server_before"), record["server"]
+            if not before or not after or any(before[key] != after[key]
+                                              for key in ("pid", "starttime_ticks")):
+                return False
     return len(pids) == expected_count and len(set(pids)) == expected_count
 
 
@@ -338,6 +378,11 @@ class Harness:
         version = command([str(self.bazel), "--ignore_all_rc_files", "--batch",
                            "--output_user_root=" + str(self.state / "bazel-user-root")]
                           + java_trust_options(self.java_trust_store) + ["version"])
+        # Retain the exact runnable inputs beside the results. Later edits to
+        # this checkout must not change what a completed run claims to test.
+        shutil.copytree(HERE / "fixture", self.results / "fixture", symlinks=True)
+        shutil.copyfile(Path(__file__), self.results / "harness-run.py")
+        shutil.copyfile(HERE / "verify_results.py", self.results / "verify_results.py")
         manifest = {"schema_version": 1, "workload": "tiny deterministic Starlark build smoke; no tests",
                     "bazel_path": str(self.bazel), "bazel_sha256": digest(self.bazel.read_bytes()),
                     "bazel_version": version, "fixture_commit": command(["git", "-C", str(self.repository), "rev-parse", "HEAD"]),
@@ -355,7 +400,7 @@ class Harness:
                     "cgroup_cpu_max": read_optional("/sys/fs/cgroup/cpu.max"),
                     "environment_allowlist": {k: os.environ[k] for k in ("LANG", "LC_ALL", "TZ", "JAVA_HOME") if k in os.environ},
                     "cache_policy": "common disk and repository caches; distinct persistent output bases",
-                    "phase_semantics": "prime once; fresh output bases for each concurrency group; edited cases reset fixture to specified state"}
+                    "phase_semantics": "prime once; fresh output bases per group; each mutation starts from baseline and is followed by a verified baseline restore on the same servers"}
         write_json(self.results / "manifest.json", manifest)
 
     def create_workers(self, prefix, count):
@@ -379,7 +424,7 @@ class Harness:
                 "--repository_cache=" + str(self.state / "repository-cache"),
                 "--build_event_json_file=" + str(worker_dir / "bep.jsonl"),
                 "--profile=" + str(worker_dir / "profile.json.gz"),
-                "--noshow_progress", "--color=no", "--curses=no"]
+                "--noshow_progress", "--color=no", "--curses=no"] + expected.build_options()
         write_json(worker_dir / "command.json", {"argv": argv, "cwd": str(worker.worktree)})
         server_before = server_sample(worker.output_base)
         input_snapshot = fixture_input_snapshot(worker.worktree)
@@ -439,7 +484,8 @@ class Harness:
             overlap += delta
             peak = max(peak, overlap)
         pids = [r["server"]["pid"] for r in records if r["server"]]
-        valid = cohort_is_valid(records, len(workers), peak)
+        valid = cohort_is_valid(records, len(workers), peak,
+                                require_warm_servers=case not in ("initial_cold", "coldgraph_hotdisk"))
         summary = {"name": name, "case": case, "repetition": repetition, "concurrency": len(workers),
                    "jobs_per_command": jobs, "launch_barrier_release_monotonic_ns": release,
                    "launch_spread_ms": (max(r["start_monotonic_ns"] for r in records) - min(r["start_monotonic_ns"] for r in records)) / 1e6,
@@ -491,11 +537,14 @@ class Harness:
                     self.cohort(workers, "coldgraph_hotdisk", 0, [ExpectedState()] * count)
                     for case in self.arguments.cases:
                         expected = [expected_state(case, i) for i in range(count)]
-                        if case != "warm_identical":
-                            for worker, state in zip(workers, expected):
-                                set_fixture_state(worker.worktree, state)
+                        for worker, state in zip(workers, expected):
+                            set_fixture_state(worker.worktree, state)
                         for repetition in range(self.arguments.repetitions):
                             self.cohort(workers, case, repetition, expected)
+                        if case != "warm_identical":
+                            for worker in workers:
+                                set_fixture_state(worker.worktree, ExpectedState())
+                            self.cohort(workers, case + "_restore", 0, [ExpectedState()] * count)
                 finally:
                     self.shutdown(workers)
         except BaseException as error:
@@ -536,6 +585,8 @@ def parse_arguments(argv=None):
         parsed.cases = parsed.cases.split(",")
         if not parsed.cases or any(case not in CASES for case in parsed.cases):
             raise ValueError("unknown case")
+        if len(set(parsed.cases)) != len(parsed.cases):
+            raise ValueError("cases must not repeat")
         if parsed.cases[0] != "warm_identical":
             raise ValueError("cases must start with warm_identical")
         if parsed.repetitions < 1 or parsed.timeout_seconds < 1:

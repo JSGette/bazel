@@ -9,7 +9,8 @@ import sys
 
 from run import (ExpectedState, expected_state, owned_directory, validate_output,
                  set_fixture_state, fixture_input_snapshot, cohort_is_valid,
-                 shutdown_failed, java_trust_options, reap_owned_daemon, HERE)
+                 shutdown_failed, java_trust_options, reap_owned_daemon, HERE,
+                 CASES, parse_arguments)
 import shutil
 
 
@@ -60,6 +61,76 @@ class HarnessTests(unittest.TestCase):
             self.assertEqual((fixture / "link.txt").read_text(), "payload-b\n")
             set_fixture_state(fixture, ExpectedState())
             self.assertEqual((fixture / "link.txt").read_text(), "payload-a\n")
+
+    def test_each_mutation_restores_every_input_including_module_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / "fixture"
+            shutil.copytree(HERE / "fixture", fixture, symlinks=True)
+            baseline = fixture_input_snapshot(fixture)
+            for case in CASES:
+                with self.subTest(case=case):
+                    set_fixture_state(fixture, expected_state(case, 0))
+                    set_fixture_state(fixture, ExpectedState())
+                    self.assertEqual(baseline, fixture_input_snapshot(fixture))
+
+    def test_context_cases_have_independent_expected_outputs(self):
+        contexts = {
+            "warm_identical": "module-a|toolchain-a|base-config|base-env",
+            "module_override": "module-b|toolchain-a|base-config|base-env",
+            "repository_mapping": "module-other|toolchain-a|base-config|base-env",
+            "toolchain_divergence": "module-a|toolchain-b|base-config|base-env",
+            "environment_divergence": "module-a|toolchain-a|base-config|env-worktree-0",
+            "configuration_divergence": "module-a|toolchain-a|config-worktree-0|base-env",
+        }
+        for case, context in contexts.items():
+            with self.subTest(case=case):
+                self.assertEqual(expected_state(case, 0).output_bytes(),
+                                 ("message=base-build|base-bzl\ncontext=" + context + "\n"
+                                  "base-source\npayload-a\nbase-extra\n").encode())
+                if case != "warm_identical":
+                    self.assertNotEqual(expected_state(case, 0).output_bytes(),
+                                        expected_state(case, 1).output_bytes())
+
+    def test_module_inputs_are_in_provenance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / "fixture"
+            shutil.copytree(HERE / "fixture", fixture, symlinks=True)
+            baseline = fixture_input_snapshot(fixture)
+            for case in ("module_override", "repository_mapping"):
+                set_fixture_state(fixture, expected_state(case, 0))
+                self.assertNotEqual(baseline["sha256"], fixture_input_snapshot(fixture)["sha256"])
+            set_fixture_state(fixture, ExpectedState())
+            (fixture / "modules/dep_a/value.bzl").write_text('MODULE_VALUE = "dirty"\n')
+            self.assertNotEqual(baseline["sha256"], fixture_input_snapshot(fixture)["sha256"])
+
+    def test_invocation_options_reset_after_context_changes(self):
+        self.assertEqual(ExpectedState().build_options(), [
+            "--extra_toolchains=//:toolchain_a", "--action_env=PHASE0_MESSAGE=base-env",
+            "--define=phase0_message=base-config"])
+        for case, option in (("toolchain_divergence", "--extra_toolchains=//:toolchain_b"),
+                             ("environment_divergence", "--action_env=PHASE0_MESSAGE=env-worktree-0"),
+                             ("configuration_divergence", "--define=phase0_message=config-worktree-0")):
+            self.assertIn(option, expected_state(case, 0).build_options())
+            self.assertNotIn(option, ExpectedState().build_options())
+
+    def test_unknown_and_repeated_cases_are_rejected(self):
+        with self.assertRaises(ValueError):
+            expected_state("module_typo", 0)
+        with mock.patch("sys.stderr"), self.assertRaises(SystemExit):
+            parse_arguments(["--bazel", "/bazel", "--state-dir", "/state",
+                             "--results-dir", "/results",
+                             "--cases", "warm_identical,warm_identical"])
+
+    def test_warm_cohort_rejects_missing_or_restarted_server(self):
+        record = {"validation": {"valid": True}, "timed_out": False,
+                  "server": {"pid": 10, "starttime_ticks": 20},
+                  "server_before": {"pid": 10, "starttime_ticks": 20},
+                  "evidence_nonempty": {"bep.jsonl": True, "profile.json.gz": True}}
+        self.assertTrue(cohort_is_valid([record], 1, 1, require_warm_servers=True))
+        record["server_before"]["starttime_ticks"] = 19
+        self.assertFalse(cohort_is_valid([record], 1, 1, require_warm_servers=True))
+        record["server_before"] = None
+        self.assertFalse(cohort_is_valid([record], 1, 1, require_warm_servers=True))
 
     def test_evidence_and_actual_overlap_are_required(self):
         def record(pid):

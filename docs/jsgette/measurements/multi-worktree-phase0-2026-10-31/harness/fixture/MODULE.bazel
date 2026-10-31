@@ -1,1 +1,6 @@
 module(name = "phase0_worktree_fixture", version = "0.0.0")
+
+bazel_dep(name = "phase0_dep", version = "1.0.0", repo_name = "selected")
+bazel_dep(name = "phase0_other", version = "1.0.0", repo_name = "unselected")
+local_path_override(module_name = "phase0_dep", path = "modules/dep_a")
+local_path_override(module_name = "phase0_other", path = "modules/other")
