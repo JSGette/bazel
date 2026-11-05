@@ -2,6 +2,10 @@ The native **single-JVM** MVP is documented in [NATIVE.md](NATIVE.md). The proce
 supervisor below remains a separate operational fallback and does not provide
 cross-engine action sharing.
 
+The [workspace overlay experiments](../../docs/jsgette/measurements/worktree-overlays/README.md)
+measure lazy discovery and sharing remote executions across four and eight
+Datadog builds.
+
 # Concurrent worktree MVP (Linux)
 
 This is the implementation plan's **private-process fallback**: one local Python

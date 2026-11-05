@@ -1,0 +1,4902 @@
+{
+  "revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "target": "//rtloader:constants_gen",
+  "module": "datadog_stress_target",
+  "bazel": "bazel 9.1.0",
+  "host": "Windows-10-10.0.26200-SP0",
+  "physical_host_logical_cpus": 32,
+  "aggregate_budget": {
+    "cpus": 8,
+    "job_commit_mib": 8192
+  },
+  "mode": "separate batch Bazel for every request; new output base every invocation",
+  "client_timeout_s": 180,
+  "variants": [
+    "base",
+    "source",
+    "build",
+    "base",
+    "source",
+    "build",
+    "base",
+    "base"
+  ],
+  "trials": [
+    {
+      "governor": {
+        "method": "Windows Job Object",
+        "logical_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "job_commit_limit_bytes": 8589934592,
+        "aggregate_memory_limit_enforced": true
+      },
+      "slots_per_client": 8,
+      "ram_hint_mib_per_client": 8192,
+      "heap_mib_per_client": 640,
+      "builds": [
+        {
+          "view": 0,
+          "variant": "base",
+          "exit": 0,
+          "pid": 38488,
+          "start_s": 0.0,
+          "finish_s": 4.906,
+          "client_s": 4.906,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 33904,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829947522",
+                "lastEndedMs": "1793829947542",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829948768",
+                "lastEndedMs": "1793829948773",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 4409,
+            "cpu_ms": 9515,
+            "analysis_ms": 1250,
+            "execution_ms": 20,
+            "execution_start_ms": 4366,
+            "critical_path_ms": 19.251,
+            "profile": {
+              "status": "read",
+              "events": 1646,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 2799.698
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 199.919
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1393.862
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 10.445
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 2822.041,
+                "package creation": 33.553,
+                "complete action execution": 5.5,
+                "action processing": 22.81,
+                "critical path component": 19.251
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 1,
+          "variant": "source",
+          "exit": 0,
+          "pid": 38464,
+          "start_s": 4.922,
+          "finish_s": 9.703,
+          "client_s": 4.781,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 8824,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829952381",
+                "lastEndedMs": "1793829952399",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829953557",
+                "lastEndedMs": "1793829953562",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 4261,
+            "cpu_ms": 9078,
+            "analysis_ms": 1181,
+            "execution_ms": 21,
+            "execution_start_ms": 4218,
+            "critical_path_ms": 17.838,
+            "profile": {
+              "status": "read",
+              "events": 1662,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 16.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 2726.582
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 194.765
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1325.16
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.279
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 2720.438,
+                "package creation": 30.58,
+                "complete action execution": 5.434,
+                "action processing": 20.913,
+                "critical path component": 17.837
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 2,
+          "variant": "build",
+          "exit": 0,
+          "pid": 30580,
+          "start_s": 9.703,
+          "finish_s": 14.531,
+          "client_s": 4.828,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 27368,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829957142",
+                "lastEndedMs": "1793829957161",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829958395",
+                "lastEndedMs": "1793829958400",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 4332,
+            "cpu_ms": 9750,
+            "analysis_ms": 1256,
+            "execution_ms": 21,
+            "execution_start_ms": 4288,
+            "critical_path_ms": 18.838,
+            "profile": {
+              "status": "read",
+              "events": 1646,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 2705.712
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 206.988
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1404.236
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.383
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 2756.198,
+                "package creation": 32.926,
+                "complete action execution": 6.08,
+                "action processing": 22.256,
+                "critical path component": 18.837
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 3,
+          "variant": "base",
+          "exit": 0,
+          "pid": 31976,
+          "start_s": 14.531,
+          "finish_s": 20.14,
+          "client_s": 5.609,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 2596,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829962800",
+                "lastEndedMs": "1793829962819",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829964009",
+                "lastEndedMs": "1793829964013",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5104,
+            "cpu_ms": 9750,
+            "analysis_ms": 1213,
+            "execution_ms": 19,
+            "execution_start_ms": 5064,
+            "critical_path_ms": 18.178,
+            "profile": {
+              "status": "read",
+              "events": 1684,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3532.848
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 198.824
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1358.576
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.599
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3550.207,
+                "package creation": 31.12,
+                "complete action execution": 5.157,
+                "action processing": 20.392,
+                "critical path component": 18.177
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 4,
+          "variant": "source",
+          "exit": 0,
+          "pid": 30412,
+          "start_s": 20.14,
+          "finish_s": 24.859,
+          "client_s": 4.719,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 6324,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829967528",
+                "lastEndedMs": "1793829967562",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829968723",
+                "lastEndedMs": "1793829968728",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 4226,
+            "cpu_ms": 9125,
+            "analysis_ms": 1199,
+            "execution_ms": 20,
+            "execution_start_ms": 4184,
+            "critical_path_ms": 19.277,
+            "profile": {
+              "status": "read",
+              "events": 1646,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 16.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 2667.394
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 195.144
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1348.488
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 13.284
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 2701.999,
+                "package creation": 30.322,
+                "complete action execution": 6.155,
+                "action processing": 37.013,
+                "critical path component": 19.276
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 5,
+          "variant": "build",
+          "exit": 0,
+          "pid": 32668,
+          "start_s": 24.875,
+          "finish_s": 30.5,
+          "client_s": 5.625,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 39620,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829973154",
+                "lastEndedMs": "1793829973184",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829974333",
+                "lastEndedMs": "1793829974338",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5111,
+            "cpu_ms": 9062,
+            "analysis_ms": 1184,
+            "execution_ms": 21,
+            "execution_start_ms": 5066,
+            "critical_path_ms": 17.134,
+            "profile": {
+              "status": "read",
+              "events": 1665,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3565.401
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 199.1
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1331.395
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.524
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3589.547,
+                "package creation": 30.5,
+                "complete action execution": 5.526,
+                "action processing": 32.39,
+                "critical path component": 17.133
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 6,
+          "variant": "base",
+          "exit": 0,
+          "pid": 8668,
+          "start_s": 30.5,
+          "finish_s": 36.062,
+          "client_s": 5.562,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 3268,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829978678",
+                "lastEndedMs": "1793829978698",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829979928",
+                "lastEndedMs": "1793829979933",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5070,
+            "cpu_ms": 9984,
+            "analysis_ms": 1255,
+            "execution_ms": 21,
+            "execution_start_ms": 5028,
+            "critical_path_ms": 19.139,
+            "profile": {
+              "status": "read",
+              "events": 1685,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 16.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3448.073
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 202.766
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1405.645
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 10.406
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3523.653,
+                "package creation": 32.291,
+                "complete action execution": 5.858,
+                "action processing": 21.959,
+                "critical path component": 19.138
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 7,
+          "variant": "base",
+          "exit": 0,
+          "pid": 28768,
+          "start_s": 36.062,
+          "finish_s": 42.25,
+          "client_s": 6.188,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 8520,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829984832",
+                "lastEndedMs": "1793829984850",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829986105",
+                "lastEndedMs": "1793829986109",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5679,
+            "cpu_ms": 10015,
+            "analysis_ms": 1277,
+            "execution_ms": 20,
+            "execution_start_ms": 5638,
+            "critical_path_ms": 17.695,
+            "profile": {
+              "status": "read",
+              "events": 1689,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 16.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 4047.396
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 198.032
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1419.839
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.581
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4136.903,
+                "package creation": 29.537,
+                "complete action execution": 5.199,
+                "action processing": 20.404,
+                "critical path component": 17.695
+              }
+            }
+          },
+          "valid": true
+        }
+      ],
+      "peak_overlapping_clients": 1,
+      "batch_s": 42.25,
+      "peak_job_commit_bytes": 446164992,
+      "name": "r1_cap1",
+      "concurrency": 1,
+      "coordinator_measurement": {
+        "memory_sampler": "psutil",
+        "sample_interval_ms": 100,
+        "samples": 386,
+        "max_observed_processes": 9,
+        "peak_sampled_tree_rss_bytes": 344645632,
+        "sampler_scan_ms": 2259.858,
+        "elapsed_ms": 42373.84
+      },
+      "passed": true
+    },
+    {
+      "governor": {
+        "method": "Windows Job Object",
+        "logical_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "job_commit_limit_bytes": 8589934592,
+        "aggregate_memory_limit_enforced": true
+      },
+      "slots_per_client": 4,
+      "ram_hint_mib_per_client": 4096,
+      "heap_mib_per_client": 640,
+      "builds": [
+        {
+          "view": 0,
+          "variant": "base",
+          "exit": 0,
+          "pid": 25072,
+          "start_s": 0.0,
+          "finish_s": 6.531,
+          "client_s": 6.531,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 27216,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829994825",
+                "lastEndedMs": "1793829994845",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829996351",
+                "lastEndedMs": "1793829996356",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5941,
+            "cpu_ms": 9500,
+            "analysis_ms": 1552,
+            "execution_ms": 22,
+            "execution_start_ms": 5895,
+            "critical_path_ms": 19.026,
+            "profile": {
+              "status": "read",
+              "events": 1660,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 20.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3944.829
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 250.263
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1730.748
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.898
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3987.236,
+                "package creation": 37.129,
+                "complete action execution": 5.606,
+                "action processing": 22.585,
+                "critical path component": 19.026
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 1,
+          "variant": "source",
+          "exit": 0,
+          "pid": 31756,
+          "start_s": 0.0,
+          "finish_s": 6.735,
+          "client_s": 6.735,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 17436,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829995145",
+                "lastEndedMs": "1793829995167",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793829996580",
+                "lastEndedMs": "1793829996584",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 6164,
+            "cpu_ms": 9968,
+            "analysis_ms": 1439,
+            "execution_ms": 22,
+            "execution_start_ms": 6121,
+            "critical_path_ms": 21.454,
+            "profile": {
+              "status": "read",
+              "events": 1665,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 20.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 4281.92
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 271.682
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1596.657
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.75
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4098.819,
+                "package creation": 43.275,
+                "complete action execution": 8.317,
+                "action processing": 24.604,
+                "critical path component": 21.454
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 2,
+          "variant": "build",
+          "exit": 0,
+          "pid": 13128,
+          "start_s": 6.531,
+          "finish_s": 12.016,
+          "client_s": 5.485,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 23052,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830000373",
+                "lastEndedMs": "1793830000402",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830001852",
+                "lastEndedMs": "1793830001857",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 4923,
+            "cpu_ms": 9218,
+            "analysis_ms": 1499,
+            "execution_ms": 28,
+            "execution_start_ms": 4873,
+            "critical_path_ms": 27.509,
+            "profile": {
+              "status": "read",
+              "events": 1651,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3060.774
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 190.873
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1656.718
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.64
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3055.567,
+                "package creation": 32.29,
+                "complete action execution": 8.774,
+                "action processing": 30.726,
+                "critical path component": 27.509
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 3,
+          "variant": "base",
+          "exit": 0,
+          "pid": 39180,
+          "start_s": 6.735,
+          "finish_s": 12.516,
+          "client_s": 5.781,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 20312,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830000971",
+                "lastEndedMs": "1793830001001",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830002358",
+                "lastEndedMs": "1793830002363",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5200,
+            "cpu_ms": 9484,
+            "analysis_ms": 1389,
+            "execution_ms": 25,
+            "execution_start_ms": 5150,
+            "critical_path_ms": 26.993,
+            "profile": {
+              "status": "read",
+              "events": 1664,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3397.288
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 243.674
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1542.901
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 13.361
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3284.445,
+                "package creation": 31.176,
+                "complete action execution": 10.89,
+                "action processing": 32.485,
+                "critical path component": 26.993
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 4,
+          "variant": "source",
+          "exit": 0,
+          "pid": 10744,
+          "start_s": 12.016,
+          "finish_s": 17.688,
+          "client_s": 5.672,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 14712,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830006053",
+                "lastEndedMs": "1793830006092",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830007527",
+                "lastEndedMs": "1793830007532",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5093,
+            "cpu_ms": 9265,
+            "analysis_ms": 1480,
+            "execution_ms": 23,
+            "execution_start_ms": 5049,
+            "critical_path_ms": 28.136,
+            "profile": {
+              "status": "read",
+              "events": 1659,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3189.807
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 195.117
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1693.926
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.581
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3267.457,
+                "package creation": 35.689,
+                "complete action execution": 6.531,
+                "action processing": 38.756,
+                "critical path component": 28.135
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 5,
+          "variant": "build",
+          "exit": 0,
+          "pid": 20236,
+          "start_s": 12.516,
+          "finish_s": 18.078,
+          "client_s": 5.562,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 31512,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830006543",
+                "lastEndedMs": "1793830006564",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830007928",
+                "lastEndedMs": "1793830007933",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 4922,
+            "cpu_ms": 9421,
+            "analysis_ms": 1394,
+            "execution_ms": 21,
+            "execution_start_ms": 4879,
+            "critical_path_ms": 19.158,
+            "profile": {
+              "status": "read",
+              "events": 1647,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 20.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3089.27
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 279.289
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1539.078
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.91
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3131.162,
+                "package creation": 32.586,
+                "complete action execution": 5.36,
+                "action processing": 23.13,
+                "critical path component": 19.158
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 6,
+          "variant": "base",
+          "exit": 0,
+          "pid": 16192,
+          "start_s": 17.688,
+          "finish_s": 23.703,
+          "client_s": 6.015,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 6140,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830012051",
+                "lastEndedMs": "1793830012074",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830013551",
+                "lastEndedMs": "1793830013556",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5441,
+            "cpu_ms": 9734,
+            "analysis_ms": 1504,
+            "execution_ms": 22,
+            "execution_start_ms": 5396,
+            "critical_path_ms": 22.021,
+            "profile": {
+              "status": "read",
+              "events": 1659,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3568.947
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 210.622
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1646.574
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 11.756
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3681.976,
+                "package creation": 31.167,
+                "complete action execution": 5.542,
+                "action processing": 21.099,
+                "critical path component": 22.02
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 7,
+          "variant": "base",
+          "exit": 0,
+          "pid": 4048,
+          "start_s": 18.078,
+          "finish_s": 24.344,
+          "client_s": 6.266,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 3948,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830012783",
+                "lastEndedMs": "1793830012810",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830014199",
+                "lastEndedMs": "1793830014203",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 5610,
+            "cpu_ms": 9421,
+            "analysis_ms": 1420,
+            "execution_ms": 19,
+            "execution_start_ms": 5570,
+            "critical_path_ms": 21.995,
+            "profile": {
+              "status": "read",
+              "events": 1671,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 17.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3750.212
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 264.294
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1580.778
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.272
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3811.689,
+                "package creation": 41.934,
+                "complete action execution": 7.912,
+                "action processing": 28.427,
+                "critical path component": 21.994
+              }
+            }
+          },
+          "valid": true
+        }
+      ],
+      "peak_overlapping_clients": 2,
+      "batch_s": 24.344,
+      "peak_job_commit_bytes": 806768640,
+      "name": "r1_cap2",
+      "concurrency": 2,
+      "coordinator_measurement": {
+        "memory_sampler": "psutil",
+        "sample_interval_ms": 100,
+        "samples": 224,
+        "max_observed_processes": 17,
+        "peak_sampled_tree_rss_bytes": 688431104,
+        "sampler_scan_ms": 1469.468,
+        "elapsed_ms": 24493.192
+      },
+      "passed": true
+    },
+    {
+      "governor": {
+        "method": "Windows Job Object",
+        "logical_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "job_commit_limit_bytes": 8589934592,
+        "aggregate_memory_limit_enforced": true
+      },
+      "slots_per_client": 2,
+      "ram_hint_mib_per_client": 2048,
+      "heap_mib_per_client": 640,
+      "builds": [
+        {
+          "view": 0,
+          "variant": "base",
+          "exit": 0,
+          "pid": 12372,
+          "start_s": 0.0,
+          "finish_s": 7.312,
+          "client_s": 7.312,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 16064,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830023095",
+                "lastEndedMs": "1793830023126",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830025119",
+                "lastEndedMs": "1793830025125",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 6562,
+            "cpu_ms": 8781,
+            "analysis_ms": 2059,
+            "execution_ms": 27,
+            "execution_start_ms": 6510,
+            "critical_path_ms": 30.163,
+            "profile": {
+              "status": "read",
+              "events": 1652,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 19.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3927.495
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 321.287
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2297.396
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 13.009
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4059.731,
+                "package creation": 41.884,
+                "complete action execution": 5.802,
+                "action processing": 33.875,
+                "critical path component": 30.163
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 1,
+          "variant": "source",
+          "exit": 0,
+          "pid": 7500,
+          "start_s": 0.0,
+          "finish_s": 8.015,
+          "client_s": 8.015,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 11228,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830023809",
+                "lastEndedMs": "1793830023837",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830025816",
+                "lastEndedMs": "1793830025822",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 7265,
+            "cpu_ms": 9593,
+            "analysis_ms": 2034,
+            "execution_ms": 27,
+            "execution_start_ms": 7209,
+            "critical_path_ms": 26.766,
+            "profile": {
+              "status": "read",
+              "events": 1682,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 20.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 4238.593
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 507.448
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2500.04
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 16.145
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4077.141,
+                "package creation": 165.133,
+                "complete action execution": 5.685,
+                "action processing": 23.69,
+                "critical path component": 26.766
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 2,
+          "variant": "build",
+          "exit": 0,
+          "pid": 19712,
+          "start_s": 0.0,
+          "finish_s": 8.421,
+          "client_s": 8.421,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 16876,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830024091",
+                "lastEndedMs": "1793830024147",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830026182",
+                "lastEndedMs": "1793830026187",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 7595,
+            "cpu_ms": 9343,
+            "analysis_ms": 2101,
+            "execution_ms": 26,
+            "execution_start_ms": 7542,
+            "critical_path_ms": 53.354,
+            "profile": {
+              "status": "read",
+              "events": 1690,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 19.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 4821.416
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 342.397
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2413.456
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 15.238
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4411.94,
+                "package creation": 47.904,
+                "complete action execution": 5.268,
+                "action processing": 54.852,
+                "critical path component": 53.353
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 3,
+          "variant": "base",
+          "exit": 0,
+          "pid": 10604,
+          "start_s": 0.0,
+          "finish_s": 8.921,
+          "client_s": 8.921,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 5248,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830024465",
+                "lastEndedMs": "1793830024484",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830026721",
+                "lastEndedMs": "1793830026727",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 8169,
+            "cpu_ms": 9953,
+            "analysis_ms": 2263,
+            "execution_ms": 22,
+            "execution_start_ms": 8115,
+            "critical_path_ms": 18.541,
+            "profile": {
+              "status": "read",
+              "events": 1668,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 20.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 4772.513
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 754.041
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2618.772
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 20.956
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4762.353,
+                "package creation": 58.673,
+                "complete action execution": 5.851,
+                "action processing": 22.625,
+                "critical path component": 18.541
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 4,
+          "variant": "source",
+          "exit": 0,
+          "pid": 29480,
+          "start_s": 7.312,
+          "finish_s": 14.64,
+          "client_s": 7.328,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 15100,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830029816",
+                "lastEndedMs": "1793830029837",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830032421",
+                "lastEndedMs": "1793830032429",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 6552,
+            "cpu_ms": 9203,
+            "analysis_ms": 2609,
+            "execution_ms": 32,
+            "execution_start_ms": 6488,
+            "critical_path_ms": 20.395,
+            "profile": {
+              "status": "read",
+              "events": 1679,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 24.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3473.354
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 278.166
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2777.176
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 20.213
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3733.882,
+                "package creation": 36.092,
+                "complete action execution": 6.557,
+                "action processing": 26.252,
+                "critical path component": 20.395
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 5,
+          "variant": "build",
+          "exit": 0,
+          "pid": 22096,
+          "start_s": 8.015,
+          "finish_s": 15.328,
+          "client_s": 7.313,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 29788,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830030984",
+                "lastEndedMs": "1793830031083",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830033151",
+                "lastEndedMs": "1793830033156",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 6432,
+            "cpu_ms": 8859,
+            "analysis_ms": 2181,
+            "execution_ms": 21,
+            "execution_start_ms": 6388,
+            "critical_path_ms": 90.701,
+            "profile": {
+              "status": "read",
+              "events": 1666,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 24.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3629.748
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 361.408
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2425.874
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.183
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4022.132,
+                "package creation": 65.05,
+                "complete action execution": 6.503,
+                "action processing": 96.297,
+                "critical path component": 90.701
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 6,
+          "variant": "base",
+          "exit": 0,
+          "pid": 25520,
+          "start_s": 8.437,
+          "finish_s": 15.484,
+          "client_s": 7.047,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 33904,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830031529",
+                "lastEndedMs": "1793830031651",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830033300",
+                "lastEndedMs": "1793830033305",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 6330,
+            "cpu_ms": 8890,
+            "analysis_ms": 1861,
+            "execution_ms": 20,
+            "execution_start_ms": 6287,
+            "critical_path_ms": 120.307,
+            "profile": {
+              "status": "read",
+              "events": 1660,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 34.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3802.491
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 444.943
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2067.893
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.383
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 3741.329,
+                "package creation": 96.194,
+                "complete action execution": 5.507,
+                "action processing": 124.093,
+                "critical path component": 120.307
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 7,
+          "variant": "base",
+          "exit": 0,
+          "pid": 5584,
+          "start_s": 8.921,
+          "finish_s": 15.843,
+          "client_s": 6.922,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 29508,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830031884",
+                "lastEndedMs": "1793830031904",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830033663",
+                "lastEndedMs": "1793830033668",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 6133,
+            "cpu_ms": 8609,
+            "analysis_ms": 1786,
+            "execution_ms": 20,
+            "execution_start_ms": 6090,
+            "critical_path_ms": 18.716,
+            "profile": {
+              "status": "read",
+              "events": 1633,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 22.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 3770.912
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 389.839
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 1957.267
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.04
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4027.714,
+                "package creation": 77.572,
+                "complete action execution": 5.247,
+                "action processing": 21.388,
+                "critical path component": 18.716
+              }
+            }
+          },
+          "valid": true
+        }
+      ],
+      "peak_overlapping_clients": 4,
+      "batch_s": 15.843,
+      "peak_job_commit_bytes": 1490419712,
+      "name": "r1_cap4",
+      "concurrency": 4,
+      "coordinator_measurement": {
+        "memory_sampler": "psutil",
+        "sample_interval_ms": 100,
+        "samples": 146,
+        "max_observed_processes": 33,
+        "peak_sampled_tree_rss_bytes": 1152126976,
+        "sampler_scan_ms": 1051.022,
+        "elapsed_ms": 15983.159
+      },
+      "passed": true
+    },
+    {
+      "governor": {
+        "method": "Windows Job Object",
+        "logical_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "job_commit_limit_bytes": 8589934592,
+        "aggregate_memory_limit_enforced": true
+      },
+      "slots_per_client": 1,
+      "ram_hint_mib_per_client": 1024,
+      "heap_mib_per_client": 640,
+      "builds": [
+        {
+          "view": 0,
+          "variant": "base",
+          "exit": 0,
+          "pid": 30764,
+          "start_s": 0.0,
+          "finish_s": 14.297,
+          "client_s": 14.297,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 14804,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830049052",
+                "lastEndedMs": "1793830049079",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830051618",
+                "lastEndedMs": "1793830051624",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 12344,
+            "cpu_ms": 10281,
+            "analysis_ms": 2602,
+            "execution_ms": 31,
+            "execution_start_ms": 12286,
+            "critical_path_ms": 18.912,
+            "profile": {
+              "status": "read",
+              "events": 1720,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 27.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 7419.501
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 1926.995
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2978.513
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 15.398
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 6376.345,
+                "package creation": 165.511,
+                "complete action execution": 6.008,
+                "action processing": 30.275,
+                "critical path component": 18.911
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 1,
+          "variant": "source",
+          "exit": 0,
+          "pid": 30588,
+          "start_s": 0.0,
+          "finish_s": 14.094,
+          "client_s": 14.094,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 29852,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830047708",
+                "lastEndedMs": "1793830047737",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830051375",
+                "lastEndedMs": "1793830051380",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 11927,
+            "cpu_ms": 9750,
+            "analysis_ms": 3711,
+            "execution_ms": 25,
+            "execution_start_ms": 11857,
+            "critical_path_ms": 26.232,
+            "profile": {
+              "status": "read",
+              "events": 1726,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 28.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 7222.775
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 567.532
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 4101.731
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 29.743
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 6846.919,
+                "package creation": 109.587,
+                "complete action execution": 8.631,
+                "action processing": 29.624,
+                "critical path component": 26.232
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 2,
+          "variant": "build",
+          "exit": 0,
+          "pid": 15324,
+          "start_s": 0.0,
+          "finish_s": 14.703,
+          "client_s": 14.703,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 37968,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830049974",
+                "lastEndedMs": "1793830049996",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830052054",
+                "lastEndedMs": "1793830052059",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 13307,
+            "cpu_ms": 9625,
+            "analysis_ms": 2138,
+            "execution_ms": 21,
+            "execution_start_ms": 13262,
+            "critical_path_ms": 21.626,
+            "profile": {
+              "status": "read",
+              "events": 1748,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 27.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 8092.07
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 2553.085
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2646.166
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.307
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 7128.748,
+                "package creation": 153.293,
+                "complete action execution": 6.197,
+                "action processing": 24.71,
+                "critical path component": 21.625
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 3,
+          "variant": "base",
+          "exit": 0,
+          "pid": 3076,
+          "start_s": 0.0,
+          "finish_s": 14.703,
+          "client_s": 14.703,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 35440,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830049624",
+                "lastEndedMs": "1793830049709",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830052040",
+                "lastEndedMs": "1793830052045",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 12614,
+            "cpu_ms": 9218,
+            "analysis_ms": 2472,
+            "execution_ms": 19,
+            "execution_start_ms": 12571,
+            "critical_path_ms": 84.311,
+            "profile": {
+              "status": "read",
+              "events": 1686,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 27.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 8949.11
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 625.235
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 3024.174
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.374
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 8025.306,
+                "package creation": 77.521,
+                "complete action execution": 70.375,
+                "action processing": 87.264,
+                "critical path component": 84.311
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 4,
+          "variant": "source",
+          "exit": 0,
+          "pid": 24392,
+          "start_s": 0.0,
+          "finish_s": 12.516,
+          "client_s": 12.516,
+          "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+          "artifact_bytes": 235,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 28960,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830045975",
+                "lastEndedMs": "1793830046012",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830049654",
+                "lastEndedMs": "1793830049659",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 10956,
+            "cpu_ms": 9734,
+            "analysis_ms": 3822,
+            "execution_ms": 28,
+            "execution_start_ms": 10833,
+            "critical_path_ms": 36.197,
+            "profile": {
+              "status": "read",
+              "events": 1697,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 26.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 6103.19
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 594.227
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 4171.2
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 82.445
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 6029.675,
+                "package creation": 106.615,
+                "complete action execution": 9.77,
+                "action processing": 27.778,
+                "critical path component": 36.197
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 5,
+          "variant": "build",
+          "exit": 0,
+          "pid": 39772,
+          "start_s": 0.0,
+          "finish_s": 9.172,
+          "client_s": 9.172,
+          "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 3948,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830043718",
+                "lastEndedMs": "1793830043743",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830046276",
+                "lastEndedMs": "1793830046284",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 8061,
+            "cpu_ms": 9046,
+            "analysis_ms": 2536,
+            "execution_ms": 39,
+            "execution_start_ms": 7993,
+            "critical_path_ms": 24.779,
+            "profile": {
+              "status": "read",
+              "events": 1655,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 27.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 4881.597
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 409.195
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 2751.03
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 14.506
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 4826.521,
+                "package creation": 82.86,
+                "complete action execution": 10.37,
+                "action processing": 31.178,
+                "critical path component": 24.778
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 6,
+          "variant": "base",
+          "exit": 0,
+          "pid": 8308,
+          "start_s": 0.0,
+          "finish_s": 13.766,
+          "client_s": 13.766,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 33912,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830047759",
+                "lastEndedMs": "1793830047817",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830050918",
+                "lastEndedMs": "1793830050923",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 12348,
+            "cpu_ms": 10531,
+            "analysis_ms": 3284,
+            "execution_ms": 28,
+            "execution_start_ms": 12277,
+            "critical_path_ms": 25.837,
+            "profile": {
+              "status": "read",
+              "events": 1716,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 27.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 6534.83
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 2060.9
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 3720.79
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 26.928
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 5836.126,
+                "package creation": 127.472,
+                "complete action execution": 9.893,
+                "action processing": 60.484,
+                "critical path component": 25.836
+              }
+            }
+          },
+          "valid": true
+        },
+        {
+          "view": 7,
+          "variant": "base",
+          "exit": 0,
+          "pid": 7848,
+          "start_s": 0.0,
+          "finish_s": 14.391,
+          "client_s": 14.391,
+          "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+          "artifact_bytes": 209,
+          "bazel": {
+            "bep_status": "read",
+            "finished": true,
+            "exit_code": 0,
+            "exit_code_name": "SUCCESS",
+            "server_pid": 35432,
+            "build_tool_version": "9.1.0",
+            "targets": [
+              {
+                "label": "//rtloader:constants_gen",
+                "aspect": null,
+                "success": true
+              }
+            ],
+            "aborted": [],
+            "metrics_present": true,
+            "actions_executed": 2,
+            "actions_created": 2,
+            "runner_counts": [
+              {
+                "name": "total",
+                "count": 2
+              },
+              {
+                "name": "internal",
+                "count": 2
+              }
+            ],
+            "disk_cache_hits": 0,
+            "reported_executed_spawns": 0,
+            "action_mnemonics": [
+              {
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830048598",
+                "lastEndedMs": "1793830048640",
+                "actionsCreated": "1"
+              },
+              {
+                "mnemonic": "TemplateExpand",
+                "actionsExecuted": "1",
+                "firstStartedMs": "1793830051725",
+                "lastEndedMs": "1793830051730",
+                "actionsCreated": "1"
+              }
+            ],
+            "local_cache_hits": null,
+            "local_cache_misses": 2,
+            "local_cache_miss_details": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED",
+                "count": 1
+              },
+              {
+                "reason": "UNCONDITIONAL_EXECUTION",
+                "count": 1
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "packages_loaded": 6,
+            "targets_configured": 11,
+            "post_build_skyframe_nodes": 4179,
+            "wall_ms": 12749,
+            "cpu_ms": 9375,
+            "analysis_ms": 3185,
+            "execution_ms": 24,
+            "execution_start_ms": 12695,
+            "critical_path_ms": 40.079,
+            "profile": {
+              "status": "read",
+              "events": 1707,
+              "phase_marker_intervals": [
+                {
+                  "name": "Launch Blaze",
+                  "ms": 27.0
+                },
+                {
+                  "name": "Initialize command",
+                  "ms": 8404.979
+                },
+                {
+                  "name": "Evaluate target patterns",
+                  "ms": 755.752
+                },
+                {
+                  "name": "Load, analyze dependencies and build artifacts",
+                  "ms": 3572.921
+                },
+                {
+                  "name": "Complete build",
+                  "ms": 12.008
+                }
+              ],
+              "trace_category_union_ms": {
+                "Fetching repository": 7735.712,
+                "package creation": 59.47,
+                "complete action execution": 7.116,
+                "action processing": 43.734,
+                "critical path component": 40.078
+              }
+            }
+          },
+          "valid": true
+        }
+      ],
+      "peak_overlapping_clients": 8,
+      "batch_s": 14.703,
+      "peak_job_commit_bytes": 2538102784,
+      "name": "r1_cap8",
+      "concurrency": 8,
+      "coordinator_measurement": {
+        "memory_sampler": "psutil",
+        "sample_interval_ms": 100,
+        "samples": 136,
+        "max_observed_processes": 57,
+        "peak_sampled_tree_rss_bytes": 1964875776,
+        "sampler_scan_ms": 1121.059,
+        "elapsed_ms": 14843.565
+      },
+      "passed": true
+    }
+  ],
+  "references": {
+    "governor": {
+      "method": "Windows Job Object",
+      "logical_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "job_commit_limit_bytes": 8589934592,
+      "aggregate_memory_limit_enforced": true
+    },
+    "slots_per_client": 8,
+    "ram_hint_mib_per_client": 8192,
+    "heap_mib_per_client": 640,
+    "builds": [
+      {
+        "view": 0,
+        "variant": "base",
+        "exit": 0,
+        "pid": 38680,
+        "start_s": 0.0,
+        "finish_s": 20.141,
+        "client_s": 20.141,
+        "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+        "artifact_bytes": 209,
+        "bazel": {
+          "bep_status": "read",
+          "finished": true,
+          "exit_code": 0,
+          "exit_code_name": "SUCCESS",
+          "server_pid": 36812,
+          "build_tool_version": "9.1.0",
+          "targets": [
+            {
+              "label": "//rtloader:constants_gen",
+              "aspect": null,
+              "success": true
+            }
+          ],
+          "aborted": [],
+          "metrics_present": true,
+          "actions_executed": 2,
+          "actions_created": 2,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 2
+            }
+          ],
+          "disk_cache_hits": 0,
+          "reported_executed_spawns": 0,
+          "action_mnemonics": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793829927204",
+              "lastEndedMs": "1793829927220",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "TemplateExpand",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793829931679",
+              "lastEndedMs": "1793829931682",
+              "actionsCreated": "1"
+            }
+          ],
+          "local_cache_hits": null,
+          "local_cache_misses": 2,
+          "local_cache_miss_details": [
+            {},
+            {
+              "reason": "DIFFERENT_DEPS"
+            },
+            {
+              "reason": "DIFFERENT_ENVIRONMENT"
+            },
+            {
+              "reason": "DIFFERENT_FILES"
+            },
+            {
+              "reason": "CORRUPTED_CACHE_ENTRY"
+            },
+            {
+              "reason": "NOT_CACHED",
+              "count": 1
+            },
+            {
+              "reason": "UNCONDITIONAL_EXECUTION",
+              "count": 1
+            },
+            {
+              "reason": "DIGEST_MISMATCH"
+            }
+          ],
+          "packages_loaded": 6,
+          "targets_configured": 11,
+          "post_build_skyframe_nodes": 4165,
+          "wall_ms": 18424,
+          "cpu_ms": 20906,
+          "analysis_ms": 4477,
+          "execution_ms": 19,
+          "execution_start_ms": 18381,
+          "critical_path_ms": 14.537,
+          "profile": {
+            "status": "read",
+            "events": 2210,
+            "phase_marker_intervals": [
+              {
+                "name": "Extracting Bazel binary",
+                "ms": 0.0
+              },
+              {
+                "name": "Launch Blaze",
+                "ms": 481.0
+              },
+              {
+                "name": "Initialize command",
+                "ms": 9748.576
+              },
+              {
+                "name": "Evaluate target patterns",
+                "ms": 3811.336
+              },
+              {
+                "name": "Load, analyze dependencies and build artifacts",
+                "ms": 4848.671
+              },
+              {
+                "name": "Complete build",
+                "ms": 14.08
+              }
+            ],
+            "trace_category_union_ms": {
+              "Fetching repository": 11115.193,
+              "package creation": 31.334,
+              "complete action execution": 4.798,
+              "action processing": 15.854,
+              "critical path component": 14.536
+            }
+          }
+        },
+        "valid": true
+      },
+      {
+        "view": 1,
+        "variant": "source",
+        "exit": 0,
+        "pid": 1172,
+        "start_s": 20.141,
+        "finish_s": 24.86,
+        "client_s": 4.719,
+        "artifact_sha256": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+        "artifact_bytes": 235,
+        "bazel": {
+          "bep_status": "read",
+          "finished": true,
+          "exit_code": 0,
+          "exit_code_name": "SUCCESS",
+          "server_pid": 5908,
+          "build_tool_version": "9.1.0",
+          "targets": [
+            {
+              "label": "//rtloader:constants_gen",
+              "aspect": null,
+              "success": true
+            }
+          ],
+          "aborted": [],
+          "metrics_present": true,
+          "actions_executed": 2,
+          "actions_created": 2,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 2
+            }
+          ],
+          "disk_cache_hits": 0,
+          "reported_executed_spawns": 0,
+          "action_mnemonics": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793829935521",
+              "lastEndedMs": "1793829935536",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "TemplateExpand",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793829936703",
+              "lastEndedMs": "1793829936706",
+              "actionsCreated": "1"
+            }
+          ],
+          "local_cache_hits": null,
+          "local_cache_misses": 2,
+          "local_cache_miss_details": [
+            {},
+            {
+              "reason": "DIFFERENT_DEPS"
+            },
+            {
+              "reason": "DIFFERENT_ENVIRONMENT"
+            },
+            {
+              "reason": "DIFFERENT_FILES"
+            },
+            {
+              "reason": "CORRUPTED_CACHE_ENTRY"
+            },
+            {
+              "reason": "NOT_CACHED",
+              "count": 1
+            },
+            {
+              "reason": "UNCONDITIONAL_EXECUTION",
+              "count": 1
+            },
+            {
+              "reason": "DIGEST_MISMATCH"
+            }
+          ],
+          "packages_loaded": 6,
+          "targets_configured": 11,
+          "post_build_skyframe_nodes": 4179,
+          "wall_ms": 4213,
+          "cpu_ms": 8859,
+          "analysis_ms": 1183,
+          "execution_ms": 19,
+          "execution_start_ms": 4173,
+          "critical_path_ms": 13.598,
+          "profile": {
+            "status": "read",
+            "events": 1653,
+            "phase_marker_intervals": [
+              {
+                "name": "Launch Blaze",
+                "ms": 16.0
+              },
+              {
+                "name": "Initialize command",
+                "ms": 2682.087
+              },
+              {
+                "name": "Evaluate target patterns",
+                "ms": 188.874
+              },
+              {
+                "name": "Load, analyze dependencies and build artifacts",
+                "ms": 1328.792
+              },
+              {
+                "name": "Complete build",
+                "ms": 10.887
+              }
+            ],
+            "trace_category_union_ms": {
+              "Fetching repository": 2702.419,
+              "package creation": 31.029,
+              "complete action execution": 4.671,
+              "action processing": 15.5,
+              "critical path component": 13.598
+            }
+          }
+        },
+        "valid": true
+      },
+      {
+        "view": 2,
+        "variant": "build",
+        "exit": 0,
+        "pid": 22560,
+        "start_s": 24.86,
+        "finish_s": 30.485,
+        "client_s": 5.625,
+        "artifact_sha256": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+        "artifact_bytes": 209,
+        "bazel": {
+          "bep_status": "read",
+          "finished": true,
+          "exit_code": 0,
+          "exit_code_name": "SUCCESS",
+          "server_pid": 22048,
+          "build_tool_version": "9.1.0",
+          "targets": [
+            {
+              "label": "//rtloader:constants_gen",
+              "aspect": null,
+              "success": true
+            }
+          ],
+          "aborted": [],
+          "metrics_present": true,
+          "actions_executed": 2,
+          "actions_created": 2,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 2
+            }
+          ],
+          "disk_cache_hits": 0,
+          "reported_executed_spawns": 0,
+          "action_mnemonics": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793829941108",
+              "lastEndedMs": "1793829941125",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "TemplateExpand",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793829942321",
+              "lastEndedMs": "1793829942325",
+              "actionsCreated": "1"
+            }
+          ],
+          "local_cache_hits": null,
+          "local_cache_misses": 2,
+          "local_cache_miss_details": [
+            {},
+            {
+              "reason": "DIFFERENT_DEPS"
+            },
+            {
+              "reason": "DIFFERENT_ENVIRONMENT"
+            },
+            {
+              "reason": "DIFFERENT_FILES"
+            },
+            {
+              "reason": "CORRUPTED_CACHE_ENTRY"
+            },
+            {
+              "reason": "NOT_CACHED",
+              "count": 1
+            },
+            {
+              "reason": "UNCONDITIONAL_EXECUTION",
+              "count": 1
+            },
+            {
+              "reason": "DIGEST_MISMATCH"
+            }
+          ],
+          "packages_loaded": 6,
+          "targets_configured": 11,
+          "post_build_skyframe_nodes": 4179,
+          "wall_ms": 5118,
+          "cpu_ms": 9265,
+          "analysis_ms": 1215,
+          "execution_ms": 21,
+          "execution_start_ms": 5075,
+          "critical_path_ms": 13.656,
+          "profile": {
+            "status": "read",
+            "events": 1667,
+            "phase_marker_intervals": [
+              {
+                "name": "Launch Blaze",
+                "ms": 17.0
+              },
+              {
+                "name": "Initialize command",
+                "ms": 3542.318
+              },
+              {
+                "name": "Evaluate target patterns",
+                "ms": 191.821
+              },
+              {
+                "name": "Load, analyze dependencies and build artifacts",
+                "ms": 1369.451
+              },
+              {
+                "name": "Complete build",
+                "ms": 11.677
+              }
+            ],
+            "trace_category_union_ms": {
+              "Fetching repository": 3554.994,
+              "package creation": 31.186,
+              "complete action execution": 4.936,
+              "action processing": 18.414,
+              "critical path component": 13.656
+            }
+          }
+        },
+        "valid": true
+      }
+    ],
+    "peak_overlapping_clients": 1,
+    "batch_s": 30.485,
+    "peak_job_commit_bytes": 1100464128,
+    "name": "isolated_references",
+    "concurrency": 1,
+    "coordinator_measurement": {
+      "memory_sampler": "psutil",
+      "sample_interval_ms": 100,
+      "samples": 281,
+      "max_observed_processes": 34,
+      "peak_sampled_tree_rss_bytes": 540409856,
+      "sampler_scan_ms": 1682.877,
+      "elapsed_ms": 30684.406
+    },
+    "passed": true
+  },
+  "expected_sha256": {
+    "base": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+    "source": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+    "build": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6"
+  },
+  "late": {
+    "governor": {
+      "method": "Windows Job Object",
+      "logical_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "job_commit_limit_bytes": 8589934592,
+      "aggregate_memory_limit_enforced": true
+    },
+    "slots_per_client": 8,
+    "ram_hint_mib_per_client": 8192,
+    "heap_mib_per_client": 640,
+    "builds": [
+      {
+        "view": 0,
+        "variant": "base",
+        "exit": 0,
+        "pid": 40488,
+        "start_s": 0.0,
+        "finish_s": 4.984,
+        "client_s": 4.984,
+        "artifact_sha256": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+        "artifact_bytes": 209,
+        "bazel": {
+          "bep_status": "read",
+          "finished": true,
+          "exit_code": 0,
+          "exit_code_name": "SUCCESS",
+          "server_pid": 10032,
+          "build_tool_version": "9.1.0",
+          "targets": [
+            {
+              "label": "//rtloader:constants_gen",
+              "aspect": null,
+              "success": true
+            }
+          ],
+          "aborted": [],
+          "metrics_present": true,
+          "actions_executed": 2,
+          "actions_created": 2,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 2
+            }
+          ],
+          "disk_cache_hits": 0,
+          "reported_executed_spawns": 0,
+          "action_mnemonics": [
+            {
+              "mnemonic": "BazelWorkspaceStatusAction",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793830059606",
+              "lastEndedMs": "1793830059628",
+              "actionsCreated": "1"
+            },
+            {
+              "mnemonic": "TemplateExpand",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1793830060886",
+              "lastEndedMs": "1793830060891",
+              "actionsCreated": "1"
+            }
+          ],
+          "local_cache_hits": null,
+          "local_cache_misses": 2,
+          "local_cache_miss_details": [
+            {},
+            {
+              "reason": "DIFFERENT_DEPS"
+            },
+            {
+              "reason": "DIFFERENT_ENVIRONMENT"
+            },
+            {
+              "reason": "DIFFERENT_FILES"
+            },
+            {
+              "reason": "CORRUPTED_CACHE_ENTRY"
+            },
+            {
+              "reason": "NOT_CACHED",
+              "count": 1
+            },
+            {
+              "reason": "UNCONDITIONAL_EXECUTION",
+              "count": 1
+            },
+            {
+              "reason": "DIGEST_MISMATCH"
+            }
+          ],
+          "packages_loaded": 6,
+          "targets_configured": 11,
+          "post_build_skyframe_nodes": 4179,
+          "wall_ms": 4461,
+          "cpu_ms": 10281,
+          "analysis_ms": 1288,
+          "execution_ms": 21,
+          "execution_start_ms": 4418,
+          "critical_path_ms": 18.957,
+          "profile": {
+            "status": "read",
+            "events": 1673,
+            "phase_marker_intervals": [
+              {
+                "name": "Launch Blaze",
+                "ms": 18.0
+              },
+              {
+                "name": "Initialize command",
+                "ms": 2806.188
+              },
+              {
+                "name": "Evaluate target patterns",
+                "ms": 203.37
+              },
+              {
+                "name": "Load, analyze dependencies and build artifacts",
+                "ms": 1437.548
+              },
+              {
+                "name": "Complete build",
+                "ms": 11.144
+              }
+            ],
+            "trace_category_union_ms": {
+              "Fetching repository": 2862.071,
+              "package creation": 31.985,
+              "complete action execution": 5.57,
+              "action processing": 24.732,
+              "critical path component": 18.956
+            }
+          }
+        },
+        "valid": true
+      }
+    ],
+    "peak_overlapping_clients": 1,
+    "batch_s": 4.984,
+    "peak_job_commit_bytes": 438284288,
+    "name": "late_base_fresh_output",
+    "concurrency": 1,
+    "coordinator_measurement": {
+      "memory_sampler": "psutil",
+      "sample_interval_ms": 100,
+      "samples": 47,
+      "max_observed_processes": 9,
+      "peak_sampled_tree_rss_bytes": 339787776,
+      "sampler_scan_ms": 329.942,
+      "elapsed_ms": 5167.587
+    },
+    "passed": true
+  },
+  "completed": true
+}

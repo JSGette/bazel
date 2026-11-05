@@ -1,0 +1,296 @@
+{
+  "generation": {
+    "packages_parsed_at_generation": 64,
+    "shards": 64,
+    "index_bytes_committed": 9772,
+    "base_commit": "9191466ba786810d09cf8d30ee41572cde6f2ddf"
+  },
+  "cases": {
+    "base": {
+      "expected_graph": {
+        "app": [
+          "lib",
+          "util"
+        ],
+        "lib": [
+          "core"
+        ],
+        "core": [],
+        "util": []
+      },
+      "arms": {
+        "parse": {
+          "definition_bytes_read": 48,
+          "definition_reads": 4,
+          "git_tree_path_lookups": 5,
+          "packages_parsed": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "blind": {
+          "git_tree_path_lookups": 4,
+          "index_bytes_read": 612,
+          "index_reads": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "validate": {
+          "definition_validations": 4,
+          "existence_validations": 1,
+          "git_tree_path_lookups": 9,
+          "index_bytes_read": 612,
+          "index_reads": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        }
+      }
+    },
+    "changed_definition": {
+      "expected_graph": {
+        "app": [
+          "lib",
+          "util"
+        ],
+        "lib": [
+          "alt"
+        ],
+        "util": [],
+        "alt": []
+      },
+      "arms": {
+        "parse": {
+          "definition_bytes_read": 47,
+          "definition_reads": 4,
+          "git_tree_path_lookups": 4,
+          "overlay_bytes_hashed": 8,
+          "overlay_lookups": 1,
+          "packages_parsed": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "blind": {
+          "git_tree_path_lookups": 4,
+          "index_bytes_read": 612,
+          "index_reads": 4,
+          "packages_reached": 4,
+          "matches_oracle": false
+        },
+        "validate": {
+          "definition_bytes_read": 8,
+          "definition_reads": 1,
+          "definition_validations": 4,
+          "existence_validations": 1,
+          "git_tree_path_lookups": 8,
+          "index_bytes_read": 611,
+          "index_reads": 4,
+          "overlay_bytes_hashed": 8,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "stale_shards": 1,
+          "matches_oracle": true
+        }
+      }
+    },
+    "new_candidate": {
+      "expected_graph": {
+        "app": [
+          "extra",
+          "lib",
+          "util"
+        ],
+        "lib": [
+          "core"
+        ],
+        "core": [],
+        "util": [],
+        "extra": []
+      },
+      "arms": {
+        "parse": {
+          "definition_bytes_read": 48,
+          "definition_reads": 5,
+          "git_tree_path_lookups": 5,
+          "overlay_bytes_hashed": 0,
+          "overlay_lookups": 1,
+          "packages_parsed": 5,
+          "packages_reached": 5,
+          "matches_oracle": true
+        },
+        "blind": {
+          "git_tree_path_lookups": 4,
+          "index_bytes_read": 612,
+          "index_reads": 4,
+          "packages_reached": 4,
+          "matches_oracle": false
+        },
+        "validate": {
+          "definition_bytes_read": 39,
+          "definition_reads": 1,
+          "definition_validations": 5,
+          "existence_validations": 1,
+          "git_tree_path_lookups": 10,
+          "index_bytes_read": 756,
+          "index_reads": 5,
+          "overlay_bytes_hashed": 0,
+          "overlay_lookups": 2,
+          "packages_parsed": 1,
+          "packages_reached": 5,
+          "stale_shards": 1,
+          "matches_oracle": true
+        }
+      }
+    },
+    "missing_shard": {
+      "expected_graph": {
+        "app": [
+          "lib",
+          "util"
+        ],
+        "lib": [
+          "core"
+        ],
+        "core": [],
+        "util": []
+      },
+      "arms": {
+        "parse": {
+          "definition_bytes_read": 48,
+          "definition_reads": 4,
+          "git_tree_path_lookups": 5,
+          "packages_parsed": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "blind": {
+          "definition_bytes_read": 0,
+          "definition_reads": 1,
+          "git_tree_path_lookups": 4,
+          "index_bytes_read": 469,
+          "index_reads": 3,
+          "missing_shards": 1,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "validate": {
+          "definition_bytes_read": 0,
+          "definition_reads": 1,
+          "definition_validations": 3,
+          "existence_validations": 1,
+          "git_tree_path_lookups": 8,
+          "index_bytes_read": 469,
+          "index_reads": 3,
+          "missing_shards": 1,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "matches_oracle": true
+        }
+      }
+    },
+    "bad_shard": {
+      "expected_graph": {
+        "app": [
+          "lib",
+          "util"
+        ],
+        "lib": [
+          "core"
+        ],
+        "core": [],
+        "util": []
+      },
+      "arms": {
+        "parse": {
+          "definition_bytes_read": 48,
+          "definition_reads": 4,
+          "git_tree_path_lookups": 5,
+          "packages_parsed": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "blind": {
+          "definition_bytes_read": 0,
+          "definition_reads": 1,
+          "git_tree_path_lookups": 4,
+          "index_bytes_read": 475,
+          "index_reads": 4,
+          "invalid_shards": 1,
+          "overlay_bytes_hashed": 6,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "validate": {
+          "definition_bytes_read": 0,
+          "definition_reads": 1,
+          "definition_validations": 3,
+          "existence_validations": 1,
+          "git_tree_path_lookups": 8,
+          "index_bytes_read": 475,
+          "index_reads": 4,
+          "invalid_shards": 1,
+          "overlay_bytes_hashed": 6,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "matches_oracle": true
+        }
+      }
+    },
+    "schema_mismatch": {
+      "expected_graph": {
+        "app": [
+          "lib",
+          "util"
+        ],
+        "lib": [
+          "core"
+        ],
+        "core": [],
+        "util": []
+      },
+      "arms": {
+        "parse": {
+          "definition_bytes_read": 48,
+          "definition_reads": 4,
+          "git_tree_path_lookups": 5,
+          "packages_parsed": 4,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "blind": {
+          "definition_bytes_read": 0,
+          "definition_reads": 1,
+          "git_tree_path_lookups": 4,
+          "index_bytes_read": 515,
+          "index_reads": 4,
+          "invalid_shards": 1,
+          "overlay_bytes_hashed": 46,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "matches_oracle": true
+        },
+        "validate": {
+          "definition_bytes_read": 0,
+          "definition_reads": 1,
+          "definition_validations": 3,
+          "existence_validations": 1,
+          "git_tree_path_lookups": 8,
+          "index_bytes_read": 515,
+          "index_reads": 4,
+          "invalid_shards": 1,
+          "overlay_bytes_hashed": 46,
+          "overlay_lookups": 1,
+          "packages_parsed": 1,
+          "packages_reached": 4,
+          "matches_oracle": true
+        }
+      }
+    }
+  }
+}

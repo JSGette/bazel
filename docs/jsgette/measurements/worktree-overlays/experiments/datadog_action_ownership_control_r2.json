@@ -1,0 +1,407 @@
+{
+  "mode": "control",
+  "target": "//pkg/ebpf:include_headers",
+  "revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "action_digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+  "host": "Windows-10-10.0.26200-SP0",
+  "governor": {
+    "method": "Windows Job Object",
+    "logical_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "job_commit_limit_bytes": 8589934592,
+    "aggregate_memory_limit_enforced": true
+  },
+  "passed": true,
+  "transport": {
+    "http_connections_per_bazel": 8,
+    "listen_backlog": 256,
+    "download_outputs": "all",
+    "eligible_action": "GoStdlib",
+    "cache_initial_state": "private empty CAS and action cache per run"
+  },
+  "reference_sha256": {
+    "base": "e2205bb685c7956e2c63b249d33a6a232af3f5a0d271908793ba0dc6d797dc70",
+    "source": "54acbe525df16196db03653687073b656c5882c848e02070c7ea00ebf8271dd2",
+    "build": "d345e8a3877f4e591aafdaa64b1199333060b868aeae76b8e0bbdc827f6c7f82"
+  },
+  "bazel": "bazel 9.1.0",
+  "builds": [
+    {
+      "caller": "w0",
+      "variant": "base",
+      "exit": 0,
+      "start_s": 3.969,
+      "finish_s": 92.438,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "29c72c11c894d18e4e18547ecec92b73b2e5c4735472b49ec53bb19f35c16022",
+          "start_time": "2026-11-05T05:28:36.540Z",
+          "execution_wall_time": "0.919s"
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:28:36.992Z",
+          "execution_wall_time": "20.315s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.422Z",
+          "execution_wall_time": "0.030s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:28:57.495Z",
+          "execution_wall_time": "43.880s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.422Z",
+          "execution_wall_time": "0.032s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "eb9c9e6b9e0fada2b3d8f0a02631924a97ab64e27a5362ec32ae1593e9e209d2",
+          "start_time": "2026-11-05T05:29:43.346Z",
+          "execution_wall_time": "0.057s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "a3aaa55234f1e7db03299216c25574b1917fb38ad233d73d27628e09e3b187a5",
+          "start_time": "2026-11-05T05:29:43.425Z",
+          "execution_wall_time": "0.089s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 7,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "e2205bb685c7956e2c63b249d33a6a232af3f5a0d271908793ba0dc6d797dc70",
+      "bytes": 2100736,
+      "program_output": "/* source */\n/* build */\n",
+      "matches_reference": true
+    },
+    {
+      "caller": "w1",
+      "variant": "base",
+      "exit": 0,
+      "start_s": 3.969,
+      "finish_s": 92.453,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "remote cache hit",
+          "cache_hit": true,
+          "digest": "29c72c11c894d18e4e18547ecec92b73b2e5c4735472b49ec53bb19f35c16022",
+          "start_time": "2026-11-05T05:28:36.540Z",
+          "execution_wall_time": null
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:28:41.998Z",
+          "execution_wall_time": "15.719s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.904Z",
+          "execution_wall_time": "0.032s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:28:58.003Z",
+          "execution_wall_time": "43.373s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.899Z",
+          "execution_wall_time": "0.036s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "eb9c9e6b9e0fada2b3d8f0a02631924a97ab64e27a5362ec32ae1593e9e209d2",
+          "start_time": "2026-11-05T05:29:43.359Z",
+          "execution_wall_time": "0.057s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "a3aaa55234f1e7db03299216c25574b1917fb38ad233d73d27628e09e3b187a5",
+          "start_time": "2026-11-05T05:29:43.431Z",
+          "execution_wall_time": "0.083s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "remote cache hit",
+          "count": 1,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 6,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "e2205bb685c7956e2c63b249d33a6a232af3f5a0d271908793ba0dc6d797dc70",
+      "bytes": 2100736,
+      "program_output": "/* source */\n/* build */\n",
+      "matches_reference": true
+    },
+    {
+      "caller": "w2",
+      "variant": "source",
+      "exit": 0,
+      "start_s": 3.969,
+      "finish_s": 92.391,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "138d154c744570f2445b9ca9e5bee063cf74e399b7ad5bc9f82b1165c6a312f1",
+          "start_time": "2026-11-05T05:28:42.275Z",
+          "execution_wall_time": "0.052s"
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:28:42.280Z",
+          "execution_wall_time": "15.583s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.987Z",
+          "execution_wall_time": "0.036s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:28:58.074Z",
+          "execution_wall_time": "43.301s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.987Z",
+          "execution_wall_time": "0.034s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "d73a7d7e4edd5a30d70a34b75e120596553713b66ea3eff34c8e104331ea3172",
+          "start_time": "2026-11-05T05:29:43.315Z",
+          "execution_wall_time": "0.089s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "cdcacd458793298d0696409d16be96c684b40d280a6ee7764ba31654e9ca1f92",
+          "start_time": "2026-11-05T05:29:43.422Z",
+          "execution_wall_time": "0.085s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 7,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "54acbe525df16196db03653687073b656c5882c848e02070c7ea00ebf8271dd2",
+      "bytes": 2100736,
+      "program_output": "/* base */\n/* build */\n",
+      "matches_reference": true
+    },
+    {
+      "caller": "w3",
+      "variant": "build",
+      "exit": 0,
+      "start_s": 3.969,
+      "finish_s": 92.391,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "f8d186a99e4195c9461318ea21721c6a2574c3eba9c57c86a66215ed30d5aac0",
+          "start_time": "2026-11-05T05:28:41.763Z",
+          "execution_wall_time": "0.081s"
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:28:42.137Z",
+          "execution_wall_time": "15.394s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.669Z",
+          "execution_wall_time": "0.032s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:28:57.748Z",
+          "execution_wall_time": "43.627s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:28:57.669Z",
+          "execution_wall_time": "0.032s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "f679ae5b8072da64383aec33e5f24061e9efb1670c27f2b77cee9f5e81c56f9b",
+          "start_time": "2026-11-05T05:29:43.353Z",
+          "execution_wall_time": "0.054s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "8e4107c86d3e0e00d9d6e07445b88b314a96d80a231c1219d767dd02febd5690",
+          "start_time": "2026-11-05T05:29:43.424Z",
+          "execution_wall_time": "0.090s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 7,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "d345e8a3877f4e591aafdaa64b1199333060b868aeae76b8e0bbdc827f6c7f82",
+      "bytes": 2100736,
+      "program_output": "/* base */\n/* source */\n",
+      "matches_reference": true
+    }
+  ],
+  "batch_s": 88.484,
+  "join_order": [],
+  "transport_disconnects": [],
+  "http_errors": [],
+  "http_get_counts": {
+    "ac_hit": 1,
+    "ac_miss": 19,
+    "cas_hit": 1,
+    "cas_miss": 0
+  },
+  "http_cas_misses": [],
+  "peak_job_commit_bytes": 5290442752
+}

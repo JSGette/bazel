@@ -1,0 +1,528 @@
+{
+  "mode": "cancel",
+  "target": "//pkg/ebpf:include_headers",
+  "revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "action_digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+  "coordinator_source_sha256": "5e48887eb4b5ba21df44d2de5ec05cac9de42799759e368316dbf8a713a20e46",
+  "host": "Windows-10-10.0.26200-SP0",
+  "governor": {
+    "method": "Windows Job Object",
+    "logical_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "job_commit_limit_bytes": 8589934592,
+    "aggregate_memory_limit_enforced": true
+  },
+  "passed": true,
+  "transport": {
+    "http_connections_per_bazel": 8,
+    "listen_backlog": 256,
+    "download_outputs": "all",
+    "eligible_action": "GoStdlib",
+    "cache_initial_state": "private empty CAS and action cache per run"
+  },
+  "reference_sha256": {
+    "base": "e2205bb685c7956e2c63b249d33a6a232af3f5a0d271908793ba0dc6d797dc70",
+    "source": "54acbe525df16196db03653687073b656c5882c848e02070c7ea00ebf8271dd2",
+    "build": "d345e8a3877f4e591aafdaa64b1199333060b868aeae76b8e0bbdc827f6c7f82"
+  },
+  "bazel": "bazel 9.1.0",
+  "first_admission": {
+    "caller": "w2",
+    "snapshot": {
+      "starts": 1,
+      "joins": 0,
+      "hits": 0,
+      "busy": 0,
+      "peak_active": 1,
+      "active": {
+        "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865": 1
+      }
+    }
+  },
+  "cancellation": {
+    "caller": "w2",
+    "at_s": 62.797,
+    "method": "abrupt termination of the original Bazel client process tree",
+    "compiler_pid": 15336,
+    "killed_pids": [
+      24680,
+      13372
+    ],
+    "producer_alive_after_detach": true,
+    "before": {
+      "starts": 1,
+      "joins": 3,
+      "hits": 0,
+      "busy": 0,
+      "peak_active": 1,
+      "active": {
+        "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865": 4
+      }
+    },
+    "after": {
+      "starts": 1,
+      "joins": 3,
+      "hits": 0,
+      "busy": 0,
+      "peak_active": 1,
+      "active": {
+        "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865": 3
+      }
+    }
+  },
+  "producer": {
+    "exit": 0,
+    "start_s": 50.938,
+    "finish_s": 89.719,
+    "spawns": [
+      {
+        "mnemonic": "GoToolchainBinaryBuild",
+        "runner": "remote cache hit",
+        "cache_hit": true,
+        "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+        "start_time": "2026-11-05T05:35:33.252Z",
+        "execution_wall_time": null
+      },
+      {
+        "mnemonic": "CopyFile",
+        "runner": "local",
+        "cache_hit": false,
+        "digest": null,
+        "start_time": "2026-11-05T05:36:02.839Z",
+        "execution_wall_time": "0.148s"
+      },
+      {
+        "mnemonic": "GoStdlib",
+        "runner": "local",
+        "cache_hit": false,
+        "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+        "start_time": "2026-11-05T05:36:03.033Z",
+        "execution_wall_time": "25.570s"
+      }
+    ],
+    "tree_artifacts": 1,
+    "verified_unique_blobs": 451,
+    "verified_blob_bytes": 212183582,
+    "action_result_sha256": "46c2856dc23cf34b710b597c77d1ccfdf8e5d7a69d708fc4ba49dfd33b2ea2de"
+  },
+  "builds": [
+    {
+      "caller": "w0",
+      "variant": "base",
+      "exit": 0,
+      "start_s": 5.735,
+      "finish_s": 94.313,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "remote cache hit",
+          "cache_hit": true,
+          "digest": "29c72c11c894d18e4e18547ecec92b73b2e5c4735472b49ec53bb19f35c16022",
+          "start_time": "2026-11-05T05:35:32.991Z",
+          "execution_wall_time": null
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:35:33.289Z",
+          "execution_wall_time": "15.888s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:35:49.373Z",
+          "execution_wall_time": "0.030s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote cache hit",
+          "cache_hit": true,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:36:03.033Z",
+          "execution_wall_time": null
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:35:49.373Z",
+          "execution_wall_time": "0.030s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "eb9c9e6b9e0fada2b3d8f0a02631924a97ab64e27a5362ec32ae1593e9e209d2",
+          "start_time": "2026-11-05T05:36:33.787Z",
+          "execution_wall_time": "0.209s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "a3aaa55234f1e7db03299216c25574b1917fb38ad233d73d27628e09e3b187a5",
+          "start_time": "2026-11-05T05:36:34.014Z",
+          "execution_wall_time": "0.082s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "remote cache hit",
+          "count": 2,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 5,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "e2205bb685c7956e2c63b249d33a6a232af3f5a0d271908793ba0dc6d797dc70",
+      "bytes": 2100736,
+      "program_output": "/* source */\n/* build */\n",
+      "matches_reference": true
+    },
+    {
+      "caller": "w1",
+      "variant": "base",
+      "exit": 0,
+      "start_s": 5.735,
+      "finish_s": 94.407,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "29c72c11c894d18e4e18547ecec92b73b2e5c4735472b49ec53bb19f35c16022",
+          "start_time": "2026-11-05T05:35:32.991Z",
+          "execution_wall_time": "0.174s"
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:35:33.463Z",
+          "execution_wall_time": "17.472s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:35:51.104Z",
+          "execution_wall_time": "0.029s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote cache hit",
+          "cache_hit": true,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:36:03.033Z",
+          "execution_wall_time": null
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:35:51.096Z",
+          "execution_wall_time": "0.033s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "eb9c9e6b9e0fada2b3d8f0a02631924a97ab64e27a5362ec32ae1593e9e209d2",
+          "start_time": "2026-11-05T05:36:33.807Z",
+          "execution_wall_time": "0.222s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "a3aaa55234f1e7db03299216c25574b1917fb38ad233d73d27628e09e3b187a5",
+          "start_time": "2026-11-05T05:36:34.045Z",
+          "execution_wall_time": "0.082s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "remote cache hit",
+          "count": 1,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 6,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "e2205bb685c7956e2c63b249d33a6a232af3f5a0d271908793ba0dc6d797dc70",
+      "bytes": 2100736,
+      "program_output": "/* source */\n/* build */\n",
+      "matches_reference": true
+    },
+    {
+      "caller": "w2",
+      "variant": "source",
+      "exit": 15,
+      "start_s": 5.735,
+      "finish_s": 62.797,
+      "transient_build_retry": false,
+      "spawns": [],
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: c6bd9dce-f76f-4892-a807-7b217700fa1b\nINFO: Analyzed target //pkg/ebpf:include_headers (162 packages loaded, 11414 targets configured).\n"
+    },
+    {
+      "caller": "w3",
+      "variant": "build",
+      "exit": 0,
+      "start_s": 5.735,
+      "finish_s": 94.532,
+      "transient_build_retry": false,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "f8d186a99e4195c9461318ea21721c6a2574c3eba9c57c86a66215ed30d5aac0",
+          "start_time": "2026-11-05T05:35:32.905Z",
+          "execution_wall_time": "0.265s"
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "start_time": "2026-11-05T05:35:33.500Z",
+          "execution_wall_time": "17.436s"
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:35:51.116Z",
+          "execution_wall_time": "0.027s"
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote cache hit",
+          "cache_hit": true,
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "start_time": "2026-11-05T05:36:03.033Z",
+          "execution_wall_time": null
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": null,
+          "start_time": "2026-11-05T05:35:51.116Z",
+          "execution_wall_time": "0.027s"
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "f679ae5b8072da64383aec33e5f24061e9efb1670c27f2b77cee9f5e81c56f9b",
+          "start_time": "2026-11-05T05:36:33.899Z",
+          "execution_wall_time": "0.201s"
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "local",
+          "cache_hit": false,
+          "digest": "8e4107c86d3e0e00d9d6e07445b88b314a96d80a231c1219d767dd02febd5690",
+          "start_time": "2026-11-05T05:36:34.118Z",
+          "execution_wall_time": "0.213s"
+        }
+      ],
+      "packages_loaded": 162,
+      "targets_configured": 11415,
+      "exit_code": 0,
+      "runner_counts": [
+        {
+          "name": "total",
+          "count": 16
+        },
+        {
+          "name": "remote cache hit",
+          "count": 1,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 9
+        },
+        {
+          "name": "local",
+          "count": 6,
+          "execKind": "Local"
+        }
+      ],
+      "sha256": "d345e8a3877f4e591aafdaa64b1199333060b868aeae76b8e0bbdc827f6c7f82",
+      "bytes": 2100736,
+      "program_output": "/* base */\n/* source */\n",
+      "matches_reference": true
+    }
+  ],
+  "batch_s": 88.797,
+  "late": {
+    "caller": "w4",
+    "variant": "source",
+    "exit": 0,
+    "start_s": 94.688,
+    "finish_s": 108.485,
+    "transient_build_retry": false,
+    "spawns": [
+      {
+        "mnemonic": "Genrule",
+        "runner": "remote cache hit",
+        "cache_hit": true,
+        "digest": "138d154c744570f2445b9ca9e5bee063cf74e399b7ad5bc9f82b1165c6a312f1",
+        "start_time": "2026-11-05T05:35:33.212Z",
+        "execution_wall_time": null
+      },
+      {
+        "mnemonic": "GoToolchainBinaryBuild",
+        "runner": "remote cache hit",
+        "cache_hit": true,
+        "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+        "start_time": "2026-11-05T05:35:33.252Z",
+        "execution_wall_time": null
+      },
+      {
+        "mnemonic": "CopyFile",
+        "runner": "local",
+        "cache_hit": false,
+        "digest": null,
+        "start_time": "2026-11-05T05:36:46.872Z",
+        "execution_wall_time": "0.151s"
+      },
+      {
+        "mnemonic": "GoStdlib",
+        "runner": "remote cache hit",
+        "cache_hit": true,
+        "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+        "start_time": "2026-11-05T05:36:03.033Z",
+        "execution_wall_time": null
+      },
+      {
+        "mnemonic": "CopyFile",
+        "runner": "local",
+        "cache_hit": false,
+        "digest": null,
+        "start_time": "2026-11-05T05:36:46.872Z",
+        "execution_wall_time": "0.102s"
+      },
+      {
+        "mnemonic": "GoCompilePkg",
+        "runner": "local",
+        "cache_hit": false,
+        "digest": "d73a7d7e4edd5a30d70a34b75e120596553713b66ea3eff34c8e104331ea3172",
+        "start_time": "2026-11-05T05:36:48.150Z",
+        "execution_wall_time": "0.201s"
+      },
+      {
+        "mnemonic": "GoLink",
+        "runner": "local",
+        "cache_hit": false,
+        "digest": "cdcacd458793298d0696409d16be96c684b40d280a6ee7764ba31654e9ca1f92",
+        "start_time": "2026-11-05T05:36:48.380Z",
+        "execution_wall_time": "0.077s"
+      }
+    ],
+    "packages_loaded": 162,
+    "targets_configured": 11415,
+    "exit_code": 0,
+    "runner_counts": [
+      {
+        "name": "total",
+        "count": 16
+      },
+      {
+        "name": "remote cache hit",
+        "count": 3,
+        "execKind": "Remote"
+      },
+      {
+        "name": "internal",
+        "count": 9
+      },
+      {
+        "name": "local",
+        "count": 4,
+        "execKind": "Local"
+      }
+    ],
+    "sha256": "54acbe525df16196db03653687073b656c5882c848e02070c7ea00ebf8271dd2",
+    "bytes": 2100736,
+    "program_output": "/* base */\n/* build */\n",
+    "matches_reference": true
+  },
+  "coordinator": {
+    "starts": 1,
+    "joins": 3,
+    "hits": 1,
+    "busy": 0,
+    "peak_active": 1,
+    "active": {}
+  },
+  "join_order": [
+    "w2",
+    "w0",
+    "w1",
+    "w3",
+    "w4"
+  ],
+  "transport_disconnects": [
+    "w2"
+  ],
+  "http_errors": [],
+  "http_get_counts": {
+    "ac_hit": 8,
+    "ac_miss": 16,
+    "cas_hit": 1442,
+    "cas_miss": 0
+  },
+  "http_cas_misses": [],
+  "peak_job_commit_bytes": 3586449408
+}

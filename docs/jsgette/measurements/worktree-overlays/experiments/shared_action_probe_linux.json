@@ -1,0 +1,155 @@
+{
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "producer_limit": 2,
+  "fanout": [
+    {
+      "clients_at_gate": 1,
+      "physical_starts": 1,
+      "verified_outputs": 2,
+      "late_result_after_mutating_delivery": true,
+      "starts": 1,
+      "joins": 0,
+      "hits": 1,
+      "busy": 0
+    },
+    {
+      "clients_at_gate": 2,
+      "physical_starts": 1,
+      "verified_outputs": 3,
+      "late_result_after_mutating_delivery": true,
+      "starts": 1,
+      "joins": 1,
+      "hits": 1,
+      "busy": 0
+    },
+    {
+      "clients_at_gate": 4,
+      "physical_starts": 1,
+      "verified_outputs": 5,
+      "late_result_after_mutating_delivery": true,
+      "starts": 1,
+      "joins": 3,
+      "hits": 1,
+      "busy": 0
+    },
+    {
+      "clients_at_gate": 8,
+      "physical_starts": 1,
+      "verified_outputs": 9,
+      "late_result_after_mutating_delivery": true,
+      "starts": 1,
+      "joins": 7,
+      "hits": 1,
+      "busy": 0
+    },
+    {
+      "clients_at_gate": 16,
+      "physical_starts": 1,
+      "verified_outputs": 17,
+      "late_result_after_mutating_delivery": true,
+      "starts": 1,
+      "joins": 15,
+      "hits": 1,
+      "busy": 0
+    }
+  ],
+  "disconnect": [
+    {
+      "cancelled": "first",
+      "subscribers_observed": [
+        1,
+        8,
+        7
+      ],
+      "survivors": 7,
+      "verified_outputs": 8,
+      "physical_starts": 1,
+      "starts": 1,
+      "joins": 7,
+      "hits": 1,
+      "busy": 0
+    },
+    {
+      "cancelled": "waiter",
+      "subscribers_observed": [
+        1,
+        8,
+        7
+      ],
+      "survivors": 7,
+      "verified_outputs": 8,
+      "physical_starts": 1,
+      "starts": 1,
+      "joins": 7,
+      "hits": 1,
+      "busy": 0
+    }
+  ],
+  "abandon": [
+    {
+      "zero_live_subscribers_observed": true,
+      "new_subscriber_before_publication": false,
+      "verified_outputs": 1,
+      "physical_starts": 1,
+      "starts": 1,
+      "joins": 2,
+      "hits": 1,
+      "busy": 0
+    },
+    {
+      "zero_live_subscribers_observed": true,
+      "new_subscriber_before_publication": true,
+      "verified_outputs": 2,
+      "physical_starts": 1,
+      "starts": 1,
+      "joins": 3,
+      "hits": 1,
+      "busy": 0
+    }
+  ],
+  "transient_failure": {
+    "failed_consumers": 4,
+    "verified_outputs": 5,
+    "physical_starts": 2,
+    "starts": 2,
+    "joins": 6,
+    "hits": 1,
+    "busy": 0
+  },
+  "capacity": {
+    "distinct_keys": 8,
+    "same_key_joined_at_capacity": true,
+    "verified_outputs": 9,
+    "peak_simultaneous_producer_callbacks": 2,
+    "starts": 8,
+    "joins": 1,
+    "hits": 0,
+    "busy": 6
+  },
+  "server_before_restart": {
+    "starts": 19,
+    "joins": 52,
+    "hits": 10,
+    "busy": 6,
+    "peak_active": 2,
+    "active": {}
+  },
+  "second_owner_of_live_store": {
+    "owner_refused": true,
+    "sqlite_result": "SQLITE_BUSY"
+  },
+  "restart_and_shutdown": {
+    "durable_cache": {
+      "starts": 0,
+      "joins": 0,
+      "hits": 1,
+      "busy": 0,
+      "peak_active": 0,
+      "active": {}
+    },
+    "distinct_owner_processes": true,
+    "subscribers_during_shutdown": 2,
+    "listener_closed_before_release": true,
+    "verified_outputs": 3
+  }
+}

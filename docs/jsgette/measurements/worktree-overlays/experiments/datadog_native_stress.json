@@ -1,0 +1,985 @@
+{
+  "server_pids": [
+    380,
+    380
+  ],
+  "third_engine_exit": 36,
+  "third_engine_diagnostic": "Cannot admit workspace engine: Shared daemon supports at most two retained workspace engines",
+  "rows": [
+    {
+      "round": 1,
+      "case": "identical",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "a": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 2,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 6,
+          "targets_configured": 138,
+          "post_build_skyframe_nodes": 1230
+        },
+        "spawns": [
+          {
+            "digest": "a3260cf0101187544b4d68f0b803e5ef148bfc2b94cd9fe03b1a35a1668bad8b",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 2,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": 6,
+          "targets_configured": 138,
+          "post_build_skyframe_nodes": 1230
+        },
+        "spawns": [
+          {
+            "digest": "a3260cf0101187544b4d68f0b803e5ef148bfc2b94cd9fe03b1a35a1668bad8b",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 1
+    },
+    {
+      "round": 1,
+      "case": "package-boundary",
+      "a": {
+        "output_sha256": "8c6b34a6060b63993648e9e713fb59f2fc999cdd4b51714f9d13a31984d73797",
+        "headers": 95,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 96,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "eb88f1d940f4a401f0803daf53644d50a03e71589642dea803660b20e706f0b2",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "453405b5df4543e2d4026fcd735c321fa3d2eeff64108dc8dce6d97cdfa6d467",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "action_body_starts": 2
+    },
+    {
+      "round": 1,
+      "case": "cancel-waiter",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "cancelled_client_exit": 8,
+      "a": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "9c10f6510184c30e0390110f0c13d8f8a53b6a5f9d7b375fdd7137e9d1a04477",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "late": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": null,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": null,
+          "targets_configured": null,
+          "post_build_skyframe_nodes": 1232
+        },
+        "spawns": [
+          {
+            "digest": "9c10f6510184c30e0390110f0c13d8f8a53b6a5f9d7b375fdd7137e9d1a04477",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 1
+    },
+    {
+      "round": 1,
+      "case": "cancel-producer",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "cancelled_client_exit": 8,
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1233
+        },
+        "spawns": [
+          {
+            "digest": "fa0bdb9a113e6941f5ad3410a6f1bfec262f4e2e8f19ec097b524461dec4c738",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "late": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": null,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": null,
+          "targets_configured": null,
+          "post_build_skyframe_nodes": 1230
+        },
+        "spawns": [
+          {
+            "digest": "fa0bdb9a113e6941f5ad3410a6f1bfec262f4e2e8f19ec097b524461dec4c738",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 2
+    },
+    {
+      "round": 2,
+      "case": "identical",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "a": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "8252623af03c652ec292696c034881752286dde248eca3ec893ba364be345811",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1234
+        },
+        "spawns": [
+          {
+            "digest": "8252623af03c652ec292696c034881752286dde248eca3ec893ba364be345811",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 1
+    },
+    {
+      "round": 2,
+      "case": "package-boundary",
+      "a": {
+        "output_sha256": "9a056efad53379ef9e60d9edc68bc4cdc79ea99ca41a2888c9060efa70d00cd8",
+        "headers": 95,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 96,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "8176990c80941fb9133913bc91a206133dde1e18a95cf578d02a9483283997bc",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1235
+        },
+        "spawns": [
+          {
+            "digest": "f77c69fb8ec68057052d58718d2cb02da16b1d5f2496251e363f91128386b701",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "action_body_starts": 2
+    },
+    {
+      "round": 2,
+      "case": "cancel-waiter",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "cancelled_client_exit": 8,
+      "a": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "a9edb371c37ea715a2fdd76d31af06800a8586ecd09efcf4457f8b4a9627d26f",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "late": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": null,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": null,
+          "targets_configured": null,
+          "post_build_skyframe_nodes": 1236
+        },
+        "spawns": [
+          {
+            "digest": "a9edb371c37ea715a2fdd76d31af06800a8586ecd09efcf4457f8b4a9627d26f",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 1
+    },
+    {
+      "round": 2,
+      "case": "cancel-producer",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "cancelled_client_exit": 8,
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1237
+        },
+        "spawns": [
+          {
+            "digest": "0977ed310b0195800fd349142ce0e1b45ecd57617e37ce5ab4fc582b02d90e03",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "late": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": null,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": null,
+          "targets_configured": null,
+          "post_build_skyframe_nodes": 1230
+        },
+        "spawns": [
+          {
+            "digest": "0977ed310b0195800fd349142ce0e1b45ecd57617e37ce5ab4fc582b02d90e03",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 2
+    },
+    {
+      "round": 3,
+      "case": "identical",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "a": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "7b6687c91d42e1a42ed3ee79e0b47234c8d40b2c15e8fdfe30132e17cd7f007a",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1238
+        },
+        "spawns": [
+          {
+            "digest": "7b6687c91d42e1a42ed3ee79e0b47234c8d40b2c15e8fdfe30132e17cd7f007a",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 1
+    },
+    {
+      "round": 3,
+      "case": "package-boundary",
+      "a": {
+        "output_sha256": "f7d6270b51c3a9b7cab6ef4a28857076cdc3593269c5f6f36bba21c340654a50",
+        "headers": 95,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 96,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "69a19d271f0a8247d2dcc21888400707e251e16aefd6afc0e32edf66fde714e1",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1239
+        },
+        "spawns": [
+          {
+            "digest": "b8aba570e257f8e4ec9b7837236e647261cca4e4394b4b0036b16eb5ab6c8fb6",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "action_body_starts": 2
+    },
+    {
+      "round": 3,
+      "case": "cancel-waiter",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "cancelled_client_exit": 8,
+      "a": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1231
+        },
+        "spawns": [
+          {
+            "digest": "f81dd7aab36584a022a6c6d5f7e25068bf889d698b3a27c787f4dafceffc1e2b",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "late": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": null,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": null,
+          "targets_configured": null,
+          "post_build_skyframe_nodes": 1240
+        },
+        "spawns": [
+          {
+            "digest": "f81dd7aab36584a022a6c6d5f7e25068bf889d698b3a27c787f4dafceffc1e2b",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 1
+    },
+    {
+      "round": 3,
+      "case": "cancel-producer",
+      "follower_while_owner_held": [
+        "at java.base/java.lang.Object.wait0(Native Method)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at java.base/java.lang.Object.wait(Unknown Source)",
+        "at com.google.devtools.build.lib.remote.SharedActionExecutionRegistry.acquire(SharedActionExecutionRegistry.java:44)",
+        "at com.google.devtools.build.lib.remote.RemoteSpawnCache.lookup(RemoteSpawnCache.java:135)"
+      ],
+      "cancelled_client_exit": 8,
+      "b": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": 1,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "internal",
+              "count": 1
+            },
+            {
+              "name": "linux-sandbox",
+              "count": 1,
+              "execKind": "Local"
+            }
+          ],
+          "packages_loaded": 1,
+          "targets_configured": 130,
+          "post_build_skyframe_nodes": 1241
+        },
+        "spawns": [
+          {
+            "digest": "737ef3eae5f10f051c33eba7e3afe384b99211d163f90ab442b7472198299a17",
+            "runner": "linux-sandbox",
+            "cache_hit": false
+          }
+        ]
+      },
+      "late": {
+        "output_sha256": "bdd30cba3b2de3128d2300bbacef9ed333704ff36fe05f47fc43b2511c7b8724",
+        "headers": 129,
+        "bep": {
+          "exit_code": 0,
+          "server_pid": 380,
+          "actions_executed": 2,
+          "actions_created": null,
+          "runner_counts": [
+            {
+              "name": "total",
+              "count": 2
+            },
+            {
+              "name": "disk cache hit",
+              "count": 1,
+              "execKind": "Remote"
+            },
+            {
+              "name": "internal",
+              "count": 1
+            }
+          ],
+          "packages_loaded": null,
+          "targets_configured": null,
+          "post_build_skyframe_nodes": 1230
+        },
+        "spawns": [
+          {
+            "digest": "737ef3eae5f10f051c33eba7e3afe384b99211d163f90ab442b7472198299a17",
+            "runner": "disk cache hit",
+            "cache_hit": true
+          }
+        ]
+      },
+      "action_body_starts": 2
+    }
+  ],
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "datadog_revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "binary_sha256": "c5d3867ac6a1d0c22a9c43c51edc0192c8cb670ead0f51c789227275f4d2b643",
+  "source_package": "pkg/security/ebpf/c/include",
+  "input_headers": 129,
+  "workload": "projected recursive glob + gated SHA-256 manifest genrule"
+}

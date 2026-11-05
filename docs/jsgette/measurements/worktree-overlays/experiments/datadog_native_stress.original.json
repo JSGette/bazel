@@ -1,0 +1,348 @@
+{
+  "workload": "two original Datadog targets built together in sparse pinned workspaces",
+  "git_dependency_overrides": [
+    "rules_go",
+    "rules_rust",
+    "rules_rust_prost",
+    "gcc_toolchain",
+    "rules_pkg"
+  ],
+  "module_resolution_warnings": [
+    "WARNING: For repository 'apple_support', the root module requires module version apple_support@2.3.0, but got apple_support@2.8.4 in the resolved dependency graph. Please update the version in your MODULE.bazel or set --check_direct_dependencies=off",
+    "WARNING: For repository 'rules_cc', the root module requires module version rules_cc@0.2.17, but got rules_cc@0.2.25 in the resolved dependency graph. Please update the version in your MODULE.bazel or set --check_direct_dependencies=off",
+    "WARNING: For repository 'rules_python', the root module requires module version rules_python@1.9.0, but got rules_python@1.9.2 in the resolved dependency graph. Please update the version in your MODULE.bazel or set --check_direct_dependencies=off"
+  ],
+  "rows": [
+    {
+      "wave": 1,
+      "workspace": "a",
+      "variant": "base",
+      "output_sha256": {
+        "//rtloader:constants_gen": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+        "//pkg/ebpf:include_headers_src": "5773b191f06bdb0ee264b3baf358cea32408132f4533549891dc927d42106a83"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": 3,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "disk cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 2
+          }
+        ],
+        "packages_loaded": 8,
+        "targets_configured": 14,
+        "post_build_skyframe_nodes": 4322
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "023a2fc1ec719ef5a3f9d75bffb19fcc3a7378908c7346d86e6b3f33ff84376f",
+          "runner": "disk cache hit",
+          "cache_hit": true
+        }
+      ]
+    },
+    {
+      "wave": 1,
+      "workspace": "b",
+      "variant": "base",
+      "output_sha256": {
+        "//rtloader:constants_gen": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+        "//pkg/ebpf:include_headers_src": "5773b191f06bdb0ee264b3baf358cea32408132f4533549891dc927d42106a83"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": 3,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "internal",
+            "count": 2
+          },
+          {
+            "name": "linux-sandbox",
+            "count": 1,
+            "execKind": "Local"
+          }
+        ],
+        "packages_loaded": 8,
+        "targets_configured": 14,
+        "post_build_skyframe_nodes": 4322
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "023a2fc1ec719ef5a3f9d75bffb19fcc3a7378908c7346d86e6b3f33ff84376f",
+          "runner": "linux-sandbox",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "wave": 2,
+      "workspace": "a",
+      "variant": "source",
+      "output_sha256": {
+        "//rtloader:constants_gen": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+        "//pkg/ebpf:include_headers_src": "0275110004fd59bc97081351cada9058bf7d964ed6fe44d7bb54e444efae4e0e"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": null,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "internal",
+            "count": 2
+          },
+          {
+            "name": "linux-sandbox",
+            "count": 1,
+            "execKind": "Local"
+          }
+        ],
+        "packages_loaded": null,
+        "targets_configured": null,
+        "post_build_skyframe_nodes": 4322
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "40ba633a6a7237e5362fcc8471e07098ae8c231ae9546fced88cca045da9a739",
+          "runner": "linux-sandbox",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "wave": 2,
+      "workspace": "b",
+      "variant": "build",
+      "output_sha256": {
+        "//rtloader:constants_gen": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+        "//pkg/ebpf:include_headers_src": "08a62c8270907916f3b7b004871676fbf6baa4e99af1e66e1f77cec1da60f9cb"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": 2,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "internal",
+            "count": 2
+          },
+          {
+            "name": "linux-sandbox",
+            "count": 1,
+            "execKind": "Local"
+          }
+        ],
+        "packages_loaded": 2,
+        "targets_configured": 4,
+        "post_build_skyframe_nodes": 4322
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "665fed709c9cc4ae02c7c307c886ad8975176ed2975eac90b1e71ad1d5e9d5ca",
+          "runner": "linux-sandbox",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "wave": 3,
+      "workspace": "a",
+      "variant": "build",
+      "output_sha256": {
+        "//rtloader:constants_gen": "cb2627100d0920c6b7d2ee67a55934d22bdf7f2e522c82e4f2b0de088f4f63a6",
+        "//pkg/ebpf:include_headers_src": "08a62c8270907916f3b7b004871676fbf6baa4e99af1e66e1f77cec1da60f9cb"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": 2,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "disk cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 2
+          }
+        ],
+        "packages_loaded": 2,
+        "targets_configured": 4,
+        "post_build_skyframe_nodes": 3975
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "665fed709c9cc4ae02c7c307c886ad8975176ed2975eac90b1e71ad1d5e9d5ca",
+          "runner": "disk cache hit",
+          "cache_hit": true
+        }
+      ]
+    },
+    {
+      "wave": 3,
+      "workspace": "b",
+      "variant": "source",
+      "output_sha256": {
+        "//rtloader:constants_gen": "283649232011a8018db8d917eb0d7acffd87e74f22030c98c505349248529ec9",
+        "//pkg/ebpf:include_headers_src": "0275110004fd59bc97081351cada9058bf7d964ed6fe44d7bb54e444efae4e0e"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": 2,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "disk cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 2
+          }
+        ],
+        "packages_loaded": 2,
+        "targets_configured": 4,
+        "post_build_skyframe_nodes": 3975
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "40ba633a6a7237e5362fcc8471e07098ae8c231ae9546fced88cca045da9a739",
+          "runner": "disk cache hit",
+          "cache_hit": true
+        }
+      ]
+    },
+    {
+      "wave": 4,
+      "workspace": "a",
+      "variant": "base",
+      "output_sha256": {
+        "//rtloader:constants_gen": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+        "//pkg/ebpf:include_headers_src": "5773b191f06bdb0ee264b3baf358cea32408132f4533549891dc927d42106a83"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": 2,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "disk cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 2
+          }
+        ],
+        "packages_loaded": 2,
+        "targets_configured": 4,
+        "post_build_skyframe_nodes": 3975
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "023a2fc1ec719ef5a3f9d75bffb19fcc3a7378908c7346d86e6b3f33ff84376f",
+          "runner": "disk cache hit",
+          "cache_hit": true
+        }
+      ]
+    },
+    {
+      "wave": 4,
+      "workspace": "b",
+      "variant": "base",
+      "output_sha256": {
+        "//rtloader:constants_gen": "34c5bb567aa6e65ded87378a17b727a3ebfc7158006c5cb01ff97bef1425f6ae",
+        "//pkg/ebpf:include_headers_src": "5773b191f06bdb0ee264b3baf358cea32408132f4533549891dc927d42106a83"
+      },
+      "bep": {
+        "exit_code": 0,
+        "server_pid": 405,
+        "actions_executed": 3,
+        "actions_created": null,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 3
+          },
+          {
+            "name": "disk cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 2
+          }
+        ],
+        "packages_loaded": null,
+        "targets_configured": null,
+        "post_build_skyframe_nodes": 3975
+      },
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "digest": "023a2fc1ec719ef5a3f9d75bffb19fcc3a7378908c7346d86e6b3f33ff84376f",
+          "runner": "disk cache hit",
+          "cache_hit": true
+        }
+      ]
+    }
+  ],
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "datadog_revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "binary_sha256": "c5d3867ac6a1d0c22a9c43c51edc0192c8cb670ead0f51c789227275f4d2b643"
+}

@@ -1,0 +1,56 @@
+{
+  "passed": false,
+  "revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "host": "Windows-10-10.0.26200-SP0",
+  "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+  "mode": "shared",
+  "clients": 1,
+  "worker_jobs": 8,
+  "heap_mib_per_jvm": 512,
+  "download_outputs": "toplevel",
+  "bazel": "bazel 9.1.0",
+  "reference_sha256": {
+    "base": "d0206aad5ae50fd2da9982c25e90874e09c501fea04ce8f70967eb235167fb4c",
+    "source": "15676ac19abfb88937e9ab777c293a01d37c02d1d09522977a0bb8d007a3c59a",
+    "build": "fe75d9ef5ddd65b84d2e5e2828abef3d6927384d0924307136aeb8bd4b74a79a"
+  },
+  "governor": {
+    "method": "Windows Job Object",
+    "logical_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "job_commit_limit_bytes": 8589934592,
+    "aggregate_memory_limit_enforced": true
+  },
+  "client_jobs": 8,
+  "worker_in_job": true,
+  "before_clients_peak_commit_bytes": 51200000,
+  "builds": [
+    {
+      "client": 0,
+      "variant": "base",
+      "exit": 34,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 23.281,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: 8bbd0147-6f5c-4eab-b3da-288bd5bd6696\nDEBUG: <user-home>/appdata/local/temp/rex-hltsnqux/w0/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nERROR: <user-home>/appdata/local/temp/rex-hltsnqux/o0/external/rules_go++go_sdk+main___download_0/BUILD.bazel:80:15: GoToolchainBinaryBuild external/rules_go++go_sdk+main___download_0/builder.exe [for tool] failed: (Exit 34): io.grpc.StatusRuntimeException: RESOURCE_EXHAUSTED: Concurrent RPC limit exceeded!\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd failed to build\nUse --verbose_failures to see the command lines of failed build steps.\nINFO: Elapsed time: 22.337s, Critical Path: 4.27s\nINFO: 9 processes: 9 internal.\nERROR: Build did NOT complete successfully\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false
+    }
+  ],
+  "peak_job_commit_bytes": 1137557504,
+  "batch_cpu_seconds": 84.109,
+  "batch_s": 23.281,
+  "all_client_overlap_s": 23.281,
+  "worker_exit": 0,
+  "worker_diagnostic": "",
+  "event_counts": {},
+  "worker_starts_by_mnemonic": {},
+  "error": "RuntimeError('Worker recorded no real direct Go package compilation or link')"
+}

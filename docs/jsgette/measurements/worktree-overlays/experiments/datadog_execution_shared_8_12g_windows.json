@@ -1,0 +1,4816 @@
+{
+  "passed": true,
+  "revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+  "host": "Windows-10-10.0.26200-SP0",
+  "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+  "mode": "shared",
+  "clients": 8,
+  "worker_jobs": 8,
+  "heap_mib_per_jvm": 512,
+  "download_outputs": "toplevel",
+  "source_sha256": {
+    "reapi_worker.py": "44cd16f05d4e57b9e2273646a86a35e63ba022fbbfc3ffc52b9f8af87f788369",
+    "reapi_worker_store.py": "5edd67188886500136a4fd102be6878b6088272cc3e8d247811b27e9c37c90a7",
+    "datadog_execution_target.py": "452a019096c183f79cfcceb085ba3a45cb5337018d39b0a177a2af6cda006dd6",
+    "datadog_execution_cohort.py": "b4c20c26330a1183aa25f6b7aa671e006ce3716a23d9bc5d5647a3416f9d6a1a"
+  },
+  "bazel": "bazel 9.1.0",
+  "reference_sha256": {
+    "base": "d0206aad5ae50fd2da9982c25e90874e09c501fea04ce8f70967eb235167fb4c",
+    "source": "15676ac19abfb88937e9ab777c293a01d37c02d1d09522977a0bb8d007a3c59a",
+    "build": "fe75d9ef5ddd65b84d2e5e2828abef3d6927384d0924307136aeb8bd4b74a79a"
+  },
+  "governor": {
+    "method": "Windows Job Object",
+    "logical_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "job_commit_limit_bytes": 12884901888,
+    "aggregate_memory_limit_enforced": true
+  },
+  "client_jobs": 1,
+  "worker_in_job": true,
+  "before_clients_peak_commit_bytes": 54263808,
+  "builds": [
+    {
+      "client": 0,
+      "variant": "base",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 203.969,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: 65e69d84-e812-4c67-978b-5321f8e677a8\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w0/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 201.448s, Critical Path: 116.29s\nINFO: 28 processes: 4 remote cache hit, 9 internal, 2 local, 13 remote.\nINFO: Build completed successfully, 28 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 175,
+        "targets_configured": 11559,
+        "actions_executed": 28,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 28
+          },
+          {
+            "name": "remote cache hit",
+            "count": 4,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 13,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59469
+      },
+      "sha256": "d0206aad5ae50fd2da9982c25e90874e09c501fea04ce8f70967eb235167fb4c",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 1,
+      "variant": "source",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 204.187,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: 99d5cab0-b1af-40ba-9175-7b53dc913e80\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w1/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 200.795s, Critical Path: 115.72s\nINFO: 28 processes: 9 internal, 2 local, 17 remote.\nINFO: Build completed successfully, 28 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 175,
+        "targets_configured": 11559,
+        "actions_executed": 28,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 28
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 17,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59414
+      },
+      "sha256": "15676ac19abfb88937e9ab777c293a01d37c02d1d09522977a0bb8d007a3c59a",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.source.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 2,
+      "variant": "build",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 204.109,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: aee7d1ca-8372-4a31-9598-81e89d1f9c74\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w2/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (176 packages loaded, 11560 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 201.309s, Critical Path: 115.49s\nINFO: 29 processes: 4 remote cache hit, 9 internal, 2 local, 14 remote.\nINFO: Build completed successfully, 29 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 176,
+        "targets_configured": 11561,
+        "actions_executed": 29,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 29
+          },
+          {
+            "name": "remote cache hit",
+            "count": 4,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 14,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59422
+      },
+      "sha256": "fe75d9ef5ddd65b84d2e5e2828abef3d6927384d0924307136aeb8bd4b74a79a",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.build.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "remote",
+          "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 3,
+      "variant": "base",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 203.406,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: 35a3f48e-d643-4424-9b87-1e96223106dd\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w3/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 201.811s, Critical Path: 116.03s\nINFO: 28 processes: 3 remote cache hit, 9 internal, 2 local, 14 remote.\nINFO: Build completed successfully, 28 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 175,
+        "targets_configured": 11559,
+        "actions_executed": 28,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 28
+          },
+          {
+            "name": "remote cache hit",
+            "count": 3,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 14,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59463
+      },
+      "sha256": "d0206aad5ae50fd2da9982c25e90874e09c501fea04ce8f70967eb235167fb4c",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 4,
+      "variant": "source",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 204.172,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: d83e0c7c-ff66-4121-9569-c462db3291ca\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w4/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 200.481s, Critical Path: 115.98s\nINFO: 28 processes: 4 remote cache hit, 9 internal, 2 local, 13 remote.\nINFO: Build completed successfully, 28 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 175,
+        "targets_configured": 11559,
+        "actions_executed": 28,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 28
+          },
+          {
+            "name": "remote cache hit",
+            "count": 4,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 13,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59416
+      },
+      "sha256": "15676ac19abfb88937e9ab777c293a01d37c02d1d09522977a0bb8d007a3c59a",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.source.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 5,
+      "variant": "build",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 204.109,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: 95c4d7f0-cc5e-42a1-b123-618d6069597f\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w5/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (176 packages loaded, 11560 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 201.030s, Critical Path: 115.53s\nINFO: 29 processes: 4 remote cache hit, 9 internal, 2 local, 14 remote.\nINFO: Build completed successfully, 29 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 176,
+        "targets_configured": 11561,
+        "actions_executed": 29,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 29
+          },
+          {
+            "name": "remote cache hit",
+            "count": 4,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 14,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59494
+      },
+      "sha256": "fe75d9ef5ddd65b84d2e5e2828abef3d6927384d0924307136aeb8bd4b74a79a",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.build.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "Genrule",
+          "runner": "remote",
+          "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 6,
+      "variant": "base",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 204.172,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: c2e9b421-9358-4174-adf2-94dd43e70627\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w6/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 201.037s, Critical Path: 116.56s\nINFO: 28 processes: 1 remote cache hit, 9 internal, 2 local, 16 remote.\nINFO: Build completed successfully, 28 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 175,
+        "targets_configured": 11559,
+        "actions_executed": 28,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 28
+          },
+          {
+            "name": "remote cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 16,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59435
+      },
+      "sha256": "d0206aad5ae50fd2da9982c25e90874e09c501fea04ce8f70967eb235167fb4c",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+          "cache_hit": false
+        }
+      ]
+    },
+    {
+      "client": 7,
+      "variant": "base",
+      "exit": 0,
+      "in_job": true,
+      "start_s": 0.0,
+      "finish_s": 204.047,
+      "diagnostic": "OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.\nINFO: Invocation ID: 5ad83ba4-90fc-4556-b430-4a2a15113422\nDEBUG: <user-home>/appdata/local/temp/rex-csrv3ewp/w7/bazel/repo/bazelify_go_work.bzl:32:22: WARNING: Module 'test/otel' has no BUILD.bazel file, it won't be passed to gazelle. Add a BUILD.bazel file or a gazelle:exclude directive.\nINFO: Analyzed target //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd (175 packages loaded, 11558 targets configured).\nINFO: Found 1 target...\nTarget //pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd up-to-date:\n  bazel-bin/pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe\nINFO: Elapsed time: 201.232s, Critical Path: 116.19s\nINFO: 28 processes: 1 remote cache hit, 9 internal, 2 local, 16 remote.\nINFO: Build completed successfully, 28 total actions\nINFO: Build Event Protocol files produced successfully.\n",
+      "transient_retry": false,
+      "metrics": {
+        "exit_code": 0,
+        "packages_loaded": 175,
+        "targets_configured": 11559,
+        "actions_executed": 28,
+        "runner_counts": [
+          {
+            "name": "total",
+            "count": 28
+          },
+          {
+            "name": "remote cache hit",
+            "count": 1,
+            "execKind": "Remote"
+          },
+          {
+            "name": "internal",
+            "count": 9
+          },
+          {
+            "name": "local",
+            "count": 2,
+            "execKind": "Local"
+          },
+          {
+            "name": "remote",
+            "count": 16,
+            "execKind": "Remote"
+          }
+        ],
+        "post_build_skyframe_nodes": 59462
+      },
+      "sha256": "d0206aad5ae50fd2da9982c25e90874e09c501fea04ce8f70967eb235167fb4c",
+      "bytes": 3621376,
+      "output": "pkg/networkdevice/profile/profiledefinition/normalize_cmd/normalize_cmd_/normalize_cmd.exe",
+      "program_output": {
+        "filename": "switch.json",
+        "profile": {
+          "name": "test-switch",
+          "description": "Switch profile",
+          "sysobjectid": [
+            "1.3.6.1.4.1.9"
+          ],
+          "device": {}
+        }
+      },
+      "matches_reference": true,
+      "spawns": [
+        {
+          "mnemonic": "GoToolchainBinaryBuild",
+          "runner": "remote",
+          "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoStdlib",
+          "runner": "remote",
+          "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "CopyFile",
+          "runner": "local",
+          "digest": null,
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote cache hit",
+          "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+          "cache_hit": true
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoCompilePkg",
+          "runner": "remote",
+          "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+          "cache_hit": false
+        },
+        {
+          "mnemonic": "GoLink",
+          "runner": "remote",
+          "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+          "cache_hit": false
+        }
+      ]
+    }
+  ],
+  "peak_job_commit_bytes": 9688203264,
+  "batch_cpu_seconds": 827.047,
+  "batch_s": 204.187,
+  "all_client_overlap_s": 203.406,
+  "worker_exit": 0,
+  "worker_diagnostic": "",
+  "events": [
+    {
+      "event": "admit",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694068901800,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694102899900,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2",
+      "subscribers": 2
+    },
+    {
+      "event": "start",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694134893800,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2"
+    },
+    {
+      "event": "process_exit",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694240884300,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2",
+      "exit": 0,
+      "elapsed": 0.11000000000058208
+    },
+    {
+      "event": "finish",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694257880800,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2",
+      "subscribers": 2
+    },
+    {
+      "event": "detach",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694258879300,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bd03068e6e01a094025d15bbfde4d452dfbc41bd13e181348c7fbc94d5d4a2e",
+      "mnemonic": "Genrule",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:overlay_root",
+      "time_ns": 1793859694258879300,
+      "operation": "operations/979f69adace546ce9427cb3d15f4faf2",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859718589996300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859718704984100,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859719218920800,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859719658866600,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859719817902000,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859719832900300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 6
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859719865896300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 7
+    },
+    {
+      "event": "join",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859719908893300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 8
+    },
+    {
+      "event": "start",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859745561290300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a"
+    },
+    {
+      "event": "process_exit",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762375838200,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "exit": 0,
+      "elapsed": 16.81199999999808
+    },
+    {
+      "event": "finish",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762902913000,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 8
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762904913300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 7,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762904913300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 6,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762904913300,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762905913000,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762905913000,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762906913100,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762906913100,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "08654fef6241c5668bff2832bcf7a17ee63ed86689330a1a85e4e8d1e4ed3e6d",
+      "mnemonic": "GoToolchainBinaryBuild",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go++go_sdk+main___download_0//:builder",
+      "time_ns": 1793859762906913100,
+      "operation": "operations/c12276635b1746869463b59ccf4cb12a",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763534950200,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763545948300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763574943700,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763589942900,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763603939700,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763606939400,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 6
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763627936500,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 7
+    },
+    {
+      "event": "join",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859763739435300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 8
+    },
+    {
+      "event": "start",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859766087631100,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea"
+    },
+    {
+      "event": "process_exit",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859801450633500,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "exit": 0,
+      "elapsed": 35.359000000004016
+    },
+    {
+      "event": "finish",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803182509200,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 8
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803183508900,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 7,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803183508900,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 6,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803184508300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803184508300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803184508300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803185508300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803185508300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "80a0c564683f8138fbea0013d87890f54f36d53523126916c80c24db1d7d1865",
+      "mnemonic": "GoStdlib",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@rules_go+//:stdlib",
+      "time_ns": 1793859803185508300,
+      "operation": "operations/78f83db64fc047c7adfa43df8ddbd5ea",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859803826599100,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859803827597600,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859803827597600,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859803828598900,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859803840595400,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859803850594700,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 6
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859804042571000,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 7
+    },
+    {
+      "event": "join",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859804051570300,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 8
+    },
+    {
+      "event": "start",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805122941500,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257"
+    },
+    {
+      "event": "process_exit",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805306527700,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "exit": 0,
+      "elapsed": 0.18800000000192085
+    },
+    {
+      "event": "finish",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805372523200,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 8
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805373524000,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 7,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805373524000,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 6,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805374524200,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805374524200,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805374524200,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805374524200,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805375524500,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "94973eb576af9891e6d9023cc18e82b6d21876d857b94a8073c5ad5b60578df5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_bahlo_generic_list_go//:generic-list-go",
+      "time_ns": 1793859805376523000,
+      "operation": "operations/47a32e96e78341b2a977dab0954a8257",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859805434515700,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859805435516800,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859805460512800,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859805475512100,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859805481511400,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 5
+    },
+    {
+      "event": "admit",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859805517506300,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859805525508600,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859805541503600,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 3
+    },
+    {
+      "event": "start",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859805848545900,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b"
+    },
+    {
+      "event": "start",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859805920536200,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770"
+    },
+    {
+      "event": "process_exit",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806089754400,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "exit": 0,
+      "elapsed": 0.23399999999674037
+    },
+    {
+      "event": "finish",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806156331100,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 5
+    },
+    {
+      "event": "detach",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806156843700,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806156843700,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806157357200,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806157357200,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806157873900,
+      "operation": "operations/271e42cccbd64cad9c0fb63736bd433b",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "join",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806184845100,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806185850600,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806186850400,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 6
+    },
+    {
+      "event": "admit",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806198182400,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806198182400,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 2
+    },
+    {
+      "event": "process_exit",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806359641000,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "exit": 0,
+      "elapsed": 0.43800000000192085
+    },
+    {
+      "event": "finish",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806457633300,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 6
+    },
+    {
+      "event": "detach",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806458632200,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806458632200,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806459632700,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806459632700,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806459632700,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806460633500,
+      "operation": "operations/2e010ab0e5644d488fb002e25818a770",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859806473632700
+    },
+    {
+      "event": "join",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806483631300,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806490630000,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806501628500,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 5
+    },
+    {
+      "event": "admit",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806504627900,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806505627600,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806521625600,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 3
+    },
+    {
+      "event": "start",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806580617800,
+      "operation": "operations/a333e967c60f4927907c14d273fea063"
+    },
+    {
+      "event": "process_exit",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806788396700,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "exit": 0,
+      "elapsed": 0.21899999999732245
+    },
+    {
+      "event": "start",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806796398800,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e"
+    },
+    {
+      "event": "finish",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806857410500,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 5
+    },
+    {
+      "event": "detach",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806857410500,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806858412400,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806858412400,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806858412400,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859806858412400,
+      "operation": "operations/a333e967c60f4927907c14d273fea063",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "join",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806875409700,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806877408800,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 5
+    },
+    {
+      "event": "ac_hit",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859806880408400
+    },
+    {
+      "event": "join",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806881409000,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 6
+    },
+    {
+      "event": "admit",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859806897404800,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859806909404400,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 2
+    },
+    {
+      "event": "process_exit",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859806989913300,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "exit": 0,
+      "elapsed": 0.20300000000133878
+    },
+    {
+      "event": "finish",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807078905100,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 6
+    },
+    {
+      "event": "detach",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807079906800,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807079906800,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807079906800,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807080906100,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807080906100,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807080906100,
+      "operation": "operations/4671713bcfe04658aaf3ac8d035bfa5e",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859807096905500
+    },
+    {
+      "event": "join",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807096905500,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 3
+    },
+    {
+      "event": "ac_hit",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859807097905300
+    },
+    {
+      "event": "join",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807106904200,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807113902400,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 5
+    },
+    {
+      "event": "admit",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807224887700,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807251884200,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807266884300,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 3
+    },
+    {
+      "event": "start",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807298879400,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a"
+    },
+    {
+      "event": "process_exit",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807511788900,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "exit": 0,
+      "elapsed": 0.2190000000045984
+    },
+    {
+      "event": "finish",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807584784000,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 5
+    },
+    {
+      "event": "detach",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807585784500,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807585784500,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807585784500,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807585784500,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859807586784400,
+      "operation": "operations/5a20e45531734de18326c43119cdc46a",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859807598783700
+    },
+    {
+      "event": "ac_hit",
+      "digest": "67b1c02208c6a4c75d36d1ddc5fe69bb7f63cefd602d56b33d4ac25e8bcbf933",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+in_yaml_go_yaml_v2//:yaml",
+      "time_ns": 1793859807598783700
+    },
+    {
+      "event": "join",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807599783100,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807604783000,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807604783000,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 6
+    },
+    {
+      "event": "admit",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859807642776400,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859807654776400,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 2
+    },
+    {
+      "event": "start",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859807707768500,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52"
+    },
+    {
+      "event": "start",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859807999378100,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73"
+    },
+    {
+      "event": "process_exit",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808083556300,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "exit": 0,
+      "elapsed": 0.375
+    },
+    {
+      "event": "finish",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808156886600,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 6
+    },
+    {
+      "event": "detach",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808157912900,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808157912900,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808158434600,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808158434600,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808158950000,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808158950000,
+      "operation": "operations/5ef3609c94214f1799df1dc5b9659c52",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859808172781000
+    },
+    {
+      "event": "ac_hit",
+      "digest": "d85f640733880306db50597995cadf521baa7ebe5bd9331ba44ee7b1d0caa569",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_buger_jsonparser//:jsonparser",
+      "time_ns": 1793859808173302300
+    },
+    {
+      "event": "join",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808180970500,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808181972400,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808183871700,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 5
+    },
+    {
+      "event": "admit",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859808229141700,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859808256434600,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859808271931100,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 3
+    },
+    {
+      "event": "process_exit",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808440754700,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "exit": 0,
+      "elapsed": 0.43800000000192085
+    },
+    {
+      "event": "finish",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808528834700,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 5
+    },
+    {
+      "event": "detach",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808528834700,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808529833500,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808529833500,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808529833500,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859808530834800,
+      "operation": "operations/a1197833f7c84953b1381d7d0ba55d73",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859808549831500
+    },
+    {
+      "event": "join",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859808559830400,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 4
+    },
+    {
+      "event": "admit",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859808574827900,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859808574827900,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859808615825000,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859808646819600,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 3
+    },
+    {
+      "event": "start",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859808692814400,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8"
+    },
+    {
+      "event": "start",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859808922771100,
+      "operation": "operations/5b34059b1da94784866378561604846b"
+    },
+    {
+      "event": "process_exit",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809063415600,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "exit": 0,
+      "elapsed": 0.3600000000005821
+    },
+    {
+      "event": "finish",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809143936000,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 5
+    },
+    {
+      "event": "detach",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809144934400,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809144934400,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809144934400,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809144934400,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859809145935200,
+      "operation": "operations/8f8b4e16c8c74bc79b3e2955dc8289a8",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859809153444300
+    },
+    {
+      "event": "ac_hit",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859809156443800
+    },
+    {
+      "event": "ac_hit",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859809161443800
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809164955100,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 4
+    },
+    {
+      "event": "ac_hit",
+      "digest": "6854bb366ae0e5434e8ff1e0f6a6ecd7e693cf1a200156bfbfcf1dcc50ccc13f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+in_gopkg_yaml_v3//:yaml_v3",
+      "time_ns": 1793859809166820700
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809167819500,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 5
+    },
+    {
+      "event": "ac_hit",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859809172818900
+    },
+    {
+      "event": "ac_hit",
+      "digest": "27d5b000f2e3decffd2ef6da420aa73ef6fba7d8f43d24542685e043d777005f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//buffer:buffer",
+      "time_ns": 1793859809181324800
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809193362800,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 6
+    },
+    {
+      "event": "ac_hit",
+      "digest": "84a7ee578bc4a0e915139091b36aa91811fe1d6e222161769ee873b32216ad8c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_mailru_easyjson//jwriter:jwriter",
+      "time_ns": 1793859809193362800
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809200366600,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 7
+    },
+    {
+      "event": "join",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809202730300,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 8
+    },
+    {
+      "event": "process_exit",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809205630400,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "exit": 0,
+      "elapsed": 0.28100000000267755
+    },
+    {
+      "event": "finish",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809272626200,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 8
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809274625400,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 7,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809274625400,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 6,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809274625400,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809275625900,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809275625900,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809276625800,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809280625000,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0bbfb5e2253ae89b11328386abc9d543de451e9726f4a32f5e1c7226783bc5b6",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_wk8_go_ordered_map_v2//:go-ordered-map",
+      "time_ns": 1793859809280625000,
+      "operation": "operations/5b34059b1da94784866378561604846b",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809325136100,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809328135600,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809332134700,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809335134600,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809338135100,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809346133100,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 6
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809346133100,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 7
+    },
+    {
+      "event": "join",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809346133100,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 8
+    },
+    {
+      "event": "start",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809640096700,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38"
+    },
+    {
+      "event": "process_exit",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809931021200,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "exit": 0,
+      "elapsed": 0.2969999999986612
+    },
+    {
+      "event": "finish",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809996016300,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 8
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809997016300,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 7,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809997016300,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 6,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809998016900,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809998016900,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809998016900,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809998016900,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859809999018100,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "0395f96dd36c36be92a18ddaedf23c4e2ad339722fefdc3b0996de14ef6f3496",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "@@gazelle++go_deps+com_github_invopop_jsonschema//:jsonschema",
+      "time_ns": 1793859810000017900,
+      "operation": "operations/cca9c8026299497ca2fe54c8d9874c38",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "9118972dec5a253a29b161f6da4dd452c2208f473cac4064b33cab2fe11ddb00",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_inconshreveable_mousetrap//:mousetrap",
+      "time_ns": 1793859810006016700
+    },
+    {
+      "event": "ac_hit",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859810014016200
+    },
+    {
+      "event": "ac_hit",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859810014016200
+    },
+    {
+      "event": "ac_hit",
+      "digest": "4c5e7cb581274d69f2887ba970f89f26aa355f5eea8c448e0bfd15a054d2352b",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_spf13_pflag//:pflag",
+      "time_ns": 1793859810042012600
+    },
+    {
+      "event": "admit",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810059010600,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810059010600,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810060009300,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810060009300,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810060009300,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 5
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810065009800,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 6
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810065009800,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 7
+    },
+    {
+      "event": "join",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810065009800,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 8
+    },
+    {
+      "event": "start",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810408966100,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8"
+    },
+    {
+      "event": "process_exit",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810669790500,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "exit": 0,
+      "elapsed": 0.26599999999598367
+    },
+    {
+      "event": "finish",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810737789100,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 8
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810738786700,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 7,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810738786700,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 6,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810738786700,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810739787200,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810739787200,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810739787200,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810739787200,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f903b71af99f5d6e07475d0156814b223f1fe6f2c05d9f29946c0020bc71c5fc",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition:profiledefinition",
+      "time_ns": 1793859810740787900,
+      "operation": "operations/c3a003748076421c9df6a00bad9610a8",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "ac_hit",
+      "digest": "531412efdde3906a1160e81b6187d14206adfee066f2f8d199e0f55671dc6dc5",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "@@gazelle++go_deps+com_github_spf13_cobra//:cobra",
+      "time_ns": 1793859810787781300
+    },
+    {
+      "event": "admit",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810796779600,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810796779600,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 2
+    },
+    {
+      "event": "admit",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810799779800,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810799779800,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897",
+      "subscribers": 2
+    },
+    {
+      "event": "admit",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810800779300,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e",
+      "subscribers": 1,
+      "active": 3
+    },
+    {
+      "event": "join",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810805778700,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810826775400,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859810827775000,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 4
+    },
+    {
+      "event": "start",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811226726600,
+      "operation": "operations/56213d58da65444c90fb81719818be78"
+    },
+    {
+      "event": "start",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811233726800,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897"
+    },
+    {
+      "event": "start",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811249725200,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e"
+    },
+    {
+      "event": "process_exit",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811507459100,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897",
+      "exit": 0,
+      "elapsed": 0.28100000000267755
+    },
+    {
+      "event": "process_exit",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811507970800,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "exit": 0,
+      "elapsed": 0.28100000000267755
+    },
+    {
+      "event": "process_exit",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811509973000,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e",
+      "exit": 0,
+      "elapsed": 0.26600000000325963
+    },
+    {
+      "event": "finish",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811595966200,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897",
+      "subscribers": 2
+    },
+    {
+      "event": "finish",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811596967300,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e",
+      "subscribers": 2
+    },
+    {
+      "event": "detach",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811596967300,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "290e99e9c3d4b7b35eee20eb69259d32eba42b80a9a5d22e72b0a98dbeeee48f",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811596967300,
+      "operation": "operations/0db921a82fba4e65913104a1d9707897",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "finish",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811598966700,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 4
+    },
+    {
+      "event": "detach",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811599965800,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "dd2c676f3ccb859810feab2f81e9972b917ecf788358fc741246e6e5b919c2d7",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811599965800,
+      "operation": "operations/3b280ab9f5fe46ee8d86ba2bc723a30e",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811599965800,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811600967000,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811600967000,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "a4f553a7b753e2f9b8fad1d8cb9908a56c5daf8c69556bf46e2a85a85600a22c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd/cmd:cmd",
+      "time_ns": 1793859811600967000,
+      "operation": "operations/56213d58da65444c90fb81719818be78",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811645959700,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811646960000,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811646960000,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 3
+    },
+    {
+      "event": "join",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811646960000,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811646960000,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 5
+    },
+    {
+      "event": "admit",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811647960400,
+      "operation": "operations/84937398b2c5477997815ca9deac639d",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811668958100,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 6
+    },
+    {
+      "event": "join",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859811715963000,
+      "operation": "operations/84937398b2c5477997815ca9deac639d",
+      "subscribers": 2
+    },
+    {
+      "event": "start",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812045435600,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f"
+    },
+    {
+      "event": "start",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812045435600,
+      "operation": "operations/84937398b2c5477997815ca9deac639d"
+    },
+    {
+      "event": "process_exit",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812274669100,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "exit": 0,
+      "elapsed": 0.23400000000401633
+    },
+    {
+      "event": "process_exit",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812274669100,
+      "operation": "operations/84937398b2c5477997815ca9deac639d",
+      "exit": 0,
+      "elapsed": 0.23400000000401633
+    },
+    {
+      "event": "finish",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812356662800,
+      "operation": "operations/84937398b2c5477997815ca9deac639d",
+      "subscribers": 2
+    },
+    {
+      "event": "detach",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812356662800,
+      "operation": "operations/84937398b2c5477997815ca9deac639d",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "7afcdabc3edfe2ba78ada5e74c956601279809037fc023a6115a7f015bc04a3c",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812356662800,
+      "operation": "operations/84937398b2c5477997815ca9deac639d",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "finish",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812358665700,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 6
+    },
+    {
+      "event": "detach",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812359663200,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 5,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812359663200,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 4,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812359663200,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812360663700,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812360663700,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "f5d0c18f0a8338e374046b2fb4b5e56b6446921433396805666740b0afa9b3a2",
+      "mnemonic": "GoCompilePkg",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812360663700,
+      "operation": "operations/2a2b4a5b309f458d85f3e3069062321f",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "admit",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812610175000,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 1,
+      "active": 1
+    },
+    {
+      "event": "join",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812610175000,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 2
+    },
+    {
+      "event": "join",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812611175800,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 3
+    },
+    {
+      "event": "admit",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812611175800,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965",
+      "subscribers": 1,
+      "active": 2
+    },
+    {
+      "event": "join",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812611175800,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 4
+    },
+    {
+      "event": "join",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812612178400,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965",
+      "subscribers": 2
+    },
+    {
+      "event": "admit",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812612178400,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412",
+      "subscribers": 1,
+      "active": 3
+    },
+    {
+      "event": "join",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859812634172200,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412",
+      "subscribers": 2
+    },
+    {
+      "event": "start",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813096117200,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965"
+    },
+    {
+      "event": "start",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813096117200,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412"
+    },
+    {
+      "event": "start",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813096117200,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051"
+    },
+    {
+      "event": "process_exit",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813507189500,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "exit": 0,
+      "elapsed": 0.40600000000267755
+    },
+    {
+      "event": "process_exit",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813507189500,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965",
+      "exit": 0,
+      "elapsed": 0.4220000000059372
+    },
+    {
+      "event": "process_exit",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813508194900,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412",
+      "exit": 0,
+      "elapsed": 0.40600000000267755
+    },
+    {
+      "event": "finish",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813678173200,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412",
+      "subscribers": 2
+    },
+    {
+      "event": "finish",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813679173100,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965",
+      "subscribers": 2
+    },
+    {
+      "event": "detach",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "95c4d7f0-cc5e-42a1-b123-618d6069597f",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813679173100,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "84d8fe725862fcaaf42b2f7828f7df21eb0a2fd74b3eb13b257c601b82879613",
+      "mnemonic": "GoLink",
+      "invocation": "aee7d1ca-8372-4a31-9598-81e89d1f9c74",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813679173100,
+      "operation": "operations/0cbddc2d0d51475ab4a01a9c256ac412",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "finish",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813680172700,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 4
+    },
+    {
+      "event": "detach",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "d83e0c7c-ff66-4121-9569-c462db3291ca",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813681172900,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "ae1a69bd8cb4a3ca652e2d3591f50c2b41ffdf1858083259d7f8f565e9d5cb5d",
+      "mnemonic": "GoLink",
+      "invocation": "99d5cab0-b1af-40ba-9175-7b53dc913e80",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813681172900,
+      "operation": "operations/11a4d3af91664b3190c5caec4ea1a965",
+      "subscribers": 0,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "c2e9b421-9358-4174-adf2-94dd43e70627",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813681172900,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 3,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "5ad83ba4-90fc-4556-b430-4a2a15113422",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813682172500,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 2,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "35a3f48e-d643-4424-9b87-1e96223106dd",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813682172500,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 1,
+      "running": false
+    },
+    {
+      "event": "detach",
+      "digest": "e07ef8a3e898df46b02c498177b68a4f9f1e3977dd4c261410916fe23f3f892e",
+      "mnemonic": "GoLink",
+      "invocation": "65e69d84-e812-4c67-978b-5321f8e677a8",
+      "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+      "time_ns": 1793859813682172500,
+      "operation": "operations/313d6f819d0a4a47b53d5bec6f50d051",
+      "subscribers": 0,
+      "running": false
+    }
+  ],
+  "event_counts": {
+    "admit": 23,
+    "join": 94,
+    "start": 23,
+    "process_exit": 23,
+    "finish": 23,
+    "detach": 117,
+    "ac_hit": 21
+  },
+  "worker_starts_by_mnemonic": {
+    "Genrule": {
+      "physical": 1,
+      "unique_digests": 1,
+      "duplicate_starts": 0
+    },
+    "GoCompilePkg": {
+      "physical": 17,
+      "unique_digests": 17,
+      "duplicate_starts": 0
+    },
+    "GoLink": {
+      "physical": 3,
+      "unique_digests": 3,
+      "duplicate_starts": 0
+    },
+    "GoStdlib": {
+      "physical": 1,
+      "unique_digests": 1,
+      "duplicate_starts": 0
+    },
+    "GoToolchainBinaryBuild": {
+      "physical": 1,
+      "unique_digests": 1,
+      "duplicate_starts": 0
+    }
+  }
+}
