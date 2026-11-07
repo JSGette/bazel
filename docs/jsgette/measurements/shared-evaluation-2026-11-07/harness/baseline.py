@@ -23,6 +23,12 @@ from urllib.parse import unquote, urlparse
 import fixture
 
 
+def require_fixture_tree(workspace, expected_tree):
+    actual_tree = fixture.git(workspace, "rev-parse", "HEAD^{tree}").decode().strip()
+    if actual_tree != expected_tree:
+        raise RuntimeError("Fixture committed tree changed: " + str(workspace))
+
+
 def inventory(path, budget=2048):
     """Bounded metadata-only walk; truncated counts/sizes are lower bounds."""
     if path is None:
@@ -460,10 +466,12 @@ def main():
     if args.disk_cache:
         args.disk_cache = args.disk_cache.resolve()
     manifest = json.loads((args.root / "fixture/manifest.json").read_text())
+    args.fixture_tree = manifest["private_tree"]
     if manifest["clients"] != args.clients or manifest["scenario"] != args.scenario:
         parser.error("Fixture clients/scenario differ from this invocation")
     for row in manifest["worktrees"]:
         workspace = Path(row["workspace"])
+        require_fixture_tree(workspace, args.fixture_tree)
         if "source_state" not in row or fixture.source_state(workspace) != row["source_state"]:
             raise RuntimeError("Fixture source-state guard missing or changed: " + str(workspace))
         for name, field in (("root.go", "source_sha256"), ("BUILD.bazel", "build_sha256")):
@@ -556,6 +564,10 @@ def main():
                 for row in manifest["worktrees"])
             if not report["source_state_unchanged"]:
                 report["passed"] = False
+            report["source_tree_unchanged"] = False
+            for row in manifest["worktrees"]:
+                require_fixture_tree(row["workspace"], args.fixture_tree)
+            report["source_tree_unchanged"] = True
             report["cache_after"] = cache_inventory(args)
         except Exception as error:
             report["cleanup_error"] = type(error).__name__ + ": " + str(error)
