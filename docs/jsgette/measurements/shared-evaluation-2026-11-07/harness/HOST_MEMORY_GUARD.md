@@ -38,6 +38,12 @@ processes. A memory breach kills only this verified scope. A preflight breach
 launches nothing. Cleanup ownership failures are recorded and do not authorize
 signalling some other scope.
 
+A small Python startup gate waits at most 15 seconds on a unique abstract Unix
+socket. The guard releases the requested workload only after checking scope
+ownership and host memory again. An abort during scope creation cannot release
+a delayed workload. Cleanup checks the scope again after the launcher exits and
+waits for an inactive scope after signalling it.
+
 Evidence includes initial and periodic free physical/commit bytes in
 `host-memory.jsonl`, exact command and policy, observed scope identity, streamed
 stdout/stderr, and `result.json`. Status `infrastructure_abort`, exit code 75,
@@ -49,6 +55,13 @@ records watchdog/control errors separately. Do not put credentials in argv.
 
 Run `pwsh -NoProfile -File ./test_host_memory_guard.ps1` for low-impact checks.
 They sample native memory but launch no Linux command or benchmark.
+
+The initial real smoke found ambiguous `wsl.exe` resolution and launched no Linux
+command; resolution now selects one application path. Subsequent real Windows
+tests completed a two-second Python sleep with verified ownership and cleanup
+(2.66 seconds), and aborted a 30-second sleep at a two-second timeout with exit
+75 and the owned scope verified inactive (2.41 seconds). These are control-path
+checks, not benchmark measurements.
 
 ## Repository contents cache
 
@@ -66,6 +79,11 @@ from the download cache. Eligibility depends on repository-rule inputs and
 validation; this cache does not guarantee deduplication of all simultaneous
 repository setup. A cache population run is setup evidence, not a cold-cache
 measurement.
+
+`RepositoryFetchFunction.java` admits fetched contents only when the repository
+reports reproducibility and its rule is non-local. Symlink eligibility is also
+checked. Local repository rules and ineligible links can therefore still cause
+per-output-base setup despite a shared contents cache.
 
 Source: `RepositoryOptions.java` defines the cache and its defaults;
 `LocalRepoContentsCache.java` describes predeclared-input hashes plus recorded

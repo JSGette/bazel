@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "status": "aborted",
+  "passed": false,
+  "performance_eligible": false,
+  "milestone_verdict": "not_assessed",
+  "run": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/vanilla-reference-restart",
+  "scope": "shared-eval-m0-n10-vanilla-ref",
+  "clients": 10,
+  "mode": "vanilla",
+  "requested_cache_state": "restart",
+  "phase_at_abort": "preparation",
+  "report_json_present": false,
+  "measured_phase_present": false,
+  "preparation_evidence_file_count_before_archiving": 40,
+  "termination": {
+    "initiator": "coordinating agent",
+    "deliberate": true,
+    "scope_signal": "SIGTERM",
+    "reason": "Host memory pressure during preparation; stop the attempt before proceeding with a potentially confounded cohort",
+    "subsequent_cleanup": "Coordinator reported stopping the remaining Java processes before inspecting Linux memory",
+    "exact_abort_timestamp": null,
+    "observation_source": "Coordinator's contemporaneous observations; no completed harness resource report was produced"
+  },
+  "host_at_abort": {
+    "units": "KiB",
+    "free_physical": 697268,
+    "free_virtual": 1261428,
+    "total_physical": 33193408,
+    "wsl_configured_memory_gib": 20
+  },
+  "cgroup_at_abort": {
+    "memory_events_observed_all_zero": true,
+    "oom_event_observed": false,
+    "oom_kill_event_observed": false,
+    "raw_memory_events_snapshot_archived": false,
+    "interpretation": "No observed cgroup OOM evidence. Intentional cancellation is not an OOM or a completed performance measurement."
+  },
+  "linux_after_java_cleanup": {
+    "approximate": true,
+    "anonymous_memory_mib": 66,
+    "buffers_gib": 3.8,
+    "cached_gib": 7.4,
+    "kreclaimable_gib": 2.3,
+    "observation_source": "Coordinator's rounded post-cleanup observations"
+  },
+  "storage": {
+    "filesystem": "ext4",
+    "device": "/dev/loop0",
+    "backing_file": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+    "host_backing_file": "D:/Codex/shared-evaluation-20261107/work/runtime.ext4",
+    "stack": "ext4 over loop over 9p/NTFS",
+    "mount_options_verified_before_remount": "rw,noatime",
+    "direct_io_enabled_after_abort": true,
+    "direct_io_verified_value": 1,
+    "verification_command": "/usr/sbin/losetup --list --output NAME,DIO,BACK-FILE /dev/loop0",
+    "independent_verification_at_utc": "2026-11-07T21:30:50Z"
+  },
+  "repair": {
+    "classification": "infrastructure repair; no architecture-gate conclusion",
+    "actions_reported": [
+      "Enable direct I/O on the task-owned loop device and verify DIO=1.",
+      "After the separate flag probe terminated, unmount and remount only the task filesystem to release its retained caches.",
+      "An attempted mount with a direct-io option failed; mount was corrected and direct I/O was enabled through losetup.",
+      "Verify DIO=1 again after the successful remount."
+    ],
+    "task_mount": "/mnt/shared-evaluation-20261107",
+    "global_cache_drop_performed": false,
+    "user_global_configuration_changed": false,
+    "data_loss_observed": false,
+    "post_remount_memory_observations": {
+      "units": "Linux meminfo kB (KiB)",
+      "buffers_before": 3944548,
+      "buffers_after": 3444,
+      "cached_before": 7772884,
+      "cached_after": 182164,
+      "mem_free_after_approximate": 17350000,
+      "observation_source": "Coordinator's before/after task-only remount observations"
+    },
+    "next_protocol_requirement": "Use fresh run IDs and the same repaired storage setup for all matched arms. Preserve this aborted attempt separately."
+  },
+  "causal_limit": "The observations are consistent with substantial filesystem-cache residency, but neither the unique cause of host pressure nor a benefit from direct I/O has been established by a controlled comparison. Earlier and repaired storage runs must not be pooled automatically.",
+  "preservation": "Original preparation logs and provenance remain in the runtime run directory. This record is additional metadata, not a fabricated report.json or a measured-phase result."
+}
