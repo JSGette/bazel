@@ -1,7 +1,7 @@
-# M1 probe design: test JVM hosting before shared evaluation
+# M1 probe design: test the existing native mode before shared evaluation
 
 Status: design only; M0 has not passed. Implementation remains gated on the baseline results.
-The unmeasured hypothesis is that much of restarted-cohort CPU comes from JVM startup, class loading and JIT compilation. One JVM hosting private engines might meet the gates without sharing their graphs. Measure that cheaper alternative first; do not infer it from current timings.
+The unmeasured hypothesis is that much of restarted-cohort CPU comes from JVM startup, class loading and JIT compilation. One JVM hosting private engines might meet the gates without sharing their graphs. Measure the existing native mode as a cheaper alternative first; do not infer its benefit from current timings. The [source preflight](m1-native-preflight.md) establishes that native mode also changes modules, interner policy, metrics and action coalescing. This is a comparison of that combined implementation with private daemons, not an isolated measurement of JVM hosting.
 
 ## 1. Comparator and bounded admission experiment
 
@@ -32,7 +32,7 @@ Mirror native effective policy in the same-fork private control, including sandb
 
 Run restarted engines with prepared caches and warm persistent engines separately. Retain executable hashes and behavior oracles for every worktree. Measure cohort CPU, daemon PSS and wall time with the existing outer accounting. Native mode disables global JSON profiles (`BlazeCommandDispatcher.java:984–1008`): explicitly mark them unavailable and use BEP plus external counters in both arms. Adapt harness PID accounting to expect one native daemon, without accepting missing engines; verify every engine's PID/output-base mapping.
 
-**Decision:** if hosting alone meets the later CPU/RAM targets with output isolation intact, prioritize hosting/resource scheduling. Otherwise proceed to traces to identify the remaining evaluator opportunity. Neither outcome is established yet.
+**Decision:** if the native implementation meets the later CPU/RAM targets with output isolation intact, prioritize that smaller implementation and its resource scheduling. Report the remaining policy differences rather than attributing the gain solely to JVM hosting. Otherwise proceed to traces to identify the remaining evaluator opportunity. Neither outcome is established yet.
 
 ## 2. Opt-in, per-engine evaluator traces
 
