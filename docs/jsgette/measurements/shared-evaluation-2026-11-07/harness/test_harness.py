@@ -214,6 +214,80 @@ class AccountingTests(TemporaryFiles):
                 self.assertEqual(result["engine_membership_verified"], expected)
 
 
+class SerialPreparationTests(TemporaryFiles):
+    def test_serial_preparation_stops_each_daemon_and_measured_cohort_keeps_ten(self):
+        args = SimpleNamespace(require_cgroup=True, clients=10, sample_interval=0.01)
+        rows = [{"index": index} for index in range(10)]
+        events, sampled_counts = [], []
+
+        def sampler(bases, interval, required):
+            sampled_counts.append(len(bases))
+            return SimpleNamespace(start=lambda: None, finish=lambda: {
+                "engine_membership_verified": True, "engine_expected_count": len(bases),
+                "engine_sampled_peak_pss_bytes": 100, "samples": []})
+
+        def build(args, run, row, phase, env, oracles):
+            events.append((phase, row["index"]))
+            return {"index": row["index"], "exit_code": 0, "bep": {"finished": True}}
+
+        def shutdown(args, run, rows, env, phase):
+            events.extend((phase, row["index"]) for row in rows)
+            return [{"exit_code": 0} for row in rows]
+
+        with patch.object(baseline, "Sampler", side_effect=sampler), patch.object(
+                baseline, "build", side_effect=build), patch.object(
+                baseline, "shutdown", side_effect=shutdown), patch.object(
+                baseline, "cgroup_path", return_value=Path("/fake.scope")), patch.object(
+                baseline, "cgroup_cpu", side_effect=[1000000, 4000000]), patch.object(
+                baseline, "read_number", return_value=500):
+            prepared = baseline.serial_restart_preparation(args, self.root, rows, {}, {})
+            measured = baseline.cohort(args, self.root, rows, "measured", {}, {})
+        self.assertEqual(events[:20], [(phase, index) for index in range(10)
+                                      for phase in ("preparation", "restart-shutdown")])
+        self.assertEqual(sampled_counts, [1] * 10 + [10])
+        self.assertTrue(prepared["passed"])
+        self.assertTrue(measured["passed"])
+        self.assertEqual(prepared["resources"]["scope_cpu_seconds"], 3)
+        self.assertEqual(prepared["resources"]["scope_lifetime_peak_bytes"], 500)
+        self.assertEqual(len(prepared["results"]), 10)
+        self.assertEqual(len(prepared["shutdown"]), 10)
+        self.assertEqual(len(list(self.root.glob("preparation-c*-resources.json"))), 10)
+        self.assertTrue((self.root / "measured-resources.json").is_file())
+        self.assertTrue((self.root / "serial-preparation.json").is_file())
+
+    def test_failure_stops_preparation_and_still_shuts_down_current_daemon(self):
+        args = SimpleNamespace(require_cgroup=True, clients=10, sample_interval=0.01)
+        for name, build_result, shutdown_result in (
+                ("build", {"passed": False, "accounting_passed": True, "results": []}, [{"exit_code": 0}]),
+                ("shutdown", {"passed": True, "accounting_passed": True, "results": []}, [{"exit_code": 1}]),
+                ("exception", RuntimeError("build raised"), [{"exit_code": 0}])):
+            with self.subTest(failure=name):
+                run = self.root / name
+                run.mkdir()
+                with patch.object(baseline, "cohort", side_effect=[build_result]) as build, patch.object(
+                        baseline, "shutdown", return_value=shutdown_result) as shutdown, patch.object(
+                        baseline, "cgroup_path", return_value=None):
+                    result = baseline.serial_restart_preparation(
+                        args, run, [{"index": 0}, {"index": 1}], {}, {})
+                self.assertFalse(result["passed"])
+                self.assertEqual(build.call_count, 1)
+                self.assertEqual(shutdown.call_count, 1)
+                self.assertEqual(shutdown.call_args.args[2], [{"index": 0}])
+
+    def test_serial_preparation_rejected_for_other_cache_states(self):
+        for state in ("cold", "warm"):
+            argv = ["baseline.py", "--root", str(self.root), "--mode", "vanilla",
+                    "--binary", str(self.root / "binary"), "--fresh-caches", "--run-id", "invalid",
+                    "--cache-state", state, "--serial-restart-preparation"]
+            with self.subTest(state=state), patch.object(sys, "argv", argv), patch.object(
+                    sys, "platform", "linux"), patch("sys.stderr"), patch.object(
+                    baseline, "cohort") as build:
+                with self.assertRaises(SystemExit) as raised:
+                    baseline.main()
+                self.assertEqual(raised.exception.code, 2)
+                build.assert_not_called()
+
+
 class OracleRejectionTests(TemporaryFiles):
     def test_missing_configuration_oracle_rejected_before_any_build(self):
         workspace = self.root / "workspace"

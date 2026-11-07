@@ -386,7 +386,7 @@ def shutdown(args, run, rows, env, phase):
     return results
 
 
-def cohort(args, run, rows, phase, env, oracles):
+def cohort(args, run, rows, phase, env, oracles, resource_name=None):
     sampler = Sampler([run / ("o%02d" % r["index"]) for r in rows], args.sample_interval,
                       args.require_cgroup)
     sampler.start()
@@ -399,13 +399,53 @@ def cohort(args, run, rows, phase, env, oracles):
                 results.append(future.result())
     finally:
         resources = sampler.finish()
-        fixture.save_new(run / (phase + "-resources.json"), resources)
+        fixture.save_new(run / ((resource_name or phase) + "-resources.json"), resources)
     accounting_passed = (not args.require_cgroup or resources["engine_membership_verified"] is True)
     return {"wall_seconds": time.monotonic() - start, "results": results,
             "resources": {k: v for k, v in resources.items() if k != "samples"},
             "accounting_passed": accounting_passed,
             "passed": accounting_passed and all(not r["exit_code"] and not r.get("correctness_failure")
                           and r["bep"]["finished"] for r in results)}
+
+
+def serial_restart_preparation(args, run, rows, env, oracles):
+    """Prepare one output base at a time, stopping its daemon before the next build."""
+    start = time.monotonic()
+    group = cgroup_path()
+    cpu_before = cgroup_cpu(group) if group else None
+    result = {"protocol": "serial-build-then-shutdown", "client_cohorts": [],
+              "results": [], "shutdown": [], "passed": False}
+    try:
+        for row in rows:
+            try:
+                member = cohort(args, run, [row], "preparation", env, oracles,
+                                resource_name="preparation-c%02d" % row["index"])
+                result["client_cohorts"].append(member)
+                result["results"].extend(member["results"])
+            finally:
+                stopped = shutdown(args, run, [row], env, "restart-shutdown")
+                result["shutdown"].extend(stopped)
+            if not member["passed"] or any(r["exit_code"] for r in stopped):
+                break
+        result["accounting_passed"] = all(
+            member["accounting_passed"] for member in result["client_cohorts"])
+        result["passed"] = (len(result["client_cohorts"]) == len(rows)
+                            and all(member["passed"] for member in result["client_cohorts"])
+                            and all(not r["exit_code"] for r in result["shutdown"]))
+    except Exception as error:
+        result["error"] = type(error).__name__ + ": " + str(error)
+    finally:
+        cpu_after = cgroup_cpu(group) if group else None
+        result["wall_seconds"] = time.monotonic() - start
+        result["resources"] = {
+            "scope_cpu_seconds": ((cpu_after - cpu_before) / 1e6
+                                  if cpu_before is not None and cpu_after is not None else None),
+            "scope_lifetime_peak_bytes": read_number(group / "memory.peak") if group else None,
+            "notes": ["Preparation wall time and scope CPU include each immediate shutdown.",
+                      "Per-client sampled memory and engine CPU remain in client_cohorts; peaks are not summed.",
+                      "Scope lifetime peak includes preparation; measured cohort remains fully concurrent."]}
+        fixture.save_new(run / "serial-preparation.json", result)
+    return result
 
 
 def main():
@@ -426,6 +466,8 @@ def main():
     parser.add_argument("--install-root", type=Path,
                         help="Shared output_user_root for extracted installations; defaults to root.parent/install")
     parser.add_argument("--cache-state", choices=("cold", "warm", "restart"), default="cold")
+    parser.add_argument("--serial-restart-preparation", action="store_true",
+                        help="For restart only: prepare and stop each daemon before preparing the next")
     parser.add_argument("--run-id")
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--heap-mb", type=int, default=768)
@@ -451,6 +493,8 @@ def main():
         parser.error("Measurement requires --binary --mode --run-id and --repository-cache or --fresh-caches")
     if args.fresh_caches and any((args.repository_cache, args.disk_cache, args.skycache_root)):
         parser.error("--fresh-caches cannot be combined with explicit cache paths")
+    if args.serial_restart_preparation and args.cache_state != "restart":
+        parser.error("--serial-restart-preparation requires --cache-state=restart")
     if any(value.startswith("--compilation_mode") or value.startswith("-c") and not value.startswith("--")
            for value in args.bazel_arg):
         parser.error("Compilation mode is fixture-controlled; use the config scenario")
@@ -522,6 +566,9 @@ def main():
               "engine_state": {"cold": "cold-engine", "warm": "warm-engine",
                                "restart": "restarted-engine"}[args.cache_state],
               "fresh_caches_requested": args.fresh_caches,
+              "preparation_protocol": ("serial-build-then-shutdown" if args.serial_restart_preparation
+                                       else "concurrent-builds-then-shutdown" if args.cache_state == "restart"
+                                       else "concurrent-builds" if args.cache_state == "warm" else "none"),
               "cache_before": cache_inventory(args),
               "binary": str(args.binary), "binary_sha256": fixture.sha256(args.binary),
               "fixture": manifest, "analysis_only": args.analysis_only,
@@ -542,10 +589,15 @@ def main():
     fixture.save_new(run / "provenance.json", report)
     try:
         if args.cache_state != "cold":
-            report["preparation"] = cohort(args, run, manifest["worktrees"], "preparation", env, oracles)
+            if args.serial_restart_preparation:
+                report["preparation"] = serial_restart_preparation(
+                    args, run, manifest["worktrees"], env, oracles)
+                report["restart_shutdown"] = report["preparation"]["shutdown"]
+            else:
+                report["preparation"] = cohort(args, run, manifest["worktrees"], "preparation", env, oracles)
             if not report["preparation"]["passed"]:
                 raise RuntimeError("Preparation build failed")
-            if args.cache_state == "restart":
+            if args.cache_state == "restart" and not args.serial_restart_preparation:
                 report["restart_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "restart-shutdown")
                 if any(r["exit_code"] for r in report["restart_shutdown"]):
                     raise RuntimeError("Preparation daemon shutdown failed")
