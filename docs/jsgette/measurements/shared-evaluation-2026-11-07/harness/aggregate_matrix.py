@@ -35,6 +35,72 @@ def complete(values):
     return sum(values) if values and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values) else None
 
 
+def concurrency_proof(path, manifest, count, results):
+    """Read selected BEP members from an already hash-verified archive, never runtime paths."""
+    require(all(isinstance(row, dict) for row in results), "Invalid concurrency client records")
+    indices = [row.get("index") for row in results]
+    require(isinstance(count, int) and not isinstance(count, bool) and count > 0,
+            "Invalid concurrency client count")
+    require(all(type(index) is int for index in indices) and sorted(indices) == list(range(count)),
+            "Concurrency proof requires exactly the expected client indices")
+    members = {member["path"]: member for member in manifest["members"]}
+    require(len(members) == len(manifest["members"]), "Duplicate archive manifest members")
+    intervals = []
+    with tarfile.open(path) as archive:
+        names = archive.getnames()
+        for row in sorted(results, key=lambda item: item["index"]):
+            name = "measured/c%02d/bep.jsonl" % row["index"]
+            require(name in members and names.count(name) == 1, "Missing or duplicate BEP member: " + name)
+            info, recorded = archive.getmember(name), members[name]
+            require(info.isfile() and 0 < info.size <= 32 * 1024**2 and info.size == recorded["bytes"],
+                    "Invalid or oversized BEP member: " + name)
+            starts, finishes, size, hasher = [], [], 0, hashlib.sha256()
+            with archive.extractfile(info) as stream:
+                for line in stream:
+                    size += len(line); hasher.update(line)
+                    if not line.strip():
+                        continue
+                    event = json.loads(line)
+                    require(isinstance(event, dict), "Invalid BEP event: " + name)
+                    if "started" in event:
+                        starts.append(event["started"])
+                    if "finished" in event:
+                        finishes.append(event["finished"])
+            require(size == recorded["bytes"] and hasher.hexdigest() == recorded["sha256"],
+                    "BEP member hash mismatch: " + name)
+            require(len(starts) == len(finishes) == 1 and isinstance(starts[0], dict)
+                    and isinstance(finishes[0], dict), "Missing or duplicate BEP start/finish: " + name)
+            start, finish = starts[0], finishes[0]
+            require(start.get("command") == "build" and finish.get("overallSuccess") is True
+                    and isinstance(finish.get("exitCode"), dict)
+                    and finish["exitCode"].get("name") == "SUCCESS", "Unsuccessful BEP build: " + name)
+            build_id = start.get("uuid")
+            require(isinstance(build_id, str) and re.fullmatch(
+                r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", build_id),
+                "Missing or invalid BEP build UUID: " + name)
+            if row.get("workspace") is not None:
+                require(start.get("workspaceDirectory") == row["workspace"], "BEP workspace differs: " + name)
+            timestamps = [start.get("startTimeMillis"), finish.get("finishTimeMillis")]
+            require(all(type(value) is int or isinstance(value, str) and re.fullmatch(r"[0-9]+", value)
+                        for value in timestamps), "Invalid BEP timestamps: " + name)
+            begin, end = map(int, timestamps)
+            require(0 < begin < end, "BEP command lacks a positive interval: " + name)
+            intervals.append({"client_index": row["index"], "build_uuid": build_id.lower(),
+                              "start_time_millis": begin, "finish_time_millis": end,
+                              "bep_member": name, "bep_sha256": recorded["sha256"]})
+    identities = sorted({interval["build_uuid"] for interval in intervals})
+    require(len(identities) == count, "Duplicate BEP build UUIDs across clients")
+    latest_start = max(interval["start_time_millis"] for interval in intervals)
+    earliest_finish = min(interval["finish_time_millis"] for interval in intervals)
+    require(latest_start < earliest_finish, "Measured BEP commands lack simultaneous all-client overlap")
+    return {"verified": True, "expected_clients": count, "unique_build_ids": identities,
+            "maximum_start_time_millis": latest_start, "minimum_finish_time_millis": earliest_finish,
+            "all_clients_overlap_seconds": (earliest_finish - latest_start) / 1000,
+            "start_spread_seconds": (latest_start - min(i["start_time_millis"] for i in intervals)) / 1000,
+            "intervals": intervals,
+            "interpretation": "Overlapping in-flight build commands; not simultaneous CPU-running threads"}
+
+
 def host_budget_evidence(batch, item, matrix, progress):
     if not matrix.get("require_budget_headroom", False):
         return None
@@ -74,6 +140,8 @@ def inspect(batch, item, declared, matrix, progress):
     require(report["measured"]["resources"] == {k: v for k, v in resources.items() if k != "samples"}, "Resource sidecar differs from report")
     coverage = sum(s["engine_pids_sampled"] == count and (s["engine_pss_bytes"] or 0) > 0 for s in resources["samples"])
     require(coverage > 0 and resources["engine_expected_count"] == count, "No complete positive engine PSS sample")
+    concurrency = concurrency_proof(batch / (item["id"] + "-run.tar.gz"), manifest, count,
+                                    report["measured"]["results"])
     require(item["performance_eligible"] == summary["performance_eligible"], "Summary eligibility differs from progress")
     require(summary["performance_eligible"] or (declared["reference"] and all(re.fullmatch(r"digest_oracle_missing_or_failed:\d+", reason) for reason in summary["ineligibility_reasons"])), "Correctness/eligibility checks incomplete")
     scalar = lambda group, key: summary.get(group, {}).get(key, {}).get("complete_sum")
@@ -90,7 +158,7 @@ def inspect(batch, item, declared, matrix, progress):
     require(not report.get("output_base_root") or (binding and digest(json.dumps(binding, sort_keys=True).encode()) == report["output_base_pool_binding_sha256"]), "Pool binding evidence missing or changed")
     protocol.update(caps=caps, selected_flags=flags, common_flags=common_flags, extra_bazel_arguments=report.get("extra_bazel_arguments", []), resource_binding=(binding or {}).get("resource_flags"), host_budget_preflight=host_budget_evidence(batch, item, matrix, progress))
     source = {k: report["fixture"].get(k) for k in ("source_revision", "projection_archive_sha256", "private_tree", "target")}
-    return {"id": item["id"], "status": "verified", "mode": report["mode"], "state": declared["state"], "scenario": fixture["scenario"], "clients": count, "reference": declared["reference"], "eligible": summary["performance_eligible"] and not declared["reference"], "ineligibility_reasons": summary["ineligibility_reasons"], "binary_sha256": binary, "report_sha256": item["report_sha256"], "summary_sha256": digest(summary_path.read_bytes()), "archive_sha256": manifest["archive_sha256"], "source": source, "metrics": metrics, "protocol": protocol, "positive_full_engine_samples": coverage, "checked_guard_scope": outcome["scope"], "accounting_verified": True, "cache_counters": counters, "action_summaries": actions, "correctness": [{k: c.get(k) for k in ("index", "behavior_passed", "digest_oracle", "glob_oracle")} for c in summary["clients"]]}
+    return {"id": item["id"], "status": "verified", "mode": report["mode"], "state": declared["state"], "scenario": fixture["scenario"], "clients": count, "reference": declared["reference"], "eligible": summary["performance_eligible"] and not declared["reference"], "ineligibility_reasons": summary["ineligibility_reasons"], "binary_sha256": binary, "report_sha256": item["report_sha256"], "summary_sha256": digest(summary_path.read_bytes()), "archive_sha256": manifest["archive_sha256"], "source": source, "metrics": metrics, "protocol": protocol, "positive_full_engine_samples": coverage, "concurrency_proof": concurrency, "checked_guard_scope": outcome["scope"], "accounting_verified": True, "cache_counters": counters, "action_summaries": actions, "correctness": [{k: c.get(k) for k in ("index", "behavior_passed", "digest_oracle", "glob_oracle")} for c in summary["clients"]]}
 
 
 def snapshot(path):
@@ -105,7 +173,7 @@ def snapshot(path):
         try:
             rows.append(inspect(batch, item, declared, matrix, progress))
         except (OSError, ValueError, KeyError, IndexError, TypeError, tarfile.TarError, zipfile.BadZipFile) as error:
-            rows.append({"id": item["id"], "status": "evidence_error", "error": str(error)})
+            rows.append({"id": item["id"], "status": "evidence_error", "eligible": False, "error": str(error)})
     indexed = {r["id"]: r for r in rows}
     for declared in matrix["rows"]:
         row = indexed[declared["id"]]; reference = indexed.get(declared.get("oracle"), {})
@@ -138,6 +206,14 @@ def markdown(data):
     for row in data["rows"]:
         if row["status"] == "verified":
             lines.append("| " + " | ".join(map(cell, [row["id"]] + [row["metrics"][k] for k in ("analysis_elapsed_s", "execution_elapsed_s", "actions_executed", "action_cache_hits", "action_cache_misses", "internal_runners", "other_runners", "analysis_cache_hits")])) + " |")
+    lines += ["", "| Row | Unique build UUIDs | All-client command overlap s | Start spread s |",
+              "| --- | ---: | ---: | ---: |"]
+    for row in data["rows"]:
+        if row["status"] == "verified":
+            proof = row["concurrency_proof"]
+            lines.append("| " + " | ".join(map(cell, [row["id"], len(proof["unique_build_ids"]),
+                proof["all_clients_overlap_seconds"], proof["start_spread_seconds"]])) + " |")
+    lines += ["", "Overlap uses hash-verified measured BEP start/finish timestamps, not daemon presence. It proves concurrent in-flight commands, not simultaneous CPU-running threads."]
     for title, records in (("Same-binary on/off anchors", data["candidate_on_off"]), ("N1 to N10 scaling", data["n1_n10_scaling"])):
         lines += ["", "## " + title, "", "```json", json.dumps(records, indent=2), "```"]
     lines += ["", "## Missing, active or failed rows", ""] + ["- " + r["id"] + ": " + r["status"] + (" — " + r["error"] if r.get("error") else "") for r in data["rows"] if r["status"] != "verified"]

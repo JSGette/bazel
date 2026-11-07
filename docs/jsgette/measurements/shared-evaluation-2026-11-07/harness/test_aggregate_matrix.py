@@ -1,7 +1,9 @@
 """Tiny synthetic evidence checks; no Bazel or runtime access."""
 import copy
+import io
 import json
 from pathlib import Path
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -16,7 +18,27 @@ class AggregateTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
+    def bep_archive(self, intervals, duplicate_uuid=False, missing_finish=False):
+        path = self.root / "off-run.tar.gz"
+        manifest, results = {"members": []}, []
+        with tarfile.open(path, "w:gz") as archive:
+            for index, (begin, end) in enumerate(intervals):
+                workspace = "/fixture/w%02d" % index
+                events = [{"started": {"command": "build", "uuid": "00000000-0000-0000-0000-%012d" % (0 if duplicate_uuid else index),
+                                        "workspaceDirectory": workspace, "startTimeMillis": str(begin)}}]
+                if not missing_finish:
+                    events.append({"finished": {"overallSuccess": True, "exitCode": {"name": "SUCCESS"},
+                                                 "finishTimeMillis": str(end)}})
+                raw = ("\n".join(json.dumps(event) for event in events) + "\n").encode()
+                name = "measured/c%02d/bep.jsonl" % index
+                info = tarfile.TarInfo(name); info.size = len(raw)
+                archive.addfile(info, io.BytesIO(raw))
+                manifest["members"].append({"path": name, "bytes": len(raw), "sha256": aggregate.digest(raw)})
+                results.append({"index": index, "workspace": workspace})
+        return path, manifest, results
+
     def fixture(self):
+        _, bep_manifest, client_rows = self.bep_archive([(1000, 2000)])
         caps = {"memory_max_mib": 10240, "cpu_quota_percent": 600}
         resources = {"cgroup": "/sys/fs/cgroup/run.scope", "cgroup_accounted": True,
                      "engine_membership_verified": True, "engine_expected_count": 1,
@@ -31,7 +53,7 @@ class AggregateTests(unittest.TestCase):
                   "harness_sha256": {"baseline.py": "harness"}, "fixture": {"clients": 1, "scenario": "identical"},
                   "passed": True, "measured": {"passed": True, "accounting_passed": True,
                       "resources": {k: v for k, v in resources.items() if k != "samples"},
-                      "results": [{"bep": {"build_metrics": metrics}}]}}
+                      "results": [{**client_rows[0], "bep": {"build_metrics": metrics}}]}}
         summary = {"report_sha256": "report", "performance_eligible": True, "ineligibility_reasons": [],
                    "cohort_wall_seconds": 4, "clients": [{"index": 0, "remote_analysis_cache_counters": {},
                        "skycache_counters": {}, "command": {"selected_flags": []}}]}
@@ -41,7 +63,7 @@ class AggregateTests(unittest.TestCase):
         item = {"id": "off", "report_sha256": "report", "archive_sha256": "archive", "performance_eligible": True}
         declared = {"fixture": "fixture", "mode": "candidate-off", "state": "restart", "reference": False}
         archive = ({"report.json": report, "measured-resources.json": resources},
-                   {"archive_sha256": "archive", "members": [{"path": "report.json", "sha256": "report"}]})
+                   {"archive_sha256": "archive", "members": [{"path": "report.json", "sha256": "report"}] + bep_manifest["members"]})
         guard = ({"policy.json": caps, "result.json": {"status": "completed", "exit_code": 0,
                   "final_scope_cleanup": {"verified": True}, "scope": {"unit": "run.scope"}}}, {})
         return (item, declared, matrix, caps), [archive, guard]
@@ -51,6 +73,64 @@ class AggregateTests(unittest.TestCase):
         with patch.object(aggregate, "packed", side_effect=packed):
             row = aggregate.inspect(self.root, *args)
         self.assertEqual([row["metrics"][k] for k in ("graph_nodes", "targets_configured", "action_cache_hits", "action_cache_misses", "internal_runners", "other_runners")], [6, 7, 23, 1, 1, 0])
+        self.assertEqual(row["concurrency_proof"]["all_clients_overlap_seconds"], 1)
+
+    def test_ten_client_overlap_records_exact_intersection_and_start_spread(self):
+        path, manifest, results = self.bep_archive([(1000 + i, 2000 + i) for i in range(10)])
+        proof = aggregate.concurrency_proof(path, manifest, 10, results)
+        self.assertEqual(proof["maximum_start_time_millis"], 1009)
+        self.assertEqual(proof["minimum_finish_time_millis"], 2000)
+        self.assertEqual(proof["all_clients_overlap_seconds"], .991)
+        self.assertEqual(proof["start_spread_seconds"], .009)
+        self.assertEqual(len(proof["unique_build_ids"]), 10)
+
+    def test_serial_commands_fail_even_when_all_ten_daemons_have_positive_pss(self):
+        args, packed = self.fixture()
+        _, manifest, results = self.bep_archive([(1000 + i * 2000, 2000 + i * 2000) for i in range(10)])
+        report, resources = packed[0][0]["report.json"], packed[0][0]["measured-resources.json"]
+        resources["engine_expected_count"] = 10
+        resources["samples"][0]["engine_pids_sampled"] = 10
+        report["measured"]["resources"] = {k: v for k, v in resources.items() if k != "samples"}
+        report["measured"]["results"] = results
+        report["fixture"]["clients"] = args[2]["fixtures"]["fixture"]["clients"] = 10
+        packed[0][1]["members"] = packed[0][1]["members"][:1] + manifest["members"]
+        with patch.object(aggregate, "packed", side_effect=packed), self.assertRaisesRegex(ValueError, "all-client overlap"):
+            aggregate.inspect(self.root, *args)
+
+    def test_duplicate_uuid_and_corrupt_bep_member_are_rejected(self):
+        path, manifest, results = self.bep_archive([(1000, 2000), (1001, 2001)], duplicate_uuid=True)
+        with self.assertRaisesRegex(ValueError, "Duplicate BEP build UUIDs"):
+            aggregate.concurrency_proof(path, manifest, 2, results)
+        path, manifest, results = self.bep_archive([(1000, 2000)])
+        manifest["members"][0]["sha256"] = "wrong"
+        with self.assertRaisesRegex(ValueError, "BEP member hash mismatch"):
+            aggregate.concurrency_proof(path, manifest, 1, results)
+
+    def test_missing_finish_and_nonpositive_single_client_interval_are_rejected(self):
+        path, manifest, results = self.bep_archive([(1000, 2000)], missing_finish=True)
+        with self.assertRaisesRegex(ValueError, "BEP start/finish"):
+            aggregate.concurrency_proof(path, manifest, 1, results)
+        path, manifest, results = self.bep_archive([(1000, 1000)])
+        with self.assertRaisesRegex(ValueError, "positive interval"):
+            aggregate.concurrency_proof(path, manifest, 1, results)
+
+    def test_missing_member_is_rejected(self):
+        path, manifest, results = self.bep_archive([(1000, 2000)])
+        manifest["members"] = []
+        with self.assertRaisesRegex(ValueError, "Missing or duplicate BEP member"):
+            aggregate.concurrency_proof(path, manifest, 1, results)
+
+    def test_failed_concurrency_proof_becomes_ineligible_evidence_error(self):
+        raw = json.dumps({"rows": [{"id": "off"}]}).encode()
+        (self.root / "matrix.json").write_bytes(raw)
+        path = self.root / "matrix-progress.json"
+        path.write_text(json.dumps({"manifest_sha256": aggregate.digest(raw), "status": "completed",
+                                    "rows": [{"id": "off", "status": "checked_and_archived"}]}))
+        with patch.object(aggregate, "inspect", side_effect=ValueError("Missing BEP concurrency proof")):
+            result = aggregate.snapshot(path)
+        self.assertEqual(result["rows"][0]["status"], "evidence_error")
+        self.assertFalse(result["rows"][0]["eligible"])
+        self.assertEqual(result["coverage"], "partial")
 
     def test_unrelated_successful_guard_cannot_attest_report(self):
         args, packed = self.fixture()
