@@ -1,0 +1,2541 @@
+{
+  "automatic_timing_comparisons": false,
+  "discovery_errors": [],
+  "excluded": [],
+  "generated_at_utc": "2026-11-07T23:36:07.388830+00:00",
+  "harness_variants": {
+    "3f8e03ba3a2890e47c4b3d5acd447b37b5d0c5a886b5444aed0bfeeee1ff0e12": {
+      "baseline.py": "f418157ada895e181f75c43cd4c7c05e69077598013b9097420f650fa6c6f906",
+      "fixture.py": "2de503bc8d4b5e7e1817b5a73e9bb78c1d7bacc56f5ae19847b8f686ebaff78a",
+      "output_bases.py": "d63dd9b7ba66cb88b5abcf914e835a8a2bf0bad9e6aa94f6203ab884caa3bbae"
+    }
+  },
+  "milestone_verdict": "not_assessed",
+  "multiple_harness_versions": false,
+  "notes": [
+    "This summary does not decide or pass M0 or any later milestone.",
+    "Cold-engine means new output bases; repository, action, and SkyCache contents may remain warm.",
+    "Warm uses a prior preparation build; restart stops its daemons but retains that output-base state.",
+    "BEP analysis/execution sums are sums of per-client elapsed durations, not CPU; phases may overlap.",
+    "Action CPU includes only explicitly reported user/system durations and is not whole-build CPU.",
+    "Cgroup CPU includes harness, clients, daemons, and descendants; engine CPU is sampled daemon ticks.",
+    "Engine PSS excludes clients and compiler workers; sampled peaks may miss short-lived maxima.",
+    "Scope memory is charged bytes including page cache; first-touch ownership can bias run order.",
+    "Scope lifetime memory peak includes preparation; component peaks are non-simultaneous and must not be added.",
+    "Profile span sums can overlap and nest across threads; they are not CPU or critical-path estimates.",
+    "No cross-run timing averages, speedups, or conclusions are computed. Review provenance before comparison."
+  ],
+  "provenance_strata": {
+    "29c22fa7653a5c7bf8ba17b91c7a80666eadc5bf4c4c3d20cb8581435dbef638": [
+      "m0-v7b-01-i10-vanilla-r"
+    ]
+  },
+  "runs": [
+    {
+      "action_count_sums": {
+        "actionsCreated": {
+          "complete_sum": 700,
+          "expected": 10,
+          "reported": 10,
+          "sum": 700
+        },
+        "actionsCreatedNotIncludingAspects": {
+          "complete_sum": 690,
+          "expected": 10,
+          "reported": 10,
+          "sum": 690
+        },
+        "actionsExecuted": {
+          "complete_sum": 10,
+          "expected": 10,
+          "reported": 10,
+          "sum": 10
+        }
+      },
+      "action_reported_system_seconds_sum": {
+        "complete_sum": null,
+        "expected": 10,
+        "reported": 0,
+        "sum": null
+      },
+      "action_reported_user_seconds_sum": {
+        "complete_sum": null,
+        "expected": 10,
+        "reported": 0,
+        "sum": null
+      },
+      "analysis_only": false,
+      "cache_classes_before_measured": {
+        "disk": "populated",
+        "repository": "populated",
+        "skycache": "disabled",
+        "skycache_publications": "unknown"
+      },
+      "cache_classification": "restarted-engine; prepared output-base/cache state retained; repo=populated, action=populated, analysis=disabled",
+      "cache_inventories": {
+        "cache_after": {
+          "disk": {
+            "directories_observed": 234,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 238672384,
+            "files_observed": 434,
+            "path": "/mnt/shared-evaluation-20261107/actions",
+            "symlinks_observed": 0,
+            "truncated": false
+          },
+          "repository": {
+            "directories_observed": 1657,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 926514,
+            "files_observed": 391,
+            "path": "/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "symlinks_observed": 0,
+            "truncated": true
+          },
+          "skycache": {
+            "enabled": false
+          },
+          "skycache_publications": null
+        },
+        "cache_before": {
+          "disk": {
+            "directories_observed": 234,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 238672384,
+            "files_observed": 434,
+            "path": "/mnt/shared-evaluation-20261107/actions",
+            "symlinks_observed": 0,
+            "truncated": false
+          },
+          "repository": {
+            "directories_observed": 1657,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 926514,
+            "files_observed": 391,
+            "path": "/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "symlinks_observed": 0,
+            "truncated": true
+          },
+          "skycache": {
+            "enabled": false
+          },
+          "skycache_publications": null
+        },
+        "cache_before_measured": {
+          "disk": {
+            "directories_observed": 234,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 238672384,
+            "files_observed": 434,
+            "path": "/mnt/shared-evaluation-20261107/actions",
+            "symlinks_observed": 0,
+            "truncated": false
+          },
+          "repository": {
+            "directories_observed": 1657,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 926514,
+            "files_observed": 391,
+            "path": "/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "symlinks_observed": 0,
+            "truncated": true
+          },
+          "skycache": {
+            "enabled": false
+          },
+          "skycache_publications": null
+        }
+      },
+      "cache_notes": [
+        "Caller-supplied repository/disk caches may be warm.",
+        "Disjoint edits preserve runtime behavior; binary digest equality is measured, not presumed.",
+        "A fresh systemd scope is required for complete aggregate accounting.",
+        "Pool binding excludes the full environment digest because launcher variables vary. Environment changes may invalidate Bazel state; performance comparisons must inspect per-run provenance."
+      ],
+      "cache_state": "restart",
+      "cleanup_error": null,
+      "client_elapsed_sums": {
+        "analysis_elapsed_seconds": {
+          "complete_sum": 289.223,
+          "expected": 10,
+          "reported": 10,
+          "sum": 289.223
+        },
+        "bep_cpu_seconds": {
+          "complete_sum": 254.96,
+          "expected": 10,
+          "reported": 10,
+          "sum": 254.96
+        },
+        "bep_wall_seconds": {
+          "complete_sum": 497.878,
+          "expected": 10,
+          "reported": 10,
+          "sum": 497.878
+        },
+        "execution_elapsed_seconds": {
+          "complete_sum": 9.402,
+          "expected": 10,
+          "reported": 10,
+          "sum": 9.402
+        }
+      },
+      "clients": [
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 27.69,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 24.27,
+          "bep_finished": true,
+          "bep_wall_seconds": 50.995,
+          "client_wall_seconds": 51.07331943999998,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c00/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "6737a430e31c4f4cb3297e064addff20e8327d6e424cf0b05db59a20395db7f7"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 0.269,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 0,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 18253
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 29.694,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 24.42,
+          "bep_finished": true,
+          "bep_wall_seconds": 50.053,
+          "client_wall_seconds": 50.32074539399946,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c01/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "7a2c7bdbd96ae007d7a7a0bf978a3453e1e6d56bb6c55403a0212bfb01ed1159"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 0.805,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 1,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 18103
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 30.093,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 26.53,
+          "bep_finished": true,
+          "bep_wall_seconds": 49.226,
+          "client_wall_seconds": 49.71838009500061,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c02/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "ae1c8bd80f8f8c27c3a20e9691260a113d7051c0e2f808c3a20dbfeaee0e4e30"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 1.295,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 2,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 17741
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 28.795,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 25.23,
+          "bep_finished": true,
+          "bep_wall_seconds": 50.527,
+          "client_wall_seconds": 50.667811407000045,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c03/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "5eb58060b88b30ea6baefb466f964add543575384392ec71b55b099e571bb099"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 0.593,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 3,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 18258
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 28.132,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 24.9,
+          "bep_finished": true,
+          "bep_wall_seconds": 51.001,
+          "client_wall_seconds": 51.07098706400029,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c04/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "4fd29357d47b234606af7612f01ad28f5276d82ff3978c3aee0f706cc332701e"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 0.337,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 4,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 17720
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 29.912,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 26.88,
+          "bep_finished": true,
+          "bep_wall_seconds": 49.505,
+          "client_wall_seconds": 49.9165345349993,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c05/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "7eeb5618e750568c2cd111b1a4fbb5b179bb8b6a4b967e3c92fc3a5349440861"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 1.206,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 5,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 17491
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 29.905,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 27.78,
+          "bep_finished": true,
+          "bep_wall_seconds": 48.407,
+          "client_wall_seconds": 48.96755194800062,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c06/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "348d2b164b70168b1fb38da1658460f4626b33d264f1c8c11a5171995a59907e"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 1.506,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 6,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 18186
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 28.601,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 25.5,
+          "bep_finished": true,
+          "bep_wall_seconds": 49.33,
+          "client_wall_seconds": 49.81484652200015,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c07/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "faf3e29bd329b1e58c2b9bc3d832ac95c9287fd76e568c8c1d9fea07ed57d40d"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 1.309,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 7,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 18333
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 28.012,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 24.97,
+          "bep_finished": true,
+          "bep_wall_seconds": 50.53,
+          "client_wall_seconds": 50.765251390999765,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c08/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "0ece67e8a7bf1b4a5a6d8a25b2a7fd8d47e63d7bd16a2cec3c1f83b8cabd7335"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 0.677,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 8,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 17397
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        },
+        {
+          "action_counts": {
+            "actionsCreated": 70,
+            "actionsCreatedNotIncludingAspects": 69,
+            "actionsExecuted": 1
+          },
+          "action_cpu": {
+            "interpretation": "Reported subset only; missing duration is unknown, not zero",
+            "reported_mnemonics": [
+              {
+                "actions_executed": 1,
+                "mnemonic": "BazelWorkspaceStatusAction",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "TranslateBuildInfo",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlibList",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RepoMappingManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "FileWrite",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoLink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoStdlib",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SymlinkTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "Symlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoToolchainBinaryBuild",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "SourceSymlinkManifest",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "GoCompilePkg",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "RunfilesTree",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              },
+              {
+                "actions_executed": null,
+                "mnemonic": "ExecutableSymlink",
+                "system_seconds": null,
+                "user_plus_system_seconds": null,
+                "user_seconds": null
+              }
+            ],
+            "system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_plus_system_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            },
+            "user_seconds": {
+              "complete_sum": null,
+              "expected": 14,
+              "reported": 0,
+              "sum": null
+            }
+          },
+          "analysis_elapsed_seconds": 28.389,
+          "behavior_passed": true,
+          "bep_cpu_seconds": 24.48,
+          "bep_finished": true,
+          "bep_wall_seconds": 48.304,
+          "client_wall_seconds": 48.81201513000087,
+          "command": {
+            "available": true,
+            "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/measured/c09/command.json",
+            "selected_flags": [
+              "--host_jvm_args=-Xmx768m",
+              "--host_jvm_args=-XX:ActiveProcessorCount=2",
+              "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+              "--compilation_mode=fastbuild",
+              "--jobs=2",
+              "--loading_phase_threads=2",
+              "--local_resources=cpu=2",
+              "--local_resources=memory=2048",
+              "--worker_max_instances=1",
+              "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+              "--remote_cache=",
+              "--remote_executor=",
+              "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+              "--lockfile_mode=off"
+            ],
+            "sha256": "00fe84502b1c0073a25697ddc8799c52fdbbf227c5f02b88b048daea36023133"
+          },
+          "compilation_mode": "fastbuild",
+          "correctness_failure": null,
+          "digest_oracle": {
+            "available": true,
+            "matches": true
+          },
+          "execution_elapsed_seconds": 1.405,
+          "exit_code": 0,
+          "glob_oracle": null,
+          "graph_counts": {
+            "actionCount": 66,
+            "actionCountNotIncludingAspects": 65,
+            "actionLookupValueCount": 8930,
+            "actionLookupValueCountNotIncludingAspects": 8929,
+            "inputFileConfiguredTargetCount": 8682,
+            "otherConfiguredTargetCount": 12,
+            "outputArtifactCount": 87,
+            "outputFileConfiguredTargetCount": 1,
+            "postInvocationSkyframeNodeCount": 63236
+          },
+          "index": 9,
+          "oracle_key": "base|fastbuild",
+          "output_sha256": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0",
+          "package_metrics": {
+            "packagesLoaded": 183
+          },
+          "remote_analysis_cache_counters": {},
+          "selected_skyfunction_counts": {
+            "builtValues": {
+              "ACTION_EXECUTION": 24,
+              "BUILD_CONFIGURATION": 7,
+              "BUILD_CONFIGURATION_KEY": 6,
+              "CONFIGURED_TARGET": 14874
+            },
+            "evaluatedValues": {
+              "ACTION_EXECUTION": 44,
+              "BUILD_CONFIGURATION": 10,
+              "BUILD_CONFIGURATION_KEY": 8,
+              "CONFIGURED_TARGET": 17403
+            }
+          },
+          "skycache_counters": {},
+          "target_metrics": {
+            "targetsConfigured": 14709,
+            "targetsConfiguredNotIncludingAspects": 14708
+          },
+          "timed_out": false,
+          "variant": "base"
+        }
+      ],
+      "clients_expected": 10,
+      "cohort_wall_seconds": 51.113603075000356,
+      "compilation_mode_counts": {
+        "fastbuild": 10
+      },
+      "environment_digest": "b89dea82b7c5320b676a168bc4f0184d043e3bd5e89c1ac1411cacc0eab0bfbd",
+      "error": null,
+      "fresh_caches_requested": false,
+      "graph_count_sums": {
+        "actionCount": {
+          "complete_sum": 660,
+          "expected": 10,
+          "reported": 10,
+          "sum": 660
+        },
+        "actionCountNotIncludingAspects": {
+          "complete_sum": 650,
+          "expected": 10,
+          "reported": 10,
+          "sum": 650
+        },
+        "actionLookupValueCount": {
+          "complete_sum": 89300,
+          "expected": 10,
+          "reported": 10,
+          "sum": 89300
+        },
+        "actionLookupValueCountNotIncludingAspects": {
+          "complete_sum": 89290,
+          "expected": 10,
+          "reported": 10,
+          "sum": 89290
+        },
+        "inputFileConfiguredTargetCount": {
+          "complete_sum": 86820,
+          "expected": 10,
+          "reported": 10,
+          "sum": 86820
+        },
+        "otherConfiguredTargetCount": {
+          "complete_sum": 120,
+          "expected": 10,
+          "reported": 10,
+          "sum": 120
+        },
+        "outputArtifactCount": {
+          "complete_sum": 870,
+          "expected": 10,
+          "reported": 10,
+          "sum": 870
+        },
+        "outputFileConfiguredTargetCount": {
+          "complete_sum": 10,
+          "expected": 10,
+          "reported": 10,
+          "sum": 10
+        },
+        "postInvocationSkyframeNodeCount": {
+          "complete_sum": 632360,
+          "expected": 10,
+          "reported": 10,
+          "sum": 632360
+        }
+      },
+      "ineligibility_reasons": [],
+      "measured_passed": true,
+      "mode": "vanilla",
+      "oracle_provenance": {
+        "path": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-ref/report.json",
+        "sha256": "7e6b14e43b72e5a762b5956913c6c094999e4227912fa880bf43e87bb226de85",
+        "variant_configuration_digests": {
+          "base|fastbuild": "a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0"
+        },
+        "variant_configuration_inputs": {
+          "base|fastbuild": {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "expected_glob_sources": [],
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          }
+        }
+      },
+      "oracle_provenance_note": "Per-client matching is harness-attested; inspect recorded oracle identity when available",
+      "performance_eligible": true,
+      "provenance": {
+        "analysis_only": false,
+        "binary_sha256": "34a95ea73a865b8382e433ec616369fec24e51e69f7c02c148dd30097dd5863b",
+        "cache_classes": {
+          "disk": "populated",
+          "repository": "populated",
+          "skycache": "disabled",
+          "skycache_publications": "unknown"
+        },
+        "cache_state": "restart",
+        "clients": 10,
+        "extra_bazel_arguments": [],
+        "harness_sha256": {
+          "baseline.py": "f418157ada895e181f75c43cd4c7c05e69077598013b9097420f650fa6c6f906",
+          "fixture.py": "2de503bc8d4b5e7e1817b5a73e9bb78c1d7bacc56f5ae19847b8f686ebaff78a",
+          "output_bases.py": "d63dd9b7ba66cb88b5abcf914e835a8a2bf0bad9e6aa94f6203ab884caa3bbae"
+        },
+        "mode": "vanilla",
+        "private_tree": "80a45a169b4d057558f3f8680dda3366b8d86f15",
+        "projection_archive_sha256": "1108c28516419d55b8445135d42728478d9be14b372fdab3364987289d651b08",
+        "scenario": "identical",
+        "source_revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+        "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd",
+        "worktree_inputs": [
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          },
+          {
+            "build_sha256": "23f33be559003438627cdd7c6476635b4baa1650a25549cc0e4069a71b1e9e67",
+            "changed_file": null,
+            "changed_sha256": null,
+            "compilation_mode": "fastbuild",
+            "extra_targets": [],
+            "source_sha256": "83451eb4e1077350671f48ac8d6e355339ea630dd945c0f19214c6cc73d7e55f",
+            "variant": "base"
+          }
+        ]
+      },
+      "provenance_stratum_sha256": "29c22fa7653a5c7bf8ba17b91c7a80666eadc5bf4c4c3d20cb8581435dbef638",
+      "report": "/mnt/shared-evaluation-20261107/identical-n10-v3/runs/m0-v7b-01-i10-vanilla-r/report.json",
+      "report_passed": true,
+      "report_sha256": "aa19a582ec172f2c38ddbaadd2266b608730333a90f2ed3cae3bf1c4554a241e",
+      "resources": {
+        "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope",
+        "cgroup_accounted": true,
+        "engine_expected_count": 10,
+        "engine_membership_verified": true,
+        "engine_memberships": [
+          [
+            695897,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695898,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695899,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695900,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695901,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695902,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695903,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695904,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695905,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ],
+          [
+            695907,
+            "0::/user.slice/user-1000.slice/user@1000.service/app.slice/shared-eval-guard-m0-v7b-01-i10-vanilla-r-f24e18dd90764afd8c06ec7be8f918be.scope"
+          ]
+        ],
+        "engine_observed_cpu_seconds": 276.82,
+        "engine_observed_output_bases": [
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o00",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o01",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o02",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o03",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o04",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o05",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o06",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o07",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o08",
+          "/mnt/shared-evaluation-20261107/pools/identical-n10-vanilla-v7b/o09"
+        ],
+        "engine_sampled_peak_pss_bytes": 7458814976,
+        "notes": [
+          "Scope CPU includes harness, clients, daemons, and compiler descendants.",
+          "memory.peak covers the whole scope lifetime, including preparation.",
+          "Scope memory is charged bytes, not RSS; shared page-cache first-touch ownership can bias arms.",
+          "memory.stat shmem is a subset of file; component peaks occur at different times and must not be summed.",
+          "Engine PSS excludes clients/compiler workers; sampling can miss short peaks.",
+          "Engine CPU is observed daemon ticks and can miss exited daemons' final ticks."
+        ],
+        "sample_interval_s": 0.1,
+        "scope_charged_memory_stat_peak": {
+          "anon": 7451627520,
+          "file": 794611712,
+          "kernel": 190361600,
+          "shmem": 0,
+          "sock": 352256
+        },
+        "scope_cpu_seconds": 284.467697,
+        "scope_lifetime_peak_bytes": 8448331776,
+        "scope_phase_sampled_peak_bytes": 8428150784
+      },
+      "run_id": "m0-v7b-01-i10-vanilla-r",
+      "scenario": "identical",
+      "source_state_unchanged": true,
+      "target_metric_sums": {
+        "targetsConfigured": {
+          "complete_sum": 147090,
+          "expected": 10,
+          "reported": 10,
+          "sum": 147090
+        },
+        "targetsConfiguredNotIncludingAspects": {
+          "complete_sum": 147080,
+          "expected": 10,
+          "reported": 10,
+          "sum": 147080
+        }
+      },
+      "variant_counts": {
+        "base": 10
+      },
+      "variant_note": "source/build repeat one edit after a base; disjoint edits distinct declared sources; config varies per client; glob adds unique untracked inputs"
+    }
+  ],
+  "schema_version": 1,
+  "summarizer_sha256": "bf84f257821eb04003f427a8b5979ca0ea49dbb10c4f1e261c88fdde57c33269"
+}

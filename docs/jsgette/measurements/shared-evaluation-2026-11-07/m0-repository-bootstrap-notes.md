@@ -44,7 +44,34 @@ This provides a concrete model for **repository execution as a query over explic
 3. **Measure fresh-worktree setup as its own workload.** Use matched 1/2/10-worktree runs with warm download and ordinary action caches but new output bases. Collect repository cache outcomes, repository subprocess CPU/wall, I/O, charged file/anonymous memory, tool hashes, unique tree content and storage extents where measurable. Compare total cohort cost and tail newcomer latency. Keep prepared/restarted results separate; require unchanged output oracles and action counts there.
 4. **Require semantic and publication checks before generalizing.** Relocation with identical logical inputs should reuse the artifact; source/SDK/environment changes must miss when relevant. Test simultaneous newcomers, cancellation and interrupted publication; never expose a partial tree. Only consider shared pending-query work after completed immutable-result reuse is valid. Compare the measured saving and implementation cost with the M1 sharing ceiling before selecting a later architectural experiment.
 
-Protocol: inspected C-backed source, previously fetched pinned Bonanza source, decision records and archived logs only. No runtime-volume reads, builds, source edits, cache changes or gate decisions were made.
+## Follow-up: existing Gazelle host-cache controls
+
+The fixture is Datadog revision `85ad968bca856fa3d4e07b4d8e11961dabe6866f`, whose [module declaration][dd-module] and [lockfile][dd-lock] select Gazelle **0.50.0**; archived c00 profile module names are consistent with this. Inspected upstream tag `v0.50.0`, resolved by `git ls-remote` to **`181c8b6675c21ea85b5c1d6aad47aad9adf0b216`**. The BCR [source metadata][gazelle-source] points to that release and lists only a module-version patch, which was inspected. This is a pinned equivalent-source audit, not a byte comparison with the runtime's extracted Starlark files. The fork's own 0.51.3 dependency is not the benchmark fixture's version.
+
+| Existing control | Verified behavior in Gazelle 0.50.0 |
+| --- | --- |
+| `GO_REPOSITORY_USE_HOST_CACHE=1` | Queries the selected SDK's `go env GOMODCACHE`, `GOPATH` and `GOCACHE`; these replace repository-local defaults in `go.env`. Explicit stable values supplied through `--repo_env` can make these three fields stable. |
+| `GO_REPOSITORY_USE_HOST_MODCACHE=1` | Replaces only the module cache; `GOPATH` and `GOCACHE` remain repository-local unless full host-cache mode is also enabled. |
+| `go_env` attributes | Cannot overwrite keys already generated in `cache_env`, including the default `GOROOT`, `GOCACHE` and `GOPATH`. This is not an alternative direct override for those fields. |
+
+[Cache rule][gazelle-cache] lines 38–85 implement this. `read_go_env` watches the Go executable, calls the `getenv` wrapper to record the requested environment value, then executes `go env`. The [common helpers][gazelle-common] use `ctx.getenv` when available. The [tools rule][gazelle-tools] also declares `GOCACHE`, `GOPATH` and `GO_REPOSITORY_USE_HOST_CACHE` as predeclared inputs, so changing them changes its bucket: compare clients within one matched policy, not baseline and host-cache buckets as if their inputs were identical.
+
+**The host-cache switch alone does not make all of `go.env` portable.** `GOROOT` is still unconditionally `str(ctx.path(go_sdk_label).dirname)`. The fork's label resolution obtains the external repository's logical root; even a contents-cache hit keeps that root under the output base (`RepositoryUtils.getRootedPathFromLabel`:54–71, `PackageLookupFunction`:282–324, `RepositoryFetchFunction.symlinkRepoRoot`:917). No `.realpath` conversion occurs in Gazelle's expression. `--repo_env=GOROOT=...` does not replace the generated field. Stable SDK exposure or a narrow rule adaptation remains necessary if this field prevents whole-repository reuse. This conclusion concerns the inspected fork source, not a separate validation of every M0 binary.
+
+The dependency chain is concrete: tools rule line 46 calls `read_cache_env`; cache helper line 106 calls **`ctx.read(path)`** with default `watch='auto'`; the file is in the other cache repository, so the fork's `readFile`/`maybeWatch` records a `RepoRecordedInput.File`; its marker value is the file-content digest. Candidate validation compares that value against the current file. Thus differing embedded paths are a **sufficient recorded-input mismatch under this code path**. They are not proof of the unique, first, or actual rejection in the archived run, whose marker pair/rejection reason is still missing. [Read/watch implementation][read-watch], [digest comparison][inputs], [candidate validation][fetch].
+
+A cheaper **post-M0 configuration experiment** can therefore test shared Go build/module caches even if tools repositories are regenerated. For a new task-owned, absolute shared directory `S`, apply these build options identically to all clients in that experimental arm:
+
+```text
+--repo_env=GO_REPOSITORY_USE_HOST_CACHE=1
+--repo_env=GOCACHE=S/gocache
+--repo_env=GOPATH=S/gopath
+--repo_env=GOMODCACHE=S/modcache
+```
+
+Replace `S` with the same actual absolute path; this block was not executed. Keep temporary directories invocation-owned and the SDK/source/configuration fixed. Explicit paths avoid relying on user-specific `go env` defaults. Go documents concurrent use of its build cache; that does not establish sharing arbitrary writable repository trees. [Go cache contract][go-cache]. Charge cache priming to the cohort and distinguish empty-cache from warm-cache trials. Start with two fresh output bases, capture `go.env` field/hash differences, marker reasons, tool hashes, repository time and subprocess CPU, then extend only if useful. A reduction in Go bootstrap CPU is a valid result even with continued UUID candidates; elimination of repository refetches requires separate proof. This changes neither M0's protocol nor the M1 native/private comparator policy without a separately recorded decision.
+
+Protocol: inspected C-backed source, pinned primary upstream source, decision records and archived logs only. No runtime-volume reads, builds, product-source edits, cache changes or gate decisions were made.
 
 [declared]: https://github.com/JSGette/bazel/blob/236a4d0b31573e125876c7b76da259a383698073/src/main/java/com/google/devtools/build/lib/bazel/repository/DigestWriter.java#L181-L222
 [cache]: https://github.com/JSGette/bazel/blob/236a4d0b31573e125876c7b76da259a383698073/src/main/java/com/google/devtools/build/lib/bazel/repository/cache/LocalRepoContentsCache.java#L45-L56
@@ -53,3 +80,11 @@ Protocol: inspected C-backed source, previously fetched pinned Bonanza source, d
 [execute]: https://github.com/JSGette/bazel/blob/236a4d0b31573e125876c7b76da259a383698073/src/main/java/com/google/devtools/build/lib/bazel/repository/starlark/StarlarkBaseExternalContext.java#L2069-L2314
 [bonanza-repo]: https://github.com/buildbarn/bonanza/blob/bf9368403b95540ad07e0fd33faf5210b9d8b86b/pkg/model/analysis/repo.go#L1946-L2225
 [bonanza-path]: https://github.com/buildbarn/bonanza/blob/bf9368403b95540ad07e0fd33faf5210b9d8b86b/pkg/proto/model/analysis/analysis.proto#L1980-L1991
+[dd-module]: https://github.com/DataDog/datadog-agent/blob/85ad968bca856fa3d4e07b4d8e11961dabe6866f/MODULE.bazel#L49
+[dd-lock]: https://github.com/DataDog/datadog-agent/blob/85ad968bca856fa3d4e07b4d8e11961dabe6866f/MODULE.bazel.lock#L97-L98
+[gazelle-source]: https://github.com/bazelbuild/bazel-central-registry/blob/main/modules/gazelle/0.50.0/source.json
+[gazelle-cache]: https://github.com/bazel-contrib/bazel-gazelle/blob/181c8b6675c21ea85b5c1d6aad47aad9adf0b216/internal/go_repository_cache.bzl#L38-L106
+[gazelle-tools]: https://github.com/bazel-contrib/bazel-gazelle/blob/181c8b6675c21ea85b5c1d6aad47aad9adf0b216/internal/go_repository_tools.bzl#L42-L159
+[gazelle-common]: https://github.com/bazel-contrib/bazel-gazelle/blob/181c8b6675c21ea85b5c1d6aad47aad9adf0b216/internal/common.bzl#L40-L53
+[read-watch]: https://github.com/JSGette/bazel/blob/236a4d0b31573e125876c7b76da259a383698073/src/main/java/com/google/devtools/build/lib/bazel/repository/starlark/StarlarkBaseExternalContext.java#L1791-L1916
+[go-cache]: https://pkg.go.dev/cmd/go#hdr-Build_and_test_caching
