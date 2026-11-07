@@ -66,6 +66,11 @@ $progressPath = Join-Path $batch 'matrix-progress.json'
 $reports = @{}; $current = $null
 try {
     if ($config.schema_version -ne 1) { throw 'Unsupported manifest schema.' }
+    $poolNamespace = if ($config.ContainsKey('pool_namespace')) { $config.pool_namespace } else { 'v6' }
+    if ($poolNamespace -isnot [string] -or $poolNamespace -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,30}$') { throw 'Invalid pool namespace.' }
+    $temporaryRoot = if ($config.ContainsKey('temporary_root')) { $config.temporary_root } else { $null }
+    if ($null -ne $temporaryRoot -and ($temporaryRoot -isnot [string] -or -not $temporaryRoot.StartsWith($config.runtime_root.TrimEnd('/') + '/') -or $temporaryRoot -match '/\.\.?(/|$)')) { throw 'Temporary root must be an absolute descendant of the task runtime.' }
+    $progress.pool_namespace = $poolNamespace; $progress.temporary_root = $temporaryRoot
     foreach ($name in $config.local_sha256.Keys) {
         if ((Hash (Join-Path $PSScriptRoot $name)) -ne $config.local_sha256[$name]) { throw "Local tool hash mismatch: $name" }
     }
@@ -96,8 +101,9 @@ try {
         $progress.rows += $current; Write-Json $progressPath $progress
         $binary = $config.binary[$(if ($row.mode -eq 'vanilla') {'vanilla'} else {'candidate'})]
         $argv = @('python3','-B',"$($config.harness_directory)/baseline.py",'--root',$root,'--clients',[string]$fixture.clients,'--scenario',$fixture.scenario,'--mode',$row.mode,'--binary',$binary.path,'--run-id',$runId,'--cache-state',$row.state,'--require-cgroup','--install-root',"$($config.runtime_root)/install")
+        if ($null -ne $temporaryRoot) { $argv += @('--temporary-root',$temporaryRoot) }
         if ($row.state -eq 'cold') { $argv += '--fresh-caches' }
-        else { $argv += @('--repository-cache',$config.repository_cache,'--disk-cache',"$($config.runtime_root)/actions",'--skycache-root',"$($config.runtime_root)/skycache-matrix/$($fixture.pool)-$($row.mode)-v6",'--output-base-root',"$($config.runtime_root)/pools/$($fixture.pool)-$($row.mode)-v6") }
+        else { $argv += @('--repository-cache',$config.repository_cache,'--disk-cache',"$($config.runtime_root)/actions",'--skycache-root',"$($config.runtime_root)/skycache-matrix/$($fixture.pool)-$($row.mode)-$poolNamespace",'--output-base-root',"$($config.runtime_root)/pools/$($fixture.pool)-$($row.mode)-$poolNamespace") }
         if ($row.state -eq 'restart') { $argv += '--serial-restart-preparation' }
         if ($row.oracle) { $argv += @('--oracle-report',$reports[$row.oracle]) }
         $reports[$row.id] = $reportPath

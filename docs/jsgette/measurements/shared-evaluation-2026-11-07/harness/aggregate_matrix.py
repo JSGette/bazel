@@ -66,7 +66,7 @@ def inspect(batch, item, declared, matrix, progress):
     counters = [{"index": c["index"], "bep": c["remote_analysis_cache_counters"], "skycache": c["skycache_counters"]} for c in summary["clients"]]
     metrics = {"wall_s": summary["cohort_wall_seconds"], "scope_cpu_s": resources["scope_cpu_seconds"], "engine_cpu_s": resources["engine_observed_cpu_seconds"], "engine_pss_bytes": resources["engine_sampled_peak_pss_bytes"], "analysis_elapsed_s": scalar("client_elapsed_sums", "analysis_elapsed_seconds"), "execution_elapsed_s": scalar("client_elapsed_sums", "execution_elapsed_seconds"), "analysis_cache_hits": complete([c["bep"].get("cacheHits") for c in counters])}
     metrics.update(graph_nodes=values("buildGraphMetrics", "postInvocationSkyframeNodeCount"), targets_configured=values("targetMetrics", "targetsConfigured"), actions_executed=values("actionSummary", "actionsExecuted"), action_cache_hits=complete([a.get("actionCacheStatistics", {}).get("hits") for a in actions]), action_cache_misses=complete([a.get("actionCacheStatistics", {}).get("misses") for a in actions]), internal_runners=complete([r.get("internal", 0) if r else None for r in runners]), other_runners=complete([r["total"] - r.get("internal", 0) if "total" in r else None for r in runners]))
-    protocol = {k: report.get(k) for k in ("harness_sha256", "preparation_protocol", "output_base_pool", "output_base_pool_binding_sha256", "environment_digest", "oracle_report", "cache_before_measured")}
+    protocol = {k: report.get(k) for k in ("harness_sha256", "preparation_protocol", "output_base_pool", "output_base_pool_binding_sha256", "environment_digest", "oracle_report", "cache_before_measured", "temporary_policy")}
     flags = [c["command"].get("selected_flags", []) for c in summary["clients"]]
     common_flags = sorted({tuple(f for f in row if f.split("=", 1)[0] not in ("--experimental_local_skycache", "--experimental_remote_skycache", "--experimental_analysis_cache_idle_retention")) for row in flags})
     binding = archive.get("output-base-binding.json")
@@ -98,7 +98,7 @@ def snapshot(path):
     anchors = {(r["mode"], r["clients"]): r for r in rows if r.get("eligible") and r["scenario"] == "identical" and r["state"] == "restart"}
     require(len(anchors) == sum(r.get("eligible", False) and r["scenario"] == "identical" and r["state"] == "restart" for r in rows), "Multiple anchors per cell; select a single-trial batch explicitly")
     pairs, scaling = [], []
-    matched = lambda a, b: a["binary_sha256"] == b["binary_sha256"] and a["source"] == b["source"] and all(a["protocol"][k] == b["protocol"][k] for k in ("caps", "harness_sha256", "preparation_protocol", "common_flags", "extra_bazel_arguments", "resource_binding"))
+    matched = lambda a, b: a["binary_sha256"] == b["binary_sha256"] and a["source"] == b["source"] and all(a["protocol"][k] == b["protocol"][k] for k in ("caps", "harness_sha256", "preparation_protocol", "common_flags", "extra_bazel_arguments", "resource_binding", "temporary_policy"))
     for n in (1, 10):
         off, on = anchors.get(("candidate-off", n)), anchors.get(("skycache", n))
         if off and on and matched(off, on):

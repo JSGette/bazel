@@ -138,6 +138,66 @@ class ScenarioTests(TemporaryFiles):
         self.assertNotEqual(added, fixture.source_state(self.source))
 
 
+class TemporaryPolicyTests(TemporaryFiles):
+    def arguments(self):
+        return SimpleNamespace(root=self.root / "scenario", temporary_root=self.root / "temporary",
+            install_root=self.root / "install", repository_cache=self.root / "repository",
+            disk_cache=self.root / "disk", skycache_root=self.root / "skycache",
+            output_base_root=self.root / "pool", binary=self.root / "binary", heap_mb=768,
+            jobs=2, local_memory_mb=2048, mode="vanilla", analysis_only=True,
+            active_directories="", bazel_arg=[], timeout=60)
+
+    def test_collision_and_redirected_children_are_rejected(self):
+        args = self.arguments()
+        manifest = {"worktrees": [{"workspace": str(self.root / "workspace")}]}
+        for path in (args.root, args.root / "runs/old", args.install_root, args.output_base_root,
+                     args.repository_cache / "tmp", self.root / "workspace/tmp"):
+            args.temporary_root = path
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "overlaps"):
+                baseline.resolve_temporary_policy(args, manifest)
+        args.temporary_root = self.root / "temporary"
+        args.temporary_root.mkdir()
+        (args.temporary_root / "tmp").symlink_to(self.root / "escaped")
+        with self.assertRaisesRegex(ValueError, "symlinks"):
+            baseline.resolve_temporary_policy(args, manifest)
+
+    def test_build_operational_flags_win_without_changing_extra_arguments(self):
+        args = self.arguments()
+        args.temporary_policy = baseline.resolve_temporary_policy(args, {"worktrees": []})
+        args.bazel_arg = ["--repo_env=TMPDIR=/old"]
+        row = {"index": 0, "variant": "base", "workspace": str(self.root / "workspace")}
+        with patch.object(baseline, "run_logged", return_value={"exit_code": 1}) as execute:
+            baseline.build(args, self.root / "run", row, "measured", {}, {})
+        argv = execute.call_args.args[0]
+        self.assertEqual(argv[-2:], ["--repo_env=TMP=" + args.temporary_policy["tmp"],
+                                    "--repo_env=TMPDIR=" + args.temporary_policy["tmp"]])
+        self.assertIn("--host_jvm_args=-Djava.io.tmpdir=" + args.temporary_policy["java"], argv)
+        self.assertLess(argv.index("--host_jvm_args=-Djava.io.tmpdir=" + args.temporary_policy["java"]),
+                        argv.index("build"))
+        self.assertEqual(args.bazel_arg, ["--repo_env=TMPDIR=/old"])
+        self.assertFalse(any(value.startswith("--repo_contents_cache") for value in argv))
+
+    def test_pool_binding_changes_when_temporary_policy_changes(self):
+        args = self.arguments()
+        report = {"binary_sha256": "binary", "harness_sha256": {}}
+        with patch.object(baseline, "cgroup_path", return_value=None):
+            args.temporary_policy = baseline.resolve_temporary_policy(args, {"worktrees": []})
+            first = baseline.output_base_binding(args, {}, report)
+            args.temporary_root = self.root / "other-temporary"
+            args.temporary_policy = baseline.resolve_temporary_policy(args, {"worktrees": []})
+            second = baseline.output_base_binding(args, {}, report)
+        self.assertNotEqual(first["temporary_policy"], second["temporary_policy"])
+
+    def test_prepare_rejects_unused_temporary_flag(self):
+        argv = ["baseline.py", "--root", str(self.root), "--prepare", "--repo", "unused",
+                "--temporary-root", str(self.root / "temporary")]
+        with patch.object(sys, "argv", argv), patch("sys.stderr"), patch.object(fixture, "prepare") as prepare:
+            with self.assertRaises(SystemExit) as raised:
+                baseline.main()
+        self.assertEqual(raised.exception.code, 2)
+        prepare.assert_not_called()
+
+
 class CacheInventoryTests(TemporaryFiles):
     def test_empty_and_populated_publications_are_distinct(self):
         directory = self.root / "leased-v2/publications-v4/namespace"

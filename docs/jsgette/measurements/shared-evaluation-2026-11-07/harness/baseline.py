@@ -301,10 +301,33 @@ def output_base(args, run, index):
     return (getattr(args, "output_base_root", None) or run) / ("o%02d" % index)
 
 
+def resolve_temporary_policy(args, manifest):
+    if args.temporary_root is None:
+        return None
+    root = args.temporary_root.resolve()
+    protected = [args.root / "fixture", args.root / "runs",
+                 *(Path(row["workspace"]) for row in manifest["worktrees"])]
+    protected += [path for path in (args.install_root, args.repository_cache, args.disk_cache,
+                                    args.skycache_root, args.output_base_root) if path is not None]
+    for path in protected:
+        path = path.resolve()
+        if root.is_relative_to(path) or path.is_relative_to(root):
+            raise ValueError("--temporary-root overlaps fixture, output, installation or cache path: " + str(path))
+    children = {name: root / name for name in ("tmp", "java")}
+    if any(path.resolve() != path for path in children.values()):
+        raise ValueError("--temporary-root children must not redirect through symlinks")
+    if any(path.exists() and not path.is_dir() for path in (root, *children.values())):
+        raise ValueError("--temporary-root and its children must be directories")
+    return {"root": str(root), **{name: str(path) for name, path in children.items()}}
+
+
 def startup(args, run, index):
-    return [str(args.binary), "--ignore_all_rc_files", f"--output_user_root={args.install_root}",
+    argv = [str(args.binary), "--ignore_all_rc_files", f"--output_user_root={args.install_root}",
             f"--output_base={output_base(args, run, index)}", f"--host_jvm_args=-Xmx{args.heap_mb}m",
             f"--host_jvm_args=-XX:ActiveProcessorCount={args.jobs}", "--max_idle_secs=300"]
+    if policy := getattr(args, "temporary_policy", None):
+        argv.append("--host_jvm_args=-Djava.io.tmpdir=" + policy["java"])
+    return argv
 
 
 def build(args, run, row, phase, env, oracles):
@@ -333,6 +356,8 @@ def build(args, run, row, phase, env, oracles):
     if args.analysis_only:
         argv += ["--nobuild"]
     argv += args.bazel_arg
+    if policy := getattr(args, "temporary_policy", None):
+        argv += ["--repo_env=" + name + "=" + policy["tmp"] for name in ("TMP", "TMPDIR")]
     result = {"index": index, "variant": row["variant"], "workspace": row["workspace"],
               "compilation_mode": row.get("compilation_mode", "fastbuild"),
               "oracle_key": fixture.oracle_key(row),
@@ -470,6 +495,7 @@ def output_base_binding(args, manifest, report):
                 "disk": str(args.disk_cache) if args.disk_cache else None,
                 "skycache": str(args.skycache_root) if args.mode == "skycache" else None},
             "install_root": str(args.install_root), "analysis_only": args.analysis_only,
+            "temporary_policy": getattr(args, "temporary_policy", None),
             "active_directories": args.active_directories, "extra_bazel_arguments": args.bazel_arg,
             "harness_sha256": report["harness_sha256"]}
 
@@ -491,6 +517,8 @@ def main():
                         help="Allocate empty repository/disk/SkyCache directories under this new run")
     parser.add_argument("--install-root", type=Path,
                         help="Shared output_user_root for extracted installations; defaults to root.parent/install")
+    parser.add_argument("--temporary-root", type=Path,
+                        help="Operational temp policy: separate tmp/ and java/ directories outside inputs, outputs and caches")
     parser.add_argument("--cache-state", choices=("cold", "warm", "restart"), default="cold")
     parser.add_argument("--serial-restart-preparation", action="store_true",
                         help="For restart only: prepare and stop each daemon before preparing the next")
@@ -511,6 +539,8 @@ def main():
     args = parser.parse_args()
     args.root = args.root.resolve()
     if args.prepare:
+        if args.temporary_root is not None:
+            parser.error("--temporary-root applies only to measurements, not --prepare")
         if not args.repo:
             parser.error("--prepare requires --repo")
         print(json.dumps(fixture.prepare(args.repo, args.root, args.clients, args.scenario), indent=2))
@@ -556,13 +586,23 @@ def main():
             if fixture.sha256(workspace / fixture.COMMAND / name) != row[field]:
                 raise RuntimeError("Fixture changed: " + str(workspace))
     run = args.root / "runs" / args.run_id
-    run.mkdir(parents=True)  # Existing runs are never reused, even after failure.
     if args.fresh_caches:
         args.repository_cache, args.disk_cache, args.skycache_root = (
             run / "fresh-caches" / name for name in ("repository", "disk", "skycache"))
+    try:
+        args.temporary_policy = resolve_temporary_policy(args, manifest)
+    except ValueError as error:
+        parser.error(str(error))
+    run.mkdir(parents=True)  # Existing runs are never reused, even after failure.
+    if args.fresh_caches:
         for path in (args.repository_cache, args.disk_cache, args.skycache_root):
             path.mkdir(parents=True)
+    if args.temporary_policy:
+        for name in ("tmp", "java"):
+            Path(args.temporary_policy[name]).mkdir(parents=True, exist_ok=True)
     env = fixture.clean_env()
+    if args.temporary_policy:
+        env.update(TMP=args.temporary_policy["tmp"], TMPDIR=args.temporary_policy["tmp"])
     env["USE_BAZEL_VERSION"] = "9.1.0"
     oracles = {}
     oracle_input_records = {}
@@ -600,6 +640,7 @@ def main():
               "engine_state": {"cold": "cold-engine", "warm": "warm-engine",
                                "restart": "restarted-engine"}[args.cache_state],
               "fresh_caches_requested": args.fresh_caches,
+              "temporary_policy": args.temporary_policy,
               "output_base_root": str(args.output_base_root) if args.output_base_root else None,
               "preparation_protocol": ("serial-build-then-shutdown" if args.serial_restart_preparation
                                        else "concurrent-builds-then-shutdown" if args.cache_state == "restart"

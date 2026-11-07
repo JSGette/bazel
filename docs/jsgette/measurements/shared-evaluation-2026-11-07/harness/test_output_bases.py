@@ -134,6 +134,9 @@ class BaselinePoolIntegrationTests(unittest.TestCase):
 
             def cohort(args, run, rows, phase, env, oracles, **kwargs):
                 ensure_lease(args, run, rows, phase)
+                self.assertEqual(env["TMP"], str(root / "temporary/tmp"))
+                self.assertEqual(env["TMPDIR"], env["TMP"])
+                self.assertTrue((root / "temporary/java").is_dir())
                 return {"passed": True, "accounting_passed": True, "results": [], "resources": {}}
 
             def shutdown(args, run, rows, env, phase):
@@ -153,7 +156,7 @@ class BaselinePoolIntegrationTests(unittest.TestCase):
                     argv = ["baseline.py", "--root", str(root), "--mode", "vanilla",
                             "--binary", str(binary), "--repository-cache", str(root / "cache"),
                             "--run-id", name, "--cache-state", "restart", "--serial-restart-preparation",
-                            "--output-base-root", str(pool)]
+                            "--output-base-root", str(pool), "--temporary-root", str(root / "temporary")]
                     with patch.object(sys, "argv", argv):
                         self.assertEqual(baseline.main(), 0)
             self.assertEqual(len(observed), 8)
@@ -162,6 +165,11 @@ class BaselinePoolIntegrationTests(unittest.TestCase):
                 report = json.loads((root / "runs" / name / "report.json").read_text())
                 self.assertTrue(report["passed"])
                 self.assertEqual(report["output_base_root"], str(pool))
+                self.assertEqual(report["temporary_policy"], {
+                    "root": str(root / "temporary"), "tmp": str(root / "temporary/tmp"),
+                    "java": str(root / "temporary/java")})
+                binding = json.loads((pool / "binding.json").read_text())
+                self.assertEqual(binding["temporary_policy"], report["temporary_policy"])
                 self.assertIn("output_bases.py", report["harness_sha256"])
                 self.assertEqual(report["output_base_pool"]["run_number"], number)
                 self.assertEqual(report["output_base_pool"]["previous_report_path"],
