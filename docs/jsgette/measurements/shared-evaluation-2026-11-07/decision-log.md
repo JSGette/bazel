@@ -55,3 +55,19 @@ Dates use Europe/Berlin. Decisions below are proposals or actions, not evidence 
 ## Execution protocol
 
 For each measurement record the source/binary identity, exact arguments, scenario, cache state, resource limits, return status, correctness comparison, and measurement scope. Preserve failed attempts separately. Update the plan's status only after its gate has been assessed against evidence. A material failed gate permits one bounded repair with a measured cause; if still failed, publish the failure and stop for a pivot. Routine architectural choices are autonomous and documented here.
+
+## D007 — Qualify cache reuse before expanding concurrency (2026-11-07)
+
+**Action:** ran vanilla and SkyCache restarted-daemon qualification on the same private one-worktree fixture, using pinned harness commit `510facd7`. The first warm-up phases included installation and repository setup. Both measured phases passed accounting, functional behavior and byte-for-byte executable checks: SHA-256 `a4e26fb81ac494ebb4a407809b8450510d4379613d19e9ad92485a4bbd963fd0`.
+
+**Observation, single trials only:** vanilla measured 15.119 s wall / 22.989 s scope CPU / 22.53 s observed engine CPU; SkyCache measured 14.845 s / 24.924 s / 24.50 s respectively. Sampled engine peak PSS was 743,977,984 and 759,917,568 bytes. These do not establish a speed or memory improvement. SkyCache restored 3,272 configured-target roots, read 34,374 dependency-validation records, and checked 818 witnesses. Actual restoration is qualified; M0 is not passed.
+
+**Harness correction:** v2 now fails on missing/escaped daemon accounting, missing expected oracle variants, or tracked source changes. It shares an installation directory across cohorts. v3 extends configuration, glob and genuinely disjoint-source scenarios, records oracle provenance and bounded cache inventories, and adds an explicit per-cohort SkyCache path. Final matrix runs will use a frozen version, not files being edited concurrently.
+
+**Preserved setup failure:** an attempted Linux `git -C` read of the Windows-created worktree failed because `.git` contains a Windows path. Scope `shared-eval-m0-skycache-v2-q1` therefore ran no build. Corrected immutable harness extraction through the main repository's explicit `--git-dir`; the actual successful candidate scope was `shared-eval-m0-skycache-v2-q2`.
+
+## D008 — Distinguish shared evaluation from JVM hosting savings (2026-11-07)
+
+**Decision:** M1 must consider the existing one-JVM/private-engine implementation as a cheaper competing explanation for memory savings. Its current hard cap is two engines; the root implementation has not changed that cap. JVM/JIT/class-metadata amortization is not evidence of shared graph evaluation.
+
+**Reason:** the fork constructs independent runtimes, modules, resource managers and graphs per engine. Raising the cap would also raise its forced per-engine admission budgets (two CPU slots and 1,920 MiB estimated action memory), so any higher-cap probe must retain a fixed external aggregate budget and match effective options. No engine-slot recycling or ownership weakening is authorized by this experiment's acceptance criteria.

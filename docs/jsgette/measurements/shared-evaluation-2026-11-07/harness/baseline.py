@@ -7,6 +7,7 @@ Warm and restart perform an unmeasured build first; restart then stops daemons.
 """
 
 import argparse
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
@@ -20,6 +21,76 @@ import time
 from urllib.parse import unquote, urlparse
 
 import fixture
+
+
+def inventory(path, budget=2048):
+    """Bounded metadata-only walk; truncated counts/sizes are lower bounds."""
+    if path is None:
+        return {"enabled": False}
+    path = Path(path)
+    result = {"enabled": True, "path": str(path), "exists": path.exists(),
+              "files_observed": 0, "directories_observed": 0, "file_bytes_observed": 0,
+              "symlinks_observed": 0, "truncated": False, "entry_budget": budget}
+    if not path.exists():
+        return result
+    pending = deque([path])
+    inspected = 0
+    while pending:
+        directory = pending.popleft()
+        with os.scandir(directory) as children:
+            for entry in children:
+                if inspected >= budget:
+                    result["truncated"] = True
+                    return result
+                inspected += 1
+                if entry.is_symlink():
+                    result["symlinks_observed"] += 1
+                elif entry.is_dir(follow_symlinks=False):
+                    result["directories_observed"] += 1
+                    pending.append(Path(entry.path))
+                elif entry.is_file(follow_symlinks=False):
+                    result["files_observed"] += 1
+                    result["file_bytes_observed"] += entry.stat(follow_symlinks=False).st_size
+    return result
+
+
+def publication_inventory(path, budget=4096):
+    """Inspect only the known publication subtree, never object packs."""
+    result = {"path": str(path), "publication_count": 0, "publication_bytes": 0,
+              "namespace_directories": 0, "truncated": False, "entry_budget": budget}
+    pending = deque([(Path(path), 0)])
+    inspected = 0
+    while pending:
+        directory, level = pending.popleft()
+        if not directory.exists():
+            continue
+        with os.scandir(directory) as children:
+            for entry in children:
+                if inspected >= budget:
+                    result["truncated"] = True
+                    result["state"] = "populated" if result["publication_count"] else "unknown"
+                    return result
+                inspected += 1
+                if entry.is_symlink():
+                    continue
+                if entry.is_dir(follow_symlinks=False):
+                    if ((level == 0 and entry.name.startswith("leased-v"))
+                            or (level == 1 and entry.name.startswith("publications-v"))
+                            or level == 2):
+                        pending.append((Path(entry.path), level + 1))
+                        if level == 2:
+                            result["namespace_directories"] += 1
+                elif level == 3 and entry.name.endswith(".manifest"):
+                    result["publication_count"] += 1
+                    result["publication_bytes"] += entry.stat(follow_symlinks=False).st_size
+    result["state"] = "populated" if result["publication_count"] else "empty"
+    return result
+
+
+def cache_inventory(args):
+    return {"repository": inventory(args.repository_cache), "disk": inventory(args.disk_cache),
+            "skycache": inventory(args.skycache_root) if args.mode == "skycache" else {"enabled": False},
+            "skycache_publications": publication_inventory(args.skycache_root) if args.mode == "skycache" else None}
 
 
 def proc_stat(pid):
@@ -229,7 +300,8 @@ def build(args, run, row, phase, env, oracles):
     directory.mkdir(parents=True)
     base = run / ("o%02d" % index)
     bep, profile = directory / "bep.jsonl", directory / "profile.json.gz"
-    argv = startup(args, run, index) + ["build", fixture.TARGET, *fixture.FLAGS,
+    argv = startup(args, run, index) + ["build", fixture.TARGET, *row.get("extra_targets", []), *fixture.FLAGS,
+        "--compilation_mode=" + row.get("compilation_mode", "fastbuild"),
         f"--jobs={args.jobs}", f"--loading_phase_threads={args.jobs}",
         f"--local_resources=cpu={args.jobs}", f"--local_resources=memory={args.local_memory_mb}",
         "--worker_max_instances=1", f"--repository_cache={args.repository_cache}",
@@ -240,7 +312,7 @@ def build(args, run, row, phase, env, oracles):
         f"--profile={profile}", "--nobuild_event_json_file_path_conversion"]
     if args.mode != "vanilla":
         argv += ["--experimental_remote_skycache=",
-                 "--experimental_local_skycache=" + (str(args.root / "skycache") if args.mode == "skycache" else "")]
+                 "--experimental_local_skycache=" + (str(args.skycache_root) if args.mode == "skycache" else "")]
         if args.active_directories:
             argv += ["--experimental_active_directories=" + args.active_directories]
         if args.mode == "skycache":
@@ -249,6 +321,8 @@ def build(args, run, row, phase, env, oracles):
         argv += ["--nobuild"]
     argv += args.bazel_arg
     result = {"index": index, "variant": row["variant"], "workspace": row["workspace"],
+              "compilation_mode": row.get("compilation_mode", "fastbuild"),
+              "oracle_key": fixture.oracle_key(row),
               "output_base": str(base), "phase": phase}
     result.update(run_logged(argv, row["workspace"], env, directory, args.timeout))
     metrics = bep_metrics(bep)
@@ -259,7 +333,7 @@ def build(args, run, row, phase, env, oracles):
         destination.write_bytes(source.read_bytes())
         result["skycache"][source.name] = json.loads(destination.read_text())
     if not result["exit_code"] and not args.analysis_only:
-        artifacts = []
+        artifacts, glob_artifacts = [], []
         for entry in metrics["files"]:
             uri = urlparse(entry.get("uri", ""))
             if uri.scheme != "file":
@@ -267,14 +341,27 @@ def build(args, run, row, phase, env, oracles):
             path = Path(unquote(uri.path))
             if path.name == "normalize_cmd" and path.is_file():
                 artifacts.append(path)
+            if path.name == "sources.manifest" and path.is_file():
+                glob_artifacts.append(path)
         artifacts = sorted(set(artifacts))
         if len(artifacts) != 1:
             raise RuntimeError("Expected one normalizer output, found " + repr(artifacts))
         executable = artifacts[0]
         result["output"] = {"path": str(executable), "bytes": executable.stat().st_size,
                             "sha256": fixture.sha256(executable)}
-        result["behavior"] = fixture.verify_program(executable, row["variant"], directory / "behavior")
-        expected = oracles.get(row["variant"])
+        result["behavior"] = fixture.verify_program(executable, row.get("behavior_variant", row["variant"]), directory / "behavior")
+        if row.get("expected_glob_sources"):
+            glob_artifacts = sorted(set(glob_artifacts))
+            if len(glob_artifacts) != 1:
+                raise RuntimeError("Expected exactly one generated glob manifest")
+            manifest = glob_artifacts[0]
+            expected_bytes = ("\n".join(row["expected_glob_sources"]) + "\n").encode()
+            if manifest.read_bytes() != expected_bytes:
+                raise AssertionError("Generated glob manifest differs from independent expected file list")
+            result["glob_oracle"] = {"passed": True, "path": str(manifest),
+                                     "sha256": fixture.sha256(manifest),
+                                     "expected_sources": row["expected_glob_sources"]}
+        expected = oracles.get(fixture.oracle_key(row))
         result["digest_oracle"] = {"available": expected is not None,
                                    "matches": result["output"]["sha256"] == expected if expected else None}
         if expected and not result["digest_oracle"]["matches"]:
@@ -321,11 +408,15 @@ def main():
     parser.add_argument("--prepare", action="store_true")
     parser.add_argument("--repo", type=Path)
     parser.add_argument("--clients", type=int, choices=(1, 10), default=1)
-    parser.add_argument("--scenario", choices=("identical", "source", "build"), default="identical")
+    parser.add_argument("--scenario", choices=fixture.SCENARIOS, default="identical")
     parser.add_argument("--mode", choices=("vanilla", "candidate-off", "skycache"))
     parser.add_argument("--binary", type=Path)
     parser.add_argument("--repository-cache", type=Path)
     parser.add_argument("--disk-cache", type=Path)
+    parser.add_argument("--skycache-root", type=Path,
+                        help="Shared local store; defaults to root/skycache; never copied or deleted")
+    parser.add_argument("--fresh-caches", action="store_true",
+                        help="Allocate empty repository/disk/SkyCache directories under this new run")
     parser.add_argument("--install-root", type=Path,
                         help="Shared output_user_root for extracted installations; defaults to root.parent/install")
     parser.add_argument("--cache-state", choices=("cold", "warm", "restart"), default="cold")
@@ -350,13 +441,21 @@ def main():
         return 0
     if sys.platform != "linux":
         parser.error("Resource measurement requires Linux")
-    if not all((args.binary, args.mode, args.repository_cache, args.run_id)):
-        parser.error("Measurement requires --binary --mode --repository-cache --run-id")
+    if not all((args.binary, args.mode, args.run_id)) or not (args.repository_cache or args.fresh_caches):
+        parser.error("Measurement requires --binary --mode --run-id and --repository-cache or --fresh-caches")
+    if args.fresh_caches and any((args.repository_cache, args.disk_cache, args.skycache_root)):
+        parser.error("--fresh-caches cannot be combined with explicit cache paths")
+    if any(value.startswith("--compilation_mode") or value.startswith("-c") and not value.startswith("--")
+           for value in args.bazel_arg):
+        parser.error("Compilation mode is fixture-controlled; use the config scenario")
     if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,100}", args.run_id):
         parser.error("Invalid --run-id")
     if min(args.jobs, args.heap_mb, args.local_memory_mb, args.timeout, args.sample_interval) <= 0:
         parser.error("Resource limits and timeouts must be positive")
-    args.binary, args.repository_cache = args.binary.resolve(), args.repository_cache.resolve()
+    args.binary = args.binary.resolve()
+    if args.repository_cache:
+        args.repository_cache = args.repository_cache.resolve()
+    args.skycache_root = (args.skycache_root or (args.root / "skycache")).resolve()
     args.install_root = (args.install_root or (args.root.parent / "install")).resolve()
     if args.disk_cache:
         args.disk_cache = args.disk_cache.resolve()
@@ -372,27 +471,57 @@ def main():
                 raise RuntimeError("Fixture changed: " + str(workspace))
     run = args.root / "runs" / args.run_id
     run.mkdir(parents=True)  # Existing runs are never reused, even after failure.
+    if args.fresh_caches:
+        args.repository_cache, args.disk_cache, args.skycache_root = (
+            run / "fresh-caches" / name for name in ("repository", "disk", "skycache"))
+        for path in (args.repository_cache, args.disk_cache, args.skycache_root):
+            path.mkdir(parents=True)
     env = fixture.clean_env()
     env["USE_BAZEL_VERSION"] = "9.1.0"
     oracles = {}
+    oracle_input_records = {}
     if args.oracle_report:
         oracle = json.loads(args.oracle_report.read_text())
         if not oracle["passed"] or oracle["mode"] != "vanilla" or oracle["analysis_only"]:
             raise ValueError("Oracle must be a successful execution-enabled vanilla report")
         if oracle["fixture"]["source_revision"] != fixture.REVISION:
             raise ValueError("Oracle source revision differs")
+        if (oracle["fixture"]["projection_archive_sha256"] != manifest["projection_archive_sha256"]
+                or oracle["fixture"]["target"] != manifest["target"]):
+            raise ValueError("Oracle projection or target differs")
+        if not manifest.get("private_tree") or oracle["fixture"].get("private_tree") != manifest["private_tree"]:
+            raise ValueError("Oracle private Git tree missing or different, including auxiliary rules")
+        if oracle.get("extra_bazel_arguments", []) != args.bazel_arg:
+            raise ValueError("Oracle extra Bazel flags differ")
+        for row in oracle["fixture"]["worktrees"]:
+            key, inputs = fixture.oracle_key(row), fixture.oracle_inputs(row)
+            if oracle_input_records.setdefault(key, inputs) != inputs:
+                raise ValueError("Oracle mixes inputs under one variant/configuration key")
         for row in oracle["measured"]["results"]:
             if row["exit_code"] or not row.get("behavior", {}).get("passed"):
                 raise ValueError("Oracle contains failed builds")
-            previous = oracles.setdefault(row["variant"], row["output"]["sha256"])
+            key = fixture.oracle_key(row)
+            previous = oracles.setdefault(key, row["output"]["sha256"])
             if previous != row["output"]["sha256"]:
                 raise ValueError("Oracle contains inconsistent variant outputs")
-        missing = {row["variant"] for row in manifest["worktrees"]} - oracles.keys()
+        missing = {fixture.oracle_key(row) for row in manifest["worktrees"]} - oracles.keys()
         if missing:
             raise ValueError("Oracle is missing required variants: " + repr(sorted(missing)))
+        if any(oracle_input_records.get(fixture.oracle_key(row)) != fixture.oracle_inputs(row)
+               for row in manifest["worktrees"]):
+            raise ValueError("Oracle source inputs or extra targets differ")
     report = {"schema_version": 1, "mode": args.mode, "cache_state": args.cache_state,
+              "engine_state": {"cold": "cold-engine", "warm": "warm-engine",
+                               "restart": "restarted-engine"}[args.cache_state],
+              "fresh_caches_requested": args.fresh_caches,
+              "cache_before": cache_inventory(args),
               "binary": str(args.binary), "binary_sha256": fixture.sha256(args.binary),
               "fixture": manifest, "analysis_only": args.analysis_only,
+              "extra_bazel_arguments": args.bazel_arg,
+              "oracle_report": {"path": str(args.oracle_report.resolve()),
+                                "sha256": fixture.sha256(args.oracle_report),
+                                "variant_configuration_digests": oracles,
+                                "variant_configuration_inputs": oracle_input_records} if args.oracle_report else None,
               "installation": {"shared_output_user_root": str(args.install_root),
                                "existing_install_directories": sorted(p.name for p in (args.install_root / "install").glob("*") if p.is_dir()),
                                "note": "Prewarm both binaries outside measured scopes; harness records but does not assume prewarming."},
@@ -400,7 +529,7 @@ def main():
               "environment_digest": hashlib.sha256(json.dumps(sorted(env.items())).encode()).hexdigest(),
               "environment_values_recorded": False, "passed": False,
               "notes": ["Caller-supplied repository/disk caches may be warm.",
-                        "The fixture currently covers identical/source/build, not config/glob.",
+                        "Disjoint edits preserve runtime behavior; binary digest equality is measured, not presumed.",
                         "A fresh systemd scope is required for complete aggregate accounting."]}
     fixture.save_new(run / "provenance.json", report)
     try:
@@ -412,6 +541,7 @@ def main():
                 report["restart_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "restart-shutdown")
                 if any(r["exit_code"] for r in report["restart_shutdown"]):
                     raise RuntimeError("Preparation daemon shutdown failed")
+        report["cache_before_measured"] = cache_inventory(args)
         report["measured"] = cohort(args, run, manifest["worktrees"], "measured", env, oracles)
         report["passed"] = report["measured"]["passed"]
     except Exception as error:
@@ -426,6 +556,7 @@ def main():
                 for row in manifest["worktrees"])
             if not report["source_state_unchanged"]:
                 report["passed"] = False
+            report["cache_after"] = cache_inventory(args)
         except Exception as error:
             report["cleanup_error"] = type(error).__name__ + ": " + str(error)
             report["passed"] = False
