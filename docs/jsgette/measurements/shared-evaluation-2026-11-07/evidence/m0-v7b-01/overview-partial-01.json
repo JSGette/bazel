@@ -1,0 +1,1704 @@
+{
+  "schema_version": 1,
+  "snapshot_utc": "2026-11-07T23:05:57.967019+00:00",
+  "aggregator_sha256": "8b3bf8627ace3f5dcaf7f903ab737b33706484dabefd95415251e0ede43eb94d",
+  "progress_sha256": "59f466d6ab0a6802f251e18ff199e9f7b687508ae1d6772844061c0db0a10ae4",
+  "matrix_sha256": "683842dca347d4cf2d7bac48f5d593878a05269ede92a86037d57b5321ebcc9f",
+  "batch_status": "validating",
+  "coverage": "partial",
+  "milestone_verdict": "not_assessed",
+  "rows": [
+    {
+      "id": "source-ref",
+      "status": "verified",
+      "mode": "vanilla",
+      "state": "restart",
+      "scenario": "source",
+      "clients": 10,
+      "reference": true,
+      "eligible": false,
+      "ineligibility_reasons": [
+        "digest_oracle_missing_or_failed:0",
+        "digest_oracle_missing_or_failed:1",
+        "digest_oracle_missing_or_failed:2",
+        "digest_oracle_missing_or_failed:3",
+        "digest_oracle_missing_or_failed:4",
+        "digest_oracle_missing_or_failed:5",
+        "digest_oracle_missing_or_failed:6",
+        "digest_oracle_missing_or_failed:7",
+        "digest_oracle_missing_or_failed:8",
+        "digest_oracle_missing_or_failed:9"
+      ],
+      "binary_sha256": "34a95ea73a865b8382e433ec616369fec24e51e69f7c02c148dd30097dd5863b",
+      "report_sha256": "f16af7880c0decc09717e3333e81a6a8bbeb93d376425e4693ef6182a2b71866",
+      "summary_sha256": "dbc702070627f4d3133e3d35682f846850ecc84a7b80720b9ffd4bf7f13ae9a6",
+      "archive_sha256": "d168f9e16ef36d131a19a83e195e6a6bba47d269cf9875adb0bc2588c8ed218a",
+      "source": {
+        "source_revision": "85ad968bca856fa3d4e07b4d8e11961dabe6866f",
+        "projection_archive_sha256": "1108c28516419d55b8445135d42728478d9be14b372fdab3364987289d651b08",
+        "private_tree": "80a45a169b4d057558f3f8680dda3366b8d86f15",
+        "target": "//pkg/networkdevice/profile/profiledefinition/normalize_cmd:normalize_cmd"
+      },
+      "metrics": {
+        "wall_s": 53.2996761229997,
+        "scope_cpu_s": 287.676507,
+        "engine_cpu_s": 278.41,
+        "engine_pss_bytes": 7049180160,
+        "analysis_elapsed_s": 258.032,
+        "execution_elapsed_s": 9.953,
+        "analysis_cache_hits": null,
+        "graph_nodes": 632360,
+        "targets_configured": 147090,
+        "actions_executed": 10,
+        "action_cache_hits": 230,
+        "action_cache_misses": 10,
+        "internal_runners": 10,
+        "other_runners": 0
+      },
+      "protocol": {
+        "harness_sha256": {
+          "baseline.py": "f418157ada895e181f75c43cd4c7c05e69077598013b9097420f650fa6c6f906",
+          "fixture.py": "2de503bc8d4b5e7e1817b5a73e9bb78c1d7bacc56f5ae19847b8f686ebaff78a",
+          "output_bases.py": "d63dd9b7ba66cb88b5abcf914e835a8a2bf0bad9e6aa94f6203ab884caa3bbae"
+        },
+        "preparation_protocol": "serial-build-then-shutdown",
+        "output_base_pool": {
+          "binding_path": "/mnt/shared-evaluation-20261107/pools/source-n10-vanilla-v7b/binding.json",
+          "previous_report_path": null,
+          "run_number": 1
+        },
+        "output_base_pool_binding_sha256": "d410a288acc820dafb3edefe2a31cb42bdcbe1f74c737c333363a07f26f06bfa",
+        "environment_digest": "7bb53ebfe73ea04c0e6dda1b16ab2dfd20c332fe462ed5be1a06821d74a8653f",
+        "oracle_report": null,
+        "cache_before_measured": {
+          "disk": {
+            "directories_observed": 234,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 238672384,
+            "files_observed": 434,
+            "path": "/mnt/shared-evaluation-20261107/actions",
+            "symlinks_observed": 0,
+            "truncated": false
+          },
+          "repository": {
+            "directories_observed": 1475,
+            "enabled": true,
+            "entry_budget": 2048,
+            "exists": true,
+            "file_bytes_observed": 688070693,
+            "files_observed": 573,
+            "path": "/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "symlinks_observed": 0,
+            "truncated": true
+          },
+          "skycache": {
+            "enabled": false
+          },
+          "skycache_publications": null
+        },
+        "temporary_policy": {
+          "java": "/mnt/shared-evaluation-20261107/tmp-v7/java",
+          "root": "/mnt/shared-evaluation-20261107/tmp-v7",
+          "tmp": "/mnt/shared-evaluation-20261107/tmp-v7/tmp"
+        },
+        "caps": {
+          "memory_max_mib": 10240,
+          "cpu_quota_percent": 600
+        },
+        "selected_flags": [
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ],
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ]
+        ],
+        "common_flags": [
+          [
+            "--host_jvm_args=-Xmx768m",
+            "--host_jvm_args=-XX:ActiveProcessorCount=2",
+            "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/tmp-v7/java",
+            "--compilation_mode=fastbuild",
+            "--jobs=2",
+            "--loading_phase_threads=2",
+            "--local_resources=cpu=2",
+            "--local_resources=memory=2048",
+            "--worker_max_instances=1",
+            "--repository_cache=/mnt/shared-evaluation-20261107/repository-cache-v7",
+            "--remote_cache=",
+            "--remote_executor=",
+            "--disk_cache=/mnt/shared-evaluation-20261107/actions",
+            "--lockfile_mode=off"
+          ]
+        ],
+        "extra_bazel_arguments": [],
+        "resource_binding": {
+          "heap_mb": 768,
+          "jobs": 2,
+          "local_memory_mb": 2048,
+          "scope_limits": {
+            "cpu.max": "600000 100000",
+            "memory.max": "10737418240",
+            "memory.swap.max": "0"
+          }
+        },
+        "host_budget_preflight": {
+          "path": "source-ref-host-budget-preflight.json",
+          "sha256": "2cd5ae489425641737843a3923cab9f5a2ca6b1d55d3ffc4d5740bd470f83df8",
+          "policy": {
+            "memory_max_mib": 10240,
+            "minimum_physical_bytes": 14495514624,
+            "minimum_commit_bytes": 15569256448,
+            "physical_reserve_mib": 3072,
+            "commit_reserve_mib": 4096,
+            "margin_bytes": 536870912,
+            "sample_interval_ms": 2000,
+            "timeout_seconds": 120,
+            "consecutive_samples_required": 2
+          },
+          "final_samples": [
+            {
+              "utc": "2026-11-07T22:59:06.9221264+00:00",
+              "available_physical_bytes": 17178472448,
+              "available_commit_bytes": 16886816768,
+              "total_physical_bytes": 33990049792,
+              "commit_limit_bytes": 39895629824,
+              "committed_bytes": 23008813056
+            },
+            {
+              "utc": "2026-11-07T22:59:08.9491488+00:00",
+              "available_physical_bytes": 17182482432,
+              "available_commit_bytes": 16886059008,
+              "total_physical_bytes": 33990049792,
+              "commit_limit_bytes": 39895629824,
+              "committed_bytes": 23009570816
+            }
+          ]
+        }
+      },
+      "positive_full_engine_samples": 215,
+      "checked_guard_scope": {
+        "unit": "shared-eval-guard-m0-v7b-01-source-ref-c1a32bc8eae94328a9715e683df83c37.scope",
+        "description": "shared-evaluation-owned:c1a32bc8eae94328a9715e683df83c37",
+        "invocation_id": "16307aa8aa064db78639f68460c7ecc7"
+      },
+      "accounting_verified": true,
+      "cache_counters": [
+        {
+          "index": 0,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 1,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 2,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 3,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 4,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 5,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 6,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 7,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 8,
+          "bep": {},
+          "skycache": {}
+        },
+        {
+          "index": 9,
+          "bep": {},
+          "skycache": {}
+        }
+      ],
+      "action_summaries": [
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "12",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092673532",
+              "lastEndedMs": "1794092673816",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "85",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092670727",
+              "lastEndedMs": "1794092670833",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "89",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092672616",
+              "lastEndedMs": "1794092673024",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "89",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092667424",
+              "lastEndedMs": "1794092667815",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "3",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092672230",
+              "lastEndedMs": "1794092672419",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "76",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092675022",
+              "lastEndedMs": "1794092675223",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "2",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092667119",
+              "lastEndedMs": "1794092667227",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "24",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092664241",
+              "lastEndedMs": "1794092664329",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "8",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "saveTimeInMs": "1",
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092664855",
+              "lastEndedMs": "1794092664876",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        },
+        {
+          "actionCacheStatistics": {
+            "hits": 23,
+            "loadTimeInMs": "84",
+            "missDetails": [
+              {},
+              {
+                "reason": "DIFFERENT_DEPS"
+              },
+              {
+                "reason": "DIFFERENT_ENVIRONMENT"
+              },
+              {
+                "reason": "DIFFERENT_FILES"
+              },
+              {
+                "reason": "CORRUPTED_CACHE_ENTRY"
+              },
+              {
+                "reason": "NOT_CACHED"
+              },
+              {
+                "count": 1,
+                "reason": "UNCONDITIONAL_EXECUTION"
+              },
+              {
+                "reason": "DIGEST_MISMATCH"
+              }
+            ],
+            "misses": 1,
+            "saveTimeInMs": "1",
+            "sizeInBytes": "34022"
+          },
+          "actionData": [
+            {
+              "actionsCreated": "1",
+              "actionsExecuted": "1",
+              "firstStartedMs": "1794092674530",
+              "lastEndedMs": "1794092674732",
+              "mnemonic": "BazelWorkspaceStatusAction"
+            },
+            {
+              "actionsCreated": "2",
+              "mnemonic": "TranslateBuildInfo"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlibList"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RepoMappingManifest"
+            },
+            {
+              "actionsCreated": "16",
+              "mnemonic": "FileWrite"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoLink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoStdlib"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SymlinkTree"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "Symlink"
+            },
+            {
+              "actionsCreated": "1",
+              "mnemonic": "GoToolchainBinaryBuild"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "SourceSymlinkManifest"
+            },
+            {
+              "actionsCreated": "18",
+              "mnemonic": "GoCompilePkg"
+            },
+            {
+              "actionsCreated": "6",
+              "mnemonic": "RunfilesTree"
+            },
+            {
+              "actionsCreated": "4",
+              "mnemonic": "ExecutableSymlink"
+            }
+          ],
+          "actionsCreated": "70",
+          "actionsCreatedNotIncludingAspects": "69",
+          "actionsExecuted": "1",
+          "runnerCount": [
+            {
+              "count": 1,
+              "name": "total"
+            },
+            {
+              "count": 1,
+              "name": "internal"
+            }
+          ]
+        }
+      ],
+      "correctness": [
+        {
+          "index": 0,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 1,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 2,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 3,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 4,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 5,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 6,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 7,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 8,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        },
+        {
+          "index": 9,
+          "behavior_passed": true,
+          "digest_oracle": {
+            "available": false,
+            "matches": null
+          },
+          "glob_oracle": null
+        }
+      ]
+    },
+    {
+      "id": "source-vanilla-r",
+      "status": "running",
+      "error": null
+    },
+    {
+      "id": "source-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-ref",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-vanilla-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-off-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i10-ref",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i10-vanilla-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i10-off-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i10-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "build-ref",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "build-vanilla-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "build-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "disjoint-ref",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "disjoint-vanilla-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "disjoint-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "config-ref",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "config-vanilla-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "config-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "glob-ref",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "glob-vanilla-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "glob-sky-r",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-vanilla-w",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-sky-w",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i10-vanilla-w",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i10-sky-w",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-vanilla-c",
+      "status": "not_started",
+      "error": null
+    },
+    {
+      "id": "i1-sky-c",
+      "status": "not_started",
+      "error": null
+    }
+  ],
+  "candidate_on_off": [],
+  "n1_n10_scaling": []
+}
