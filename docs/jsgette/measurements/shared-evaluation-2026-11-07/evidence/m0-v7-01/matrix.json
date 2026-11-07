@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "runtime_root": "/mnt/shared-evaluation-20261107",
+  "harness_directory": "/mnt/shared-evaluation-20261107/harness-v7",
+  "harness_commit": "92d4b2b453",
+  "repository_cache": "/mnt/shared-evaluation-20261107/repository-cache-v7",
+  "binary": {
+    "vanilla": {
+      "path": "/home/jgett/skycache-20261029/bin/bazel-vanilla",
+      "sha256": "34a95ea73a865b8382e433ec616369fec24e51e69f7c02c148dd30097dd5863b"
+    },
+    "candidate": {
+      "path": "/home/jgett/skycache-20261029/bin/bazel-skycache-safe-subset",
+      "sha256": "11547ce20ac9edcaa14c48206ac14618012d898ef24d4bbf6e0ac229b44b1e25"
+    }
+  },
+  "harness_sha256": {
+    "baseline.py": "f418157ada895e181f75c43cd4c7c05e69077598013b9097420f650fa6c6f906",
+    "fixture.py": "2de503bc8d4b5e7e1817b5a73e9bb78c1d7bacc56f5ae19847b8f686ebaff78a",
+    "output_bases.py": "d63dd9b7ba66cb88b5abcf914e835a8a2bf0bad9e6aa94f6203ab884caa3bbae"
+  },
+  "local_sha256": {
+    "run_guarded.ps1": "392087d82b47dbb1fdf40e6814ede576cd371a861e828222c123fa621d2fe313",
+    "host_memory_guard.psm1": "1a90a0cf8bdc0b9390475733b8915447eb6e774e3de88428bc45aaed105a6b3c",
+    "archive_run.py": "8bcef6e48e58d67b5c732a4e6ac21425c2c74f449249ff43a6d0802788b1f63e",
+    "summarize.py": "bf84f257821eb04003f427a8b5979ca0ea49dbb10c4f1e261c88fdde57c33269",
+    "reset_task_mount.py": "da301d14b2e9916b03e106be86edd233488dbce1a935a160ce91e4451158382f"
+  },
+  "fixtures": {
+    "i1": {
+      "directory": "identical-n1-v5",
+      "pool": "identical-n1",
+      "scenario": "identical",
+      "clients": 1
+    },
+    "i10": {
+      "directory": "identical-n10-v3",
+      "pool": "identical-n10",
+      "scenario": "identical",
+      "clients": 10
+    },
+    "source": {
+      "directory": "source-n10-v5",
+      "pool": "source-n10",
+      "scenario": "source",
+      "clients": 10
+    },
+    "build": {
+      "directory": "build-n10-v5",
+      "pool": "build-n10",
+      "scenario": "build",
+      "clients": 10
+    },
+    "disjoint": {
+      "directory": "disjoint-n10-v5",
+      "pool": "disjoint-n10",
+      "scenario": "disjoint",
+      "clients": 10
+    },
+    "config": {
+      "directory": "config-n10-v5",
+      "pool": "config-n10",
+      "scenario": "config",
+      "clients": 10
+    },
+    "glob": {
+      "directory": "glob-n10-v5",
+      "pool": "glob-n10",
+      "scenario": "glob",
+      "clients": 10
+    }
+  },
+  "notes": [
+    "No automatic milestone verdict, failed-run retry, or pool repair. Every batch ID is new.",
+    "Reference rows are correctness-only and cannot count as performance-eligible without an independent digest oracle.",
+    "MemoryMaxMiB is mandatory at invocation; use the same chosen cap for all matched arms. Current intended cap is 10240 MiB.",
+    "One initial pair per cell; counterbalanced repetitions require an explicit follow-up manifest if noise prevents assessment.",
+    "After preceding evidence is checked and archived, reset only the task mount before each new cohort; the helper refuses active task workloads.",
+    "Fresh named caches include repository contents; installed files and OS page cache are not claimed cold.",
+    "All 29 rows run fresh under v7 storage policy; no v6 reference imports or performance pooling.",
+    "The source reference/vanilla/SkyCache triplet runs first to qualify the bounded root-filesystem write-path repair.",
+    "Repository cache, temporary files, and v7 pools/SkyCache are on task storage; only the verified download-cache subtree is seeded."
+  ],
+  "pool_namespace": "v7",
+  "temporary_root": "/mnt/shared-evaluation-20261107/tmp-v7",
+  "rows": [
+    {"id":"source-ref","fixture":"source","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"source-vanilla-r","fixture":"source","mode":"vanilla","state":"restart","reference":false,"oracle":"source-ref"},
+    {"id":"source-sky-r","fixture":"source","mode":"skycache","state":"restart","reference":false,"oracle":"source-ref"},
+    {"id":"i1-ref","fixture":"i1","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"i1-vanilla-r","fixture":"i1","mode":"vanilla","state":"restart","reference":false,"oracle":"i1-ref"},
+    {"id":"i1-off-r","fixture":"i1","mode":"candidate-off","state":"restart","reference":false,"oracle":"i1-ref"},
+    {"id":"i1-sky-r","fixture":"i1","mode":"skycache","state":"restart","reference":false,"oracle":"i1-ref"},
+    {"id":"i10-ref","fixture":"i10","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"i10-vanilla-r","fixture":"i10","mode":"vanilla","state":"restart","reference":false,"oracle":"i10-ref"},
+    {"id":"i10-off-r","fixture":"i10","mode":"candidate-off","state":"restart","reference":false,"oracle":"i10-ref"},
+    {"id":"i10-sky-r","fixture":"i10","mode":"skycache","state":"restart","reference":false,"oracle":"i10-ref"},
+    {"id":"build-ref","fixture":"build","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"build-vanilla-r","fixture":"build","mode":"vanilla","state":"restart","reference":false,"oracle":"build-ref"},
+    {"id":"build-sky-r","fixture":"build","mode":"skycache","state":"restart","reference":false,"oracle":"build-ref"},
+    {"id":"disjoint-ref","fixture":"disjoint","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"disjoint-vanilla-r","fixture":"disjoint","mode":"vanilla","state":"restart","reference":false,"oracle":"disjoint-ref"},
+    {"id":"disjoint-sky-r","fixture":"disjoint","mode":"skycache","state":"restart","reference":false,"oracle":"disjoint-ref"},
+    {"id":"config-ref","fixture":"config","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"config-vanilla-r","fixture":"config","mode":"vanilla","state":"restart","reference":false,"oracle":"config-ref"},
+    {"id":"config-sky-r","fixture":"config","mode":"skycache","state":"restart","reference":false,"oracle":"config-ref"},
+    {"id":"glob-ref","fixture":"glob","mode":"vanilla","state":"restart","reference":true,"oracle":null},
+    {"id":"glob-vanilla-r","fixture":"glob","mode":"vanilla","state":"restart","reference":false,"oracle":"glob-ref"},
+    {"id":"glob-sky-r","fixture":"glob","mode":"skycache","state":"restart","reference":false,"oracle":"glob-ref"},
+    {"id":"i1-vanilla-w","fixture":"i1","mode":"vanilla","state":"warm","reference":false,"oracle":"i1-ref"},
+    {"id":"i1-sky-w","fixture":"i1","mode":"skycache","state":"warm","reference":false,"oracle":"i1-ref"},
+    {"id":"i10-vanilla-w","fixture":"i10","mode":"vanilla","state":"warm","reference":false,"oracle":"i10-ref"},
+    {"id":"i10-sky-w","fixture":"i10","mode":"skycache","state":"warm","reference":false,"oracle":"i10-ref"},
+    {"id":"i1-vanilla-c","fixture":"i1","mode":"vanilla","state":"cold","reference":false,"oracle":"i1-ref"},
+    {"id":"i1-sky-c","fixture":"i1","mode":"skycache","state":"cold","reference":false,"oracle":"i1-ref"}
+  ]
+}

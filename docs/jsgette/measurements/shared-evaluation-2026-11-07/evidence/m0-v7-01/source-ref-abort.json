@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "infrastructure_abort",
+  "status": "aborted",
+  "passed": false,
+  "performance_eligible": false,
+  "milestone_verdict": "not_assessed",
+  "run": "/mnt/shared-evaluation-20261107/source-n10-v5/runs/m0-v7-01-source-ref",
+  "phase": "preparation",
+  "report_present": false,
+  "measured_phase_present": false,
+  "guard_abort_observation_utc": "2026-11-07T23:48:54.0075361+01:00",
+  "reason": "host_memory_reserve",
+  "threshold_failures": [
+    "host_available_commit_below_reserve"
+  ],
+  "scope": {
+    "unit": "shared-eval-guard-m0-v7-01-source-ref-ab05d4b3f333440892d3b16fb5988196.scope",
+    "description": "shared-evaluation-owned:ab05d4b3f333440892d3b16fb5988196",
+    "invocation_id": "48f68ac55de244eca708bf16147b8df6"
+  },
+  "signal": "SIGKILL",
+  "scope_cleanup_verified": true,
+  "final_scope_present": false,
+  "final_scope_cleanup_verified": true,
+  "initial_host_memory": {
+    "utc": "2026-11-07T23:44:50.9492441+01:00",
+    "available_physical_bytes": 12548534272,
+    "available_commit_bytes": 12267139072,
+    "total_physical_bytes": 33990049792,
+    "commit_limit_bytes": 39895629824,
+    "committed_bytes": 27628490752
+  },
+  "abort_host_memory": {
+    "utc": "2026-11-07T23:48:54.0075361+01:00",
+    "available_physical_bytes": 4455542784,
+    "available_commit_bytes": 4260061184,
+    "total_physical_bytes": 33990049792,
+    "commit_limit_bytes": 39895629824,
+    "committed_bytes": 35635568640
+  },
+  "policy": {
+    "minimum_free_commit_bytes": 4294967296,
+    "memory_max_mib": 10240,
+    "cpu_quota_percent": 600,
+    "minimum_free_physical_bytes": 3221225472
+  },
+  "observed_preparation_resource_files": 7,
+  "observed_preparation_client_directories": 8,
+  "successful_preparation_clients_coordinator_reported": 7,
+  "harness_sha256": {
+    "baseline.py": "f418157ada895e181f75c43cd4c7c05e69077598013b9097420f650fa6c6f906",
+    "fixture.py": "2de503bc8d4b5e7e1817b5a73e9bb78c1d7bacc56f5ae19847b8f686ebaff78a",
+    "output_bases.py": "d63dd9b7ba66cb88b5abcf914e835a8a2bf0bad9e6aa94f6203ab884caa3bbae"
+  },
+  "binary_sha256": "34a95ea73a865b8382e433ec616369fec24e51e69f7c02c148dd30097dd5863b",
+  "guard_result_sha256": "d735d4739f40415290f87c6a1b8be0a50183ca2b6a51dfb3a213eafd2a3ca115",
+  "guard_policy_sha256": "6d9e07767e3bb0e695b8c006a2f314cbc3460892099da8e9322b09e1f5d60b83",
+  "original_progress_sha256": "fc1ceeb9c19364ed3c71d834656998e533143ccf56052138b7d4faa093ab248a",
+  "notes": [
+    "Explicit abort metadata added after scope termination; no completed report is synthesized.",
+    "The guard observed commit headroom below reserve and terminated only its verified owned scope.",
+    "Underlying host-memory pressure is still under investigation; retained file cache versus initial headroom is not resolved by this record.",
+    "Seven preparation successes are coordinator-reported; seven resource files and eight started preparation directories were independently observed."
+  ]
+}
