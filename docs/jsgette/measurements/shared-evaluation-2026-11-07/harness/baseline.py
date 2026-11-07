@@ -1,7 +1,8 @@
 """One Linux M0 cohort; run under a fresh systemd user scope.
 
 --prepare creates a private Git repository/worktree fixture. Every measured
-invocation needs a new --run-id. No output directory is deleted or overwritten.
+invocation needs a new --run-id; evidence files are never reused. An optional
+pool retains strictly bound mutable Bazel output state across warm/restart runs.
 Cold means new output bases, not an empty caller-supplied repository/disk cache.
 Warm and restart perform an unmeasured build first; restart then stops daemons.
 """
@@ -9,6 +10,7 @@ Warm and restart perform an unmeasured build first; restart then stops daemons.
 import argparse
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -21,6 +23,7 @@ import time
 from urllib.parse import unquote, urlparse
 
 import fixture
+import output_bases
 
 
 def require_fixture_tree(workspace, expected_tree):
@@ -294,9 +297,13 @@ def bep_metrics(path):
     return result
 
 
+def output_base(args, run, index):
+    return (getattr(args, "output_base_root", None) or run) / ("o%02d" % index)
+
+
 def startup(args, run, index):
     return [str(args.binary), "--ignore_all_rc_files", f"--output_user_root={args.install_root}",
-            f"--output_base={run / ('o%02d' % index)}", f"--host_jvm_args=-Xmx{args.heap_mb}m",
+            f"--output_base={output_base(args, run, index)}", f"--host_jvm_args=-Xmx{args.heap_mb}m",
             f"--host_jvm_args=-XX:ActiveProcessorCount={args.jobs}", "--max_idle_secs=300"]
 
 
@@ -304,7 +311,7 @@ def build(args, run, row, phase, env, oracles):
     index = row["index"]
     directory = run / phase / ("c%02d" % index)
     directory.mkdir(parents=True)
-    base = run / ("o%02d" % index)
+    base = output_base(args, run, index)
     bep, profile = directory / "bep.jsonl", directory / "profile.json.gz"
     argv = startup(args, run, index) + ["build", fixture.TARGET, *row.get("extra_targets", []), *fixture.FLAGS,
         "--compilation_mode=" + row.get("compilation_mode", "fastbuild"),
@@ -387,7 +394,7 @@ def shutdown(args, run, rows, env, phase):
 
 
 def cohort(args, run, rows, phase, env, oracles, resource_name=None):
-    sampler = Sampler([run / ("o%02d" % r["index"]) for r in rows], args.sample_interval,
+    sampler = Sampler([output_base(args, run, r["index"]) for r in rows], args.sample_interval,
                       args.require_cgroup)
     sampler.start()
     start = time.monotonic()
@@ -448,6 +455,25 @@ def serial_restart_preparation(args, run, rows, env, oracles):
     return result
 
 
+def output_base_binding(args, manifest, report):
+    group = cgroup_path()
+    limits = {}
+    for name in ("cpu.max", "memory.max", "memory.swap.max"):
+        try:
+            limits[name] = (group / name).read_text().strip() if group else None
+        except OSError:
+            limits[name] = None
+    return {"schema_version": 1, "binary_sha256": report["binary_sha256"], "mode": args.mode,
+            "fixture": manifest, "resource_flags": {"jobs": args.jobs, "heap_mb": args.heap_mb,
+                "local_memory_mb": args.local_memory_mb, "scope_limits": limits},
+            "cache_paths": {"repository": str(args.repository_cache),
+                "disk": str(args.disk_cache) if args.disk_cache else None,
+                "skycache": str(args.skycache_root) if args.mode == "skycache" else None},
+            "install_root": str(args.install_root), "analysis_only": args.analysis_only,
+            "active_directories": args.active_directories, "extra_bazel_arguments": args.bazel_arg,
+            "harness_sha256": report["harness_sha256"]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
@@ -468,6 +494,8 @@ def main():
     parser.add_argument("--cache-state", choices=("cold", "warm", "restart"), default="cold")
     parser.add_argument("--serial-restart-preparation", action="store_true",
                         help="For restart only: prepare and stop each daemon before preparing the next")
+    parser.add_argument("--output-base-root", type=Path,
+                        help="Strictly bound, exclusively leased output bases for warm/restart trials")
     parser.add_argument("--run-id")
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--heap-mb", type=int, default=768)
@@ -495,6 +523,8 @@ def main():
         parser.error("--fresh-caches cannot be combined with explicit cache paths")
     if args.serial_restart_preparation and args.cache_state != "restart":
         parser.error("--serial-restart-preparation requires --cache-state=restart")
+    if args.output_base_root and (args.cache_state == "cold" or args.fresh_caches):
+        parser.error("--output-base-root requires warm/restart and cannot use --fresh-caches")
     if any(value.startswith("--compilation_mode") or value.startswith("-c") and not value.startswith("--")
            for value in args.bazel_arg):
         parser.error("Compilation mode is fixture-controlled; use the config scenario")
@@ -509,12 +539,16 @@ def main():
     args.install_root = (args.install_root or (args.root.parent / "install")).resolve()
     if args.disk_cache:
         args.disk_cache = args.disk_cache.resolve()
+    if args.output_base_root:
+        args.output_base_root = args.output_base_root.resolve()
     manifest = json.loads((args.root / "fixture/manifest.json").read_text())
     args.fixture_tree = manifest["private_tree"]
     if manifest["clients"] != args.clients or manifest["scenario"] != args.scenario:
         parser.error("Fixture clients/scenario differ from this invocation")
     for row in manifest["worktrees"]:
         workspace = Path(row["workspace"])
+        if args.output_base_root and args.output_base_root.is_relative_to(workspace.resolve()):
+            parser.error("--output-base-root must be outside every fixture worktree")
         require_fixture_tree(workspace, args.fixture_tree)
         if "source_state" not in row or fixture.source_state(workspace) != row["source_state"]:
             raise RuntimeError("Fixture source-state guard missing or changed: " + str(workspace))
@@ -566,6 +600,7 @@ def main():
               "engine_state": {"cold": "cold-engine", "warm": "warm-engine",
                                "restart": "restarted-engine"}[args.cache_state],
               "fresh_caches_requested": args.fresh_caches,
+              "output_base_root": str(args.output_base_root) if args.output_base_root else None,
               "preparation_protocol": ("serial-build-then-shutdown" if args.serial_restart_preparation
                                        else "concurrent-builds-then-shutdown" if args.cache_state == "restart"
                                        else "concurrent-builds" if args.cache_state == "warm" else "none"),
@@ -580,51 +615,66 @@ def main():
               "installation": {"shared_output_user_root": str(args.install_root),
                                "existing_install_directories": sorted(p.name for p in (args.install_root / "install").glob("*") if p.is_dir()),
                                "note": "Prewarm both binaries outside measured scopes; harness records but does not assume prewarming."},
-              "harness_sha256": {p.name: fixture.sha256(p) for p in (Path(__file__), Path(fixture.__file__))},
+              "harness_sha256": {p.name: fixture.sha256(p) for p in
+                                 (Path(__file__), Path(fixture.__file__), Path(output_bases.__file__))},
               "environment_digest": hashlib.sha256(json.dumps(sorted(env.items())).encode()).hexdigest(),
               "environment_values_recorded": False, "passed": False,
               "notes": ["Caller-supplied repository/disk caches may be warm.",
                         "Disjoint edits preserve runtime behavior; binary digest equality is measured, not presumed.",
                         "A fresh systemd scope is required for complete aggregate accounting."]}
-    fixture.save_new(run / "provenance.json", report)
-    try:
-        if args.cache_state != "cold":
-            if args.serial_restart_preparation:
-                report["preparation"] = serial_restart_preparation(
-                    args, run, manifest["worktrees"], env, oracles)
-                report["restart_shutdown"] = report["preparation"]["shutdown"]
-            else:
-                report["preparation"] = cohort(args, run, manifest["worktrees"], "preparation", env, oracles)
-            if not report["preparation"]["passed"]:
-                raise RuntimeError("Preparation build failed")
-            if args.cache_state == "restart" and not args.serial_restart_preparation:
-                report["restart_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "restart-shutdown")
-                if any(r["exit_code"] for r in report["restart_shutdown"]):
-                    raise RuntimeError("Preparation daemon shutdown failed")
-        report["cache_before_measured"] = cache_inventory(args)
-        report["measured"] = cohort(args, run, manifest["worktrees"], "measured", env, oracles)
-        report["passed"] = report["measured"]["passed"]
-    except Exception as error:
-        report["error"] = type(error).__name__ + ": " + str(error)
-    finally:
+    binding = output_base_binding(args, manifest, report) if args.output_base_root else None
+    report["output_base_pool_binding_sha256"] = (
+        hashlib.sha256(json.dumps(binding, sort_keys=True).encode()).hexdigest() if binding else None)
+    lease = (output_bases.Pool(args.output_base_root, binding, run / "report.json")
+             if args.output_base_root else nullcontext())
+    with lease:
+        if args.output_base_root:
+            fixture.save_new(run / "output-base-binding.json", binding)
+            report["output_base_pool"] = {"run_number": lease.run_number,
+                                        "previous_report_path": lease.previous_report_path,
+                                        "binding_path": str(args.output_base_root / "binding.json")}
+            report["notes"].append(
+                "Pool binding excludes the full environment digest because launcher variables vary. "
+                "Environment changes may invalidate Bazel state; performance comparisons must inspect per-run provenance.")
+        fixture.save_new(run / "provenance.json", report)
         try:
-            report["final_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "final-shutdown")
-            if any(r["exit_code"] for r in report["final_shutdown"]):
-                report["passed"] = False
-            report["source_state_unchanged"] = all(
-                fixture.source_state(row["workspace"]) == row["source_state"]
-                for row in manifest["worktrees"])
-            if not report["source_state_unchanged"]:
-                report["passed"] = False
-            report["source_tree_unchanged"] = False
-            for row in manifest["worktrees"]:
-                require_fixture_tree(row["workspace"], args.fixture_tree)
-            report["source_tree_unchanged"] = True
-            report["cache_after"] = cache_inventory(args)
+            if args.cache_state != "cold":
+                if args.serial_restart_preparation:
+                    report["preparation"] = serial_restart_preparation(
+                        args, run, manifest["worktrees"], env, oracles)
+                    report["restart_shutdown"] = report["preparation"]["shutdown"]
+                else:
+                    report["preparation"] = cohort(args, run, manifest["worktrees"], "preparation", env, oracles)
+                if not report["preparation"]["passed"]:
+                    raise RuntimeError("Preparation build failed")
+                if args.cache_state == "restart" and not args.serial_restart_preparation:
+                    report["restart_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "restart-shutdown")
+                    if any(r["exit_code"] for r in report["restart_shutdown"]):
+                        raise RuntimeError("Preparation daemon shutdown failed")
+            report["cache_before_measured"] = cache_inventory(args)
+            report["measured"] = cohort(args, run, manifest["worktrees"], "measured", env, oracles)
+            report["passed"] = report["measured"]["passed"]
         except Exception as error:
-            report["cleanup_error"] = type(error).__name__ + ": " + str(error)
-            report["passed"] = False
-        fixture.save_new(run / "report.json", report)
+            report["error"] = type(error).__name__ + ": " + str(error)
+        finally:
+            try:
+                report["final_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "final-shutdown")
+                if any(r["exit_code"] for r in report["final_shutdown"]):
+                    report["passed"] = False
+                report["source_state_unchanged"] = all(
+                    fixture.source_state(row["workspace"]) == row["source_state"]
+                    for row in manifest["worktrees"])
+                if not report["source_state_unchanged"]:
+                    report["passed"] = False
+                report["source_tree_unchanged"] = False
+                for row in manifest["worktrees"]:
+                    require_fixture_tree(row["workspace"], args.fixture_tree)
+                report["source_tree_unchanged"] = True
+                report["cache_after"] = cache_inventory(args)
+            except Exception as error:
+                report["cleanup_error"] = type(error).__name__ + ": " + str(error)
+                report["passed"] = False
+            fixture.save_new(run / "report.json", report)
     print(json.dumps({"report": str(run / "report.json"), "passed": report["passed"]}))
     return 0 if report["passed"] else 1
 
