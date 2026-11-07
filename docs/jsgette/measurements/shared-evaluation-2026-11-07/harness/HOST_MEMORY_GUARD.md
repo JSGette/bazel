@@ -88,3 +88,18 @@ per-output-base setup despite a shared contents cache.
 Source: `RepositoryOptions.java` defines the cache and its defaults;
 `LocalRepoContentsCache.java` describes predeclared-input hashes plus recorded
 input validation; `BazelRepositoryModule.java` rejects unsafe cache placement.
+
+## Task mount reset between cohorts
+
+`reset_task_mount.py --apply --report <new-outside-mount-path.json>` resets only
+the pinned task image and UUID. Invoke it as root from the C-backed checkout,
+after the preceding cohort has stopped and its evidence has been archived.
+Without `--apply` it only inspects. Both modes create a fresh JSON report; any
+error stops the sequence. The helper's normal inspection and actual reset were
+verified before matrix use.
+
+The helper attaches the loop device with **AUTOCLEAR=0**. Final cleanup must
+unmount the exact task filesystem in every remaining namespace, recheck the
+loop's exact backing image and UUID, and explicitly detach that loop device.
+The mount keeper's unmount-on-exit action alone does not detach it. No global
+cache clearing or service termination is needed.
