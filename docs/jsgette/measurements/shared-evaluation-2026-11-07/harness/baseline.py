@@ -1,0 +1,438 @@
+"""One Linux M0 cohort; run under a fresh systemd user scope.
+
+--prepare creates a private Git repository/worktree fixture. Every measured
+invocation needs a new --run-id. No output directory is deleted or overwritten.
+Cold means new output bases, not an empty caller-supplied repository/disk cache.
+Warm and restart perform an unmeasured build first; restart then stops daemons.
+"""
+
+import argparse
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import threading
+import time
+from urllib.parse import unquote, urlparse
+
+import fixture
+
+
+def proc_stat(pid):
+    try:
+        raw = Path(f"/proc/{pid}/stat").read_text()
+        fields = raw[raw.rfind(")") + 2:].split()
+        return {"pid": pid, "ppid": int(fields[1]), "start": int(fields[19]),
+                "ticks": int(fields[11]) + int(fields[12])}
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def pss(pid):
+    try:
+        for line in Path(f"/proc/{pid}/smaps_rollup").read_text().splitlines():
+            if line.startswith("Pss:"):
+                return int(line.split()[1]) * 1024
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def cgroup_path():
+    for line in Path("/proc/self/cgroup").read_text().splitlines():
+        if line.startswith("0::"):
+            return Path("/sys/fs/cgroup") / line[3:].lstrip("/")
+    return None
+
+
+def read_number(path):
+    try:
+        return int(path.read_text().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def cgroup_cpu(path):
+    if path is None:
+        return None
+    try:
+        values = dict(line.split() for line in (path / "cpu.stat").read_text().splitlines())
+        return int(values["usage_usec"])
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def cgroup_memory_stat(path):
+    if path is None:
+        return None
+    try:
+        values = dict(line.split() for line in (path / "memory.stat").read_text().splitlines())
+        return {key: int(values[key]) for key in ("anon", "file", "shmem", "kernel", "sock")
+                if key in values}
+    except (OSError, ValueError):
+        return None
+
+
+class Sampler:
+    """Phase CPU and sampled PSS; memory.peak is explicitly scope-lifetime."""
+
+    def __init__(self, bases, interval, require_cgroup):
+        self.bases, self.interval = bases, interval
+        self.group = cgroup_path()
+        self.valid_group = bool(self.group and self.group.name.endswith(".scope")
+                                and cgroup_cpu(self.group) is not None
+                                and (self.group / "memory.current").is_file())
+        if require_cgroup and not self.valid_group:
+            raise RuntimeError("A dedicated cgroup-v2 .scope with CPU/memory accounting is required")
+        self.stop_event = threading.Event()
+        self.rows = []
+        self.last = {}
+        self.engine_ticks = 0
+        self.engine_memberships = set()
+        self.observed_bases = set()
+        self.started = time.monotonic()
+        self.cpu_before = cgroup_cpu(self.group) if self.valid_group else None
+        self.sample(initial=True)
+        self.thread = threading.Thread(target=self.loop, daemon=True)
+
+    def engine_pids(self):
+        found = []
+        for base in self.bases:
+            try:
+                found.append((base, int((base / "server/server.pid.txt").read_text().strip())))
+            except (OSError, ValueError):
+                continue
+        return found
+
+    def sample(self, initial=False):
+        total = 0
+        count = 0
+        for base, pid in self.engine_pids():
+            stat = proc_stat(pid)
+            if stat is None:
+                continue
+            self.observed_bases.add(str(base))
+            key = (pid, stat["start"])
+            before = self.last.get(key, stat["ticks"] if initial else 0)
+            self.engine_ticks += max(0, stat["ticks"] - before)
+            self.last[key] = stat["ticks"]
+            memory = pss(pid)
+            if memory is not None:
+                total += memory
+                count += 1
+            if self.valid_group:
+                try:
+                    self.engine_memberships.add((pid, Path(f"/proc/{pid}/cgroup").read_text().strip()))
+                except OSError:
+                    pass
+        current = read_number(self.group / "memory.current") if self.valid_group else None
+        self.rows.append({"elapsed_s": time.monotonic() - self.started,
+                          "engine_pss_bytes": total if count else None,
+                          "engine_pids_sampled": count, "scope_memory_current_bytes": current,
+                          "scope_charged_memory_stat": cgroup_memory_stat(self.group) if self.valid_group else None})
+
+    def loop(self):
+        while not self.stop_event.wait(self.interval):
+            self.sample()
+
+    def start(self):
+        self.thread.start()
+
+    def finish(self):
+        self.stop_event.set()
+        self.thread.join()
+        self.sample()
+        cpu_after = cgroup_cpu(self.group) if self.valid_group else None
+        expected = "0::/" + str(self.group.relative_to("/sys/fs/cgroup")) if self.valid_group else None
+        final_pids = self.engine_pids()
+        observed_pids = {pid for pid, _ in self.engine_memberships}
+        memberships_valid = (len(final_pids) == len(self.bases)
+                             and all(pid in observed_pids and proc_stat(pid) is not None
+                                     for _, pid in final_pids)
+                             and all(row == expected or row.startswith(expected + "/")
+                                 for _, row in self.engine_memberships)
+                             if self.valid_group and self.engine_memberships else None)
+        return {
+            "cgroup_accounted": self.valid_group, "cgroup": str(self.group),
+            "engine_membership_verified": memberships_valid,
+            "engine_memberships": sorted(self.engine_memberships),
+            "engine_observed_output_bases": sorted(self.observed_bases),
+            "engine_expected_count": len(self.bases),
+            "scope_cpu_seconds": (cpu_after - self.cpu_before) / 1e6 if cpu_after is not None else None,
+            "scope_lifetime_peak_bytes": read_number(self.group / "memory.peak") if self.valid_group else None,
+            "scope_phase_sampled_peak_bytes": max((r["scope_memory_current_bytes"] or 0 for r in self.rows), default=0) if self.valid_group else None,
+            "scope_charged_memory_stat_peak": {
+                key: max((r["scope_charged_memory_stat"] or {}).get(key, 0) for r in self.rows)
+                for key in ("anon", "file", "shmem", "kernel", "sock")
+            } if self.valid_group else None,
+            "engine_sampled_peak_pss_bytes": max((r["engine_pss_bytes"] or 0 for r in self.rows), default=0),
+            "engine_observed_cpu_seconds": self.engine_ticks / os.sysconf("SC_CLK_TCK"),
+            "sample_interval_s": self.interval, "samples": self.rows,
+            "notes": ["Scope CPU includes harness, clients, daemons, and compiler descendants.",
+                      "memory.peak covers the whole scope lifetime, including preparation.",
+                      "Scope memory is charged bytes, not RSS; shared page-cache first-touch ownership can bias arms.",
+                      "memory.stat shmem is a subset of file; component peaks occur at different times and must not be summed.",
+                      "Engine PSS excludes clients/compiler workers; sampling can miss short peaks.",
+                      "Engine CPU is observed daemon ticks and can miss exited daemons' final ticks."],
+        }
+
+
+def run_logged(argv, workspace, env, directory, timeout):
+    fixture.save_new(directory / "command.json", {"argv": argv, "cwd": str(workspace)})
+    start = time.monotonic()
+    with (directory / "console.log").open("xb") as output:
+        process = subprocess.Popen(argv, cwd=workspace, env=env, stdout=output, stderr=subprocess.STDOUT)
+        try:
+            code = process.wait(timeout=timeout)
+            timed_out = False
+        except subprocess.TimeoutExpired:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            code, timed_out = process.returncode, True
+    return {"exit_code": code, "timed_out": timed_out, "wall_seconds": time.monotonic() - start,
+            "command": str(directory / "command.json"), "console": str(directory / "console.log")}
+
+
+def bep_metrics(path):
+    result = {"finished": False, "build_metrics": None, "files": []}
+    if not path.exists():
+        return result
+    for line in path.read_text(encoding="utf-8").splitlines():
+        event = json.loads(line)
+        if "buildMetrics" in event:
+            result["build_metrics"] = event["buildMetrics"]
+        if "finished" in event:
+            result.update(finished=True, exit_code=event["finished"].get("exitCode"))
+        if "started" in event:
+            result["started"] = event["started"]
+        result["files"].extend(event.get("namedSetOfFiles", {}).get("files", []))
+    return result
+
+
+def startup(args, run, index):
+    return [str(args.binary), "--ignore_all_rc_files", f"--output_user_root={args.install_root}",
+            f"--output_base={run / ('o%02d' % index)}", f"--host_jvm_args=-Xmx{args.heap_mb}m",
+            f"--host_jvm_args=-XX:ActiveProcessorCount={args.jobs}", "--max_idle_secs=300"]
+
+
+def build(args, run, row, phase, env, oracles):
+    index = row["index"]
+    directory = run / phase / ("c%02d" % index)
+    directory.mkdir(parents=True)
+    base = run / ("o%02d" % index)
+    bep, profile = directory / "bep.jsonl", directory / "profile.json.gz"
+    argv = startup(args, run, index) + ["build", fixture.TARGET, *fixture.FLAGS,
+        f"--jobs={args.jobs}", f"--loading_phase_threads={args.jobs}",
+        f"--local_resources=cpu={args.jobs}", f"--local_resources=memory={args.local_memory_mb}",
+        "--worker_max_instances=1", f"--repository_cache={args.repository_cache}",
+        "--remote_cache=", "--remote_executor=", "--bes_backend=", "--bes_results_url=",
+        f"--disk_cache={args.disk_cache or ''}", "--lockfile_mode=off",
+        "--experimental_convenience_symlinks=ignore", "--experimental_record_skyframe_metrics",
+        "--noshow_progress", "--color=no", "--curses=no", f"--build_event_json_file={bep}",
+        f"--profile={profile}", "--nobuild_event_json_file_path_conversion"]
+    if args.mode != "vanilla":
+        argv += ["--experimental_remote_skycache=",
+                 "--experimental_local_skycache=" + (str(args.root / "skycache") if args.mode == "skycache" else "")]
+        if args.active_directories:
+            argv += ["--experimental_active_directories=" + args.active_directories]
+        if args.mode == "skycache":
+            argv += ["--experimental_analysis_cache_idle_retention=3600s"]
+    if args.analysis_only:
+        argv += ["--nobuild"]
+    argv += args.bazel_arg
+    result = {"index": index, "variant": row["variant"], "workspace": row["workspace"],
+              "output_base": str(base), "phase": phase}
+    result.update(run_logged(argv, row["workspace"], env, directory, args.timeout))
+    metrics = bep_metrics(bep)
+    result["bep"] = {k: v for k, v in metrics.items() if k != "files"}
+    result["skycache"] = {}
+    for source in sorted(base.glob("*skycache*.json")):
+        destination = directory / source.name
+        destination.write_bytes(source.read_bytes())
+        result["skycache"][source.name] = json.loads(destination.read_text())
+    if not result["exit_code"] and not args.analysis_only:
+        artifacts = []
+        for entry in metrics["files"]:
+            uri = urlparse(entry.get("uri", ""))
+            if uri.scheme != "file":
+                continue
+            path = Path(unquote(uri.path))
+            if path.name == "normalize_cmd" and path.is_file():
+                artifacts.append(path)
+        artifacts = sorted(set(artifacts))
+        if len(artifacts) != 1:
+            raise RuntimeError("Expected one normalizer output, found " + repr(artifacts))
+        executable = artifacts[0]
+        result["output"] = {"path": str(executable), "bytes": executable.stat().st_size,
+                            "sha256": fixture.sha256(executable)}
+        result["behavior"] = fixture.verify_program(executable, row["variant"], directory / "behavior")
+        expected = oracles.get(row["variant"])
+        result["digest_oracle"] = {"available": expected is not None,
+                                   "matches": result["output"]["sha256"] == expected if expected else None}
+        if expected and not result["digest_oracle"]["matches"]:
+            result["correctness_failure"] = "Output differs from the independent oracle"
+    fixture.save_new(directory / "result.json", result)
+    return result
+
+
+def shutdown(args, run, rows, env, phase):
+    results = []
+    for row in rows:
+        directory = run / phase / ("c%02d" % row["index"])
+        directory.mkdir(parents=True)
+        results.append(run_logged(startup(args, run, row["index"]) + ["shutdown"],
+                                  row["workspace"], env, directory, 90))
+    return results
+
+
+def cohort(args, run, rows, phase, env, oracles):
+    sampler = Sampler([run / ("o%02d" % r["index"]) for r in rows], args.sample_interval,
+                      args.require_cgroup)
+    sampler.start()
+    start = time.monotonic()
+    results = []
+    try:
+        with ThreadPoolExecutor(max_workers=args.clients) as pool:
+            futures = [pool.submit(build, args, run, row, phase, env, oracles) for row in rows]
+            for future in futures:
+                results.append(future.result())
+    finally:
+        resources = sampler.finish()
+        fixture.save_new(run / (phase + "-resources.json"), resources)
+    accounting_passed = (not args.require_cgroup or resources["engine_membership_verified"] is True)
+    return {"wall_seconds": time.monotonic() - start, "results": results,
+            "resources": {k: v for k, v in resources.items() if k != "samples"},
+            "accounting_passed": accounting_passed,
+            "passed": accounting_passed and all(not r["exit_code"] and not r.get("correctness_failure")
+                          and r["bep"]["finished"] for r in results)}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--prepare", action="store_true")
+    parser.add_argument("--repo", type=Path)
+    parser.add_argument("--clients", type=int, choices=(1, 10), default=1)
+    parser.add_argument("--scenario", choices=("identical", "source", "build"), default="identical")
+    parser.add_argument("--mode", choices=("vanilla", "candidate-off", "skycache"))
+    parser.add_argument("--binary", type=Path)
+    parser.add_argument("--repository-cache", type=Path)
+    parser.add_argument("--disk-cache", type=Path)
+    parser.add_argument("--install-root", type=Path,
+                        help="Shared output_user_root for extracted installations; defaults to root.parent/install")
+    parser.add_argument("--cache-state", choices=("cold", "warm", "restart"), default="cold")
+    parser.add_argument("--run-id")
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--heap-mb", type=int, default=768)
+    parser.add_argument("--local-memory-mb", type=int, default=2048)
+    parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--sample-interval", type=float, default=0.1)
+    parser.add_argument("--require-cgroup", action="store_true")
+    parser.add_argument("--analysis-only", action="store_true")
+    parser.add_argument("--active-directories", default="",
+                        help="Optional legacy flag; may be deprecated/no-op in the selected binary")
+    parser.add_argument("--oracle-report", type=Path)
+    parser.add_argument("--bazel-arg", action="append", default=[])
+    args = parser.parse_args()
+    args.root = args.root.resolve()
+    if args.prepare:
+        if not args.repo:
+            parser.error("--prepare requires --repo")
+        print(json.dumps(fixture.prepare(args.repo, args.root, args.clients, args.scenario), indent=2))
+        return 0
+    if sys.platform != "linux":
+        parser.error("Resource measurement requires Linux")
+    if not all((args.binary, args.mode, args.repository_cache, args.run_id)):
+        parser.error("Measurement requires --binary --mode --repository-cache --run-id")
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,100}", args.run_id):
+        parser.error("Invalid --run-id")
+    if min(args.jobs, args.heap_mb, args.local_memory_mb, args.timeout, args.sample_interval) <= 0:
+        parser.error("Resource limits and timeouts must be positive")
+    args.binary, args.repository_cache = args.binary.resolve(), args.repository_cache.resolve()
+    args.install_root = (args.install_root or (args.root.parent / "install")).resolve()
+    if args.disk_cache:
+        args.disk_cache = args.disk_cache.resolve()
+    manifest = json.loads((args.root / "fixture/manifest.json").read_text())
+    if manifest["clients"] != args.clients or manifest["scenario"] != args.scenario:
+        parser.error("Fixture clients/scenario differ from this invocation")
+    for row in manifest["worktrees"]:
+        workspace = Path(row["workspace"])
+        if "source_state" not in row or fixture.source_state(workspace) != row["source_state"]:
+            raise RuntimeError("Fixture source-state guard missing or changed: " + str(workspace))
+        for name, field in (("root.go", "source_sha256"), ("BUILD.bazel", "build_sha256")):
+            if fixture.sha256(workspace / fixture.COMMAND / name) != row[field]:
+                raise RuntimeError("Fixture changed: " + str(workspace))
+    run = args.root / "runs" / args.run_id
+    run.mkdir(parents=True)  # Existing runs are never reused, even after failure.
+    env = fixture.clean_env()
+    env["USE_BAZEL_VERSION"] = "9.1.0"
+    oracles = {}
+    if args.oracle_report:
+        oracle = json.loads(args.oracle_report.read_text())
+        if not oracle["passed"] or oracle["mode"] != "vanilla" or oracle["analysis_only"]:
+            raise ValueError("Oracle must be a successful execution-enabled vanilla report")
+        if oracle["fixture"]["source_revision"] != fixture.REVISION:
+            raise ValueError("Oracle source revision differs")
+        for row in oracle["measured"]["results"]:
+            if row["exit_code"] or not row.get("behavior", {}).get("passed"):
+                raise ValueError("Oracle contains failed builds")
+            previous = oracles.setdefault(row["variant"], row["output"]["sha256"])
+            if previous != row["output"]["sha256"]:
+                raise ValueError("Oracle contains inconsistent variant outputs")
+        missing = {row["variant"] for row in manifest["worktrees"]} - oracles.keys()
+        if missing:
+            raise ValueError("Oracle is missing required variants: " + repr(sorted(missing)))
+    report = {"schema_version": 1, "mode": args.mode, "cache_state": args.cache_state,
+              "binary": str(args.binary), "binary_sha256": fixture.sha256(args.binary),
+              "fixture": manifest, "analysis_only": args.analysis_only,
+              "installation": {"shared_output_user_root": str(args.install_root),
+                               "existing_install_directories": sorted(p.name for p in (args.install_root / "install").glob("*") if p.is_dir()),
+                               "note": "Prewarm both binaries outside measured scopes; harness records but does not assume prewarming."},
+              "harness_sha256": {p.name: fixture.sha256(p) for p in (Path(__file__), Path(fixture.__file__))},
+              "environment_digest": hashlib.sha256(json.dumps(sorted(env.items())).encode()).hexdigest(),
+              "environment_values_recorded": False, "passed": False,
+              "notes": ["Caller-supplied repository/disk caches may be warm.",
+                        "The fixture currently covers identical/source/build, not config/glob.",
+                        "A fresh systemd scope is required for complete aggregate accounting."]}
+    fixture.save_new(run / "provenance.json", report)
+    try:
+        if args.cache_state != "cold":
+            report["preparation"] = cohort(args, run, manifest["worktrees"], "preparation", env, oracles)
+            if not report["preparation"]["passed"]:
+                raise RuntimeError("Preparation build failed")
+            if args.cache_state == "restart":
+                report["restart_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "restart-shutdown")
+                if any(r["exit_code"] for r in report["restart_shutdown"]):
+                    raise RuntimeError("Preparation daemon shutdown failed")
+        report["measured"] = cohort(args, run, manifest["worktrees"], "measured", env, oracles)
+        report["passed"] = report["measured"]["passed"]
+    except Exception as error:
+        report["error"] = type(error).__name__ + ": " + str(error)
+    finally:
+        try:
+            report["final_shutdown"] = shutdown(args, run, manifest["worktrees"], env, "final-shutdown")
+            if any(r["exit_code"] for r in report["final_shutdown"]):
+                report["passed"] = False
+            report["source_state_unchanged"] = all(
+                fixture.source_state(row["workspace"]) == row["source_state"]
+                for row in manifest["worktrees"])
+            if not report["source_state_unchanged"]:
+                report["passed"] = False
+        except Exception as error:
+            report["cleanup_error"] = type(error).__name__ + ": " + str(error)
+            report["passed"] = False
+        fixture.save_new(run / "report.json", report)
+    print(json.dumps({"report": str(run / "report.json"), "passed": report["passed"]}))
+    return 0 if report["passed"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
