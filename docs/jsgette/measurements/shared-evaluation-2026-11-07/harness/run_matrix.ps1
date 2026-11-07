@@ -12,6 +12,39 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 function Write-Json($Path, $Value) { [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 30) + "`n") }
 function Hash($Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
+function Wait-HostBudgetHeadroom([string]$Path, [int]$MemoryMaxMiB, [int]$TimeoutSeconds = 120) {
+    if (Test-Path -LiteralPath $Path) { throw 'Host-budget preflight evidence already exists.' }
+    $report = [ordered]@{schema_version=1; status='waiting'; policy=[ordered]@{
+        memory_max_mib=$MemoryMaxMiB; minimum_physical_bytes=([long]$MemoryMaxMiB + 3072 + 512) * 1MB
+        minimum_commit_bytes=([long]$MemoryMaxMiB + 4096 + 512) * 1MB
+        physical_reserve_mib=3072; commit_reserve_mib=4096; margin_bytes=512MB
+        sample_interval_ms=2000; timeout_seconds=$TimeoutSeconds; consecutive_samples_required=2
+    }; samples=@(); consecutive_ready_samples=0}
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    try {
+        Write-Json $Path $report
+        while ($true) {
+            $memory = Get-GuardHostMemory
+            $report.samples += $memory
+            if ($memory.available_physical_bytes -ge $report.policy.minimum_physical_bytes -and
+                $memory.available_commit_bytes -ge $report.policy.minimum_commit_bytes) {
+                $report.consecutive_ready_samples++
+            } else { $report.consecutive_ready_samples = 0 }
+            $report.elapsed_seconds = $watch.Elapsed.TotalSeconds
+            if ($report.consecutive_ready_samples -ge 2) { $report.status = 'ready'; break }
+            $remaining = $TimeoutSeconds * 1000 - $watch.Elapsed.TotalMilliseconds
+            if ($remaining -le 0) { $report.status = 'timeout'; break }
+            Write-Json $Path $report
+            Start-Sleep -Milliseconds ([int][Math]::Min(2000, [Math]::Ceiling($remaining)))
+        }
+    } catch {
+        $report.status = 'error'; $report.error = $_.Exception.Message
+    } finally {
+        $report.elapsed_seconds = $watch.Elapsed.TotalSeconds
+        Write-Json $Path $report
+    }
+    return $report
+}
 function Linux-File([string]$Path) { "\\wsl.localhost\$Distribution" + $Path.Replace('/', '\') }
 function Invoke-Checked([string]$Exe, [string[]]$Argv, [switch]$AllowFailure) {
     $start = [Diagnostics.ProcessStartInfo]::new($Exe)
@@ -66,6 +99,10 @@ $progressPath = Join-Path $batch 'matrix-progress.json'
 $reports = @{}; $current = $null
 try {
     if ($config.schema_version -ne 1) { throw 'Unsupported manifest schema.' }
+    $requireBudgetHeadroom = if ($config.ContainsKey('require_budget_headroom')) { $config.require_budget_headroom } else { $false }
+    if ($requireBudgetHeadroom -isnot [bool]) { throw 'require_budget_headroom must be a JSON boolean.' }
+    if ($requireBudgetHeadroom -and -not $config.local_sha256.ContainsKey('host_memory_guard.psm1')) { throw 'Budget preflight requires a pinned host memory guard module.' }
+    $progress.require_budget_headroom = $requireBudgetHeadroom
     $poolNamespace = if ($config.ContainsKey('pool_namespace')) { $config.pool_namespace } else { 'v6' }
     if ($poolNamespace -isnot [string] -or $poolNamespace -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,30}$') { throw 'Invalid pool namespace.' }
     $temporaryRoot = if ($config.ContainsKey('temporary_root')) { $config.temporary_root } else { $null }
@@ -118,6 +155,18 @@ try {
             $null = Invoke-Checked $wsl @('-d',$Distribution,'-u','root','--exec','python3','-B',"$linuxTools/reset_task_mount.py",'--apply','--report',"$linuxBatch/$resetFile")
             $reset = Get-Content -LiteralPath (Join-Path $batch $resetFile) -Raw | ConvertFrom-Json
             if ($reset.status -ne 'completed') { throw 'Task-only cache reset did not complete; no cohort launched.' }
+            if ($requireBudgetHeadroom) {
+                Import-Module (Join-Path $PSScriptRoot 'host_memory_guard.psm1') -Force
+                $preflightPath = Join-Path $batch "$($row.id)-host-budget-preflight.json"
+                $current.host_budget_preflight = [IO.Path]::GetFileName($preflightPath)
+                Write-Json $progressPath $progress
+                try { $preflight = Wait-HostBudgetHeadroom $preflightPath $MemoryMaxMiB }
+                finally {
+                    if (Test-Path -LiteralPath $preflightPath) { $current.host_budget_preflight_sha256 = Hash $preflightPath }
+                    Write-Json $progressPath $progress
+                }
+                if ($preflight.status -ne 'ready') { throw "Host-budget preflight $($preflight.status); no cohort launched." }
+            }
             $guard = Join-Path $batch "$($row.id)-guard"
             $result = Invoke-Checked (Join-Path $PSHOME 'pwsh.exe') @('-NoProfile','-File',(Join-Path $PSScriptRoot 'run_guarded.ps1'),'-CommandJson',$command,'-EvidenceDirectory',$guard,'-RunId',$runId,'-MemoryMaxMiB',[string]$MemoryMaxMiB,'-CpuQuotaPercent','600','-Distribution',$Distribution) -AllowFailure
             Write-Json (Join-Path $batch "$($row.id)-launcher.json") $result

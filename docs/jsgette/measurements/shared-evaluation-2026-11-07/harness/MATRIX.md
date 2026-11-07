@@ -50,6 +50,16 @@ and `/mnt/shared-evaluation-20261107/tmp-v7`, with the task repository cache at
 temporary policy in reports and pool bindings. Every arm uses the same storage
 policy; v6 and v7 performance observations must remain separate.
 
+`matrix-v7b.json` keeps the v7 storage/harness policy and all 29 fresh rows, but
+selects new `v7b` pools after the interrupted v7 attempt. Its optional Boolean
+`require_budget_headroom` is true (default false for older manifests). After each
+task reset, admission polls Windows every two seconds for at most 120 seconds and
+requires two consecutive samples covering the full cohort cap plus each existing
+guard reserve plus 512 MiB: 13.5 GiB physical and 14.5 GiB commit at a 10 GiB cap.
+Each row records `<id>-host-budget-preflight.json` and its hash; timeout or error
+stops before launch. Dry-run does not sample the host or import the guard. Select
+this retry explicitly with `-Manifest ./matrix-v7b.json` and a new batch ID.
+
 Evidence is written beneath `../evidence/<batch-id>` (override with
 `-EvidenceDirectory`). `matrix-progress.json` records every selected row, current
 status, hashes and errors. Reports must pass the existing summarizer's functional,

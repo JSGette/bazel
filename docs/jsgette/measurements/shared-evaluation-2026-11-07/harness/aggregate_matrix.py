@@ -35,6 +35,23 @@ def complete(values):
     return sum(values) if values and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values) else None
 
 
+def host_budget_evidence(batch, item, matrix, progress):
+    if not matrix.get("require_budget_headroom", False):
+        return None
+    name = item["id"] + "-host-budget-preflight.json"
+    require(item.get("host_budget_preflight") == name, "Host-budget evidence path differs")
+    raw = (batch / name).read_bytes()
+    require(digest(raw) == item.get("host_budget_preflight_sha256"), "Host-budget evidence hash differs")
+    evidence = json.loads(raw); policy = evidence["policy"]
+    require(evidence["status"] == "ready" and policy["memory_max_mib"] == progress["memory_max_mib"], "Host-budget preflight did not pass for this cap")
+    minimum = {"available_physical_bytes": (progress["memory_max_mib"] + 3072 + 512) * 2**20,
+               "available_commit_bytes": (progress["memory_max_mib"] + 4096 + 512) * 2**20}
+    require(policy["minimum_physical_bytes"] == minimum["available_physical_bytes"] and policy["minimum_commit_bytes"] == minimum["available_commit_bytes"], "Host-budget thresholds differ from cap plus reserves and margin")
+    samples = evidence["samples"]
+    require(len(samples) >= 2 and all(sample[key] >= value for sample in samples[-2:] for key, value in minimum.items()), "Host-budget readiness lacks two sufficient samples")
+    return {"path": name, "sha256": digest(raw), "policy": policy, "final_samples": samples[-2:]}
+
+
 def inspect(batch, item, declared, matrix, progress):
     archive, manifest = packed(batch / (item["id"] + "-run.tar.gz"), ["report.json", "measured-resources.json"])
     require(next(m["sha256"] for m in manifest["members"] if m["path"] == "report.json") == item["report_sha256"], "Report hash differs from progress")
@@ -71,7 +88,7 @@ def inspect(batch, item, declared, matrix, progress):
     common_flags = sorted({tuple(f for f in row if f.split("=", 1)[0] not in ("--experimental_local_skycache", "--experimental_remote_skycache", "--experimental_analysis_cache_idle_retention")) for row in flags})
     binding = archive.get("output-base-binding.json")
     require(not report.get("output_base_root") or (binding and digest(json.dumps(binding, sort_keys=True).encode()) == report["output_base_pool_binding_sha256"]), "Pool binding evidence missing or changed")
-    protocol.update(caps=caps, selected_flags=flags, common_flags=common_flags, extra_bazel_arguments=report.get("extra_bazel_arguments", []), resource_binding=(binding or {}).get("resource_flags"))
+    protocol.update(caps=caps, selected_flags=flags, common_flags=common_flags, extra_bazel_arguments=report.get("extra_bazel_arguments", []), resource_binding=(binding or {}).get("resource_flags"), host_budget_preflight=host_budget_evidence(batch, item, matrix, progress))
     source = {k: report["fixture"].get(k) for k in ("source_revision", "projection_archive_sha256", "private_tree", "target")}
     return {"id": item["id"], "status": "verified", "mode": report["mode"], "state": declared["state"], "scenario": fixture["scenario"], "clients": count, "reference": declared["reference"], "eligible": summary["performance_eligible"] and not declared["reference"], "ineligibility_reasons": summary["ineligibility_reasons"], "binary_sha256": binary, "report_sha256": item["report_sha256"], "summary_sha256": digest(summary_path.read_bytes()), "archive_sha256": manifest["archive_sha256"], "source": source, "metrics": metrics, "protocol": protocol, "positive_full_engine_samples": coverage, "checked_guard_scope": outcome["scope"], "accounting_verified": True, "cache_counters": counters, "action_summaries": actions, "correctness": [{k: c.get(k) for k in ("index", "behavior_passed", "digest_oracle", "glob_oracle")} for c in summary["clients"]]}
 

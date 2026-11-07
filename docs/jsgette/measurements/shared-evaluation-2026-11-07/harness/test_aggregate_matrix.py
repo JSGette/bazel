@@ -72,6 +72,26 @@ class AggregateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Archive hash mismatch"):
             aggregate.packed(path, ["result.json"])
 
+    def test_budget_preflight_requires_full_budget_not_only_guard_reserve(self):
+        minimum = (10240 + 4096 + 512) * 2**20
+        policy = {"memory_max_mib": 10240, "minimum_physical_bytes": (10240 + 3072 + 512) * 2**20,
+                  "minimum_commit_bytes": minimum}
+        sample = {"available_physical_bytes": minimum, "available_commit_bytes": minimum}
+        evidence = {"status": "ready", "policy": policy, "samples": [sample, sample]}
+        name = "off-host-budget-preflight.json"
+        item = {"id": "off", "host_budget_preflight": name}
+        for sufficient in (True, False):
+            if not sufficient:
+                evidence["policy"]["minimum_commit_bytes"] = 4 * 2**30
+            raw = json.dumps(evidence).encode(); (self.root / name).write_bytes(raw)
+            item["host_budget_preflight_sha256"] = aggregate.digest(raw)
+            args = (self.root, item, {"require_budget_headroom": True}, {"memory_max_mib": 10240})
+            if sufficient:
+                self.assertEqual(aggregate.host_budget_evidence(*args)["final_samples"], [sample, sample])
+            else:
+                with self.assertRaisesRegex(ValueError, "thresholds differ"):
+                    aggregate.host_budget_evidence(*args)
+
     def test_partial_snapshot_excludes_running_row_and_cross_binary_effect(self):
         matrix = {"rows": [{"id": "reference", "reference": True}, {"id": "off", "oracle": "reference"}, {"id": "on", "oracle": "reference"}, {"id": "running"}]}
         raw = json.dumps(matrix).encode(); (self.root / "matrix.json").write_bytes(raw)

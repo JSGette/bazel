@@ -4,11 +4,13 @@ This directory records implementation and evidence for the [gated plan](../../pl
 
 ## Current state
 
-- M0: one-client cache reuse qualified; ten-client preparation was deliberately aborted under host memory pressure. Storage repair is complete; the matched matrix remains pending.
+- M0 remains in progress. The v6 matrix completed eight reference/anchor rows before a root-disk failure. The fresh v7 matrix stopped during preparation at the host-memory reserve. Both attempts are preserved; the full v7b retry adds a bounded wait for verified host headroom after task-cache reclamation.
 - M1–M6: not started; no architecture or performance gate has passed yet.
 - Branch: `jsgette/shared-evaluation-gates-20261107`.
 - Starting revision: `c54d33d5b40c5711f3841f50ea1c2f950c959450`.
 - [Decision and execution log](decision-log.md).
+- [Latest complete-row overview](evidence/m0-v6-01/overview-partial-02.md), [v7 abort](evidence/m0-v7-01/overview-aborted-01.md), and [v7b execution manifest](harness/matrix-v7b.json).
+- [Measured CPU attribution limits](m0-cost-attribution-notes.md), [Bonanza source contracts](bonanza-contract-notes.md), and [M1 native comparator preflight](m1-native-preflight.md).
 
 Earlier measurements are background, not new passes. In particular, diagnostic Skyframe names and path-normalized graph dumps are not sound cache identities. This experiment must measure validation and representation overhead before claiming cross-snapshot reuse.
 
