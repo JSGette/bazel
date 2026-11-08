@@ -1,0 +1,200 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java b/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
+index 9c74f4f337850fca79a30bc3dddc0970ee8ee00c..1072324731e47256b6177f51934beb5d0673b997 100644
+--- a/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
++++ b/src/main/java/com/google/devtools/build/lib/runtime/BlazeServerStartupOptions.java
+@@ -148,8 +148,9 @@ public abstract class BlazeServerStartupOptions extends OptionsBase {
+       documentationCategory = OptionDocumentationCategory.BAZEL_CLIENT_OPTIONS,
+       effectTags = {OptionEffectTag.LOSES_INCREMENTAL_STATE},
+       help =
+-          "Experimental Linux daemon with up to two concurrent private workspace engines in one"
+-              + " JVM. Cacheable local actions share a private disk CAS and in-flight action"
++          "Experimental Linux daemon with up to ten retained private workspace engines in one"
++              + " JVM. Closed and failed engines count toward the limit until daemon restart."
++              + " Cacheable local actions share a private disk CAS and in-flight action"
+               + " registry. Requires compatible startup settings and environment. Persistent"
+               + " workers, global profilers, sandbox reuse and remote execution are disabled.")
+   public abstract String getExperimentalSharedServer();
+diff --git a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+index b2579f0cdd951df202a3a836d40f91230b644bff..f06cfb3fc79416f28252a7e5f48d301613bc3f62 100644
+--- a/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
++++ b/src/main/java/com/google/devtools/build/lib/server/CommandServer.java
+@@ -243,6 +243,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     }
+   }
+ 
++  // Closed and failed engines retain their slots until daemon restart.
++  private static final int MAX_RETAINED_WORKSPACE_ENGINES = 10;
++
+   // These paths are all relative to the server directory
+   private static final String PORT_FILE = "command_port";
+   private static final String REQUEST_COOKIE_FILE = "request_cookie";
+@@ -301,8 +304,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
+     if (failedEngines.contains(key)) {
+       throw new IOException("Workspace initialization failed; restart the daemon before retrying");
+     }
+-    if (sharedEngines.size() + failedEngines.size() >= 2) {
+-      throw new IOException("Shared daemon supports at most two retained workspace engines");
++    if (sharedEngines.size() + failedEngines.size() >= MAX_RETAINED_WORKSPACE_ENGINES) {
++      throw new IOException(
++          "Shared daemon supports at most "
++              + MAX_RETAINED_WORKSPACE_ENGINES
++              + " retained workspace engines");
+     }
+     PathFragment root = outputBase.getParentDirectory();
+     String expected =
+diff --git a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+index 5c2e4a5153acaf624444d8f1b423d8c3736813b8..3d58d150ab5ff4eb5697a0d00f0e7ef6ba2111fc 100644
+--- a/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
++++ b/src/test/java/com/google/devtools/build/lib/server/CommandServerTest.java
+@@ -15,6 +15,7 @@ package com.google.devtools.build.lib.server;
+ 
+ import static com.google.common.truth.Truth.assertThat;
+ import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
++import static java.nio.charset.StandardCharsets.ISO_8859_1;
+ import static java.util.concurrent.TimeUnit.SECONDS;
+ import static org.junit.Assert.assertThrows;
+ import static org.junit.Assume.assumeTrue;
+@@ -64,9 +65,11 @@ import io.grpc.stub.StreamObserver;
+ import java.io.IOException;
+ import java.io.OutputStream;
+ import java.nio.file.Files;
++import java.security.MessageDigest;
+ import java.time.Duration;
+ import java.util.ArrayList;
+ import java.util.Arrays;
++import java.util.HexFormat;
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.concurrent.CountDownLatch;
+@@ -765,6 +768,75 @@ public final class CommandServerTest {
+         .build();
+   }
+ 
++  @Test
++  public void sharedServer_failedInitializationsRetainExactlyTenSlotsIncludingInitialEngine()
++      throws Exception {
++    assumeTrue(System.getProperty("os.name").equals("Linux"));
++    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
++    java.nio.file.Path output = temporary.newFolder("output").toPath();
++    AtomicInteger attempts = new AtomicInteger();
++    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
++      ServerAndStub server = createServerAndStub(throwingDispatcher(), () -> {}, directories, true);
++      server
++          .server()
++          .setEngineFactory(
++              (unusedWorkspace, unusedOutput) -> {
++                attempts.incrementAndGet();
++                throw new IOException("deliberate initialization failure");
++              });
++      try {
++        assertSharedAdmissionRejected(server, "/failed-1", "deliberate initialization failure");
++        assertSharedAdmissionRejected(
++            server,
++            "/failed-1",
++            "Workspace initialization failed; restart the daemon before retrying");
++        assertThat(attempts.get()).isEqualTo(1);
++        // The constructor's initial engine occupies one of the ten retained slots.
++        for (int index = 2; index <= 9; index++) {
++          assertSharedAdmissionRejected(
++              server, "/failed-" + index, "deliberate initialization failure");
++        }
++        assertThat(attempts.get()).isEqualTo(9);
++        assertSharedAdmissionRejected(
++            server, "/overflow", "Shared daemon supports at most 10 retained workspace engines");
++        assertSharedAdmissionRejected(
++            server,
++            "/failed-1",
++            "Workspace initialization failed; restart the daemon before retrying");
++        assertThat(attempts.get()).isEqualTo(9);
++      } finally {
++        server.server().shutdown();
++        server.server().awaitTermination();
++      }
++    }
++  }
++
++  private static void assertSharedAdmissionRejected(
++      ServerAndStub server, String workspace, String reason) throws Exception {
++    String output =
++        "/"
++            + HexFormat.of()
++                .formatHex(MessageDigest.getInstance("MD5").digest(workspace.getBytes(ISO_8859_1)));
++    RunRequest request =
++        pinEngine(server, createRequest("info")).toBuilder()
++            .setEngineIdentity(
++                EngineIdentity.newBuilder()
++                    .setWorkspaceDirectory(ByteString.copyFromUtf8(workspace))
++                    .setOutputBase(ByteString.copyFromUtf8(output)))
++            .build();
++    List<RunResponse> responses = new ArrayList<>();
++    CountDownLatch done = new CountDownLatch(1);
++    server.stub().run(request, createResponseObserver(responses, done));
++    assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
++    RunResponse response = Iterables.getOnlyElement(responses);
++    assertThat(response.getFinished()).isTrue();
++    assertThat(response.getExitCode()).isEqualTo(36);
++    assertThat(response.getFailureDetail().getGrpcServer().getCode())
++        .isEqualTo(GrpcServer.Code.ENGINE_UNAVAILABLE);
++    assertThat(response.getFailureDetail().getMessage())
++        .isEqualTo("Cannot admit workspace engine: " + reason);
++  }
++
+   private void assertSharedRequestDoesNotPreempt(
+       UnaryOperator<RunRequest.Builder> mutation, GrpcServer.Code expectedCode) throws Exception {
+     assertRejectedRequestDoesNotPreempt(
+diff --git a/tools/multiworktree/NATIVE.md b/tools/multiworktree/NATIVE.md
+index 2c4b010a8b054b8157f57e6bece7f723ea4d0f8a..bc507b8582dd6a7ff28b4a101467e720044942e9 100644
+--- a/tools/multiworktree/NATIVE.md
++++ b/tools/multiworktree/NATIVE.md
+@@ -1,9 +1,11 @@
+ # Native single-JVM worktree MVP
+ 
+-The Linux native launcher now supports two concurrent workspace engines in one JVM:
++The experimental Linux native launcher admits up to ten retained private workspace
++engines in one JVM. This admission limit is not a ten-worktree performance or memory
++guarantee:
+ 
+ ```sh
+-# Use the same copied candidate binary, startup options and JVM environment in both shells.
++# Use the same copied candidate binary, startup options and JVM environment in each shell.
+ /path/to/bazel --output_user_root=/tmp/shared-bazel \
+   --experimental_shared_server=demo --host_jvm_args=-Xmx4g \
+   --host_jvm_args=-XX:ActiveProcessorCount=4 build //path:target
+@@ -31,8 +33,10 @@ spawns execute privately. Failed/cancelled producers release the key so another
+ consumer can execute; cancelling a waiter leaves its producer alone.
+ 
+ The native invocation policy fixes two action jobs, two loading threads, two local
+-test jobs, two estimated CPUs and 1920 MiB action memory per engine. The two-engine
+-bound limits aggregate admission. These estimates are not hard RSS or CPU quotas.
++test jobs, two estimated CPUs and 1920 MiB action memory per engine. Ten engines can
++therefore admit twenty action jobs and 19,200 MiB of estimated action memory. There
++is no aggregate scheduler in this extension; these estimates are not hard RSS or
++CPU quotas. Use an outer resource limit when qualifying the ten-engine candidate.
+ Disk cache publication is synchronous; remote execution is disabled. Fetched repo
+ contents remain private because their file locks assume a single JVM owner.
+ 
+@@ -59,14 +63,21 @@ Run the native end-to-end acceptance harness with a fresh output directory:
+ python3 tools/multiworktree/native_integration_test.py \
+   --bazel /absolute/path/to/copied/bazel \
+   --root /absolute/path/to/new/acceptance-directory \
+-  --repository-cache /absolute/path/to/repository-cache
++  --expected-engine-cap=10 --heap-mib=7680 --processors=2
+ ```
+ 
+-The harness proves one PID, divergent build/test barriers, equal-action sharing,
++The repository cache and temporary directories default to fresh children of the
++acceptance root. The example selects an aggregate JVM heap of ten times 768 MiB;
++it does not set a process or host memory limit. The harness defaults to cap two for
++older copied binaries, so pass `--expected-engine-cap=10` for this candidate.
++
++The harness checks one PID, a barrier across every admitted engine, rejection of
++the eleventh engine, divergent build/test barriers, equal-action sharing,
+ warm A/B/A, glob additions/type changes/restoration, source/environment/configuration
+ isolation, failure and cancellation
+ isolation, same-engine serialization, bounded
+-engine admission, scoped shutdown and final daemon exit. It retains commands,
++engine admission, retained closed slots, scoped shutdown, final daemon exit and
++admission after a fresh daemon starts. It retains commands,
+ BEP, execution logs and a machine-readable result. See the
+ [execution report](../../docs/jsgette/plans/multi-worktree-native-mvp-2026-10-31.md)
+ for the DataDog Agent experiment and exact limitations.
