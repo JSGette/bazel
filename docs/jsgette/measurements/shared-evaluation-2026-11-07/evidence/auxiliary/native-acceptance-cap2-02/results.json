@@ -1,0 +1,87 @@
+{
+  "checks": [
+    "admitted workspaces report one server PID",
+    "admitted engines have distinct owned output bases",
+    "engine beyond configured admission bound rejected",
+    "all admitted engines overlap at execution barrier and preserve outputs",
+    "divergent builds overlap at execution barrier and preserve outputs",
+    "identical action digest executes once and materializes twice",
+    "warm A-B-A retains private incremental state",
+    "shared listings preserve private glob additions, entry types, and restoration",
+    "environment differences remain private and execute independently",
+    "configuration differences remain private and execute independently",
+    "two test commands overlap at execution barrier",
+    "ordinary failure does not cancel another engine",
+    "same-engine command lock rejects nonblocking competitor",
+    "cancelled waiter leaves other consumer able to complete",
+    "cancelled producer leaves other consumer able to complete",
+    "engine shutdown leaves another engine running in same PID",
+    "closed retained engine cannot reopen before daemon restart",
+    "closed retained slot does not admit a replacement",
+    "last engine shutdown terminates daemon",
+    "fresh daemon admits previously closed workspace",
+    "restarted daemon shutdown terminates daemon"
+  ],
+  "required_checks": [
+    "admitted engines have distinct owned output bases",
+    "admitted workspaces report one server PID",
+    "all admitted engines overlap at execution barrier and preserve outputs",
+    "cancelled producer leaves other consumer able to complete",
+    "cancelled waiter leaves other consumer able to complete",
+    "closed retained engine cannot reopen before daemon restart",
+    "closed retained slot does not admit a replacement",
+    "configuration differences remain private and execute independently",
+    "divergent builds overlap at execution barrier and preserve outputs",
+    "engine beyond configured admission bound rejected",
+    "engine shutdown leaves another engine running in same PID",
+    "environment differences remain private and execute independently",
+    "fresh daemon admits previously closed workspace",
+    "identical action digest executes once and materializes twice",
+    "last engine shutdown terminates daemon",
+    "ordinary failure does not cancel another engine",
+    "restarted daemon shutdown terminates daemon",
+    "same-engine command lock rejects nonblocking competitor",
+    "shared listings preserve private glob additions, entry types, and restoration",
+    "two test commands overlap at execution barrier",
+    "warm A-B-A retains private incremental state"
+  ],
+  "missing_checks": [],
+  "run_completed": true,
+  "success": true,
+  "server_pid": 1320965,
+  "daemon_identities": [
+    [
+      1320965,
+      2021316
+    ],
+    [
+      1326626,
+      2024166
+    ]
+  ],
+  "output_bases": {
+    "a": "/mnt/shared-evaluation-20261107/native-acceptance-cap2-02/state/shared_servers/v3/native-acceptance/engines/678a03e3e14fa7135d1940e6ec250683",
+    "b": "/mnt/shared-evaluation-20261107/native-acceptance-cap2-02/state/shared_servers/v3/native-acceptance/engines/9a1f576e26fb296c08d777f439d52e9e"
+  },
+  "expected_engine_cap": 2,
+  "heap_mib": 1536,
+  "processors": 2,
+  "temporary_root": "/mnt/shared-evaluation-20261107/native-acceptance-cap2-02/tmp",
+  "repository_cache": "/mnt/shared-evaluation-20261107/native-acceptance-cap2-02/repository-cache",
+  "startup": [
+    "/mnt/shared-evaluation-20261107/native-cap2-requalification-v1/candidate/bazel-native-cap2",
+    "--ignore_all_rc_files",
+    "--output_user_root=/mnt/shared-evaluation-20261107/native-acceptance-cap2-02/state",
+    "--experimental_shared_server=native-acceptance",
+    "--host_jvm_args=-Xmx1536m",
+    "--host_jvm_args=-XX:ActiveProcessorCount=2",
+    "--host_jvm_args=-Djava.io.tmpdir=/mnt/shared-evaluation-20261107/native-acceptance-cap2-02/tmp",
+    "--noidle_server_tasks",
+    "--max_idle_secs=600"
+  ],
+  "environment_sha256": "b711195d8541315d2b63f18beec523ae1cc9c88bc4c7121d2a55968f94fca520",
+  "cleanup_errors": [],
+  "run_error": null,
+  "binary_sha256": "b7071363aba091f922b91d73dc1f8db4169dd791c164aa10fe58f168a89e689e",
+  "harness_sha256": "4e01ca597caea1d77543e0ec21e15f728305565245e746fcc5898a17df6cb7ef"
+}
