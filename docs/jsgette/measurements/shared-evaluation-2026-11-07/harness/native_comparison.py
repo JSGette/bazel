@@ -473,6 +473,47 @@ def scope_delta(initial, final):
     return (end - start) / 1e6
 
 
+def harness_cpu_bounds(start_read, end_read, scope_cpu_ns):
+    """Diagnostic bounds only; never replace raw scope CPU or decide a gate.
+
+    Each scope CPU stamp occurs inside its process-CPU read bracket. The clock
+    covers every thread of this Python process, including concurrent sampling,
+    logging and waiter work, and excludes its client/compiler child processes.
+    Integer-microsecond scope counters widen the remainder by 1000 ns at each
+    end of the interval, conservatively covering endpoint quantization.
+    """
+    scope_resolution_ns = 1000
+    result = {"status": "unknown", "harness_cpu_ns_bounds": None,
+              "non_harness_scope_cpu_ns_bounds": None, "non_harness_status": "unknown",
+              "scope_counter_resolution_ns": scope_resolution_ns,
+              "unknown_reason": None, "non_harness_unknown_reason": None,
+              "interpretation": "Non-harness remainder includes clients, daemons and compiler descendants; it is not analysis CPU. Bounds do not remove sampling perturbation."}
+    values = [row.get(name) for row in (start_read, end_read)
+              for name in ("harness_process_cpu_before_ns", "harness_process_cpu_after_ns")]
+    if any(type(value) is not int or value < 0 for value in values):
+        result["unknown_reason"] = "missing_or_invalid_process_cpu_counter"
+        result["non_harness_unknown_reason"] = result["unknown_reason"]
+        return result
+    start_before, start_after, end_before, end_after = values
+    if not start_before <= start_after <= end_before <= end_after:
+        result["unknown_reason"] = "process_cpu_counter_regression_or_overlapping_boundaries"
+        result["non_harness_unknown_reason"] = result["unknown_reason"]
+        return result
+    lower, upper = end_before - start_after, end_after - start_before
+    result.update(status="known", harness_cpu_ns_bounds=[lower, upper])
+    if type(scope_cpu_ns) is not int or scope_cpu_ns < 0:
+        result["non_harness_unknown_reason"] = "missing_or_invalid_scope_cpu_delta"
+    elif upper + scope_resolution_ns > scope_cpu_ns:
+        # Bracketing can be too loose (or accounting inconsistent). Do not turn
+        # a negative derived lower bound into a measured zero by clamping it.
+        result["non_harness_unknown_reason"] = "harness_upper_bound_exceeds_resolution_adjusted_scope_cpu_delta"
+    else:
+        result.update(non_harness_status="known",
+                      non_harness_scope_cpu_ns_bounds=[scope_cpu_ns - upper - scope_resolution_ns,
+                                                      scope_cpu_ns - lower + scope_resolution_ns])
+    return result
+
+
 class Arm:
     def __init__(self, config, manifest, scope, reference_only=False):
         self.config, self.manifest, self.scope = config, manifest, scope
@@ -612,10 +653,14 @@ class Arm:
 
         def scope_read(label, *, independent=False):
             before, cpu = time.monotonic_ns(), time.thread_time_ns()
+            process_before = time.process_time_ns()
             value = (m1_resources.read_cgroup_snapshot(expected_cgroup=self.scope["membership"],
                      expected_identity=scope_start["directory_identity"]) if independent
                      else sampler.cgroup_snapshot())
+            process_after = time.process_time_ns()
             reads.append({"label": label, "thread_cpu_ns": time.thread_time_ns() - cpu,
+                          "harness_process_cpu_before_ns": process_before,
+                          "harness_process_cpu_after_ns": process_after,
                           "duration_ns": time.monotonic_ns() - before, "snapshot": value})
             return value
 
@@ -677,7 +722,10 @@ class Arm:
                         fixture.save_new(directory / "build-boundary.json", {
                             "started_ns": start, "clients_exited_observed_ns": frozen["clients_exited"],
                             "counters_frozen_ns": frozen["boundary_ns"], "scope_start": scope_start,
-                            "scope_end": frozen["scope_end"]})
+                            "scope_end": frozen["scope_end"],
+                            "harness_cpu_read_brackets": [{key: read[key] for key in
+                                ("label", "harness_process_cpu_before_ns", "harness_process_cpu_after_ns")}
+                                for read in reads]})
                         completed.set()
                 return result
 
@@ -729,6 +777,9 @@ class Arm:
                     raise ValueError("Restarted JVM predates the build boundary")
             daemon_cpu = cpu_delta(initial, final, self.config["state"])
             build_cpu = scope_delta(scope_start, build_end)
+            read_by_label = {read["label"]: read for read in reads}
+            harness_bounds = harness_cpu_bounds(read_by_label["build-start"], read_by_label["build-end"],
+                (build_end["cpu.stat"]["usage_usec"] - scope_start["cpu.stat"]["usage_usec"]) * 1000)
             for member in processes:
                 results.append(verify_build(member["row"], member["result"], member["directory"],
                                             self.paths, oracles, self.reference_only,
@@ -737,6 +788,7 @@ class Arm:
             end_to_end = scope_read("end-to-end")
             return {"passed": True, "results": results, "scope_reads": reads,
                     "build_scope_cpu_seconds": build_cpu,
+                    "build_harness_cpu_accounting": harness_bounds,
                     "end_to_end_scope_cpu_seconds": scope_delta(scope_start, end_to_end),
                     "bep_concurrency": concurrency,
                     "daemon_cpu_seconds": daemon_cpu,
@@ -788,6 +840,8 @@ def run(config, reference_only=False):
                   "Build-only scope CPU freezes before final PSS sampling, info, BEP parsing, hashes and behavior checks.",
                   "End-to-end includes those checks; final shutdown/source checks are outside both windows.",
                   "Sample read CPU is diagnostic; JSON/log writing remains in raw scope CPU. No observer subtraction.",
+                  "Process-wide Python CPU brackets bound all sampler/waiter/logger/control threads inside the build scope window; derived remainder bounds are diagnostics, not analysis CPU or a replacement gate metric.",
+                  "Matched sampling-overhead qualifications remain required: CPU accounting cannot undo scheduling, cache or kernel-lock perturbation.",
                   "Native is the current implementation bundle including action coalescing and different modules/interner policy."],
               "manifest_sha256": fixture.sha256(root / "manifest.json"),
               "candidate_manifest_sha256": digest(config["binary"]),

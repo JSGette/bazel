@@ -317,6 +317,51 @@ class NativeComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "OOM"):
             n.scope_delta(cgroup(), changed)
 
+    def test_harness_cpu_bounds_use_cross_read_brackets_without_changing_raw_scope(self):
+        start = {"harness_process_cpu_before_ns": 100, "harness_process_cpu_after_ns": 130}
+        end = {"harness_process_cpu_before_ns": 400, "harness_process_cpu_after_ns": 460}
+        result = n.harness_cpu_bounds(start, end, 10000)
+        self.assertEqual(result["status"], "known")
+        self.assertEqual(result["harness_cpu_ns_bounds"], [270, 360])
+        self.assertEqual(result["non_harness_scope_cpu_ns_bounds"], [8640, 10730])
+        self.assertEqual(start["harness_process_cpu_before_ns"], 100)
+        self.assertEqual(end["harness_process_cpu_after_ns"], 460)
+        loose = n.harness_cpu_bounds(start, end, 300)
+        self.assertEqual(loose["harness_cpu_ns_bounds"], [270, 360])
+        self.assertEqual(loose["non_harness_status"], "unknown")
+        self.assertIsNone(loose["non_harness_scope_cpu_ns_bounds"])
+        self.assertIn("exceeds", loose["non_harness_unknown_reason"])
+
+    def test_scope_microsecond_quantization_widens_remainder_without_clamping(self):
+        start = {"harness_process_cpu_before_ns": 0, "harness_process_cpu_after_ns": 0}
+        end = {"harness_process_cpu_before_ns": 500, "harness_process_cpu_after_ns": 500}
+        result = n.harness_cpu_bounds(start, end, 2000)
+        self.assertEqual(result["scope_counter_resolution_ns"], 1000)
+        self.assertEqual(result["harness_cpu_ns_bounds"], [500, 500])
+        self.assertEqual(result["non_harness_scope_cpu_ns_bounds"], [500, 2500])
+        near_zero = n.harness_cpu_bounds(start, end, 1000)
+        self.assertEqual(near_zero["non_harness_status"], "unknown")
+        self.assertIsNone(near_zero["non_harness_scope_cpu_ns_bounds"])
+        self.assertIn("resolution", near_zero["non_harness_unknown_reason"])
+
+    def test_harness_cpu_counter_regression_and_unknowns_reject_derived_bounds(self):
+        def read(before, after):
+            return {"harness_process_cpu_before_ns": before, "harness_process_cpu_after_ns": after}
+
+        for start, end in ((read(130, 100), read(400, 460)), (read(100, 130), read(400, 390)),
+                           (read(100, 130), read(120, 460)), (read(-1, 130), read(400, 460)),
+                           ({}, read(400, 460)), (read(100, True), read(400, 460))):
+            with self.subTest(start=start, end=end):
+                result = n.harness_cpu_bounds(start, end, 1000)
+                self.assertEqual(result["status"], "unknown")
+                self.assertIsNone(result["harness_cpu_ns_bounds"])
+                self.assertIsNone(result["non_harness_scope_cpu_ns_bounds"])
+                self.assertTrue(result["unknown_reason"])
+        bad_scope = n.harness_cpu_bounds(read(100, 130), read(400, 460), -1)
+        self.assertEqual(bad_scope["status"], "known")
+        self.assertEqual(bad_scope["non_harness_status"], "unknown")
+        self.assertIsNone(bad_scope["non_harness_scope_cpu_ns_bounds"])
+
     def test_restart_preparation_orders_build_identity_shutdown_per_engine(self):
         self.config["state"] = "restart"
         arm = self.arm()
@@ -446,6 +491,39 @@ class NativeComparisonTests(unittest.TestCase):
         self.assertTrue(result["bep_concurrency"]["verified"])
         labels = [read["label"] for read in result["scope_reads"]]
         self.assertEqual(labels, ["build-start", "build-end", "end-to-end"])
+
+    def test_process_cpu_brackets_cover_main_sampler_and_concurrent_waiter_boundaries(self):
+        arm, _ = self.fake_measurement(blocked_sample=True)
+        main_thread = n.threading.get_ident()
+        counter_values = iter((100, 130, 400, 460, 700, 730))
+        observed, lock = [], n.threading.Lock()
+
+        def process_cpu():
+            with lock:
+                value = next(counter_values)
+                observed.append((n.threading.get_ident(), value))
+                return value
+
+        with patch.object(n.time, "process_time_ns", side_effect=process_cpu):
+            result = arm.measured({})
+        self.assertEqual([value for _, value in observed], [100, 130, 400, 460, 700, 730])
+        self.assertEqual([thread for thread, _ in observed[:2]], [main_thread, main_thread])
+        self.assertNotEqual(observed[2][0], main_thread)
+        self.assertEqual(observed[2][0], observed[3][0])
+        self.assertEqual([thread for thread, _ in observed[4:]], [main_thread, main_thread])
+        self.assertEqual([(read["harness_process_cpu_before_ns"], read["harness_process_cpu_after_ns"])
+                          for read in result["scope_reads"]], [(100, 130), (400, 460), (700, 730)])
+        bounds = result["build_harness_cpu_accounting"]
+        self.assertEqual(bounds["harness_cpu_ns_bounds"], [270, 360])
+        start, end = result["scope_reads"][:2]
+        raw_scope_ns = (end["snapshot"]["cpu.stat"]["usage_usec"]
+                        - start["snapshot"]["cpu.stat"]["usage_usec"]) * 1000
+        self.assertEqual(result["build_scope_cpu_seconds"], raw_scope_ns / 1e9)
+        self.assertEqual(bounds["non_harness_scope_cpu_ns_bounds"], [raw_scope_ns - 1360, raw_scope_ns + 730])
+        boundary = json.loads((self.root / "measured/build-boundary.json").read_text())
+        self.assertEqual(boundary["harness_cpu_read_brackets"], [
+            {"label": "build-start", "harness_process_cpu_before_ns": 100, "harness_process_cpu_after_ns": 130},
+            {"label": "build-end", "harness_process_cpu_before_ns": 400, "harness_process_cpu_after_ns": 460}])
 
     def test_bep_binds_workspace_pid_uuid_and_successful_positive_interval(self):
         arm = self.arm()
