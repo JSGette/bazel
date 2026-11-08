@@ -148,8 +148,9 @@ public abstract class BlazeServerStartupOptions extends OptionsBase {
       documentationCategory = OptionDocumentationCategory.BAZEL_CLIENT_OPTIONS,
       effectTags = {OptionEffectTag.LOSES_INCREMENTAL_STATE},
       help =
-          "Experimental Linux daemon with up to two concurrent private workspace engines in one"
-              + " JVM. Cacheable local actions share a private disk CAS and in-flight action"
+          "Experimental Linux daemon with up to ten retained private workspace engines in one"
+              + " JVM. Closed and failed engines count toward the limit until daemon restart."
+              + " Cacheable local actions share a private disk CAS and in-flight action"
               + " registry. Requires compatible startup settings and environment. Persistent"
               + " workers, global profilers, sandbox reuse and remote execution are disabled.")
   public abstract String getExperimentalSharedServer();

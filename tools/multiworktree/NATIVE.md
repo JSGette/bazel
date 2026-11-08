@@ -1,9 +1,11 @@
 # Native single-JVM worktree MVP
 
-The Linux native launcher now supports two concurrent workspace engines in one JVM:
+The experimental Linux native launcher admits up to ten retained private workspace
+engines in one JVM. This admission limit is not a ten-worktree performance or memory
+guarantee:
 
 ```sh
-# Use the same copied candidate binary, startup options and JVM environment in both shells.
+# Use the same copied candidate binary, startup options and JVM environment in each shell.
 /path/to/bazel --output_user_root=/tmp/shared-bazel \
   --experimental_shared_server=demo --host_jvm_args=-Xmx4g \
   --host_jvm_args=-XX:ActiveProcessorCount=4 build //path:target
@@ -31,8 +33,10 @@ spawns execute privately. Failed/cancelled producers release the key so another
 consumer can execute; cancelling a waiter leaves its producer alone.
 
 The native invocation policy fixes two action jobs, two loading threads, two local
-test jobs, two estimated CPUs and 1920 MiB action memory per engine. The two-engine
-bound limits aggregate admission. These estimates are not hard RSS or CPU quotas.
+test jobs, two estimated CPUs and 1920 MiB action memory per engine. Ten engines can
+therefore admit twenty action jobs and 19,200 MiB of estimated action memory. There
+is no aggregate scheduler in this extension; these estimates are not hard RSS or
+CPU quotas. Use an outer resource limit when qualifying the ten-engine candidate.
 Disk cache publication is synchronous; remote execution is disabled. Fetched repo
 contents remain private because their file locks assume a single JVM owner.
 
@@ -59,14 +63,21 @@ Run the native end-to-end acceptance harness with a fresh output directory:
 python3 tools/multiworktree/native_integration_test.py \
   --bazel /absolute/path/to/copied/bazel \
   --root /absolute/path/to/new/acceptance-directory \
-  --repository-cache /absolute/path/to/repository-cache
+  --expected-engine-cap=10 --heap-mib=7680 --processors=2
 ```
 
-The harness proves one PID, divergent build/test barriers, equal-action sharing,
+The repository cache and temporary directories default to fresh children of the
+acceptance root. The example selects an aggregate JVM heap of ten times 768 MiB;
+it does not set a process or host memory limit. The harness defaults to cap two for
+older copied binaries, so pass `--expected-engine-cap=10` for this candidate.
+
+The harness checks one PID, a barrier across every admitted engine, rejection of
+the eleventh engine, divergent build/test barriers, equal-action sharing,
 warm A/B/A, glob additions/type changes/restoration, source/environment/configuration
 isolation, failure and cancellation
 isolation, same-engine serialization, bounded
-engine admission, scoped shutdown and final daemon exit. It retains commands,
+engine admission, retained closed slots, scoped shutdown, final daemon exit and
+admission after a fresh daemon starts. It retains commands,
 BEP, execution logs and a machine-readable result. See the
 [execution report](../../docs/jsgette/plans/multi-worktree-native-mvp-2026-10-31.md)
 for the DataDog Agent experiment and exact limitations.

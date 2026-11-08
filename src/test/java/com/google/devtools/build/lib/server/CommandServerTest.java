@@ -15,6 +15,7 @@ package com.google.devtools.build.lib.server;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.devtools.build.lib.testutil.TestUtils.WAIT_TIMEOUT_SECONDS;
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
@@ -64,9 +65,11 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -763,6 +766,75 @@ public final class CommandServerTest {
     return request.toBuilder()
         .setEngineInstanceId(ping(server, REQUEST_COOKIE).getEngineInstanceId())
         .build();
+  }
+
+  @Test
+  public void sharedServer_failedInitializationsRetainExactlyTenSlotsIncludingInitialEngine()
+      throws Exception {
+    assumeTrue(System.getProperty("os.name").equals("Linux"));
+    java.nio.file.Path workspace = temporary.newFolder("workspace").toPath();
+    java.nio.file.Path output = temporary.newFolder("output").toPath();
+    AtomicInteger attempts = new AtomicInteger();
+    try (EngineDirectories directories = EngineDirectories.open(workspace, output)) {
+      ServerAndStub server = createServerAndStub(throwingDispatcher(), () -> {}, directories, true);
+      server
+          .server()
+          .setEngineFactory(
+              (unusedWorkspace, unusedOutput) -> {
+                attempts.incrementAndGet();
+                throw new IOException("deliberate initialization failure");
+              });
+      try {
+        assertSharedAdmissionRejected(server, "/failed-1", "deliberate initialization failure");
+        assertSharedAdmissionRejected(
+            server,
+            "/failed-1",
+            "Workspace initialization failed; restart the daemon before retrying");
+        assertThat(attempts.get()).isEqualTo(1);
+        // The constructor's initial engine occupies one of the ten retained slots.
+        for (int index = 2; index <= 9; index++) {
+          assertSharedAdmissionRejected(
+              server, "/failed-" + index, "deliberate initialization failure");
+        }
+        assertThat(attempts.get()).isEqualTo(9);
+        assertSharedAdmissionRejected(
+            server, "/overflow", "Shared daemon supports at most 10 retained workspace engines");
+        assertSharedAdmissionRejected(
+            server,
+            "/failed-1",
+            "Workspace initialization failed; restart the daemon before retrying");
+        assertThat(attempts.get()).isEqualTo(9);
+      } finally {
+        server.server().shutdown();
+        server.server().awaitTermination();
+      }
+    }
+  }
+
+  private static void assertSharedAdmissionRejected(
+      ServerAndStub server, String workspace, String reason) throws Exception {
+    String output =
+        "/"
+            + HexFormat.of()
+                .formatHex(MessageDigest.getInstance("MD5").digest(workspace.getBytes(ISO_8859_1)));
+    RunRequest request =
+        pinEngine(server, createRequest("info")).toBuilder()
+            .setEngineIdentity(
+                EngineIdentity.newBuilder()
+                    .setWorkspaceDirectory(ByteString.copyFromUtf8(workspace))
+                    .setOutputBase(ByteString.copyFromUtf8(output)))
+            .build();
+    List<RunResponse> responses = new ArrayList<>();
+    CountDownLatch done = new CountDownLatch(1);
+    server.stub().run(request, createResponseObserver(responses, done));
+    assertThat(done.await(WAIT_TIMEOUT_SECONDS, SECONDS)).isTrue();
+    RunResponse response = Iterables.getOnlyElement(responses);
+    assertThat(response.getFinished()).isTrue();
+    assertThat(response.getExitCode()).isEqualTo(36);
+    assertThat(response.getFailureDetail().getGrpcServer().getCode())
+        .isEqualTo(GrpcServer.Code.ENGINE_UNAVAILABLE);
+    assertThat(response.getFailureDetail().getMessage())
+        .isEqualTo("Cannot admit workspace engine: " + reason);
   }
 
   private void assertSharedRequestDoesNotPreempt(

@@ -243,6 +243,9 @@ public class CommandServer implements GrpcCommandServer.Callback {
     }
   }
 
+  // Closed and failed engines retain their slots until daemon restart.
+  private static final int MAX_RETAINED_WORKSPACE_ENGINES = 10;
+
   // These paths are all relative to the server directory
   private static final String PORT_FILE = "command_port";
   private static final String REQUEST_COOKIE_FILE = "request_cookie";
@@ -301,8 +304,11 @@ public class CommandServer implements GrpcCommandServer.Callback {
     if (failedEngines.contains(key)) {
       throw new IOException("Workspace initialization failed; restart the daemon before retrying");
     }
-    if (sharedEngines.size() + failedEngines.size() >= 2) {
-      throw new IOException("Shared daemon supports at most two retained workspace engines");
+    if (sharedEngines.size() + failedEngines.size() >= MAX_RETAINED_WORKSPACE_ENGINES) {
+      throw new IOException(
+          "Shared daemon supports at most "
+              + MAX_RETAINED_WORKSPACE_ENGINES
+              + " retained workspace engines");
     }
     PathFragment root = outputBase.getParentDirectory();
     String expected =
