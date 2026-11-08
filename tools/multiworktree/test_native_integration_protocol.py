@@ -137,6 +137,42 @@ class ProtocolTests(unittest.TestCase):
     h.check_identical_materialization()
     self.assertEqual(h.checks, ["identical action digest executes once and materializes twice"])
 
+  def test_closed_reopen_accepts_only_known_fenced_or_closed_rejection(self):
+    identities = {"workspace": (7, 101), "output_base": (7, 202)}
+    for reason in (
+        "Workspace directories changed; engine is fenced",
+        "Workspace engine has shut down; restart the daemon to reopen it",
+    ):
+      with self.subTest(reason=reason):
+        acceptance.validate_closed_reopen(
+            "WARNING: startup diagnostic\nCannot admit workspace engine: " + reason + "\n",
+            identities, identities)
+    for message in (
+        "Cannot admit workspace engine: unrelated failure\n",
+        "Workspace directories changed; engine is fenced\n",
+        "Cannot admit workspace engine: Workspace directories changed; engine is fenced unexpectedly\n",
+        "Cannot admit workspace engine: Workspace directories changed; engine is fenced\n"
+        "Cannot admit workspace engine: unrelated failure\n",
+    ):
+      with self.subTest(message=message), self.assertRaises(AssertionError):
+        acceptance.validate_closed_reopen(message, identities, identities)
+
+  def test_closed_reopen_rejects_changed_workspace_or_output_base_identity(self):
+    identities = {"workspace": (7, 101), "output_base": (7, 202)}
+    message = "Cannot admit workspace engine: Workspace directories changed; engine is fenced\n"
+    for name in identities:
+      for field in (0, 1):
+        changed = dict(identities)
+        pair = list(changed[name])
+        pair[field] += 1
+        changed[name] = tuple(pair)
+        with self.subTest(name=name, field=field), self.assertRaises(AssertionError):
+          acceptance.validate_closed_reopen(message, identities, changed)
+    h = self.harness()
+    actual = (h.root / "a").stat()
+    self.assertEqual(acceptance.directory_identity(h.root / "a"),
+                     (actual.st_dev, actual.st_ino))
+
 
 if __name__ == "__main__":
   unittest.main()

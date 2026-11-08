@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shlex
 import signal
+import stat
 import subprocess
 import time
 
@@ -53,6 +54,26 @@ def owned_child(root, path):
   if not path.is_absolute() or path.resolve() != path or not path.is_relative_to(root) or path == root:
     raise ValueError("Writable path must be a non-aliased child of the fresh root: " + str(path))
   return path
+
+
+def directory_identity(path):
+  path = Path(path)
+  value = path.lstat()
+  assert stat.S_ISDIR(value.st_mode) and path.resolve() == path, path
+  return (value.st_dev, value.st_ino)
+
+
+def validate_closed_reopen(message, before, after):
+  # runShared checks EngineDirectories before acquiring the retained slot.
+  # Normal shutdown closes/fences those directories, so either rejection is valid.
+  known = {
+      "Cannot admit workspace engine: Workspace directories changed; engine is fenced",
+      "Cannot admit workspace engine: Workspace engine has shut down; restart the daemon to reopen it",
+  }
+  rejections = [line for line in message.splitlines()
+                if line.startswith("Cannot admit workspace engine:")]
+  assert len(rejections) == 1 and rejections[0] in known, message
+  assert before == after, (before, after)
 
 
 def read_spawns(path):
@@ -522,6 +543,8 @@ class Harness:
       self.shutdown_engine(name, d, "close-" + name)
     active = self.build("b", d)
     self.ready(d, ("b",), [active])
+    closed_paths = {"workspace": self.root / "a", "output_base": Path(self.output_bases["a"])}
+    closed_before = {name: directory_identity(path) for name, path in closed_paths.items()}
     self.shutdown_engine("a", d, "close-a")
     assert active.poll() is None
     self.release(d)
@@ -532,9 +555,19 @@ class Harness:
     assert str(self.pid) in (d / "surviving-pid.log").read_text().splitlines()
     self.check("engine shutdown leaves another engine running in same PID")
     self.finish(self.start("a", "info", ["server_pid"], d, label="closed-reopen"), 36)
-    assert "Workspace engine has shut down; restart the daemon to reopen it" in (
-        d / "closed-reopen.log").read_text()
+    closed_after = {name: directory_identity(path) for name, path in closed_paths.items()}
+    message = (d / "closed-reopen.log").read_text()
+    (d / "closed-reopen-proof.json").write_text(json.dumps({
+        "directory_identities_before": closed_before,
+        "directory_identities_after": closed_after,
+        "daemon_identity_before": self.daemon_identity,
+        "daemon_identity_after": process_identity(self.daemon_identity[0]),
+        "control_pid": int(self.control_pid_file.read_text().strip()),
+        "rejection": message,
+    }, indent=2))
+    validate_closed_reopen(message, closed_before, closed_after)
     assert self.daemon_live()
+    assert int(self.control_pid_file.read_text().strip()) == self.daemon_identity[0]
     self.check("closed retained engine cannot reopen before daemon restart")
     self.reject_admission(d, "replacement-rejected")
     self.check("closed retained slot does not admit a replacement")
