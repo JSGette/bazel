@@ -359,3 +359,11 @@ real Java trace/replay smoke; it does not pass M1. Preserve failures and diagnos
 before any bounded repair. Keep synchronous trace overhead, direct SkyCache
 witness validation and unsupported value families explicit; no measured
 trace CPU or projected bytes become avoided CPU or PSS by assertion.
+
+## D030 — Preserve the initial collector compilation failure and correct its API use (2026-11-08)
+
+`m1-trace-source-build-01` failed compilation before tests. Javac reported two uses of nonexistent `SkyFunctions.FILE_STATE` and one call through the private concrete type of `NONEXISTENT_FILE_STATE_NODE`. Version and shutdown succeeded; the guard verified absent, unsignalled cleanup. All 18,592 declared source files remained unchanged. The [16-member failure archive](evidence/auxiliary/m1-trace-source-build-01/runtime.tar.gz), SHA-256 `158f42eb85d1a2a41e085a4a9770a43b343ad50730cae42896bdc05020302d8e`, preserves the failed commands, build BEP/log, exact source manifests/patches and provenance. No candidate qualified and no Java tests ran.
+
+The actual function constant belongs to public `vfs.FileStateKey`, already in the collector's direct dependency. Correct those two references. Widen the nonexistent singleton to public `FileStateValue` and invoke its existing equality implementation, which recognizes the private concrete class including deserialized non-singleton instances. Add a focused regression for that latter case. Projection meaning, capture limits, graph behavior and economic gates remain unchanged.
+
+Preserve the failed runtime and source bundle. Freeze the corrected source in a distinct bundle and perform a new source/unit qualification in fresh `m1-skycache-trace-build-v2`; do not reuse its output base or rewrite the failed evidence. The failed durable owner was retired only after archive verification, live scope absence, build-server absence and a recorded failure assessment. This is a bounded implementation correction, not an architectural M1 verdict. Compilation, all thirteen focused targets and real Java interoperability still must pass before workload tracing.
