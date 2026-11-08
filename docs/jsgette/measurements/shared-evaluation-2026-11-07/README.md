@@ -9,7 +9,7 @@ This directory records implementation and evidence for the [gated plan](../../pl
 - Branch: `jsgette/shared-evaluation-gates-20261107`.
 - Starting revision: `c54d33d5b40c5711f3841f50ea1c2f950c959450`.
 - [Decision and execution log](decision-log.md).
-- [Current v7b completed-row overview](evidence/m0-v7b-01/overview-partial-07.md), [separate v6 observations](evidence/m0-v6-01/overview-partial-02.md), [v7 abort](evidence/m0-v7-01/overview-aborted-01.md), and [v7b execution manifest](harness/matrix-v7b.json).
+- [Current v7b completed-row overview](evidence/m0-v7b-01/overview-partial-08.md), [separate v6 observations](evidence/m0-v6-01/overview-partial-02.md), [v7 abort](evidence/m0-v7-01/overview-aborted-01.md), and [v7b execution manifest](harness/matrix-v7b.json).
 - [Measured CPU attribution limits](m0-cost-attribution-notes.md), [Bonanza source contracts](bonanza-contract-notes.md), and [M1 native comparator preflight](m1-native-preflight.md).
 - [M0 closure assessment draft](m0-gate-assessment-draft.md) and [proposed acceptance accounting](acceptance-metrics-draft.md); neither declares a gate outcome.
 - Preparatory implementation maps: [native/private comparison](m1-native-implementation-checklist.md), [typed query traces](m1-trace-implementation-checklist.md), and [coherent input publication](m2-capture-feasibility.md).
