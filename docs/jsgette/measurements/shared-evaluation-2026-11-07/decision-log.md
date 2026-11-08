@@ -338,3 +338,24 @@ Reference/private/native archives have SHA-256 `5e1974d6ad4771640d504bee4b36bb12
 **Work and lifecycle:** all ten commands overlapped in each arm and matched the independent oracle. Independent inspection of all 20 measured BEPs found one executed `BazelWorkspaceStatusAction`/internal runner per command, 23 action-cache hits and one unconditional miss; no compiler action was reported executed. Both preparation protocols start a new JVM for each serial engine preparation and shut it down afterward. Consequently the full recorded lifecycle improvement is about 20%, not the approximately 66–67% build-window result, and does not establish preparation amortization across retained native engines. Lifecycle includes fixture/seed work, preparation, verification and shutdown.
 
 **Decision:** retain bounded native hosting as a useful component and close this preliminary N10 diagnostic. Do not add native warm/variant arms or heap tuning now. Native still holds ten private evaluator graphs and bundles other process/service changes; this fork's private mode is not the isolated-SkyCache denominator frozen for M4. No semantic-sharing, M1 or M4 pass follows. Continue D027's typed-trace savings-ceiling experiment on the separately reconstructed SkyCache baseline, preserving its unsupported-cost bounds and observer qualification. The prototype remains in the C-backed shadow source and is being prepared for formatting, source build and focused Java tests; no actual Java qualification or live trace/replay interoperability has yet passed. M2–M6 remain not started and the acceptance thresholds are unchanged.
+
+## D029 — Freeze and qualify the typed collector (2026-11-08)
+
+The nine-file instrumentation is frozen on the exact D027 SkyCache baseline,
+after review and successful Google Java Format/buildifier checks. The two
+existing integration Java files were unchanged by formatting; BUILD formatting
+reordered two dependency entries. The new source tree is
+`26ad73611f1d5b7e51094e40b07d1290e9a134ae`, bundle SHA-256
+`a278e6840d755d5d543b26133c064aa358810c5d6075d9c6e0d932e21d5b7934`.
+The [preserved preparation bundle](evidence/skycache-trace-build-preparation/)
+contains both patch meanings, all source member hashes, exact source-build
+seed, launcher, literal command, and reviewed offline replay. Thirteen
+packaging/launcher tests and twenty replay tests passed before execution.
+
+Run one guarded source qualification in fresh `m1-skycache-trace-build-v1`:
+build the product, run thirteen focused Java targets, verify source and binary
+stability, then shut down. A passed build permits the already bounded eight-build
+real Java trace/replay smoke; it does not pass M1. Preserve failures and diagnose
+before any bounded repair. Keep synchronous trace overhead, direct SkyCache
+witness validation and unsupported value families explicit; no measured
+trace CPU or projected bytes become avoided CPU or PSS by assertion.

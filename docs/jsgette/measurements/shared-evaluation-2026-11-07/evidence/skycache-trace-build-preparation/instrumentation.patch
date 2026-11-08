@@ -1,0 +1,2764 @@
+diff --git a/src/main/java/com/google/devtools/build/lib/bazel/BUILD b/src/main/java/com/google/devtools/build/lib/bazel/BUILD
+index aab3f8aaff897d79d3a05c57c172f53241d44b10..9c4743e3ea67cbf1f445634986ee407150262c9e 100644
+--- a/src/main/java/com/google/devtools/build/lib/bazel/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/bazel/BUILD
+@@ -243,6 +243,7 @@ java_library(
+         "//src/main/java/com/google/devtools/build/lib/runtime/mobileinstall",
+         "//src/main/java/com/google/devtools/build/lib/sandbox:sandbox_module",
+         "//src/main/java/com/google/devtools/build/lib/shell:windows_subprocess_factory",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:m1_trace_module",
+         "//src/main/java/com/google/devtools/build/lib/skyframe:skymeld_module",
+         "//src/main/java/com/google/devtools/build/lib/skyframe/serialization/local:local_skycache_module",
+         "//src/main/java/com/google/devtools/build/lib/standalone",
+diff --git a/src/main/java/com/google/devtools/build/lib/bazel/Bazel.java b/src/main/java/com/google/devtools/build/lib/bazel/Bazel.java
+index ef956b44e8dad40010056bab4a38c283e5999884..20d4708155af1706f7905c60131a8a686957f61b 100644
+--- a/src/main/java/com/google/devtools/build/lib/bazel/Bazel.java
++++ b/src/main/java/com/google/devtools/build/lib/bazel/Bazel.java
+@@ -102,7 +102,10 @@ public final class Bazel {
+           com.google.devtools.build.lib.metrics.PostGCMemoryUseRecorder
+               .PostGCMemoryUseRecorderModule.class,
+           com.google.devtools.build.lib.metrics.PostGCMemoryUseRecorder.GcAfterBuildModule.class,
+-          com.google.devtools.build.lib.metrics.MetricsModule.class);
++          com.google.devtools.build.lib.metrics.MetricsModule.class,
++          // Diagnostic-only: close after cache finalization and before optional evaluator reset.
++          // Cache beforeCommand setup precedes attachment and remains explicitly unobserved.
++          com.google.devtools.build.lib.skyframe.M1TraceModule.class);
+ 
+   public static void main(String[] args) {
+     // Sets the default subprocess factory to the Windows-specific implementation if the host OS is
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/BUILD b/src/main/java/com/google/devtools/build/lib/skyframe/BUILD
+index 81b069576362d9ba6ad792efa0b46a557ae29063..912aeec57e3bcefdaf51cd16b754b327a10edf5e 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/BUILD
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/BUILD
+@@ -2394,6 +2394,45 @@ java_library(
+     ],
+ )
+ 
++java_library(
++    name = "m1_trace_collector",
++    srcs = ["M1TraceCollector.java"],
++    deps = [
++        ":bzl_load_value",
++        ":directory_listing_state_value",
++        ":dirents",
++        ":sky_functions",
++        "//src/main/java/com/google/devtools/build/lib/actions:file_metadata",
++        "//src/main/java/com/google/devtools/build/lib/cmdline",
++        "//src/main/java/com/google/devtools/build/lib/vfs",
++        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
++        "//src/main/java/com/google/devtools/build/skyframe",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
++        "//third_party/java/gson",
++        "//third_party/java/guava:collect",
++        "//third_party/java/jsr305_annotations",
++    ],
++)
++
++java_library(
++    name = "m1_trace_module",
++    srcs = ["M1TraceModule.java"],
++    deps = [
++        ":m1_trace_collector",
++        ":skyframe_core",
++        "//src/main/java/com/google/devtools/build/lib/events",
++        "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_cluster",
++        "//src/main/java/com/google/devtools/build/lib/util:os",
++        "//src/main/java/com/google/devtools/build/lib/vfs",
++        "//src/main/java/com/google/devtools/build/skyframe",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
++        "//src/main/java/com/google/devtools/common/options",
++        "//third_party/java/flogger",
++        "//third_party/java/gson",
++        "//third_party/java/jsr305_annotations",
++    ],
++)
++
+ java_library(
+     name = "skymeld_module",
+     srcs = ["SkymeldModule.java"],
+@@ -3344,13 +3383,13 @@ java_library(
+     name = "action_execution_function",
+     srcs = ["ActionExecutionFunction.java"],
+     deps = [
+-        ":action_template_expansion_value",
+         ":action_execution_state",
+         ":action_execution_value",
+         ":action_input_collected_event",
+         ":action_input_map_helper",
+         ":action_input_metadata_provider",
+         ":action_output_metadata_store",
++        ":action_template_expansion_value",
+         ":action_utils",
+         ":artifact_function",
+         ":artifact_nested_set_function",
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceCollector.java b/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceCollector.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..50cf3ee782e23f7afb4faed05bd32a8cb5f33dfa
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceCollector.java
+@@ -0,0 +1,1074 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
++package com.google.devtools.build.lib.skyframe;
++
++import com.google.devtools.build.lib.actions.FileStateValue;
++import com.google.devtools.build.lib.vfs.Dirent;
++import com.google.devtools.build.lib.vfs.Root;
++import com.google.devtools.build.lib.vfs.RootedPath;
++import com.google.devtools.build.skyframe.ErrorInfo;
++import com.google.devtools.build.skyframe.EvaluationProgressReceiver;
++import com.google.devtools.build.skyframe.GroupedDeps;
++import com.google.devtools.build.skyframe.InMemoryGraph;
++import com.google.devtools.build.skyframe.InMemoryNodeEntry;
++import com.google.devtools.build.skyframe.NodeEntry.DirtyType;
++import com.google.devtools.build.skyframe.SkyKey;
++import com.google.devtools.build.skyframe.SkyValue;
++import com.google.gson.Gson;
++import com.google.gson.GsonBuilder;
++import java.io.IOException;
++import java.io.Writer;
++import java.lang.management.ManagementFactory;
++import java.lang.management.ThreadMXBean;
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.ArrayDeque;
++import java.util.ArrayList;
++import java.util.Comparator;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.HexFormat;
++import java.util.IdentityHashMap;
++import java.util.LinkedHashMap;
++import java.util.LinkedHashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.function.Supplier;
++import javax.annotation.Nullable;
++
++/** Bounded command-local observations. It does not authorize cache reuse or change evaluation. */
++public final class M1TraceCollector implements EvaluationProgressReceiver, AutoCloseable {
++  static final int MAX_RECORD_BYTES = 1024 * 1024;
++  static final int FOOTER_RESERVE = 65536;
++  static final int MAX_THREADS = 256;
++  static final int MAX_STACK_DEPTH = 128;
++  static final long MAX_INTERVALS = 1000000;
++  static final long MAX_OBSERVATIONS = 1000000;
++  static final long MAX_RECORDS = 1000000;
++  static final Limits DEFAULT_LIMITS =
++      new Limits(250000, 2000000, 64L * 1024 * 1024, 256L * 1024 * 1024, 65536);
++
++  record Limits(
++      int nodes, long edges, long projectedBytes, long outputBytes, int projectionBytes) {}
++
++  interface Clock {
++    long wall();
++
++    long cpu();
++
++    boolean virtual();
++  }
++
++  private static final class CpuClock implements Clock {
++    private final ThreadMXBean bean = ManagementFactory.getThreadMXBean();
++
++    @Override
++    public long wall() {
++      return System.nanoTime();
++    }
++
++    @Override
++    public boolean virtual() {
++      return Thread.currentThread().isVirtual();
++    }
++
++    @Override
++    public long cpu() {
++      return !virtual() && bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled()
++          ? bean.getCurrentThreadCpuTime()
++          : -1;
++    }
++  }
++
++  private static final class Frame {
++    final long id;
++    final Long parent;
++    final int node;
++    final NodeState state;
++    final long occurrence;
++    final long wall;
++    final long cpu;
++    final boolean virtual;
++    long childCpu;
++    boolean unknownChild;
++
++    Frame(
++        long id,
++        Long parent,
++        int node,
++        NodeState state,
++        long occurrence,
++        long wall,
++        long cpu,
++        boolean virtual) {
++      this.id = id;
++      this.parent = parent;
++      this.node = node;
++      this.state = state;
++      this.occurrence = occurrence;
++      this.wall = wall;
++      this.cpu = cpu;
++      this.virtual = virtual;
++    }
++  }
++
++  private static final class ThreadState {
++    final long id;
++    final ArrayDeque<Frame> stack = new ArrayDeque<>();
++
++    ThreadState(long id) {
++      this.id = id;
++    }
++  }
++
++  private final Writer writer;
++  private final Root workspaceRoot;
++  private final Supplier<InMemoryGraph> graphSupplier;
++  @Nullable private InMemoryGraph boundGraph;
++  private final Limits limits;
++  private final Clock clock;
++  private final long wallOrigin;
++  private final Gson gson = new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
++  private final MessageDigest digest;
++  private final Map<SkyKey, Integer> nodes = new HashMap<>();
++  private final Set<Integer> observed = new HashSet<>();
++  private final Set<Integer> retained = new HashSet<>();
++  private final Map<Thread, ThreadState> threads = new IdentityHashMap<>();
++  private final Map<String, Long> occurrences = new HashMap<>();
++  private final Map<String, Long> counts = new LinkedHashMap<>();
++  private final Map<String, Long> unknown = new LinkedHashMap<>();
++  private final Set<String> exceeded = new LinkedHashSet<>();
++  private final String digestAlgorithm;
++  private long sequence;
++  private long observationSequence;
++  private long intervalSequence;
++  private long outputBytes;
++  private long projectedBytes;
++  private long edgeCount;
++  private long unbalanced;
++  private boolean complete = true;
++  private boolean stopped;
++  private boolean finished;
++  @Nullable private String writerError;
++
++  public M1TraceCollector(
++      Writer writer,
++      Root workspaceRoot,
++      Supplier<InMemoryGraph> graph,
++      Map<String, Object> header) {
++    this(writer, workspaceRoot, graph, header, DEFAULT_LIMITS, new CpuClock());
++  }
++
++  M1TraceCollector(
++      Writer writer,
++      Root workspaceRoot,
++      Supplier<InMemoryGraph> graph,
++      Map<String, Object> header,
++      Limits limits,
++      Clock clock) {
++    this.writer = writer;
++    this.workspaceRoot = workspaceRoot;
++    this.graphSupplier = graph;
++    this.limits = limits;
++    this.clock = clock;
++    this.wallOrigin = clock.wall();
++    try {
++      digest = MessageDigest.getInstance("SHA-256");
++    } catch (NoSuchAlgorithmException e) {
++      throw new AssertionError(e); // Required by the Java runtime.
++    }
++    digestAlgorithm = workspaceRoot.getFileSystem().getDigestFunction().toString();
++    for (String type :
++        List.of("header", "node", "event", "observation", "bzl_input", "interval", "footer")) {
++      counts.put(type, 0L);
++    }
++    guarded(
++        () -> {
++          Map<String, Object> record = new LinkedHashMap<>(header);
++          record.put("type", "header");
++          record.put("format", "m1-typed-trace-v1");
++          record.put(
++              "limits",
++              row(
++                  "max_nodes",
++                  limits.nodes(),
++                  "max_edges",
++                  limits.edges(),
++                  "max_projected_bytes",
++                  limits.projectedBytes(),
++                  "max_total_bytes",
++                  limits.outputBytes(),
++                  "max_record_bytes",
++                  MAX_RECORD_BYTES,
++                  "max_projection_bytes",
++                  limits.projectionBytes(),
++                  "max_pending_bytes",
++                  MAX_RECORD_BYTES,
++                  "reserved_footer_bytes",
++                  FOOTER_RESERVE,
++                  "max_threads",
++                  MAX_THREADS,
++                  "max_stack_depth",
++                  MAX_STACK_DEPTH,
++                  "max_intervals",
++                  MAX_INTERVALS,
++                  "max_observations",
++                  MAX_OBSERVATIONS,
++                  "max_records",
++                  MAX_RECORDS));
++          ThreadMXBean bean = ManagementFactory.getThreadMXBean();
++          record.put(
++              "cpu_capability",
++              row(
++                  "current_thread_supported",
++                  bean.isCurrentThreadCpuTimeSupported(),
++                  "enabled",
++                  bean.isThreadCpuTimeEnabled(),
++                  "virtual_thread_supported",
++                  false));
++          record.put("actual_digest_algorithm", digestAlgorithm);
++          for (String field :
++              List.of(
++                  "trace_id",
++                  "command_id",
++                  "engine_id",
++                  "cohort_id",
++                  "phase",
++                  "hosting",
++                  "binary_sha256",
++                  "source_identity",
++                  "semantic_epoch",
++                  "snapshot_id",
++                  "command_policy_sha256",
++                  "repository_bindings",
++                  "bzl_inlining",
++                  "context_sha256",
++                  "context_status",
++                  "capture_window",
++                  "direct_skycache_witness_validation")) {
++            if (!header.containsKey(field) || header.get(field) == null) {
++              markIncomplete("missing_header_" + field);
++            }
++          }
++          emit(record, false);
++        });
++  }
++
++  private static Map<String, Object> row(Object... fields) {
++    Map<String, Object> out = new LinkedHashMap<>();
++    for (int i = 0; i < fields.length; i += 2) {
++      out.put((String) fields[i], fields[i + 1]);
++    }
++    return out;
++  }
++
++  private void guarded(Runnable action) {
++    if (finished || stopped) {
++      return;
++    }
++    try {
++      action.run();
++    } catch (RuntimeException e) {
++      markIncomplete("observer_" + e.getClass().getSimpleName());
++    }
++  }
++
++  public synchronized void markIncomplete(String reason) {
++    complete = false;
++    countUnknown(reason);
++  }
++
++  private void countUnknown(String reason) {
++    String bounded = reason.length() > 128 ? reason.substring(0, 128) : reason;
++    if (unknown.size() >= 64 && !unknown.containsKey(bounded)) {
++      bounded = "other";
++    }
++    unknown.merge(bounded, 1L, Long::sum);
++  }
++
++  private void overflow(String limit) {
++    exceeded.add(limit);
++    complete = false;
++    stopped = true;
++  }
++
++  private void emit(Map<String, Object> record, boolean footer) {
++    if ((!footer && stopped) || writerError != null) {
++      return;
++    }
++    if (!footer && sequence >= MAX_RECORDS - 1) {
++      overflow("max_records");
++      return;
++    }
++    record.put("seq", sequence);
++    String text = gson.toJson(record) + "\n";
++    byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
++    if (bytes.length > (footer ? FOOTER_RESERVE : MAX_RECORD_BYTES)) {
++      overflow("max_record_bytes");
++      return;
++    }
++    if (outputBytes + bytes.length + (footer ? 0 : FOOTER_RESERVE) > limits.outputBytes()) {
++      overflow("max_total_bytes");
++      return;
++    }
++    try {
++      writer.write(text);
++      outputBytes += bytes.length;
++      sequence++;
++      if (!footer) {
++        digest.update(bytes);
++        counts.merge((String) record.get("type"), 1L, Long::sum);
++      }
++    } catch (IOException e) {
++      writerError = e.getClass().getSimpleName();
++      complete = false;
++      stopped = true;
++    }
++  }
++
++  private InMemoryGraph graph() {
++    InMemoryGraph current = graphSupplier.get();
++    if (current == null) {
++      throw new IllegalStateException("missing_evaluator_graph");
++    }
++    if (boundGraph == null) {
++      boundGraph = current;
++    } else if (boundGraph != current) {
++      markIncomplete("evaluator_graph_replaced");
++      stopped = true;
++      throw new IllegalStateException("evaluator_graph_replaced");
++    }
++    return current;
++  }
++
++  private int node(SkyKey key) {
++    if (stopped) {
++      return 0;
++    }
++    graph();
++    Integer existing = nodes.get(key);
++    if (existing != null) {
++      return existing;
++    }
++    if (nodes.size() >= limits.nodes()) {
++      overflow("max_nodes");
++      return 0;
++    }
++    int id = nodes.size() + 1;
++    nodes.put(key, id);
++    RootedPath path = supportedPath(key);
++    if (path != null
++        && (long) path.getRootRelativePath().getPathString().length() * 4 > MAX_RECORD_BYTES / 2) {
++      overflow("max_record_bytes");
++      return 0;
++    }
++    emit(
++        row(
++            "type",
++            "node",
++            "node_id",
++            id,
++            "function",
++            key.functionName().getName(),
++            "logical_key",
++            path == null
++                ? null
++                : List.of("main", utf16(path.getRootRelativePath().getPathString())),
++            "key_status",
++            path == null ? "unsupported" : "supported",
++            "reason",
++            path == null ? "unsupported_function_or_root" : null),
++        false);
++    return id;
++  }
++
++  @Nullable
++  private RootedPath supportedPath(SkyKey key) {
++    if (!(key.functionName().equals(SkyFunctions.FILE_STATE)
++        || key.functionName().equals(SkyFunctions.DIRECTORY_LISTING_STATE))) {
++      return null;
++    }
++    if (!(key.argument() instanceof RootedPath path) || !path.getRoot().equals(workspaceRoot)) {
++      return null;
++    }
++    return path;
++  }
++
++  static String utf16(String value) {
++    StringBuilder out = new StringBuilder(value.length() * 4);
++    for (int i = 0; i < value.length(); i++) {
++      int c = value.charAt(i);
++      out.append(Character.forDigit(c >>> 12, 16))
++          .append(Character.forDigit((c >>> 8) & 15, 16))
++          .append(Character.forDigit((c >>> 4) & 15, 16))
++          .append(Character.forDigit(c & 15, 16));
++    }
++    return out.toString();
++  }
++
++  @Nullable
++  private Map<String, Object> projection(SkyKey key, @Nullable SkyValue value) {
++    if (supportedPath(key) == null || value == null) {
++      return null;
++    }
++    if (key.functionName().equals(SkyFunctions.FILE_STATE) && !(value instanceof FileStateValue)
++        || key.functionName().equals(SkyFunctions.DIRECTORY_LISTING_STATE)
++            && !(value instanceof DirectoryListingStateValue)) {
++      return null;
++    }
++    Map<String, Object> out;
++    if (value instanceof FileStateValue.RegularFileStateValueWithDigest file) {
++      if ((long) file.getDigest().length * 2 + 256 > limits.projectionBytes()) {
++        overflow("max_projection_bytes");
++        return null;
++      }
++      out =
++          row(
++              "class",
++              "RegularFileStateValueWithDigest",
++              "type",
++              "REGULAR_FILE",
++              "size",
++              file.getSize(),
++              "digest_algorithm",
++              digestAlgorithm,
++              "digest_hex",
++              HexFormat.of().formatHex(file.getDigest()));
++    } else if (value instanceof FileStateValue.DirectoryFileStateValue) {
++      out = row("class", "DirectoryFileStateValue", "type", "DIRECTORY");
++    } else if (value.getClass() == FileStateValue.NONEXISTENT_FILE_STATE_NODE.getClass()) {
++      out = row("class", "NonexistentFileStateValue", "type", "NONEXISTENT");
++    } else if (value instanceof FileStateValue.SymlinkFileStateValue link) {
++      String target = link.getSymlinkTarget().getPathString();
++      if ((long) target.length() * 4 > limits.projectionBytes()) {
++        overflow("max_projection_bytes");
++        return null;
++      }
++      out =
++          row(
++              "class",
++              "SymlinkFileStateValue",
++              "type",
++              "SYMLINK",
++              "target_utf16be_hex",
++              utf16(target));
++    } else if (value instanceof DirectoryListingStateValue listing) {
++      List<List<String>> entries = new ArrayList<>();
++      long estimate = 128;
++      for (Dirent entry : listing.getDirents()) {
++        estimate += (long) entry.getName().length() * 4 + 32;
++        if (estimate > limits.projectionBytes()) {
++          overflow("max_projection_bytes");
++          return null;
++        }
++        entries.add(List.of(utf16(entry.getName()), entry.getType().name()));
++      }
++      entries.sort(Comparator.comparing(entry -> entry.get(0)));
++      out =
++          row(
++              "class",
++              "DirectoryListingStateValue",
++              "type",
++              "DIRECTORY_LISTING_STATE",
++              "entries",
++              entries);
++    } else {
++      return null;
++    }
++    int bytes = gson.toJson(out).getBytes(StandardCharsets.UTF_8).length;
++    if (bytes > limits.projectionBytes()) {
++      overflow("max_projection_bytes");
++      return null;
++    }
++    if (projectedBytes + bytes > limits.projectedBytes()) {
++      overflow("max_projected_bytes");
++      return null;
++    }
++    projectedBytes += bytes;
++    return out;
++  }
++
++  @Nullable
++  private GroupedDeps deps(@Nullable InMemoryNodeEntry entry) {
++    if (stopped || entry == null || !entry.isDone() || !entry.keepsEdges()) {
++      return null;
++    }
++    Object compressed = entry.getCompressedDirectDepsForDoneEntry();
++    int size = GroupedDeps.numElements(GroupedDeps.castAsCompressed(compressed));
++    if (!dependencyBudget(size)) {
++      return null;
++    }
++    return GroupedDeps.decompress(GroupedDeps.castAsCompressed(compressed));
++  }
++
++  private boolean dependencyBudget(int size) {
++    if (size > MAX_RECORD_BYTES / 32) {
++      overflow("max_record_bytes");
++      return false;
++    }
++    if (edgeCount + size > limits.edges()) {
++      overflow("max_edges");
++      return false;
++    }
++    return !stopped;
++  }
++
++  private long reserveObservation() {
++    if (observationSequence >= MAX_OBSERVATIONS) {
++      overflow("max_observations");
++      return 0;
++    }
++    return ++observationSequence;
++  }
++
++  private long observe(
++      SkyKey key,
++      @Nullable SkyValue value,
++      @Nullable GroupedDeps dependencies,
++      String origin,
++      String depsOrigin,
++      boolean error,
++      @Nullable Map<SkyKey, Long> finalIds,
++      @Nullable Long reservedId) {
++    if (stopped) {
++      return 0;
++    }
++    int id = node(key);
++    if (id == 0 || stopped) {
++      return 0;
++    }
++    long observation = reservedId == null ? reserveObservation() : reservedId;
++    if (observation == 0) {
++      return 0;
++    }
++    Map<String, Object> projected = projection(key, value);
++    if (stopped) {
++      return 0;
++    }
++    String status =
++        error
++            ? "error"
++            : value == null
++                ? "unavailable"
++                : projected == null ? "unsupported" : "exact_projection";
++    String reason =
++        status.equals("exact_projection")
++            ? null
++            : error
++                ? "evaluation_error"
++                : value == null
++                    ? "value_unavailable"
++                    : "unsupported_value_" + value.getClass().getSimpleName();
++    if (reason != null) {
++      countUnknown(reason);
++    }
++    List<List<List<Object>>> groups = null;
++    if (dependencies == null) {
++      countUnknown("dependencies_unavailable");
++    }
++    if (dependencies != null) {
++      if (!dependencyBudget(dependencies.numElements())) {
++        return 0;
++      }
++      groups = new ArrayList<>();
++      for (List<SkyKey> group : dependencies) {
++        List<List<Object>> groupRows = new ArrayList<>();
++        for (SkyKey dependency : group) {
++          int dependencyId = node(dependency);
++          if (dependencyId == 0 || stopped) {
++            return 0;
++          }
++          Long dependencyObservation = finalIds == null ? null : finalIds.get(dependency);
++          List<Object> edge = new ArrayList<>(2);
++          edge.add(dependencyId);
++          edge.add(dependencyObservation);
++          groupRows.add(edge);
++        }
++        groups.add(groupRows);
++      }
++      edgeCount += dependencies.numElements();
++    }
++    emit(
++        row(
++            "type",
++            "observation",
++            "observation_id",
++            observation,
++            "node_id",
++            id,
++            "origin",
++            origin,
++            "value_status",
++            status,
++            "projection",
++            error ? null : projected,
++            "reason",
++            reason,
++            "deps_status",
++            dependencies == null ? "unavailable" : "grouped",
++            "deps_origin",
++            dependencies == null ? "unavailable" : depsOrigin,
++            "groups",
++            groups,
++            "dependency_read_contract",
++            "captured_state_only"),
++        false);
++    if (stopped) {
++      return 0;
++    }
++    if (origin.equals("retained_done")) {
++      retained.add(id);
++    }
++    if (key instanceof BzlLoadValue.Key bzl && value instanceof BzlLoadValue loaded) {
++      bzlInput(id, observation, bzl, loaded);
++    }
++    return observation;
++  }
++
++  private void bzlInput(int node, long observation, BzlLoadValue.Key key, BzlLoadValue value) {
++    long size = (long) value.getTransitiveDigest().length * 2 + 1024;
++    size +=
++        4L
++            * (key.getLabel().getRepository().getName().length()
++                + key.getLabel().getPackageName().length()
++                + key.getLabel().getName().length());
++    if (size > MAX_RECORD_BYTES) {
++      overflow("max_record_bytes");
++      return;
++    }
++    String variant =
++        key instanceof BzlLoadValue.KeyForBuild
++            ? "build"
++            : key instanceof BzlLoadValue.KeyForBuiltins
++                ? "builtins"
++                : key instanceof BzlLoadValue.KeyForBzlmodBootstrap
++                    ? "bzlmod_bootstrap"
++                    : key instanceof BzlLoadValue.KeyForBzlmod ? "bzlmod" : "unknown";
++    emit(
++        row(
++            "type",
++            "bzl_input",
++            "node_id",
++            node,
++            "observation_id",
++            observation,
++            "key_variant",
++            variant,
++            "label_parts_utf16be_hex",
++            List.of(
++                utf16(key.getLabel().getRepository().getName()),
++                utf16(key.getLabel().getPackageName()),
++                utf16(key.getLabel().getName())),
++            "build_prelude",
++            key.isBuildPrelude(),
++            "builtins",
++            key.isBuiltins(),
++            "scl_dialect",
++            key.isSclDialect(),
++            "semantics_binding",
++            null,
++            "repository_mapping_binding",
++            null,
++            "transitive_digest_hex",
++            HexFormat.of().formatHex(value.getTransitiveDigest()),
++            "status",
++            "input_evidence_only",
++            "reason",
++            "semantics_and_mapping_not_projected"),
++        false);
++  }
++
++  private void event(SkyKey key, String event, @Nullable DirtyType dirtyType) {
++    int id = node(key);
++    if (id == 0 || stopped) {
++      return;
++    }
++    observed.add(id);
++    emit(
++        row(
++            "type",
++            "event",
++            "node_id",
++            id,
++            "event",
++            event,
++            "evaluation_state",
++            null,
++            "new_value_supplied",
++            null,
++            "new_error_supplied",
++            null,
++            "direct_deps_supplied",
++            null,
++            "dirty_type",
++            dirtyType == null ? null : dirtyType.name(),
++            "observation_id",
++            null),
++        false);
++  }
++
++  @Override
++  public synchronized void dirtied(SkyKey key, DirtyType type) {
++    guarded(() -> event(key, "dirtied", type));
++  }
++
++  @Override
++  public synchronized void deleted(SkyKey key) {
++    guarded(() -> event(key, "deleted", null));
++  }
++
++  @Override
++  public synchronized void enqueueing(SkyKey key) {
++    guarded(() -> event(key, "enqueueing", null));
++  }
++
++  @Override
++  public synchronized void changePruned(SkyKey key) {
++    guarded(() -> event(key, "change_pruned", null));
++  }
++
++  @Override
++  public synchronized void evaluated(
++      SkyKey key,
++      EvaluationState state,
++      @Nullable SkyValue value,
++      @Nullable ErrorInfo error,
++      @Nullable GroupedDeps directDeps) {
++    guarded(
++        () -> {
++          int id = node(key);
++          if (id == 0 || stopped) {
++            return;
++          }
++          observed.add(id);
++          InMemoryNodeEntry entry = graph().getIfPresent(key);
++          GroupedDeps actual = directDeps != null ? directDeps : deps(entry);
++          // Bind only fresh, currently-done captures; earlier observations never fill missing
++          // edges.
++          Map<SkyKey, Long> captures = new HashMap<>();
++          if (actual != null && !dependencyBudget(actual.numElements())) {
++            return;
++          }
++          // Capture actual state dependencies before the executor's heuristic child removal.
++          if (actual != null) {
++            for (List<SkyKey> group : actual) {
++              for (SkyKey child : group) {
++                if (stopped) {
++                  return;
++                }
++                if (supportedPath(child) == null) {
++                  continue;
++                }
++                InMemoryNodeEntry childEntry = graph().getIfPresent(child);
++                if (childEntry != null && childEntry.isDone()) {
++                  long capture =
++                      observe(
++                          child,
++                          childEntry.getValue(),
++                          deps(childEntry),
++                          "before_child_drop",
++                          "retained_done",
++                          childEntry.getErrorInfo() != null,
++                          null,
++                          null);
++                  if (stopped) {
++                    return;
++                  }
++                  if (capture != 0) {
++                    captures.put(child, capture);
++                  }
++                }
++              }
++            }
++          }
++          SkyValue current =
++              value != null ? value : entry != null && entry.isDone() ? entry.getValue() : null;
++          long observation =
++              observe(
++                  key,
++                  current,
++                  actual,
++                  value != null ? "evaluated_value" : "evaluated_current",
++                  directDeps != null ? "evaluated_direct_deps" : "retained_done",
++                  !state.succeeded()
++                      || error != null
++                      || (entry != null && entry.isDone() && entry.getErrorInfo() != null),
++                  captures,
++                  null);
++          emit(
++              row(
++                  "type",
++                  "event",
++                  "node_id",
++                  id,
++                  "event",
++                  "evaluated",
++                  "evaluation_state",
++                  state.name(),
++                  "new_value_supplied",
++                  value != null,
++                  "new_error_supplied",
++                  error != null,
++                  "direct_deps_supplied",
++                  directDeps != null,
++                  "dirty_type",
++                  null,
++                  "observation_id",
++                  observation == 0 ? null : observation),
++              false);
++        });
++  }
++
++  @Override
++  public synchronized void stateStarting(SkyKey key, NodeState state) {
++    long wall = clock.wall() - wallOrigin;
++    long cpu = clock.cpu();
++    boolean virtual = clock.virtual();
++    guarded(
++        () -> {
++          int id = node(key);
++          if (id == 0 || stopped) {
++            return;
++          }
++          observed.add(id);
++          ThreadState thread = threads.get(Thread.currentThread());
++          if (thread == null) {
++            if (threads.size() >= MAX_THREADS) {
++              overflow("max_threads");
++              return;
++            }
++            thread = new ThreadState(threads.size() + 1L);
++            threads.put(Thread.currentThread(), thread);
++          }
++          if (intervalSequence >= MAX_INTERVALS) {
++            overflow("max_intervals");
++            return;
++          }
++          if (thread.stack.size() >= MAX_STACK_DEPTH) {
++            overflow("max_stack_depth");
++            return;
++          }
++          String occurrenceKey = id + ":" + state.name();
++          long occurrence = occurrences.merge(occurrenceKey, 1L, Long::sum);
++          Long parent = thread.stack.isEmpty() ? null : thread.stack.peek().id;
++          thread.stack.push(
++              new Frame(++intervalSequence, parent, id, state, occurrence, wall, cpu, virtual));
++        });
++  }
++
++  @Override
++  public synchronized void stateEnding(SkyKey key, NodeState state) {
++    long wall = clock.wall() - wallOrigin;
++    long cpu = clock.cpu();
++    guarded(
++        () -> {
++          ThreadState thread = threads.get(Thread.currentThread());
++          Integer id = nodes.get(key);
++          if (thread == null
++              || thread.stack.isEmpty()
++              || id == null
++              || thread.stack.peek().node != id
++              || thread.stack.peek().state != state) {
++            unbalanced++;
++            markIncomplete("unmatched_interval_end");
++            return;
++          }
++          Frame frame = thread.stack.pop();
++          boolean clockInvalid =
++              wall < frame.wall || (cpu >= 0 && frame.cpu >= 0 && cpu < frame.cpu);
++          Long inclusive =
++              frame.cpu < 0 || cpu < 0 || frame.virtual || clockInvalid ? null : cpu - frame.cpu;
++          Long exclusive =
++              inclusive == null || frame.unknownChild ? null : inclusive - frame.childCpu;
++          if (exclusive != null && exclusive < 0) {
++            clockInvalid = true;
++            exclusive = null;
++          }
++          String status =
++              clockInvalid ? "unbalanced" : exclusive == null ? "unsupported_cpu" : "complete";
++          String reason =
++              clockInvalid
++                  ? "counter_or_child_regression"
++                  : exclusive == null ? "cpu_unavailable" : null;
++          if (clockInvalid) {
++            unbalanced++;
++            markIncomplete(reason);
++          } else if (reason != null) {
++            countUnknown(reason);
++          }
++          writeInterval(thread.id, frame, wall, cpu < 0 ? null : cpu, exclusive, status, reason);
++          if (!thread.stack.isEmpty()) {
++            if (inclusive == null || frame.unknownChild || clockInvalid) {
++              thread.stack.peek().unknownChild = true;
++            } else {
++              thread.stack.peek().childCpu += inclusive;
++            }
++          }
++        });
++  }
++
++  private void writeInterval(
++      long thread,
++      Frame frame,
++      @Nullable Long wallEnd,
++      @Nullable Long cpuEnd,
++      @Nullable Long exclusive,
++      String status,
++      @Nullable String reason) {
++    emit(
++        row(
++            "type",
++            "interval",
++            "interval_id",
++            frame.id,
++            "parent_interval_id",
++            frame.parent,
++            "node_id",
++            frame.node,
++            "thread_id",
++            thread,
++            "virtual_thread",
++            frame.virtual,
++            "state",
++            frame.state.name(),
++            "occurrence",
++            frame.occurrence,
++            "wall_start_ns",
++            frame.wall,
++            "wall_end_ns",
++            wallEnd,
++            "cpu_start_ns",
++            frame.cpu < 0 ? null : frame.cpu,
++            "cpu_end_ns",
++            cpuEnd,
++            "exclusive_cpu_ns",
++            exclusive,
++            "status",
++            status,
++            "reason",
++            reason),
++        false);
++  }
++
++  /** Exports remaining done nodes, seals the trace, and releases all retained diagnostic keys. */
++  public synchronized void finish() {
++    if (finished) {
++      return;
++    }
++    guarded(
++        () -> {
++          Map<SkyKey, Long> finalIds = new LinkedHashMap<>();
++          for (InMemoryNodeEntry entry : graph().getAllNodeEntries()) {
++            if (stopped) {
++              break;
++            }
++            if (entry.isDone() && node(entry.getKey()) != 0) {
++              long observation = reserveObservation();
++              if (observation == 0) {
++                break;
++              }
++              finalIds.put(entry.getKey(), observation);
++            }
++          }
++          for (Map.Entry<SkyKey, Long> item : finalIds.entrySet()) {
++            if (stopped) {
++              break;
++            }
++            InMemoryNodeEntry entry = graph().getIfPresent(item.getKey());
++            boolean done = entry != null && entry.isDone();
++            observe(
++                item.getKey(),
++                done ? entry.getValue() : null,
++                deps(entry),
++                "retained_done",
++                "retained_done",
++                done && entry.getErrorInfo() != null,
++                finalIds,
++                item.getValue());
++          }
++          for (ThreadState thread : threads.values()) {
++            while (!thread.stack.isEmpty()) {
++              Frame frame = thread.stack.pop();
++              unbalanced++;
++              markIncomplete("unclosed_interval");
++              writeInterval(thread.id, frame, null, null, null, "unbalanced", "unclosed_interval");
++            }
++          }
++        });
++    int retainedOnly = 0;
++    for (int id : retained) {
++      if (!observed.contains(id)) {
++        retainedOnly++;
++      }
++    }
++    Map<String, Object> footer =
++        row(
++            "type",
++            "footer",
++            "record_counts",
++            new LinkedHashMap<>(counts),
++            "node_count",
++            nodes.size(),
++            "edge_count",
++            edgeCount,
++            "observed_node_count",
++            observed.size(),
++            "retained_only_node_count",
++            retainedOnly,
++            "dependency_only_node_count",
++            nodes.size() - observed.size() - retainedOnly,
++            "unknown_counts",
++            new LinkedHashMap<>(unknown),
++            "limits_exceeded",
++            new ArrayList<>(exceeded),
++            "unbalanced_intervals",
++            unbalanced,
++            "writer_error",
++            writerError,
++            "preceding_bytes_sha256",
++            HexFormat.of().formatHex(digest.digest()),
++            "complete",
++            complete && !stopped);
++    try {
++      writer.flush();
++    } catch (IOException e) {
++      complete = false;
++      writerError = e.getClass().getSimpleName();
++    }
++    footer.put("complete", complete && !stopped && writerError == null);
++    footer.put("writer_error", writerError);
++    emit(footer, true);
++    try {
++      writer.flush();
++    } catch (IOException e) {
++      complete = false;
++      writerError = e.getClass().getSimpleName();
++    }
++    try {
++      writer.close();
++    } catch (IOException e) {
++      complete = false;
++      writerError = e.getClass().getSimpleName();
++    }
++    finished = true;
++    nodes.clear();
++    observed.clear();
++    retained.clear();
++    threads.clear();
++    occurrences.clear();
++  }
++
++  /** Final I/O status; the module must invalidate the output on a late flush/close failure. */
++  public synchronized boolean isComplete() {
++    return finished && complete && !stopped && writerError == null;
++  }
++
++  @Override
++  public void close() {
++    finish();
++  }
++}
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceModule.java b/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceModule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f3f37fa9e37a1312d6cf505da584aad26b5c223c
+--- /dev/null
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceModule.java
+@@ -0,0 +1,499 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
++package com.google.devtools.build.lib.skyframe;
++
++import com.google.common.flogger.GoogleLogger;
++import com.google.devtools.build.lib.events.Event;
++import com.google.devtools.build.lib.runtime.BlazeModule;
++import com.google.devtools.build.lib.runtime.CommandEnvironment;
++import com.google.devtools.build.lib.util.OS;
++import com.google.devtools.build.lib.vfs.Root;
++import com.google.devtools.build.skyframe.ErrorInfo;
++import com.google.devtools.build.skyframe.EvaluationProgressReceiver;
++import com.google.devtools.build.skyframe.GroupedDeps;
++import com.google.devtools.build.skyframe.NodeEntry.DirtyType;
++import com.google.devtools.build.skyframe.SkyKey;
++import com.google.devtools.build.skyframe.SkyValue;
++import com.google.devtools.common.options.Option;
++import com.google.devtools.common.options.OptionDocumentationCategory;
++import com.google.devtools.common.options.OptionEffectTag;
++import com.google.devtools.common.options.OptionsBase;
++import com.google.devtools.common.options.OptionsClass;
++import com.google.gson.Gson;
++import com.google.gson.stream.JsonReader;
++import com.google.gson.stream.JsonToken;
++import java.io.IOException;
++import java.io.StringReader;
++import java.io.Writer;
++import java.nio.ByteBuffer;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.LinkOption;
++import java.nio.file.Path;
++import java.nio.file.StandardOpenOption;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.HexFormat;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.function.Consumer;
++import javax.annotation.Nullable;
++
++/** Opt-in diagnostic tracing; observing a build never authorizes a cache hit. */
++public final class M1TraceModule extends BlazeModule {
++  private static final GoogleLogger logger = GoogleLogger.forEnclosingClass();
++  private static final int MAX_CONTEXT_BYTES = 64 * 1024;
++  private static final Set<String> CONTEXT_FIELDS =
++      Set.of(
++          "engine_id",
++          "cohort_id",
++          "phase",
++          "hosting",
++          "binary_sha256",
++          "source_identity",
++          "semantic_epoch",
++          "snapshot_id",
++          "command_policy_sha256",
++          "repository_bindings",
++          "bzl_inlining");
++
++  @OptionsClass
++  public static final class Options extends OptionsBase {
++    @Option(
++        name = "experimental_m1_trace",
++        defaultValue = "",
++        documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
++        effectTags = {OptionEffectTag.BAZEL_MONITORING},
++        help = "Write a bounded diagnostic trace to a new absolute file. Empty disables tracing.")
++    public String output;
++
++    @Option(
++        name = "experimental_m1_trace_context",
++        defaultValue = "",
++        documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
++        effectTags = {OptionEffectTag.BAZEL_MONITORING},
++        help =
++            "Absolute JSON metadata file for experimental_m1_trace; declarations need external"
++                + " verification.")
++    public String context;
++  }
++
++  @Nullable private Session session;
++
++  @Override
++  public Iterable<Class<? extends OptionsBase>> getCommonCommandOptions() {
++    return List.of(Options.class);
++  }
++
++  @Override
++  public void beforeCommand(CommandEnvironment env) {
++    // Defensive cleanup if an earlier command did not reach its ordinary module cleanup.
++    if (session != null) {
++      session.collector.markIncomplete("previous_command_missing_module_cleanup");
++      afterCommand();
++    }
++    Options options = env.getOptions().getOptions(Options.class);
++    if (options == null || options.output.isEmpty()) {
++      return; // No evaluator access, attachment, collector or graph walk while disabled.
++    }
++    Writer writer = null;
++    M1TraceCollector collector = null;
++    try {
++      if (env.getWorkspace() == null) {
++        throw new IOException("Tracing requires a workspace");
++      }
++      if (OS.getCurrent() != OS.LINUX) {
++        throw new IOException("The initial trace binding supports Linux only");
++      }
++      Root workspaceRoot = Root.fromPath(env.getWorkspace());
++      Context context = readContext(Path.of(options.context), env.getWorkspace().getPathString());
++      Map<String, Object> header = context.header();
++      Map<?, ?> bindings = (Map<?, ?>) header.get("repository_bindings");
++      Map<?, ?> main = (Map<?, ?>) bindings.get("main");
++      Map<?, ?> filesystem = (Map<?, ?>) main.get("filesystem_policy");
++      if (!env.getWorkspace()
++          .getFileSystem()
++          .getDigestFunction()
++          .toString()
++          .equals(filesystem.get("digest_algorithm"))) {
++        throw new IOException(
++            "Trace context digest algorithm differs from the workspace filesystem");
++      }
++      header.put("trace_id", UUID.randomUUID().toString());
++      header.put("command_id", env.getCommandId().toString());
++      header.put("context_sha256", context.sha256());
++      header.put("context_status", "declared");
++      header.put("capture_window", "module_after_cache_setup_to_after_cache_finalization");
++      header.put("direct_skycache_witness_validation", "unobserved");
++      Path output = canonicalFile(Path.of(options.output));
++      if (output.startsWith(Path.of(env.getWorkspace().getPathString()))) {
++        throw new IOException("Trace output must be outside the source workspace");
++      }
++      if (Files.exists(completionPath(output), LinkOption.NOFOLLOW_LINKS)) {
++        throw new IOException("Trace completion receipt already exists");
++      }
++      writer = openOutput(output);
++      SkyframeExecutor executor = env.getSkyframeExecutor();
++      collector =
++          new M1TraceCollector(
++              writer, workspaceRoot, () -> executor.getEvaluator().getInMemoryGraph(), header);
++      Session next =
++          new Session(
++              collector, executor, writer, output, env.getCommandId().toString(), context.sha256());
++      if (!executor.compareAndSetM1TraceProgressReceiver(null, next.receiver)) {
++        throw new IOException("Another diagnostic receiver is already attached");
++      }
++      session = next;
++    } catch (IOException | RuntimeException failure) {
++      if (collector != null) {
++        try {
++          collector.markIncomplete("module_start_failed");
++          collector.close();
++        } catch (RuntimeException cleanupFailure) {
++          logger.atWarning().withCause(cleanupFailure).log("M1 trace cleanup failed");
++        }
++      }
++      if (writer != null) {
++        try {
++          writer.close();
++        } catch (IOException | RuntimeException cleanupFailure) {
++          logger.atWarning().withCause(cleanupFailure).log("M1 trace writer cleanup failed");
++        }
++      }
++      try {
++        env.getReporter().handle(Event.warn("M1 tracing disabled: " + failure.getMessage()));
++      } catch (RuntimeException reportingFailure) {
++        logger.atWarning().withCause(reportingFailure).log(
++            "M1 trace warning could not be reported");
++      }
++    }
++  }
++
++  @Override
++  public void afterCommand() {
++    Session current = session;
++    session = null;
++    if (current == null) {
++      return;
++    }
++    boolean finished = false;
++    boolean closed = false;
++    Exception failure = null;
++    try {
++      current.collector.finish();
++      finished = true;
++    } catch (RuntimeException observerFailure) {
++      failure = observerFailure;
++    } finally {
++      current.executor.compareAndSetM1TraceProgressReceiver(current.receiver, null);
++      try {
++        current.writer.close();
++        closed = true;
++      } catch (IOException | RuntimeException closeFailure) {
++        failure = closeFailure;
++      }
++    }
++    if (failure != null) {
++      logger.atWarning().withCause(failure).log(
++          "M1 trace finalization failed; no completion receipt");
++    } else if (finished && closed && !current.receiver.hasFailed()) {
++      try {
++        if (current.collector.isComplete()) {
++          writeCompletion(current.output, current.commandId, current.contextSha256);
++        }
++      } catch (IOException | RuntimeException completionFailure) {
++        logger.atWarning().withCause(completionFailure).log(
++            "M1 completion receipt was not published");
++      }
++    }
++  }
++
++  private static final class Session {
++    final M1TraceCollector collector;
++    final SkyframeExecutor executor;
++    final FailureIsolatingReceiver receiver;
++    final Writer writer;
++    final Path output;
++    final String commandId;
++    final String contextSha256;
++
++    Session(
++        M1TraceCollector collector,
++        SkyframeExecutor executor,
++        Writer writer,
++        Path output,
++        String commandId,
++        String contextSha256) {
++      this.collector = collector;
++      this.executor = executor;
++      this.writer = writer;
++      this.output = output;
++      this.commandId = commandId;
++      this.contextSha256 = contextSha256;
++      receiver =
++          new FailureIsolatingReceiver(
++              collector,
++              failure -> {
++                collector.markIncomplete("observer_callback_exception");
++                logger.atWarning().withCause(failure).log(
++                    "M1 trace observer failed; subsequent callbacks disabled");
++              });
++    }
++  }
++
++  static Path canonicalFile(Path path) throws IOException {
++    if (!path.isAbsolute()
++        || !path.normalize().equals(path)
++        || path.getParent() == null
++        || !path.getParent().toRealPath().equals(path.getParent())) {
++      throw new IOException(
++          "Trace paths must be absolute, normalized and have an existing canonical parent");
++    }
++    return path;
++  }
++
++  static Writer openOutput(Path path) throws IOException {
++    return Files.newBufferedWriter(
++        canonicalFile(path),
++        StandardCharsets.UTF_8,
++        StandardOpenOption.CREATE_NEW,
++        StandardOpenOption.WRITE,
++        LinkOption.NOFOLLOW_LINKS);
++  }
++
++  static Path completionPath(Path output) {
++    return output.resolveSibling(output.getFileName() + ".completion.json");
++  }
++
++  static void writeCompletion(Path output, String commandId, String contextSha256)
++      throws IOException {
++    Map<String, Object> receipt = new LinkedHashMap<>();
++    receipt.put("schema_version", 1);
++    receipt.put("command_id", commandId);
++    receipt.put("context_sha256", contextSha256);
++    receipt.put("trace_path", output.toString());
++    receipt.put("completion", true);
++    byte[] bytes = (new Gson().toJson(receipt) + "\n").getBytes(StandardCharsets.UTF_8);
++    if (bytes.length > 4096) {
++      throw new IOException("Trace completion receipt exceeds 4 KiB");
++    }
++    Path completion = completionPath(output);
++    Path pending = output.resolveSibling(output.getFileName() + ".completion.pending-" + commandId);
++    // Publish only after this tiny receipt itself has closed successfully. Failed pending files
++    // remain evidence, but cannot satisfy the final receipt contract. Never overwrite either file.
++    try (var stream =
++        Files.newOutputStream(
++            pending,
++            StandardOpenOption.CREATE_NEW,
++            StandardOpenOption.WRITE,
++            LinkOption.NOFOLLOW_LINKS)) {
++      stream.write(bytes);
++    }
++    Files.move(pending, completion);
++  }
++
++  record Context(Map<String, Object> header, String sha256) {}
++
++  static Context readContext(Path path, String workspace) throws IOException {
++    canonicalFile(path);
++    if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
++      throw new IOException("Trace context must be a regular non-symlink file");
++    }
++    byte[] raw;
++    try (var input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
++      raw = input.readNBytes(MAX_CONTEXT_BYTES + 1);
++    }
++    if (raw.length > MAX_CONTEXT_BYTES) {
++      throw new IOException("Trace context exceeds 64 KiB");
++    }
++    Map<String, Object> header;
++    try (JsonReader reader =
++        new JsonReader(
++            new StringReader(
++                StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(raw)).toString()))) {
++      header = readObject(reader, 0);
++      if (reader.peek() != JsonToken.END_DOCUMENT || !header.keySet().equals(CONTEXT_FIELDS)) {
++        throw new IOException("Trace context has missing or unexpected fields");
++      }
++    }
++    validateContext(header, workspace);
++    try {
++      return new Context(
++          header, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw)));
++    } catch (NoSuchAlgorithmException impossible) {
++      throw new IllegalStateException("SHA-256 unavailable", impossible);
++    }
++  }
++
++  private static Map<?, ?> object(Object value, Set<String> fields) throws IOException {
++    if (!(value instanceof Map<?, ?> map) || !map.keySet().equals(fields)) {
++      throw new IOException("Trace context has missing or unexpected nested fields");
++    }
++    return map;
++  }
++
++  private static void text(Object value) throws IOException {
++    if (!(value instanceof String string) || string.isEmpty() || string.length() > 256) {
++      throw new IOException("Trace context identity must be a nonempty bounded string");
++    }
++  }
++
++  private static void digest(Object value, int length) throws IOException {
++    if (!(value instanceof String string) || !string.matches("[0-9a-f]{" + length + "}")) {
++      throw new IOException("Trace context digest has an invalid form");
++    }
++  }
++
++  private static void validateContext(Map<String, Object> header, String workspace)
++      throws IOException {
++    for (String key : List.of("engine_id", "cohort_id", "semantic_epoch")) {
++      text(header.get(key));
++    }
++    for (String key : List.of("binary_sha256", "snapshot_id", "command_policy_sha256")) {
++      digest(header.get(key), 64);
++    }
++    if (!"private".equals(header.get("hosting"))
++        || !(header.get("phase") instanceof String phase)
++        || !Set.of("restart", "warm", "fixture").contains(phase)
++        || !(header.get("bzl_inlining") instanceof String inlining)
++        || !Set.of("enabled", "disabled", "unknown").contains(inlining)) {
++      throw new IOException("Trace context hosting, phase or Bzl mode differs from the contract");
++    }
++    Map<?, ?> source =
++        object(
++            header.get("source_identity"),
++            Set.of("base_commit", "patch_sha256", "reconstructed_git_tree"));
++    digest(source.get("base_commit"), 40);
++    digest(source.get("patch_sha256"), 64);
++    digest(source.get("reconstructed_git_tree"), 40);
++    Map<?, ?> bindings = object(header.get("repository_bindings"), Set.of("main"));
++    Map<?, ?> main =
++        object(
++            bindings.get("main"),
++            Set.of(
++                "logical_repository_id",
++                "physical_root",
++                "filesystem_policy",
++                "binding_provenance_sha256"));
++    text(main.get("logical_repository_id"));
++    digest(main.get("binding_provenance_sha256"), 64);
++    Map<?, ?> filesystem =
++        object(main.get("filesystem_policy"), Set.of("os", "case_sensitive", "digest_algorithm"));
++    text(filesystem.get("digest_algorithm"));
++    if (!workspace.equals(main.get("physical_root"))
++        || !"linux".equals(filesystem.get("os"))
++        || !Boolean.TRUE.equals(filesystem.get("case_sensitive"))) {
++      throw new IOException("Trace context must bind this Linux private workspace exactly");
++    }
++  }
++
++  private static Map<String, Object> readObject(JsonReader reader, int depth) throws IOException {
++    if (depth > 16) {
++      throw new IOException("Trace context nesting exceeds 16");
++    }
++    Map<String, Object> result = new LinkedHashMap<>();
++    reader.beginObject();
++    while (reader.hasNext()) {
++      String name = reader.nextName();
++      if (result.containsKey(name)) {
++        throw new IOException("Duplicate trace context key");
++      }
++      Object value =
++          switch (reader.peek()) {
++            case BEGIN_OBJECT -> readObject(reader, depth + 1);
++            case STRING -> reader.nextString();
++            case BOOLEAN -> reader.nextBoolean();
++            case NULL -> {
++              reader.nextNull();
++              yield null;
++            }
++            default ->
++                throw new IOException(
++                    "Trace context supports objects, strings, booleans and null only");
++          };
++      result.put(name, value);
++    }
++    reader.endObject();
++    return result;
++  }
++
++  /** Observer exceptions disable observation, without changing evaluator behavior. */
++  static final class FailureIsolatingReceiver implements EvaluationProgressReceiver {
++    private final EvaluationProgressReceiver delegate;
++    private final Consumer<RuntimeException> onFailure;
++    private final AtomicBoolean failed = new AtomicBoolean();
++
++    FailureIsolatingReceiver(
++        EvaluationProgressReceiver delegate, Consumer<RuntimeException> onFailure) {
++      this.delegate = delegate;
++      this.onFailure = onFailure;
++    }
++
++    boolean hasFailed() {
++      return failed.get();
++    }
++
++    private void observe(Runnable action) {
++      if (failed.get()) {
++        return;
++      }
++      try {
++        action.run();
++      } catch (RuntimeException failure) {
++        if (failed.compareAndSet(false, true)) {
++          try {
++            onFailure.accept(failure);
++          } catch (RuntimeException ignored) {
++            // Failure reporting is also observational.
++          }
++        }
++      }
++    }
++
++    @Override
++    public void dirtied(SkyKey key, DirtyType type) {
++      observe(() -> delegate.dirtied(key, type));
++    }
++
++    @Override
++    public void deleted(SkyKey key) {
++      observe(() -> delegate.deleted(key));
++    }
++
++    @Override
++    public void enqueueing(SkyKey key) {
++      observe(() -> delegate.enqueueing(key));
++    }
++
++    @Override
++    public void stateStarting(SkyKey key, NodeState state) {
++      observe(() -> delegate.stateStarting(key, state));
++    }
++
++    @Override
++    public void stateEnding(SkyKey key, NodeState state) {
++      observe(() -> delegate.stateEnding(key, state));
++    }
++
++    @Override
++    public void changePruned(SkyKey key) {
++      observe(() -> delegate.changePruned(key));
++    }
++
++    @Override
++    public void evaluated(
++        SkyKey key,
++        EvaluationState state,
++        @Nullable SkyValue value,
++        @Nullable ErrorInfo error,
++        @Nullable GroupedDeps deps) {
++      observe(() -> delegate.evaluated(key, state, value, error, deps));
++    }
++  }
++}
+diff --git a/src/main/java/com/google/devtools/build/lib/skyframe/SkyframeExecutor.java b/src/main/java/com/google/devtools/build/lib/skyframe/SkyframeExecutor.java
+index 05859a841249d096dcef62014d47ef8e54fc2e2c..0e5304eb53b9ad4dcb5249b32055d30446063b65 100644
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/SkyframeExecutor.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/SkyframeExecutor.java
+@@ -408,6 +408,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+   private BuildDriverFunction buildDriverFunction;
+   private GlobFunction globFunction;
+   SkyframeProgressReceiver progressReceiver;
++
++  // Per-command observation only; this survives evaluator replacement so cleanup can detach it.
++  private final AtomicReference<EvaluationProgressReceiver> m1TraceProgressReceiver =
++      new AtomicReference<>();
+   private CyclesReporter cyclesReporter = null;
+ 
+   private boolean lastAnalysisDiscarded = false;
+@@ -2053,6 +2057,13 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+     progressReceiver.executionProgressReceiver = executionProgressReceiver;
+   }
+ 
++  /** Attaches/detaches a command-owned diagnostic observer without replacing execution progress. */
++  public boolean compareAndSetM1TraceProgressReceiver(
++      @Nullable EvaluationProgressReceiver expected,
++      @Nullable EvaluationProgressReceiver replacement) {
++    return m1TraceProgressReceiver.compareAndSet(expected, replacement);
++  }
++
+   public void prepareSkyframeActionExecutorForExecution(
+       Reporter reporter,
+       Executor executor,
+@@ -3576,6 +3587,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+ 
+     @Override
+     public void dirtied(SkyKey skyKey, DirtyType dirtyType) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.dirtied(skyKey, dirtyType);
++      }
+       if (ignoreInvalidations) {
+         return;
+       }
+@@ -3587,6 +3602,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+ 
+     @Override
+     public void deleted(SkyKey skyKey) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.deleted(skyKey);
++      }
+       if (ignoreInvalidations) {
+         return;
+       }
+@@ -3595,6 +3614,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+ 
+     @Override
+     public void enqueueing(SkyKey skyKey) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.enqueueing(skyKey);
++      }
+       if (ignoreInvalidations) {
+         return;
+       }
+@@ -3606,6 +3629,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+ 
+     @Override
+     public void stateStarting(SkyKey skyKey, NodeState nodeState) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.stateStarting(skyKey, nodeState);
++      }
+       if (NodeState.COMPUTE.equals(nodeState)) {
+         skyKeyStateReceiver.computationStarted(skyKey);
+       }
+@@ -3613,6 +3640,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+ 
+     @Override
+     public void stateEnding(SkyKey skyKey, NodeState nodeState) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.stateEnding(skyKey, nodeState);
++      }
+       if (NodeState.COMPUTE.equals(nodeState)) {
+         skyKeyStateReceiver.computationEnded(skyKey);
+       }
+@@ -3625,6 +3656,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+         @Nullable SkyValue newValue,
+         @Nullable ErrorInfo newError,
+         @Nullable GroupedDeps directDeps) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.evaluated(skyKey, state, newValue, newError, directDeps);
++      }
+       if (heuristicallyDropNodes) {
+         Object argument = skyKey.argument();
+         if (skyKey.functionName().equals(SkyFunctions.FILE)) {
+@@ -3709,6 +3744,10 @@ public abstract class SkyframeExecutor implements WalkableGraphFactory {
+ 
+     @Override
+     public void changePruned(SkyKey skyKey) {
++      EvaluationProgressReceiver trace = m1TraceProgressReceiver.get();
++      if (trace != null) {
++        trace.changePruned(skyKey);
++      }
+       if (executionProgressReceiver != null) {
+         executionProgressReceiver.changePruned(skyKey);
+       }
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/BUILD b/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
+index 48f35888ccc6047e8af4f5eacfbd591932cdd519..c96ecae99a7f6c6ad55bc8ca52e2aa1bb37d3027 100644
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/BUILD
+@@ -2463,3 +2463,46 @@ java_test(
+         "//third_party/java/truth",
+     ],
+ )
++
++java_test(
++    name = "M1TraceModuleTest",
++    srcs = ["M1TraceModuleTest.java"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/events",
++        "//src/main/java/com/google/devtools/build/lib/runtime:blaze_command_cluster",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:m1_trace_module",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:skyframe_core",
++        "//src/main/java/com/google/devtools/build/lib/util:os",
++        "//src/main/java/com/google/devtools/build/lib/vfs",
++        "//src/main/java/com/google/devtools/build/lib/vfs/inmemoryfs",
++        "//src/main/java/com/google/devtools/build/skyframe",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
++        "//src/main/java/com/google/devtools/common/options",
++        "//third_party/java/gson",
++        "//third_party/java/junit",
++        "//third_party/java/mockito",
++        "//third_party/java/truth",
++    ],
++)
++
++java_test(
++    name = "M1TraceCollectorTest",
++    srcs = ["M1TraceCollectorTest.java"],
++    deps = [
++        "//src/main/java/com/google/devtools/build/lib/actions:file_metadata",
++        "//src/main/java/com/google/devtools/build/lib/cmdline",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:bzl_load_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:directory_listing_state_value",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:m1_trace_collector",
++        "//src/main/java/com/google/devtools/build/lib/skyframe:sky_functions",
++        "//src/main/java/com/google/devtools/build/lib/vfs",
++        "//src/main/java/com/google/devtools/build/lib/vfs:pathfragment",
++        "//src/main/java/com/google/devtools/build/lib/vfs/inmemoryfs",
++        "//src/main/java/com/google/devtools/build/skyframe",
++        "//src/main/java/com/google/devtools/build/skyframe:skyframe-objects",
++        "//third_party/java/gson",
++        "//third_party/java/junit",
++        "//third_party/java/mockito",
++        "//third_party/java/truth",
++    ],
++)
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceCollectorTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceCollectorTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f3bdfb4ca7d0d78a76047d1f9588548f73661577
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceCollectorTest.java
+@@ -0,0 +1,678 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
++package com.google.devtools.build.lib.skyframe;
++
++import static com.google.common.truth.Truth.assertThat;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.when;
++
++import com.google.devtools.build.lib.actions.FileArtifactValue;
++import com.google.devtools.build.lib.actions.FileContentsProxy;
++import com.google.devtools.build.lib.actions.FileStateValue;
++import com.google.devtools.build.lib.cmdline.Label;
++import com.google.devtools.build.lib.vfs.DigestHashFunction;
++import com.google.devtools.build.lib.vfs.Dirent;
++import com.google.devtools.build.lib.vfs.PathFragment;
++import com.google.devtools.build.lib.vfs.Root;
++import com.google.devtools.build.lib.vfs.RootedPath;
++import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
++import com.google.devtools.build.skyframe.EvaluationProgressReceiver.EvaluationState;
++import com.google.devtools.build.skyframe.EvaluationProgressReceiver.NodeState;
++import com.google.devtools.build.skyframe.GroupedDeps;
++import com.google.devtools.build.skyframe.InMemoryGraph;
++import com.google.devtools.build.skyframe.InMemoryNodeEntry;
++import com.google.devtools.build.skyframe.SkyKey;
++import com.google.devtools.build.skyframe.SkyValue;
++import com.google.gson.JsonObject;
++import com.google.gson.JsonParser;
++import java.io.IOException;
++import java.io.StringWriter;
++import java.io.Writer;
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.util.ArrayList;
++import java.util.HexFormat;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.Executors;
++import java.util.concurrent.atomic.AtomicReference;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++/** Focused wire, equality-boundary and failure tests; no filesystem evaluation or builds. */
++@RunWith(JUnit4.class)
++public final class M1TraceCollectorTest {
++  private final InMemoryFileSystem fs = new InMemoryFileSystem(DigestHashFunction.SHA256);
++  private final Root root = Root.fromPath(fs.getPath("/workspace"));
++  private final Map<SkyKey, InMemoryNodeEntry> entries = new LinkedHashMap<>();
++  private final InMemoryGraph graph = graph(entries);
++  private final StringWriter output = new StringWriter();
++  private final FakeClock clock = new FakeClock();
++
++  private static final class FakeClock implements M1TraceCollector.Clock {
++    long tick;
++    boolean unavailable;
++    boolean virtual;
++
++    @Override
++    public long wall() {
++      return tick * 10;
++    }
++
++    @Override
++    public long cpu() {
++      return unavailable ? -1 : tick;
++    }
++
++    @Override
++    public boolean virtual() {
++      return virtual;
++    }
++  }
++
++  private static InMemoryGraph graph(Map<SkyKey, InMemoryNodeEntry> entries) {
++    InMemoryGraph graph = mock(InMemoryGraph.class);
++    when(graph.getAllNodeEntries()).thenAnswer(unused -> entries.values());
++    when(graph.getIfPresent(any())).thenAnswer(call -> entries.get(call.getArgument(0)));
++    return graph;
++  }
++
++  private Map<String, Object> header() {
++    Map<String, Object> header = new LinkedHashMap<>();
++    for (String name :
++        List.of(
++            "trace_id",
++            "command_id",
++            "engine_id",
++            "cohort_id",
++            "phase",
++            "hosting",
++            "binary_sha256",
++            "source_identity",
++            "semantic_epoch",
++            "snapshot_id",
++            "command_policy_sha256",
++            "repository_bindings",
++            "bzl_inlining",
++            "context_sha256",
++            "context_status",
++            "capture_window",
++            "direct_skycache_witness_validation")) {
++      header.put(name, "fixture");
++    }
++    return header;
++  }
++
++  private M1TraceCollector collector() {
++    return new M1TraceCollector(
++        output, root, () -> graph, header(), M1TraceCollector.DEFAULT_LIMITS, clock);
++  }
++
++  private RootedPath key(String relative) {
++    return RootedPath.toRootedPath(root, PathFragment.create(relative));
++  }
++
++  private static FileStateValue digest(int digest) {
++    return new FileStateValue.RegularFileStateValueWithDigest(7, new byte[] {(byte) digest});
++  }
++
++  private void retain(SkyKey key, SkyValue value, GroupedDeps deps) {
++    InMemoryNodeEntry entry = mock(InMemoryNodeEntry.class);
++    when(entry.getKey()).thenReturn(key);
++    when(entry.isDone()).thenReturn(true);
++    when(entry.keepsEdges()).thenReturn(true);
++    when(entry.getValue()).thenReturn(value);
++    when(entry.getCompressedDirectDepsForDoneEntry()).thenReturn(deps.compress());
++    entries.put(key, entry);
++  }
++
++  private static List<JsonObject> records(StringWriter output, String type) {
++    return output
++        .toString()
++        .lines()
++        .map(JsonParser::parseString)
++        .map(value -> value.getAsJsonObject())
++        .filter(record -> record.get("type").getAsString().equals(type))
++        .toList();
++  }
++
++  private List<JsonObject> records(String type) {
++    return records(output, type);
++  }
++
++  private JsonObject footer() {
++    return records("footer").get(0);
++  }
++
++  @Test
++  public void digestClassPreservesSameSizeChangesAndVersions() {
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    collector.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(2), null, new GroupedDeps());
++    collector.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    collector.finish();
++    assertThat(collector.isComplete()).isTrue();
++    List<JsonObject> observations = records("observation");
++    assertThat(observations).hasSize(3);
++    assertThat(observations.get(0).getAsJsonObject("projection").get("digest_hex").getAsString())
++        .isEqualTo("01");
++    assertThat(observations.get(1).getAsJsonObject("projection").get("digest_hex").getAsString())
++        .isEqualTo("02");
++    assertThat(observations.get(2).get("observation_id").getAsLong()).isEqualTo(3);
++  }
++
++  @Test
++  public void metadataProxyAndSpecialStatesRemainUnknown() {
++    FileArtifactValue metadata = mock(FileArtifactValue.class);
++    when(metadata.getDigest()).thenReturn(new byte[] {1});
++    when(metadata.getSize()).thenReturn(7L);
++    FileContentsProxy proxy = new FileContentsProxy(1, 2, 3);
++    M1TraceCollector collector = collector();
++    List<FileStateValue> values =
++        List.of(
++            new FileStateValue.RegularFileStateValueWithMetadata(metadata),
++            new FileStateValue.RegularFileStateValueWithContentsProxy(7, proxy),
++            new FileStateValue.SpecialFileStateValue(proxy));
++    for (int i = 0; i < values.size(); i++) {
++      collector.evaluated(
++          key("a" + i),
++          EvaluationState.SUCCESS_VERSION_CHANGED,
++          values.get(i),
++          null,
++          new GroupedDeps());
++    }
++    collector.finish();
++    assertThat(collector.isComplete()).isTrue();
++    for (JsonObject record : records("observation")) {
++      assertThat(record.get("value_status").getAsString()).isEqualTo("unsupported");
++      assertThat(record.get("projection").isJsonNull()).isTrue();
++    }
++  }
++
++  @Test
++  public void missingDirectorySymlinkAndListingPreserveTypedFacts() {
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        key("missing"),
++        EvaluationState.SUCCESS_VERSION_CHANGED,
++        FileStateValue.NONEXISTENT_FILE_STATE_NODE,
++        null,
++        new GroupedDeps());
++    collector.evaluated(
++        key("dir"),
++        EvaluationState.SUCCESS_VERSION_CHANGED,
++        FileStateValue.DIRECTORY_FILE_STATE_NODE,
++        null,
++        new GroupedDeps());
++    collector.evaluated(
++        key("link"),
++        EvaluationState.SUCCESS_VERSION_CHANGED,
++        new FileStateValue.SymlinkFileStateValue(PathFragment.create("../target")),
++        null,
++        new GroupedDeps());
++    collector.evaluated(
++        DirectoryListingStateValue.key(key("listing")),
++        EvaluationState.SUCCESS_VERSION_CHANGED,
++        DirectoryListingStateValue.create(
++            List.of(new Dirent("z", Dirent.Type.SYMLINK), new Dirent("a", Dirent.Type.UNKNOWN))),
++        null,
++        new GroupedDeps());
++    collector.finish();
++    assertThat(
++            records("observation").stream()
++                .map(record -> record.getAsJsonObject("projection").get("type").getAsString())
++                .toList())
++        .containsExactly("NONEXISTENT", "DIRECTORY", "SYMLINK", "DIRECTORY_LISTING_STATE")
++        .inOrder();
++    JsonObject listing = records("observation").get(3).getAsJsonObject("projection");
++    assertThat(listing.getAsJsonArray("entries").get(0).getAsJsonArray().get(0).getAsString())
++        .isEqualTo("0061");
++    assertThat(listing.getAsJsonArray("entries").get(0).getAsJsonArray().get(1).getAsString())
++        .isEqualTo("UNKNOWN");
++    assertThat(M1TraceCollector.utf16("\ud800\u0000\u00e9")).isEqualTo("d800000000e9");
++  }
++
++  @Test
++  public void differentRootDoesNotAcquireMainRepositoryIdentity() {
++    M1TraceCollector collector = collector();
++    RootedPath foreign =
++        RootedPath.toRootedPath(Root.fromPath(fs.getPath("/other")), PathFragment.create("a"));
++    collector.evaluated(
++        foreign, EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    collector.finish();
++    assertThat(records("node").get(0).get("logical_key").isJsonNull()).isTrue();
++    assertThat(records("observation").get(0).get("value_status").getAsString())
++        .isEqualTo("unsupported");
++  }
++
++  @Test
++  public void nullDependenciesAreNotAnEmptyKnownGroupList() {
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        key("unknown"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, null);
++    collector.evaluated(
++        key("empty"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    collector.finish();
++    assertThat(records("observation").get(0).get("groups").isJsonNull()).isTrue();
++    assertThat(records("observation").get(1).getAsJsonArray("groups")).isEmpty();
++    assertThat(records("event").get(0).get("direct_deps_supplied").getAsBoolean()).isFalse();
++  }
++
++  @Test
++  public void groupedChildrenAreCapturedBeforeTheyDisappear() {
++    RootedPath a = key("a");
++    RootedPath b = key("b");
++    retain(a, digest(1), new GroupedDeps());
++    retain(b, FileStateValue.NONEXISTENT_FILE_STATE_NODE, new GroupedDeps());
++    SkyKey parent = mock(SkyKey.class);
++    when(parent.functionName()).thenReturn(SkyFunctions.FILE);
++    when(parent.argument()).thenReturn(a);
++    GroupedDeps dependencies = new GroupedDeps();
++    dependencies.appendGroup(List.of(a));
++    dependencies.appendGroup(List.of(b));
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        parent, EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, dependencies);
++    entries.clear(); // Simulates existing heuristic state-child removal, without changing it.
++    collector.finish();
++    List<JsonObject> observations = records("observation");
++    assertThat(observations).hasSize(3);
++    assertThat(observations.get(0).get("origin").getAsString()).isEqualTo("before_child_drop");
++    assertThat(observations.get(2).getAsJsonArray("groups")).hasSize(2);
++    assertThat(
++            observations
++                .get(2)
++                .getAsJsonArray("groups")
++                .get(0)
++                .getAsJsonArray()
++                .get(0)
++                .getAsJsonArray()
++                .get(1)
++                .isJsonNull())
++        .isFalse();
++    assertThat(footer().get("dependency_only_node_count").getAsInt()).isEqualTo(2);
++  }
++
++  @Test
++  public void oldChildObservationCannotFillMissingOrDirtyParentEdge() {
++    for (boolean dirty : List.of(false, true)) {
++      entries.clear();
++      RootedPath child = key("child");
++      retain(child, digest(1), new GroupedDeps());
++      StringWriter trace = new StringWriter();
++      M1TraceCollector collector =
++          new M1TraceCollector(
++              trace, root, () -> graph, header(), M1TraceCollector.DEFAULT_LIMITS, clock);
++      collector.evaluated(
++          child, EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++      if (dirty) {
++        when(entries.get(child).isDone()).thenReturn(false);
++      } else {
++        entries.remove(child);
++      }
++      GroupedDeps dependencies = new GroupedDeps();
++      dependencies.appendGroup(List.of(child));
++      collector.evaluated(
++          key("parent"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(2), null, dependencies);
++      collector.finish();
++      JsonObject parent = records(trace, "observation").get(1);
++      assertThat(
++              parent
++                  .getAsJsonArray("groups")
++                  .get(0)
++                  .getAsJsonArray()
++                  .get(0)
++                  .getAsJsonArray()
++                  .get(1)
++                  .isJsonNull())
++          .isTrue();
++    }
++  }
++
++  @Test
++  public void retainedParentCannotReuseAnEarlierAbsentChildObservation() {
++    RootedPath child = key("child");
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        child, EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    GroupedDeps dependencies = new GroupedDeps();
++    dependencies.appendGroup(List.of(child));
++    retain(key("parent"), digest(2), dependencies);
++    collector.finish();
++    JsonObject parent = records("observation").get(1);
++    assertThat(parent.get("origin").getAsString()).isEqualTo("retained_done");
++    assertThat(
++            parent
++                .getAsJsonArray("groups")
++                .get(0)
++                .getAsJsonArray()
++                .get(0)
++                .getAsJsonArray()
++                .get(1)
++                .isJsonNull())
++        .isTrue();
++  }
++
++  @Test
++  public void unchangedEvaluationCanCaptureCurrentDoneValueWithoutInventingSuppliedValue() {
++    retain(key("a"), digest(1), new GroupedDeps());
++    M1TraceCollector collector = collector();
++    collector.evaluated(key("a"), EvaluationState.SUCCESS_VERSION_UNCHANGED, null, null, null);
++    collector.finish();
++    assertThat(records("observation").get(0).get("origin").getAsString())
++        .isEqualTo("evaluated_current");
++    assertThat(records("event").get(0).get("new_value_supplied").getAsBoolean()).isFalse();
++    assertThat(records("event").get(0).get("direct_deps_supplied").getAsBoolean()).isFalse();
++  }
++
++  @Test
++  public void retainedOnlyNodesHaveNoSyntheticCpuOrDemandEvent() {
++    retain(key("a"), digest(1), new GroupedDeps());
++    M1TraceCollector collector = collector();
++    collector.finish();
++    assertThat(records("event")).isEmpty();
++    assertThat(records("interval")).isEmpty();
++    assertThat(footer().get("retained_only_node_count").getAsInt()).isEqualTo(1);
++    assertThat(footer().get("observed_node_count").getAsInt()).isEqualTo(0);
++  }
++
++  @Test
++  public void nestedCpuIsExclusiveAndRestartOccurrencesRemainDistinct() {
++    M1TraceCollector collector = collector();
++    collector.stateStarting(key("a"), NodeState.COMPUTE);
++    clock.tick = 20;
++    collector.stateStarting(key("b"), NodeState.COMPUTE);
++    clock.tick = 50;
++    collector.stateEnding(key("b"), NodeState.COMPUTE);
++    clock.tick = 100;
++    collector.stateEnding(key("a"), NodeState.COMPUTE);
++    clock.tick = 110;
++    collector.stateStarting(key("a"), NodeState.COMPUTE);
++    clock.tick = 140;
++    collector.stateEnding(key("a"), NodeState.COMPUTE);
++    collector.finish();
++    assertThat(
++            records("interval").stream()
++                .map(record -> record.get("exclusive_cpu_ns").getAsLong())
++                .toList())
++        .containsExactly(30L, 70L, 30L)
++        .inOrder();
++    assertThat(records("interval").get(2).get("occurrence").getAsInt()).isEqualTo(2);
++    assertThat(collector.isComplete()).isTrue();
++  }
++
++  @Test
++  public void unsupportedChildCpuPropagatesUnknownWithoutInvalidatingValueTrace() {
++    M1TraceCollector collector = collector();
++    collector.stateStarting(key("a"), NodeState.COMPUTE);
++    clock.tick = 10;
++    clock.unavailable = true;
++    collector.stateStarting(key("b"), NodeState.COMPUTE);
++    clock.tick = 20;
++    collector.stateEnding(key("b"), NodeState.COMPUTE);
++    clock.unavailable = false;
++    clock.tick = 30;
++    collector.stateEnding(key("a"), NodeState.COMPUTE);
++    collector.finish();
++    for (JsonObject interval : records("interval")) {
++      assertThat(interval.get("exclusive_cpu_ns").isJsonNull()).isTrue();
++      assertThat(interval.get("status").getAsString()).isEqualTo("unsupported_cpu");
++    }
++    assertThat(collector.isComplete()).isTrue();
++  }
++
++  @Test
++  public void unclosedOrRegressedIntervalsMakeTraceIncomplete() {
++    M1TraceCollector collector = collector();
++    clock.tick = 10;
++    collector.stateStarting(key("a"), NodeState.COMPUTE);
++    clock.tick = 5;
++    collector.stateEnding(key("a"), NodeState.COMPUTE);
++    collector.stateStarting(key("b"), NodeState.COMPUTE);
++    collector.finish();
++    assertThat(collector.isComplete()).isFalse();
++    assertThat(footer().get("unbalanced_intervals").getAsInt()).isEqualTo(2);
++  }
++
++  @Test
++  public void nodeProjectionAndStackLimitsStopRecording() {
++    M1TraceCollector collector =
++        new M1TraceCollector(
++            output,
++            root,
++            () -> graph,
++            header(),
++            new M1TraceCollector.Limits(1, 20, 4096, 1048576, 1024),
++            clock);
++    collector.enqueueing(key("a"));
++    collector.enqueueing(key("b"));
++    collector.finish();
++    assertThat(collector.isComplete()).isFalse();
++    assertThat(footer().getAsJsonArray("limits_exceeded").toString()).contains("max_nodes");
++
++    StringWriter other = new StringWriter();
++    M1TraceCollector projected =
++        new M1TraceCollector(
++            other,
++            root,
++            () -> graph,
++            header(),
++            new M1TraceCollector.Limits(10, 20, 4096, 1048576, 8),
++            clock);
++    projected.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    projected.finish();
++    assertThat(projected.isComplete()).isFalse();
++    assertThat(records(other, "footer").get(0).getAsJsonArray("limits_exceeded").toString())
++        .contains("max_projection_bytes");
++
++    StringWriter stacked = new StringWriter();
++    M1TraceCollector nested =
++        new M1TraceCollector(
++            stacked, root, () -> graph, header(), M1TraceCollector.DEFAULT_LIMITS, clock);
++    for (int i = 0; i <= M1TraceCollector.MAX_STACK_DEPTH; i++) {
++      nested.stateStarting(key("same"), NodeState.COMPUTE);
++    }
++    nested.finish();
++    assertThat(nested.isComplete()).isFalse();
++    assertThat(records(stacked, "footer").get(0).getAsJsonArray("limits_exceeded").toString())
++        .contains("max_stack_depth");
++  }
++
++  @Test
++  public void graphReplacementBeforeObservationIsAllowedButLaterReplacementIsNot() {
++    AtomicReference<InMemoryGraph> current = new AtomicReference<>(graph);
++    M1TraceCollector collector =
++        new M1TraceCollector(
++            output, root, current::get, header(), M1TraceCollector.DEFAULT_LIMITS, clock);
++    current.set(graph(new LinkedHashMap<>()));
++    collector.enqueueing(key("a"));
++    current.set(graph);
++    collector.enqueueing(key("b"));
++    collector.finish();
++    assertThat(collector.isComplete()).isFalse();
++    assertThat(footer().getAsJsonObject("unknown_counts").has("evaluator_graph_replaced")).isTrue();
++    assertThat(records("node")).hasSize(1);
++  }
++
++  @Test
++  public void bzlDigestIsInputEvidenceAndNeverAnExactModuleProjection() {
++    BzlLoadValue value = mock(BzlLoadValue.class);
++    when(value.getTransitiveDigest()).thenReturn(new byte[] {1, 2});
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        BzlLoadValue.keyForBuild(Label.parseCanonicalUnchecked("//:a.bzl")),
++        EvaluationState.SUCCESS_VERSION_CHANGED,
++        value,
++        null,
++        new GroupedDeps());
++    collector.finish();
++    assertThat(records("observation").get(0).get("value_status").getAsString())
++        .isEqualTo("unsupported");
++    assertThat(records("bzl_input").get(0).get("status").getAsString())
++        .isEqualTo("input_evidence_only");
++    assertThat(records("bzl_input").get(0).get("transitive_digest_hex").getAsString())
++        .isEqualTo("0102");
++  }
++
++  @Test
++  public void lateCloseFailureCannotAdvertiseFinalCollectorSuccess() {
++    Writer failing =
++        new Writer() {
++          @Override
++          public void write(char[] chars, int offset, int length) {
++            output.write(chars, offset, length);
++          }
++
++          @Override
++          public void flush() {}
++
++          @Override
++          public void close() throws IOException {
++            throw new IOException("close failed");
++          }
++        };
++    M1TraceCollector collector =
++        new M1TraceCollector(
++            failing, root, () -> graph, header(), M1TraceCollector.DEFAULT_LIMITS, clock);
++    collector.finish();
++    collector.finish();
++    assertThat(collector.isComplete())
++        .isFalse(); // Module must therefore withhold completion receipt.
++  }
++
++  @Test
++  public void writeFailureDoesNotEscapeAndCannotProduceCompleteFooter() {
++    Writer failing =
++        new Writer() {
++          @Override
++          public void write(char[] chars, int offset, int length) throws IOException {
++            throw new IOException("write failed");
++          }
++
++          @Override
++          public void flush() {}
++
++          @Override
++          public void close() {}
++        };
++    M1TraceCollector collector =
++        new M1TraceCollector(
++            failing, root, () -> graph, header(), M1TraceCollector.DEFAULT_LIMITS, clock);
++    collector.enqueueing(key("a"));
++    collector.finish();
++    assertThat(collector.isComplete()).isFalse();
++    assertThat(output.toString()).isEmpty();
++  }
++
++  @Test
++  public void failedEvaluationCannotProduceAnExactValueObservation() {
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        key("a"), EvaluationState.FAIL_VERSION_UNCHANGED, digest(1), null, new GroupedDeps());
++    collector.finish();
++    assertThat(records("observation").get(0).get("value_status").getAsString()).isEqualTo("error");
++    assertThat(records("observation").get(0).get("projection").isJsonNull()).isTrue();
++  }
++
++  @Test
++  public void repeatedVersionsChargeEveryEdgeAndProjectedByte() {
++    GroupedDeps dependency = new GroupedDeps();
++    dependency.appendGroup(List.of(key("child")));
++    M1TraceCollector collector =
++        new M1TraceCollector(
++            output,
++            root,
++            () -> graph,
++            header(),
++            new M1TraceCollector.Limits(10, 1, 4096, 1048576, 1024),
++            clock);
++    collector.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, dependency);
++    collector.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(2), null, dependency);
++    collector.finish();
++    assertThat(collector.isComplete()).isFalse();
++    assertThat(footer().getAsJsonArray("limits_exceeded").toString()).contains("max_edges");
++
++    StringWriter other = new StringWriter();
++    M1TraceCollector projected =
++        new M1TraceCollector(
++            other,
++            root,
++            () -> graph,
++            header(),
++            new M1TraceCollector.Limits(10, 20, 200, 1048576, 1024),
++            clock);
++    projected.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(1), null, new GroupedDeps());
++    projected.evaluated(
++        key("a"), EvaluationState.SUCCESS_VERSION_CHANGED, digest(2), null, new GroupedDeps());
++    projected.finish();
++    assertThat(projected.isComplete()).isFalse();
++    assertThat(records(other, "footer").get(0).getAsJsonArray("limits_exceeded").toString())
++        .contains("max_projected_bytes");
++  }
++
++  @Test
++  public void footerHashAndCountsCoverExactPrecedingBytes() throws Exception {
++    M1TraceCollector collector = collector();
++    collector.enqueueing(key("a"));
++    collector.finish();
++    String text = output.toString();
++    String prefix = text.substring(0, text.lastIndexOf("{\"type\":\"footer\""));
++    String expected =
++        HexFormat.of()
++            .formatHex(
++                MessageDigest.getInstance("SHA-256")
++                    .digest(prefix.getBytes(StandardCharsets.UTF_8)));
++    assertThat(footer().get("preceding_bytes_sha256").getAsString()).isEqualTo(expected);
++    assertThat(footer().getAsJsonObject("record_counts").get("footer").getAsInt()).isEqualTo(0);
++    assertThat(footer().getAsJsonObject("record_counts").get("node").getAsInt()).isEqualTo(1);
++  }
++
++  @Test
++  public void concurrentThreadsKeepIndependentStacks() throws Exception {
++    M1TraceCollector collector = new M1TraceCollector(output, root, () -> graph, header());
++    CountDownLatch started = new CountDownLatch(2);
++    try (var executor = Executors.newFixedThreadPool(2)) {
++      List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
++      for (int i = 0; i < 2; i++) {
++        int index = i;
++        futures.add(
++            executor.submit(
++                () -> {
++                  collector.stateStarting(key("a" + index), NodeState.COMPUTE);
++                  started.countDown();
++                  try {
++                    started.await();
++                  } catch (InterruptedException e) {
++                    Thread.currentThread().interrupt();
++                    throw new AssertionError(e);
++                  }
++                  collector.stateEnding(key("a" + index), NodeState.COMPUTE);
++                }));
++      }
++      for (var future : futures) {
++        future.get();
++      }
++    }
++    collector.finish();
++    assertThat(
++            records("interval").stream()
++                .map(record -> record.get("thread_id").getAsLong())
++                .distinct()
++                .count())
++        .isEqualTo(2);
++    assertThat(footer().get("unbalanced_intervals").getAsInt()).isEqualTo(0);
++  }
++}
+diff --git a/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceModuleTest.java b/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceModuleTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..eaeae1de43fbeeaa9e3174414a07dea6ff0f1017
+--- /dev/null
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceModuleTest.java
+@@ -0,0 +1,239 @@
++// Copyright 2026 The Bazel Authors. All rights reserved.
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
++package com.google.devtools.build.lib.skyframe;
++
++import static com.google.common.truth.Truth.assertThat;
++import static org.junit.Assert.assertThrows;
++import static org.junit.Assume.assumeTrue;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.ArgumentMatchers.isNull;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.never;
++import static org.mockito.Mockito.times;
++import static org.mockito.Mockito.verify;
++import static org.mockito.Mockito.when;
++
++import com.google.devtools.build.lib.events.Reporter;
++import com.google.devtools.build.lib.runtime.CommandEnvironment;
++import com.google.devtools.build.lib.util.OS;
++import com.google.devtools.build.lib.vfs.DigestHashFunction;
++import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
++import com.google.devtools.build.skyframe.EvaluationProgressReceiver;
++import com.google.devtools.build.skyframe.InMemoryGraph;
++import com.google.devtools.build.skyframe.MemoizingEvaluator;
++import com.google.devtools.build.skyframe.SkyKey;
++import com.google.devtools.common.options.OptionsParser;
++import com.google.gson.Gson;
++import com.google.gson.JsonParser;
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.UUID;
++import java.util.concurrent.atomic.AtomicInteger;
++import org.junit.Rule;
++import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
++import org.junit.runner.RunWith;
++import org.junit.runners.JUnit4;
++
++/** Lifecycle and failure isolation, without invoking a build or reading source inputs. */
++@RunWith(JUnit4.class)
++public final class M1TraceModuleTest {
++  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
++
++  private Path path(String name) throws IOException {
++    return temporary.getRoot().toPath().toRealPath().resolve(name);
++  }
++
++  private static Map<String, Object> context(String workspace) {
++    Map<String, Object> header = new LinkedHashMap<>();
++    header.put("engine_id", "engine-0");
++    header.put("cohort_id", "module-fixture");
++    header.put("phase", "fixture");
++    header.put("hosting", "private");
++    header.put("binary_sha256", "a".repeat(64));
++    header.put(
++        "source_identity",
++        Map.of(
++            "base_commit",
++            "b".repeat(40),
++            "patch_sha256",
++            "c".repeat(64),
++            "reconstructed_git_tree",
++            "d".repeat(40)));
++    header.put("semantic_epoch", "module-fixture-v1");
++    header.put("snapshot_id", "e".repeat(64));
++    header.put("command_policy_sha256", "f".repeat(64));
++    header.put(
++        "repository_bindings",
++        Map.of(
++            "main",
++            Map.of(
++                "logical_repository_id",
++                "module-fixture-main",
++                "physical_root",
++                workspace,
++                "filesystem_policy",
++                Map.of("os", "linux", "case_sensitive", true, "digest_algorithm", "SHA-256"),
++                "binding_provenance_sha256",
++                "0".repeat(64))));
++    header.put("bzl_inlining", "unknown");
++    return header;
++  }
++
++  private Path contextFile(String workspace) throws IOException {
++    Path path = path("context.json");
++    Files.writeString(path, new Gson().toJson(context(workspace)));
++    return path;
++  }
++
++  private static OptionsParser options(String... args) throws Exception {
++    OptionsParser parser =
++        OptionsParser.builder().optionsClasses(M1TraceModule.Options.class).build();
++    parser.parse(args);
++    return parser;
++  }
++
++  @Test
++  public void disabledDoesNotAccessWorkspaceOrEvaluator() throws Exception {
++    CommandEnvironment env = mock(CommandEnvironment.class);
++    when(env.getOptions()).thenReturn(options());
++    M1TraceModule module = new M1TraceModule();
++    module.beforeCommand(env);
++    module.afterCommand();
++    verify(env, never()).getWorkspace();
++    verify(env, never()).getSkyframeExecutor();
++  }
++
++  @Test
++  public void outputMustBeAbsoluteAndNeverOverwritesExistingBytes() throws Exception {
++    assertThrows(IOException.class, () -> M1TraceModule.openOutput(Path.of("relative.jsonl")));
++    Path output = path("trace.jsonl");
++    Files.writeString(output, "preserved");
++    assertThrows(IOException.class, () -> M1TraceModule.openOutput(output));
++    assertThat(Files.readString(output)).isEqualTo("preserved");
++  }
++
++  @Test
++  public void contextRejectsDuplicateKeysWrongBindingAndOversize() throws Exception {
++    Path duplicate = path("duplicate.json");
++    Files.writeString(duplicate, "{\"engine_id\":\"a\",\"engine_id\":\"b\"}");
++    assertThrows(IOException.class, () -> M1TraceModule.readContext(duplicate, "/workspace"));
++    Path wrong = contextFile("/other");
++    assertThrows(IOException.class, () -> M1TraceModule.readContext(wrong, "/workspace"));
++    Path oversized = path("large.json");
++    Files.writeString(oversized, " ".repeat(65537));
++    assertThrows(IOException.class, () -> M1TraceModule.readContext(oversized, "/workspace"));
++  }
++
++  @Test
++  public void contextRejectsNestedExtrasAndMalformedDigest() throws Exception {
++    Map<String, Object> header = context("/workspace");
++    header.put(
++        "source_identity",
++        Map.of(
++            "base_commit",
++            "b".repeat(40),
++            "patch_sha256",
++            "c".repeat(64),
++            "reconstructed_git_tree",
++            "d".repeat(40),
++            "unexpected_environment",
++            "must not be emitted"));
++    Path path = path("nested-extra.json");
++    Files.writeString(path, new Gson().toJson(header));
++    assertThrows(IOException.class, () -> M1TraceModule.readContext(path, "/workspace"));
++    header = context("/workspace");
++    header.put("binary_sha256", "not-a-digest");
++    Files.writeString(path, new Gson().toJson(header));
++    assertThrows(IOException.class, () -> M1TraceModule.readContext(path, "/workspace"));
++  }
++
++  @Test
++  public void observerAndFailureReporterExceptionsDoNotEscapeOrRepeat() {
++    AtomicInteger calls = new AtomicInteger();
++    AtomicInteger failures = new AtomicInteger();
++    EvaluationProgressReceiver delegate =
++        new EvaluationProgressReceiver() {
++          @Override
++          public void enqueueing(SkyKey key) {
++            calls.incrementAndGet();
++            throw new IllegalStateException("observer failure");
++          }
++        };
++    var receiver =
++        new M1TraceModule.FailureIsolatingReceiver(
++            delegate,
++            failure -> {
++              failures.incrementAndGet();
++              throw new IllegalStateException("failure reporter failure");
++            });
++    SkyKey key = mock(SkyKey.class);
++    receiver.enqueueing(key);
++    receiver.enqueueing(key);
++    assertThat(calls.get()).isEqualTo(1);
++    assertThat(failures.get()).isEqualTo(1);
++    assertThat(receiver.hasFailed()).isTrue();
++  }
++
++  @Test
++  public void commandsDetachAndUseIndependentTraceIdsAndReceipts() throws Exception {
++    assumeTrue(OS.getCurrent() == OS.LINUX);
++    CommandEnvironment env = mock(CommandEnvironment.class);
++    SkyframeExecutor executor = mock(SkyframeExecutor.class);
++    MemoizingEvaluator evaluator = mock(MemoizingEvaluator.class);
++    InMemoryGraph graph = mock(InMemoryGraph.class);
++    when(env.getWorkspace())
++        .thenReturn(new InMemoryFileSystem(DigestHashFunction.SHA256).getPath("/workspace"));
++    when(env.getReporter()).thenReturn(mock(Reporter.class));
++    when(env.getSkyframeExecutor()).thenReturn(executor);
++    when(executor.getEvaluator()).thenReturn(evaluator);
++    when(evaluator.getInMemoryGraph()).thenReturn(graph);
++    when(graph.getAllNodeEntries()).thenReturn(List.of());
++    when(executor.compareAndSetM1TraceProgressReceiver(isNull(), any())).thenReturn(true);
++    Path context = contextFile("/workspace");
++    M1TraceModule module = new M1TraceModule();
++    String priorTraceId = null;
++    for (int i = 0; i < 2; i++) {
++      Path output = path("trace-" + i + ".jsonl");
++      UUID command = UUID.randomUUID();
++      when(env.getCommandId()).thenReturn(command);
++      when(env.getOptions())
++          .thenReturn(
++              options(
++                  "--experimental_m1_trace=" + output,
++                  "--experimental_m1_trace_context=" + context));
++      module.beforeCommand(env);
++      verify(graph, times(i)).getAllNodeEntries(); // No constructor/disabled graph walk.
++      assertThat(Files.exists(M1TraceModule.completionPath(output))).isFalse();
++      module.afterCommand();
++      module.afterCommand(); // Idempotent and cannot detach another command's observer.
++      var header = JsonParser.parseString(Files.readAllLines(output).get(0)).getAsJsonObject();
++      var receipt =
++          JsonParser.parseString(Files.readString(M1TraceModule.completionPath(output)))
++              .getAsJsonObject();
++      assertThat(header.get("trace_id").getAsString()).isNotEqualTo(priorTraceId);
++      priorTraceId = header.get("trace_id").getAsString();
++      assertThat(receipt.get("command_id").getAsString()).isEqualTo(command.toString());
++      assertThat(receipt.get("context_sha256")).isEqualTo(header.get("context_sha256"));
++      assertThat(receipt.get("completion").getAsBoolean()).isTrue();
++    }
++    verify(executor, times(2)).compareAndSetM1TraceProgressReceiver(any(), isNull());
++  }
++
++  @Test
++  public void completionPublicationNeverOverwritesExistingReceipt() throws Exception {
++    Path output = path("trace.jsonl");
++    Path receipt = M1TraceModule.completionPath(output);
++    Files.writeString(receipt, "preserved");
++    assertThrows(
++        IOException.class,
++        () -> M1TraceModule.writeCompletion(output, UUID.randomUUID().toString(), "a".repeat(64)));
++    assertThat(Files.readString(receipt)).isEqualTo("preserved");
++  }
++}

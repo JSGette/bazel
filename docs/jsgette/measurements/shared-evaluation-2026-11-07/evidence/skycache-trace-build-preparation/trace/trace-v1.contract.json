@@ -1,0 +1,219 @@
+{
+  "format": "m1-typed-trace-v1",
+  "status": "proposed_interop_contract_not_executed",
+  "encoding": "UTF-8 JSONL; one object per line; duplicate JSON keys rejected; integers exact",
+  "all_listed_fields_required": true,
+  "common_fields": {
+    "type": "record type below",
+    "seq": "strictly increasing integer, starts 0"
+  },
+  "record_types": {
+    "header": {
+      "trace_id": "UUID",
+      "command_id": "UUID",
+      "engine_id": "explicit private engine ID",
+      "binary_sha256": "lowerhex64",
+      "source_identity": {
+        "base_commit": "lowerhex40",
+        "patch_sha256": "lowerhex64",
+        "reconstructed_git_tree": "lowerhex40"
+      },
+      "semantic_epoch": "explicit equality-policy ID",
+      "snapshot_id": "input manifest SHA256, NOT part of logical query identity",
+      "command_policy_sha256": "effective option policy",
+      "repository_bindings": {
+        "main": {
+          "logical_repository_id": "nonempty stable repository ID, distinct from snapshot",
+          "physical_root": "actual workspace root string; checked/replaced by module",
+          "filesystem_policy": {
+            "os": "linux",
+            "case_sensitive": true,
+            "digest_algorithm": "declared algorithm name matching actual FS"
+          },
+          "binding_provenance_sha256": "lowerhex64, fixed logical binding attestation"
+        }
+      },
+      "limits": {
+        "max_nodes": 250000,
+        "max_edges": 2000000,
+        "max_projected_bytes": 67108864,
+        "max_total_bytes": 268435456,
+        "max_record_bytes": 1048576,
+        "max_projection_bytes": 65536,
+        "max_pending_bytes": 1048576,
+        "reserved_footer_bytes": 65536,
+        "max_threads": 256,
+        "max_stack_depth": 128,
+        "max_intervals": 1000000,
+        "max_observations": 1000000,
+        "max_records": 1000000
+      },
+      "cpu_capability": {
+        "current_thread_supported": "boolean",
+        "enabled": "boolean",
+        "virtual_thread_supported": false
+      },
+      "bzl_inlining": "enabled | disabled | unknown",
+      "cohort_id": "explicit experiment cohort string",
+      "phase": "restart | warm | fixture",
+      "hosting": "private",
+      "context_status": "declared; provenance is verified by independent launch manifest, not this collector",
+      "capture_window": "module_after_cache_setup_to_after_cache_finalization",
+      "direct_skycache_witness_validation": "unobserved; callbacks do not cover serialized witness validation",
+      "actual_digest_algorithm": "actual filesystem algorithm; must match declared binding policy for replay",
+      "context_sha256": "SHA256 of exact bounded context-file bytes"
+    },
+    "node": {
+      "node_id": "positive integer, unique within trace",
+      "function": "exact SkyFunctionName",
+      "logical_key": "supported main-root tuple [binding_id, relative_path_utf16be_hex] or null",
+      "key_status": "supported | unsupported",
+      "reason": "null if supported, otherwise nonempty reason"
+    },
+    "event": {
+      "node_id": "declared node ID",
+      "event": "dirtied | deleted | enqueueing | change_pruned | evaluated",
+      "evaluation_state": "exact EvaluationState name or null",
+      "new_value_supplied": "boolean or null for non-evaluated",
+      "new_error_supplied": "boolean or null for non-evaluated",
+      "direct_deps_supplied": "boolean or null for non-evaluated",
+      "dirty_type": "exact DirtyType name or null",
+      "observation_id": "observation emitted for supplied/current value, or null"
+    },
+    "observation": {
+      "observation_id": "positive integer, unique within trace; never overwritten",
+      "node_id": "declared node ID",
+      "origin": "evaluated_value | evaluated_current | before_child_drop | retained_done",
+      "value_status": "exact_projection | unsupported | unavailable | error",
+      "projection": "one typed projection below, or null",
+      "reason": "null for exact_projection, otherwise nonempty reason",
+      "deps_status": "grouped | unavailable | edgeless | error",
+      "deps_origin": "evaluated_direct_deps | retained_done | unavailable",
+      "groups": "ordered array of ordered groups; each edge is [node_id, observation_id_or_null]; null unless deps_status=grouped",
+      "dependency_read_contract": "captured_state_only; never an atomic/live validation claim"
+    },
+    "bzl_input": {
+      "node_id": "declared BZL_LOAD node ID",
+      "observation_id": "matching observation ID",
+      "key_variant": "build | builtins | bzlmod | bzlmod_bootstrap | unknown",
+      "label_parts_utf16be_hex": "repository, package, target, each separately encoded",
+      "build_prelude": "boolean or null",
+      "builtins": "boolean or null",
+      "scl_dialect": "boolean or null",
+      "semantics_binding": "explicit provenance or null",
+      "repository_mapping_binding": "explicit provenance or null",
+      "transitive_digest_hex": "copied supplied digest or null",
+      "status": "input_evidence_only",
+      "reason": "unsupported fields or null; this record never authorizes a value hit"
+    },
+    "interval": {
+      "interval_id": "positive integer unique within trace",
+      "parent_interval_id": "same-thread stack parent or null",
+      "node_id": "declared node ID",
+      "thread_id": "collector-local monotonically allocated ID, not recycled JVM thread number",
+      "virtual_thread": "boolean",
+      "state": "CHECK_DIRTY | INITIALIZING_ENVIRONMENT | COMPUTE | COMMIT",
+      "occurrence": "per-node/per-state positive ordinal; COMPUTE ordinal is its attempt number",
+      "wall_start_ns": "monotonic integer",
+      "wall_end_ns": "monotonic integer or null",
+      "cpu_start_ns": "current-thread CPU integer or null",
+      "cpu_end_ns": "current-thread CPU integer or null",
+      "status": "complete | unsupported_cpu | unbalanced",
+      "reason": "null if complete, otherwise explicit reason",
+      "exclusive_cpu_ns": "derived nonnegative integer or null; consumer recomputes against complete direct-child intervals"
+    },
+    "footer": {
+      "record_counts": "count by record type, excludes this footer",
+      "node_count": "integer",
+      "edge_count": "integer; all emitted group entries",
+      "observed_node_count": "nodes with events/intervals; does not assert target demand closure",
+      "retained_only_node_count": "node IDs with retained_done observations, excluding observed IDs",
+      "unknown_counts": "counts by explicit reason",
+      "limits_exceeded": "array of limit names",
+      "unbalanced_intervals": "integer",
+      "writer_error": "null or reason",
+      "preceding_bytes_sha256": "SHA256 of exact prior JSONL bytes including newlines",
+      "complete": "true only on successful close with bounds, IDs, references and interval stacks valid",
+      "dependency_only_node_count": "all declared node IDs minus observed and retained-only nodes"
+    }
+  },
+  "typed_projections": {
+    "regular_digest": {
+      "class": "RegularFileStateValueWithDigest ONLY",
+      "type": "REGULAR_FILE",
+      "size": "nonnegative integer",
+      "digest_algorithm": "filesystem algorithm bound in header",
+      "digest_hex": "exact existing digest; never reread file"
+    },
+    "directory": {
+      "class": "DirectoryFileStateValue",
+      "type": "DIRECTORY"
+    },
+    "nonexistent": {
+      "class": "NonexistentFileStateValue",
+      "type": "NONEXISTENT"
+    },
+    "symlink": {
+      "class": "SymlinkFileStateValue",
+      "type": "SYMLINK",
+      "target_utf16be_hex": "exact unexpanded PathFragment string, no Unicode normalization"
+    },
+    "listing": {
+      "class": "DirectoryListingStateValue",
+      "type": "DIRECTORY_LISTING_STATE",
+      "entries": "array of [name_utf16be_hex, exact Dirent.Type]; lexicographic UTF16 code-unit order; unique names"
+    }
+  },
+  "cross_record_rules": [
+    "Exactly one header first and footer last. Reject missing/invalid footer, malformed/oversized records, duplicate IDs/keys, dangling references and counter regression.",
+    "Only FILE_STATE or DIRECTORY_LISTING_STATE with verified main-root binding and exact concrete projection can enter equivalence groups. Metadata-backed/proxy/special states and all other values remain unknown.",
+    "Exact projection compares full typed fields, including concrete class; digests alone are not projection identity. Hex strings encode exact Java UTF16 code units, including unpaired surrogates, without normalization.",
+    "deps_status=grouped with groups=[] is known empty. Null callback dependencies are unavailable until an explicit retained/pre-drop capture; never silently substitute an empty group list.",
+    "Dependency node references may be declared later but must resolve before footer. Null edge observation means unknown captured dependency. Versions remain distinct even for one node.",
+    "An interval end must match the same-thread stack top. Unsupported CPU propagates to ancestor exclusive-CPU uncertainty; do not subtract a zero child. Sum exclusive costs only.",
+    "Retained-only records earn no avoided command CPU. Evaluated/queued events do not establish a complete target demand closure. BZL_LOAD input evidence earns no value-equivalence hit.",
+    "Replay compares semantic epoch, verified logical repository identity and filesystem policy, not differing physical worktree roots. Snapshot identity stays separate. Retain multiple complete variants per logical key; a later match must compare grouped captured dependency evidence.",
+    "Replay table validation is an offline model. Neither dependencies sampled after computation nor a completed trace prove an atomic filesystem snapshot or live cache admission.",
+    "Overflow/write failure changes trace eligibility, not build semantics. A graph export or before-drop lookup must not read the filesystem, force evaluation or retain SkyValue/module objects in writer queues."
+  ],
+  "context_file_fields": [
+    "engine_id",
+    "cohort_id",
+    "phase",
+    "hosting",
+    "binary_sha256",
+    "source_identity",
+    "semantic_epoch",
+    "snapshot_id",
+    "command_policy_sha256",
+    "repository_bindings",
+    "bzl_inlining"
+  ],
+  "module_added_fields": [
+    "trace_id",
+    "command_id",
+    "context_status",
+    "capture_window",
+    "direct_skycache_witness_validation"
+  ],
+  "collector_added_fields": [
+    "format",
+    "type",
+    "seq",
+    "limits",
+    "cpu_capability"
+  ],
+  "completion_receipt": {
+    "path": "TRACE.completion.json; required independently of complete footer",
+    "max_bytes": 4096,
+    "fields": {
+      "schema_version": 1,
+      "command_id": "equals header command_id",
+      "context_sha256": "equals header context_sha256",
+      "trace_path": "original absolute trace path",
+      "completion": true
+    },
+    "publication": "after finish, writer close and collector isComplete; pending receipt closed before no-overwrite publication",
+    "attestation": "replay requires independent trace+context+receipt SHA256 bindings"
+  }
+}
