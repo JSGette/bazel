@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scope": {
+    "unit": "shared-eval-guard-m1-trace-format-01-ffdf1347af174a93809faf9d1d8985cb.scope",
+    "description": "shared-evaluation-owned:ffdf1347af174a93809faf9d1d8985cb",
+    "invocation_id": null
+  },
+  "distribution": "Ubuntu",
+  "memory_max_mib": 10240,
+  "cpu_quota_percent": 600,
+  "minimum_free_physical_bytes": 3221225472,
+  "minimum_free_commit_bytes": 4294967296,
+  "sample_interval_ms": 500,
+  "timeout_seconds": 720,
+  "startup_gate_timeout_seconds": 15,
+  "command_file": "C:\\Users\\jgett\\Documents\\Codex\\2026-11-07\\i-ha\\work\\bazel\\docs\\jsgette\\measurements\\shared-evaluation-2026-11-07\\evidence\\auxiliary\\m1-trace-format-01\\command.json",
+  "command_sha256": "b221174ca4987ce3da5ca2f50440bec5f4a28a6883d883575e943fda03fafa3a",
+  "executable": "C:\\WINDOWS\\system32\\wsl.exe",
+  "argv": [
+    "-d",
+    "Ubuntu",
+    "--exec",
+    "systemd-run",
+    "--user",
+    "--scope",
+    "--unit=shared-eval-guard-m1-trace-format-01-ffdf1347af174a93809faf9d1d8985cb.scope",
+    "--description=shared-evaluation-owned:ffdf1347af174a93809faf9d1d8985cb",
+    "--property=CPUAccounting=yes",
+    "--property=MemoryAccounting=yes",
+    "--property=CPUQuota=600%",
+    "--property=MemoryMax=10240M",
+    "--property=MemorySwapMax=0",
+    "--",
+    "python3",
+    "-c",
+    "import os, socket, sys\ngate = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)\ngate.bind('\\0' + sys.argv[1])\ngate.listen(1)\ngate.settimeout(15)\ntry:\n    connection, _ = gate.accept()\n    connection.settimeout(2)\n    token = connection.recv(256).decode()\n    connection.close()\n    if token != sys.argv[1]:\n        sys.exit(75)\nfinally:\n    gate.close()\nos.execvp(sys.argv[2], sys.argv[2:])",
+    "shared-eval-guard-m1-trace-format-01-ffdf1347af174a93809faf9d1d8985cb.scope",
+    "python3",
+    "-B",
+    "/mnt/c/Users/jgett/Documents/Codex/2026-11-07/i-ha/work/format_skycache_trace.py"
+  ]
+}
