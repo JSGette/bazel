@@ -17,7 +17,7 @@ import tarfile
 import time
 
 RUNTIME = Path('/mnt/shared-evaluation-20261107')
-ROOT = RUNTIME / 'm1-native-build'
+ROOT = RUNTIME / 'm1-native-build-v2'
 COMMIT = '4862608d940b49293c68c014e413ecc9dc98aa8e'
 TREE = 'a28c113856ec48838041bba3b9591ab9ea67e4ac'
 EMBEDDED_JDK = 'ccbc15c4edbedfdcc03c2d29a2aa2c6daf9e6ffb4cda7dd5ece0fcbb37350267'
@@ -188,7 +188,7 @@ def commands(root):
                     '--sandbox_writable_path=' + str(root / 'test-install'),
                     '--test_env=EXTRA_BAZELRC=' + extra_rc]
     return {
-        'version': startup + ['--version'],
+        'version': startup + ['version', '--gnu_format'],
         'build': startup + ['build', '//src:bazel-dev'] + options +
                  ['--build_event_json_file=' + str(root / 'build.bep.jsonl')],
         'tests': startup + ['test'] + TESTS + options + test_options +

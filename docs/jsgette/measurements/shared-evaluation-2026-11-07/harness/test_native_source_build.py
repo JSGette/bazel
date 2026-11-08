@@ -13,6 +13,11 @@ import native_source_build as build
 
 
 class BuildLauncherTests(unittest.TestCase):
+    def test_version_uses_command_after_startup_options(self):
+        version = build.commands(Path('/task/new-build'))['version']
+        self.assertEqual(version[-2:], ['version', '--gnu_format'])
+        self.assertNotIn('--version', version)
+
     def test_explicit_object_database_ignores_broken_worktree_pointer(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
