@@ -25,7 +25,7 @@ Continue automatically across passing milestones. A failed gate permits one time
 | Milestone | State | Gate outcome |
 | --- | --- | --- |
 | M0: baseline and duplicated cost | Complete | Continue on repeated retained state; partial CPU-breakdown deviation recorded |
-| M1: dependency-trace replay | In progress | Not decided; native-hosting preliminary probe first |
+| M1: dependency-trace replay | In progress | N2 hosting probe complete; bounded cap-ten probe authorized by D026; trace ceiling still required before a graph rewrite |
 | M2: immutable snapshots and query inputs | Not started | Not decided |
 | M3: real end-to-end evaluation slice | Not started | Not decided |
 | M4: ten concurrent worktrees | Not started | Not decided |

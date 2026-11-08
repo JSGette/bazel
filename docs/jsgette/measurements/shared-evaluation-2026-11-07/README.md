@@ -5,7 +5,7 @@ This directory records implementation and evidence for the [gated plan](../../pl
 ## Current state
 
 - **M0 complete — continue to bounded M1 on repeated retained state.** The v7b matrix completed all 29 checked/archived rows and both N1 diagnostic sessions passed. CPU attribution remains partial under D016; no later economic or semantic-sharing gate has passed.
-- **M1 in progress:** build/qualify the same-binary private/native N2 comparison at the existing two-engine cap. Native hosting is a preliminary alternative, not proof of shared graphs. M2–M6 remain not started.
+- **M1 in progress:** source/focused-test qualification and all 21 cap-two acceptance checks passed. The [N2 comparison](native-n2-diagnostics.md) found about 19.4% lower restarted-build CPU and 11.1% lower sampled daemon PSS in one native/private pair; full recorded lifecycle CPU fell only about 3.9%. D026 authorizes a bounded cap-ten scaling probe. This is a preliminary hosting result, not a shared-graph or economic gate pass. M2–M6 remain not started.
 - The v6 root-disk failure and v7 host-memory abort remain preserved infrastructure attempts, excluded from v7b performance comparisons. No more M0 runs or N2 transfer probe are required for the current decision.
 - Branch: `jsgette/shared-evaluation-gates-20261107`.
 - Starting revision: `c54d33d5b40c5711f3841f50ea1c2f950c959450`.
