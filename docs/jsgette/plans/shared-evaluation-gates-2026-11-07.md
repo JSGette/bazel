@@ -25,7 +25,7 @@ Continue automatically across passing milestones. A failed gate permits one time
 | Milestone | State | Gate outcome |
 | --- | --- | --- |
 | M0: baseline and duplicated cost | Complete | Continue on repeated retained state; partial CPU-breakdown deviation recorded |
-| M1: dependency-trace replay | In progress | N2 hosting probe complete; cap-ten source/focused tests passed, native acceptance next under D026; trace ceiling still required before a graph rewrite |
+| M1: dependency-trace replay | In progress | N2 hosting probe complete; cap-ten qualification and 21 acceptance checks passed, N10 diagnostic next under D026; trace ceiling still required before a graph rewrite |
 | M2: immutable snapshots and query inputs | Not started | Not decided |
 | M3: real end-to-end evaluation slice | Not started | Not decided |
 | M4: ten concurrent worktrees | Not started | Not decided |
@@ -50,7 +50,7 @@ Measure analysis, validation, graph restoration, action execution, memory, CPU, 
 
 **Preliminary native-hosting probe:** build and pin one fork binary with the existing two-engine cap, qualify functionality, then compare private and native N2 runs with matched effective policies, independent references and complete accounting. Native mode retains private graphs and changes other services; its result is a bundle comparison, **not a semantic-sharing pass**. Consider a ten-engine cap only after N2 correctness and measured usefulness justify the bounded extension, with admission and ownership checks. This cheaper preliminary route does not replace the trace savings ceiling required before a graph rewrite or change isolated SkyCache as the later comparator.
 
-**Preliminary status (2026-11-08):** the cap-two acceptance and N2 diagnostic pair passed. The bounded cap-ten binary has now passed source build and all four focused test targets; [qualification evidence](../measurements/shared-evaluation-2026-11-07/evidence/auxiliary/native-cap10-build-01/report.json) binds its declared source patches and candidate hash. Full cap-ten acceptance is the next prerequisite before the three-arm N10 diagnostic. This does not pass M1.
+**Preliminary status (2026-11-08):** the cap-two acceptance and N2 diagnostic pair passed. The bounded cap-ten binary has now passed source build and all four focused test targets; [qualification evidence](../measurements/shared-evaluation-2026-11-07/evidence/auxiliary/native-cap10-build-01/report.json) binds its declared source patches and candidate hash. All [21 cap-ten acceptance checks](../measurements/shared-evaluation-2026-11-07/evidence/auxiliary/native-acceptance-cap10-01/results.json) also passed, including all-engine progress, output isolation, retained slots and daemon cleanup. The three-arm N10 diagnostic is next. This does not pass M1.
 
 Instrument the selected target to record logical queries, dependency observations, value sizes, and computation/validation costs. Build an offline replay tool that groups equivalent results across snapshots and models retained variants.
 
