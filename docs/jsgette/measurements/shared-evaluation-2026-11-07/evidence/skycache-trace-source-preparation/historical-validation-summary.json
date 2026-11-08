@@ -1,0 +1,680 @@
+{
+  "schema_version": 2,
+  "generated_utc": "2026-10-29T21:18:23.156785+00:00",
+  "purpose": "Safe analysis-subset correctness and validation manifest; not a benchmark result.",
+  "repository": "/home/jgett/skycache-20261029/bazel",
+  "repository_head": "a23ae68903f03f08ce83dcf1be85cdff54bb1eeb",
+  "binary": {
+    "path": "/home/jgett/skycache-20261029/bin/bazel-skycache-safe-subset",
+    "sha256": "11547ce20ac9edcaa14c48206ac14618012d898ef24d4bbf6e0ac229b44b1e25",
+    "hash_evidence": [
+      "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation-fixed.result.json"
+    ],
+    "build_target": "//src:bazel-dev",
+    "completed_build_exit_code": 0
+  },
+  "source_changes": {
+    "safe_subset_files": [
+      "src/main/java/com/google/devtools/build/lib/analysis/configuredtargets/RuleConfiguredTarget.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCachingServicesSupplier.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializer.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SkycacheUploadClient.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValues.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializerTest.java",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValuesTest.java",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD",
+      "docs/jsgette/measurements/skycache-audit-2026-10-29/IMPLEMENTATION.md"
+    ],
+    "summary": [
+      "Add analysis admission predicate to ServicesSupplier/Deps/SkycacheUploadClient before asynchronous registration and all dependency/root serialization.",
+      "Inspect raw rule/aspect provider maps, alias actual targets, merged bases and exposed aspect providers using the unchanged strict StarlarkInfo field guard; do not traverse opaque native graphs reflectively.",
+      "Skip visible nonportable roots individually while leaving every Skyframe dependency available to admitted parents.",
+      "Preserve global failure handling for unexpected admission inspection failures, codec failures and write failures; propagate cancellation and Errors.",
+      "Count successful nonduplicate versioned analysis/configured-target root writes only after put success, await counter completion, and expose per-command eligibility JSON.",
+      "Add focused provider/admission/failure regression tests and document the safe-subset limits.",
+      "Explicitly inspect final ToolchainInfo carrier fields via its complete public immutable-map accessors; recurse known containers under the existing bounds. Keep scalar carriers eligible and route unexpected accessor errors through global failure handling."
+    ],
+    "all_current_repository_changes": [
+      {
+        "status": " A",
+        "path": "docs/jsgette/measurements/skycache-audit-2026-10-29/IMPLEMENTATION.md"
+      },
+      {
+        "status": " A",
+        "path": "docs/jsgette/plans/skycache-tiered-basic-2026-10-29.md"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/analysis/configuredtargets/RuleConfiguredTarget.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetriever.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheClient.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCacheDeps.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/RemoteAnalysisCachingServicesSupplier.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializer.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SkycacheUploadClient.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisCacheClient.java"
+      },
+      {
+        "status": " A",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValues.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollector.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSession.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValues.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshot.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheModule.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalSkycacheOptions.java"
+      },
+      {
+        "status": " A",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalStarlarkInfoCodec.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStore.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCache.java"
+      },
+      {
+        "status": " M",
+        "path": "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/SegmentedFingerprintValueStore.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/SkyValueRetrieverTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/BUILD"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializerTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD"
+      },
+      {
+        "status": " A",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValuesTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheGarbageCollectorTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValuesTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalInputSnapshotTest.java"
+      },
+      {
+        "status": " A",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalStarlarkInfoCodecTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/PackedFingerprintValueStoreTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/RemoteSkyCacheTest.java"
+      },
+      {
+        "status": " M",
+        "path": "src/tools/remote/src/main/java/com/google/devtools/build/remote/worker/SkyCacheCatalogStore.java"
+      },
+      {
+        "status": " M",
+        "path": "src/tools/remote/src/test/java/com/google/devtools/build/remote/worker/SkyCacheCatalogStoreTest.java"
+      }
+    ],
+    "all_changes_scope": "Includes the applied tiered patch and earlier audit hardening; safe_subset_files identifies this incremental change.",
+    "toolchain_carrier_files": [
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValues.java",
+      "src/main/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValuesTest.java",
+      "src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/BUILD",
+      "docs/jsgette/measurements/skycache-audit-2026-10-29/IMPLEMENTATION.md"
+    ]
+  },
+  "correctness_invariants": [
+    "LocalStarlarkInfoCodec guard runs before serialization and after complete deserialization; pre-admission does not weaken it.",
+    "No serialization task, dependency write, root write, or upload event starts for a deliberately excluded root.",
+    "An admitted safe parent retains file/BUILD dependency evidence for excluded children; mutated inputs invalidate it.",
+    "Shared unsafe providers exclude all visible affected roots, while independent scalar roots remain eligible.",
+    "Hidden unsupported providers still discard the whole optional publication at codec enforcement.",
+    "Local execution-value publication and retrieval remain disabled, including portable remote output metadata; legacy execution envelopes are rejected.",
+    "Successful root-write counters must be combined with published=true and failed=false; counts alone are not a publication receipt.",
+    "Known ToolchainInfo carriers cannot hide unsafe StarlarkInfo in proto/actions or nested list/map/toolchain fields; arbitrary native reflection and depset expansion remain absent."
+  ],
+  "unit_validation": {
+    "passed_suites": 7,
+    "total_tests": 164,
+    "suites": [
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalAnalysisValuesTest",
+        "passed": true,
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValuesTest/test.xml",
+        "regression_cases": [
+          "toolchainCarrierExposesUnsafeProtoAndActionsBeforeSerialization",
+          "nestedToolchainCarriersAndContainersCannotHideUnsafeProvider",
+          "unexpectedToolchainAccessorFailureIsNotClassifiedAsNonportable"
+        ]
+      },
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalStarlarkInfoCodecTest",
+        "passed": true,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalStarlarkInfoCodecTest/test.xml",
+        "regression_cases": []
+      },
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalExecutionValuesTest",
+        "passed": true,
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValuesTest/test.xml",
+        "regression_cases": []
+      },
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest",
+        "passed": true,
+        "tests": 35,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest/test.xml",
+        "regression_cases": []
+      },
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest",
+        "passed": true,
+        "tests": 77,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest/test.xml",
+        "regression_cases": []
+      },
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:AnalysisCacheInvalidatorTest",
+        "passed": true,
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/AnalysisCacheInvalidatorTest/test.xml",
+        "regression_cases": []
+      },
+      {
+        "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:SelectedEntrySerializerTest",
+        "passed": true,
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "bep_status": "PASSED",
+        "evidence_run": "safe-subset-toolchain-validation-fixed",
+        "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializerTest/test.xml",
+        "regression_cases": [
+          "asyncAdmission_inspectionFailureUsesGlobalPolicyWithoutStartingSerialization",
+          "asyncAdmission_excludedRootsScheduleNothingAndIndependentSafeRootPublishes",
+          "asyncAdmission_excludedChildStillContributesParentDependencyEvidence",
+          "asyncAdmission_unexpectedSerializationFailureStillUsesGlobalFailurePolicy",
+          "asyncAdmission_genericWriteFailureStillUsesGlobalFailurePolicy"
+        ]
+      }
+    ],
+    "successful_run": {
+      "label": "safe-subset-toolchain-validation-fixed",
+      "result": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation-fixed.result.json",
+      "log": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation-fixed.log",
+      "bep": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation-fixed.bep.json",
+      "profile": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation-fixed.profile.gz",
+      "exit_code": 0,
+      "transport": "disk cache only; remote cache and BES disabled in the recorded command",
+      "command": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation-fixed.command.json",
+      "wrapper_exit_code": 1,
+      "wrapper_failure": "Bazel completed successfully; copying over existing mode-0555 binary raised PermissionError.",
+      "binary_install_recovery": "Installed completed artifact by copying to a new file and atomically replacing the destination; no build rerun.",
+      "wrapper_elapsed_seconds": null,
+      "wrapper_elapsed_note": "Wrapper did not persist elapsed before install exception; do not infer CLI elapsed.",
+      "bep_wall_seconds": 452.274
+    }
+  },
+  "semantic_integration": {
+    "results": "/home/jgett/skycache-20261029/warm-subset-semantics/preadmission-v1/results.json",
+    "passed": true,
+    "build_count": 7,
+    "method": "Seven sequential builds in one fixture workspace, fresh batch JVM and output base per role. Ordinary remote/disk action caches disabled. Unchanged, source-edited, and BUILD-edited readers compared with fresh vanilla oracles.",
+    "fixture_commit": "3df29640cf9d8e80c2ef4374f260f3b680573c6e",
+    "script_sha256": "2f73943d683218b0d035a7e6e11cf5569e242f3d17ac92f8aef6bd16f44b1c85",
+    "roles": [
+      {
+        "role": "producer",
+        "exit_code": 0,
+        "configured_target_hits": 0,
+        "shared_reads": 0,
+        "published": true,
+        "publication_failed": false,
+        "eligibility": {
+          "schema_version": 1,
+          "analysis_admitted_roots": 7,
+          "analysis_skipped_roots": 4,
+          "analysis_root_writes": 7,
+          "configured_target_root_writes": 7,
+          "exclusion_reason": "nonportable_starlark_provider"
+        },
+        "safe_parent_uploaded": true,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v1\nleaf-source-v1\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "79e77038e05e208ae2dd0456b16f70e897fd2cb4b67c63ad2f153285f9b972b0",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      },
+      {
+        "role": "unchanged-reader",
+        "exit_code": 0,
+        "configured_target_hits": 7,
+        "shared_reads": 238,
+        "published": false,
+        "publication_failed": false,
+        "eligibility": {
+          "schema_version": 1,
+          "analysis_admitted_roots": 0,
+          "analysis_skipped_roots": 4,
+          "analysis_root_writes": 0,
+          "configured_target_root_writes": 0,
+          "exclusion_reason": "nonportable_starlark_provider"
+        },
+        "safe_parent_uploaded": false,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v1\nleaf-source-v1\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "79e77038e05e208ae2dd0456b16f70e897fd2cb4b67c63ad2f153285f9b972b0",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      },
+      {
+        "role": "unchanged-oracle",
+        "exit_code": 0,
+        "configured_target_hits": 0,
+        "shared_reads": 0,
+        "published": null,
+        "publication_failed": null,
+        "eligibility": {},
+        "safe_parent_uploaded": false,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v1\nleaf-source-v1\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "79e77038e05e208ae2dd0456b16f70e897fd2cb4b67c63ad2f153285f9b972b0",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      },
+      {
+        "role": "source-edit-reader",
+        "exit_code": 0,
+        "configured_target_hits": 4,
+        "shared_reads": 228,
+        "published": true,
+        "publication_failed": false,
+        "eligibility": {
+          "schema_version": 1,
+          "analysis_admitted_roots": 3,
+          "analysis_skipped_roots": 4,
+          "analysis_root_writes": 3,
+          "configured_target_root_writes": 3,
+          "exclusion_reason": "nonportable_starlark_provider"
+        },
+        "safe_parent_uploaded": true,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v1\nleaf-source-v2\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "944afc18fd95acd6a291451d0d60cca6799d4958ad3fa545a11e05e002d30fb5",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      },
+      {
+        "role": "source-edit-oracle",
+        "exit_code": 0,
+        "configured_target_hits": 0,
+        "shared_reads": 0,
+        "published": null,
+        "publication_failed": null,
+        "eligibility": {},
+        "safe_parent_uploaded": false,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v1\nleaf-source-v2\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "944afc18fd95acd6a291451d0d60cca6799d4958ad3fa545a11e05e002d30fb5",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      },
+      {
+        "role": "build-edit-reader",
+        "exit_code": 0,
+        "configured_target_hits": 4,
+        "shared_reads": 248,
+        "published": true,
+        "publication_failed": false,
+        "eligibility": {
+          "schema_version": 1,
+          "analysis_admitted_roots": 3,
+          "analysis_skipped_roots": 4,
+          "analysis_root_writes": 3,
+          "configured_target_root_writes": 3,
+          "exclusion_reason": "nonportable_starlark_provider"
+        },
+        "safe_parent_uploaded": true,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v2\nleaf-source-v2\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "2081ef7dd63cafacc5e2bf9c49edc961ab90e8f38ace1cc630b631e23f6d097d",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      },
+      {
+        "role": "build-edit-oracle",
+        "exit_code": 0,
+        "configured_target_hits": 0,
+        "shared_reads": 0,
+        "published": null,
+        "publication_failed": null,
+        "eligibility": {},
+        "safe_parent_uploaded": false,
+        "excluded_rule_root_uploaded": false,
+        "diamond_leaf_count": 3,
+        "primitive_output": "primitive=token-v2\nleaf-source-v2\n",
+        "output_sha256": {
+          "diamond": "341ae0d4acc39618f3660570805b98783603852caa877a7480d2658b88ef46a9",
+          "primitive": "2081ef7dd63cafacc5e2bf9c49edc961ab90e8f38ace1cc630b631e23f6d097d",
+          "independent": "0c8ced69b0c28eb76d2807bb44cdb85a5682a8c0ba7d5358b0a05b8b0f3138a9"
+        }
+      }
+    ],
+    "oracle_comparisons": [
+      {
+        "reader": "unchanged-reader",
+        "oracle": "unchanged-oracle",
+        "equal_outputs": {
+          "diamond": true,
+          "primitive": true,
+          "independent": true
+        }
+      },
+      {
+        "reader": "source-edit-reader",
+        "oracle": "source-edit-oracle",
+        "equal_outputs": {
+          "diamond": true,
+          "primitive": true,
+          "independent": true
+        }
+      },
+      {
+        "reader": "build-edit-reader",
+        "oracle": "build-edit-oracle",
+        "equal_outputs": {
+          "diamond": true,
+          "primitive": true,
+          "independent": true
+        }
+      }
+    ],
+    "restore_scope": "Configured-target hit count is aggregate, not a per-label hit assertion.",
+    "interpretation": "Correctness evidence only. Aggregate CONFIGURED_TARGET hits prove actual restoration but do not identify the exact restored label.",
+    "validation_version": "preadmission-v1",
+    "binary_sha256": "c6b9c15676b488be91b8912e929e577d7a901015ffa78d18dd49fbee1a046353",
+    "applicability": "Passed on the explicitly identified preadmission-v1 binary. This seven-build fixture has not been claimed as rerun on toolchain-carrier-v2."
+  },
+  "limitations": [
+    "Conservative exclusion, not persistent provider-origin identity.",
+    "Opaque native graphs may still cause whole-publication rejection.",
+    "Execution-value restoration remains disabled.",
+    "These tests and the small semantic fixture do not establish a Datadog performance improvement.",
+    "The current user-selected benchmark is disk-only and is recorded separately."
+  ],
+  "validation_version": "toolchain-carrier-v2",
+  "validation_history": {
+    "preadmission_v1": {
+      "manifest": "/mnt/c/Users/jgett/Documents/Codex/2026-10-29/loa/work/safe-subset-validation-v1-summary.json",
+      "manifest_sha256": "182f0334407c0d271ebe6701a1019abcce1c9b8537e6dd3c052a2e1371a7179e",
+      "binary_sha256": "c6b9c15676b488be91b8912e929e577d7a901015ffa78d18dd49fbee1a046353",
+      "unit_validation": {
+        "passed_suites": 7,
+        "total_tests": 161,
+        "suites": [
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalAnalysisValuesTest",
+            "passed": true,
+            "tests": 6,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-validation",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalAnalysisValuesTest/test.xml",
+            "regression_cases": []
+          },
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalStarlarkInfoCodecTest",
+            "passed": true,
+            "tests": 4,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-validation",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalStarlarkInfoCodecTest/test.xml",
+            "regression_cases": []
+          },
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalExecutionValuesTest",
+            "passed": true,
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-validation",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalExecutionValuesTest/test.xml",
+            "regression_cases": []
+          },
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest",
+            "passed": true,
+            "tests": 35,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-validation",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalDependencyValidatorTest/test.xml",
+            "regression_cases": []
+          },
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest",
+            "passed": true,
+            "tests": 77,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-validation",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/local/LocalCacheSessionTest/test.xml",
+            "regression_cases": []
+          },
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:AnalysisCacheInvalidatorTest",
+            "passed": true,
+            "tests": 21,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-validation",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/AnalysisCacheInvalidatorTest/test.xml",
+            "regression_cases": []
+          },
+          {
+            "target": "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:SelectedEntrySerializerTest",
+            "passed": true,
+            "tests": 13,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "bep_status": "PASSED",
+            "evidence_run": "safe-subset-fixture-fixed",
+            "xml": "/home/jgett/skycache-20261029/patched-build-output/execroot/_main/bazel-out/k8-fastbuild/testlogs/src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis/SelectedEntrySerializerTest/test.xml",
+            "regression_cases": [
+              "asyncAdmission_inspectionFailureUsesGlobalPolicyWithoutStartingSerialization",
+              "asyncAdmission_excludedRootsScheduleNothingAndIndependentSafeRootPublishes",
+              "asyncAdmission_excludedChildStillContributesParentDependencyEvidence",
+              "asyncAdmission_unexpectedSerializationFailureStillUsesGlobalFailurePolicy",
+              "asyncAdmission_genericWriteFailureStillUsesGlobalFailurePolicy"
+            ]
+          }
+        ],
+        "first_run": {
+          "result": "/home/jgett/skycache-20261029/setup/safe-subset-validation.result.json",
+          "log": "/home/jgett/skycache-20261029/setup/safe-subset-validation.log",
+          "bep": "/home/jgett/skycache-20261029/setup/safe-subset-validation.bep.json",
+          "wrapper_exit_code": 143,
+          "suite_results": {
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:SelectedEntrySerializerTest": "FAILED",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:AnalysisCacheInvalidatorTest": "PASSED",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalStarlarkInfoCodecTest": "PASSED",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalAnalysisValuesTest": "PASSED",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalDependencyValidatorTest": "PASSED",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalExecutionValuesTest": "PASSED",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/local:LocalCacheSessionTest": "PASSED"
+          },
+          "caveat": "Six suites passed and SelectedEntrySerializerTest had three invalid dependency-evidence fixtures. After those test results and successful binary compilation, the wrapper was interrupted during remote upload (exit 143); the log reports remote server No space left on device. This was not an overall successful first validation invocation."
+        },
+        "fixture_fix_retry": {
+          "result": "/home/jgett/skycache-20261029/setup/safe-subset-fixture-fixed.result.json",
+          "log": "/home/jgett/skycache-20261029/setup/safe-subset-fixture-fixed.log",
+          "bep": "/home/jgett/skycache-20261029/setup/safe-subset-fixture-fixed.bep.json",
+          "exit_code": 0,
+          "targets": [
+            "//src:bazel-dev",
+            "//src/test/java/com/google/devtools/build/lib/skyframe/serialization/analysis:SelectedEntrySerializerTest"
+          ],
+          "fix": "Supply source and BUILD dependencies so test analysis roots receive NodeInvalidationDataInfo. Production node-evidence requirements were unchanged.",
+          "selected_entry_serializer_tests_passed": 13
+        }
+      }
+    },
+    "toolchain_v2_option_parse_attempt": {
+      "result": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation.result.json",
+      "log": "/home/jgett/skycache-20261029/setup/safe-subset-toolchain-validation.log",
+      "exit_code": 2,
+      "tests_executed": false,
+      "reason": "Bootstrap Bazel rejected --disk_cache_gc_max_size=20G; corrected to --experimental_disk_cache_gc_max_size=20G before validation."
+    },
+    "toolchain_carrier_reproducer": {
+      "log": "/home/jgett/skycache-20261029/disk-cache-state-matrix/results/skycache-on.initial.log",
+      "binary_version": "preadmission-v1",
+      "published": false,
+      "failed": true,
+      "admitted_analysis_roots": 64001,
+      "skipped_analysis_roots": 9885,
+      "successful_root_writes_before_discard": 44289,
+      "observed_errors": "Three write errors at ToolchainInfo proto (twice) and actions fields; whole publication discarded by the unchanged codec guard.",
+      "interpretation": "Diagnosed predecessor behavior; not a result for the new binary."
+    }
+  }
+}
