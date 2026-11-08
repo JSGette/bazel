@@ -85,6 +85,8 @@ function test_shared_ordered_jvm_options() {
 
 function test_shared_installation_mismatch() {
   local pid
+  # Keep the original daemon alive while the alternate installation is extracted.
+  shared_args=(--max_idle_secs=300)
   pid=$(shared_bazel info server_pid 2>"$TEST_log") || fail "Startup failed"
   expect_shared_rejection --install_base="$TEST_TMPDIR/other-install" info server_pid
   expect_log 'binary is incompatible'
