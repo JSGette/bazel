@@ -1,6 +1,6 @@
 # M1 probe design: test the existing native mode before shared evaluation
 
-Status: design only; M0 has not passed. Implementation remains gated on the baseline results.
+Status: M0 passed its repeated-state continuation gate under [D019](decision-log.md); M1 is in progress. The experiments below remain a design, with execution and results recorded separately.
 The unmeasured hypothesis is that much of restarted-cohort CPU comes from JVM startup, class loading and JIT compilation. One JVM hosting private engines might meet the gates without sharing their graphs. Measure the existing native mode as a cheaper alternative first; do not infer its benefit from current timings. The [source preflight](m1-native-preflight.md) establishes that native mode also changes modules, interner policy, metrics and action coalescing. This is a comparison of that combined implementation with private daemons, not an isolated measurement of JVM hosting.
 
 ## 1. Comparator and bounded admission experiment
@@ -22,7 +22,7 @@ cd "$WORKTREE"
 
 `B`, `R`, `WORKTREE`, `REPO_CACHE` and `BEP` are explicit task-owned or pinned paths supplied by the runner. Reuse those startup arguments with `info server_pid` and `info output_base`: require one PID and two distinct output bases. Keep normalized launcher environment identical; do not persist raw environment values. Native startup restrictions are in `src/main/cpp/startup_options.cc:798`; usage is in `tools/multiworktree/NATIVE.md`.
 
-After two-engine correctness succeeds, make a deliberately experimental cap-ten patch: replace the admission literal with one named limit of ten in `CommandServer.java`, update its diagnostic and `BlazeServerStartupOptions.java:151` help, and parameterize the acceptance harness's expected admission boundary (`tools/multiworktree/native_integration_test.py:214`). Keep the ownership, failed-slot accounting, shutdown and command restrictions unchanged. This is not a new eviction or scheduling design.
+Only after N2 correctness and measured usefulness justify the bounded extension, consider a deliberately experimental cap-ten patch: replace the admission literal with one named limit of ten in `CommandServer.java`, update its diagnostic and `BlazeServerStartupOptions.java:151` help, and parameterize the acceptance harness's expected admission boundary (`tools/multiworktree/native_integration_test.py:214`). Keep the ownership, failed-slot accounting, shutdown and command restrictions unchanged. This is not a new eviction or scheduling design.
 
 Use private `N × -Xmx768m` versus native `-Xmx(N*768)m`: 1536 MiB at N=2, 7680 MiB at N=10. Maximum aggregate heap is matched, not assumed resident memory. Keep `ActiveProcessorCount=2` per JVM, and record that JVM-wide JIT/GC pools therefore differ by design. Both arms use the frozen M0 outer CPUQuota=600%, MemoryMax=10 GiB (10240 MiB), MemorySwapMax=0 and Windows reserves; do not enlarge the native budget to obtain a pass. At N=10, the maximum heap leaves only 2560 MiB (2.5 GiB) for native allocations and charged file memory; enforce the actual cgroup cap and host guard. D012 records why the earlier 12 GiB setting was abandoned.
 

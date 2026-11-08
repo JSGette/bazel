@@ -1,6 +1,6 @@
 # M1 trace implementation checklist
 
-Date: 2026-11-08. Status: preparatory source audit only. M0 has not passed; product implementation and experimental execution remain gated on that result. Follow the [plan](../../plans/shared-evaluation-gates-2026-11-07.md) and the native/private qualification in [m1-probe-design.md](m1-probe-design.md) before starting this slice. Source locations below describe the current Windows checkout, not a tested binary.
+Date: 2026-11-08. Status: M0 passed its repeated-state continuation gate under [D019](decision-log.md); M1 is in progress. This checklist remains a preparatory source audit and proposed trace implementation. Follow the [plan](../../plans/shared-evaluation-gates-2026-11-07.md) and the native/private qualification in [m1-probe-design.md](m1-probe-design.md) before starting this slice. Source locations below describe the audited Windows checkout, not a tested binary.
 
 ## Minimum useful implementation
 

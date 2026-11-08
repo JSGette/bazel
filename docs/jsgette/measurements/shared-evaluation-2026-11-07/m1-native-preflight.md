@@ -1,8 +1,8 @@
 # M1 native comparator preflight
 
-2026-11-07; read-only audit of fork HEAD `db6c816b8235afec966941e0ecd898c28c2dc5f1`. This refines [m1-probe-design.md](m1-probe-design.md); M0 is still in progress. No source changes, Bazel commands, cache writes or runtime changes were performed. Paths below are repository-relative unless absolute.
+2026-11-07; read-only audit of fork HEAD `db6c816b8235afec966941e0ecd898c28c2dc5f1`. This refines [m1-probe-design.md](m1-probe-design.md). Status update: M0 passed its repeated-state continuation gate under [D019](decision-log.md); M1 is in progress. The original audit performed no source changes, Bazel commands, cache writes or runtime changes; its source locations and inventory observations below remain historical audit evidence, not execution results. Paths below are repository-relative unless absolute.
 
-The smallest experiment compares the same newly built fork binary in private and native modes. It measures the **native-mode bundle**, not JVM/JIT sharing alone: several mode-specific services and interning policies cannot be matched with command flags. Begin at N=1/2, then change the admission cap only after two-engine qualification.
+The smallest experiment compares the same newly built fork binary in private and native modes. It measures the **native-mode bundle**, not JVM/JIT sharing alone: several mode-specific services and interning policies cannot be matched with command flags. Begin at N=1/2; consider a cap-ten extension only after N2 correctness and measured usefulness justify it, as required by the [plan](../../plans/shared-evaluation-gates-2026-11-07.md).
 
 ## Admission patch and acceptance scope
 
@@ -73,9 +73,9 @@ The existing `/home/jgett/bazel-multiworktree-20261031/native-mvp/bazel-payload-
 
 ## Measurable next steps, still gated
 
-1. After M0 permits continuation and its daemons are stopped, inventory/hash source, bootstrap, seed cache and available task-volume space; create fresh build state. Fetch/build failures are infrastructure outcomes, not evaluator gate failures.
+1. M0 continuation is recorded in D019. Before a fresh build, require its daemons to be stopped, inventory/hash source, bootstrap, seed cache and available task-volume space, and create fresh build state. Fetch/build failures are infrastructure outcomes, not evaluator gate failures.
 2. Build and hash the unchanged fork; run N=1/2 private/native analysis-only qualification and the two-engine acceptance harness. Require one native PID, distinct output bases, equivalent cache preparation/effective policies, no missing engines and matching output oracles. Measure tracing-free external CPU/PSS and explicit metric omissions.
-3. Apply only the admission/docs/test patch above; rebuild, run boundary/failure/ownership tests and parameterized acceptance with cap=10. Explicitly observe engine overlap; ten registered PIDs/paths alone do not prove concurrent command progress.
+3. Only if N2 correctness and measured usefulness justify the extension, apply the admission/docs/test patch above; rebuild, run boundary/failure/ownership tests and parameterized acceptance with cap=10. Explicitly observe engine overlap; ten registered PIDs/paths alone do not prove concurrent command progress.
 4. Run matched N=1/2/10 restarted and warm cohorts, first with prepared actions, then source/BUILD/config/glob variants. Count residual action sharing, per-engine graph counts and external whole-daemon/resource totals. Preserve the fixed 6-CPU/10-GiB/no-swap budget and existing host guard; do not enlarge limits to accommodate the larger heap. Native's 7,680-MiB heap leaves only 2,560 MiB under that limit for all other charged memory.
 
 No benchmark, admission change or milestone verdict is claimed by this note.
