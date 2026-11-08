@@ -37,4 +37,5 @@ For the narrow end-to-end slice, apply M3's 10% CPU and latency overhead limits 
 - Verify that the proposed target exposes substantial addressable retained/evaluation state rather than merely executable startup costs; record which uncertainty M1 must resolve.
 - Choose and record the exact ingestion boundary for the first immutable-root API, including supported dirty-edit publication and fallback behavior.
 - Validate that process classification and observer overhead can support the proposed CPU denominator without assigning unknown CPU to zero.
+- Decide whether first attachment of a new output view/worktree needs a separate gated stratum. Restarting prepared pools excludes repository/bootstrap work already paid during preparation. That lifecycle cannot by itself establish that creating another worktree is cheap; publish preparation costs and qualify the first-attachment path before making that claim. M0's preserved preparation data and repository-bootstrap note inform this choice.
 - Record any necessary refinement to these definitions before candidate implementation, with its reason. The final gate remains fixed once candidate results are available.
