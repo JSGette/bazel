@@ -1,0 +1,37 @@
+{
+  "status": "completed",
+  "utc": "2026-11-08T01:49:21.902493+00:00",
+  "image": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+  "mount": "/mnt/shared-evaluation-20261107",
+  "uuid": "05abc6fb-e13c-4e06-bd41-2cb6911dd802",
+  "device": "/dev/loop0",
+  "before_image_bytes": 274877906944,
+  "target_image_bytes": 549755813888,
+  "backing_free_bytes_before": 737531674624,
+  "filesystem_free_bytes_before": 53698039808,
+  "contents_deleted": false,
+  "commands": [
+    {
+      "argv": [
+        "losetup",
+        "--set-capacity",
+        "/dev/loop0"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "resize2fs",
+        "/dev/loop0"
+      ],
+      "returncode": 0,
+      "stdout": "Filesystem at /dev/loop0 is mounted on /mnt/shared-evaluation-20261107; on-line resizing required\nold_desc_blocks = 32, new_desc_blocks = 64\nThe filesystem on /dev/loop0 is now 134217728 (4k) blocks long.\n\n",
+      "stderr": "resize2fs 1.47.0 (5-Feb-2023)\n"
+    }
+  ],
+  "after_image_bytes": 549755813888,
+  "filesystem_bytes_after": 540519292928,
+  "filesystem_free_bytes_after": 324251508736
+}

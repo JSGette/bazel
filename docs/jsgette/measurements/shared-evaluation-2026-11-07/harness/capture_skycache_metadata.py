@@ -1,6 +1,6 @@
 """Post-M0, read-only source capture for the single known identical-N10 store.
 
-Do not launch while the matrix is running. This helper does not establish that
+Do not launch while the matrix or a diagnostic measurement is running. This helper does not establish that
 the matrix finished or acquire runtime leases; the coordinator must establish a
 quiet post-M0 boundary first. It never launches Bazel or writes to the store.
 

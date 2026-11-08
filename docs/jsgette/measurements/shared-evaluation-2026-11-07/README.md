@@ -4,15 +4,16 @@ This directory records implementation and evidence for the [gated plan](../../pl
 
 ## Current state
 
-- M0 remains in progress. The v6 matrix completed eight reference/anchor rows before a root-disk failure. The fresh v7 matrix stopped during preparation at the host-memory reserve. Both attempts are preserved; the full v7b retry adds a bounded wait for verified host headroom after task-cache reclamation.
-- M1–M6: not started; no architecture or performance gate has passed yet.
+- **M0 complete — continue to bounded M1 on repeated retained state.** The v7b matrix completed all 29 checked/archived rows and both N1 diagnostic sessions passed. CPU attribution remains partial under D016; no later economic or semantic-sharing gate has passed.
+- **M1 in progress:** build/qualify the same-binary private/native N2 comparison at the existing two-engine cap. Native hosting is a preliminary alternative, not proof of shared graphs. M2–M6 remain not started.
+- The v6 root-disk failure and v7 host-memory abort remain preserved infrastructure attempts, excluded from v7b performance comparisons. No more M0 runs or N2 transfer probe are required for the current decision.
 - Branch: `jsgette/shared-evaluation-gates-20261107`.
 - Starting revision: `c54d33d5b40c5711f3841f50ea1c2f950c959450`.
 - [Decision and execution log](decision-log.md).
-- [Current v7b completed-row overview](evidence/m0-v7b-01/overview-partial-11.md), [separate v6 observations](evidence/m0-v6-01/overview-partial-02.md), [v7 abort](evidence/m0-v7-01/overview-aborted-01.md), and [v7b execution manifest](harness/matrix-v7b.json).
+- [Completed v7b matrix](evidence/m0-v7b-01/overview-partial-11.md), [separate v6 observations](evidence/m0-v6-01/overview-partial-02.md), [v7 abort](evidence/m0-v7-01/overview-aborted-01.md), and [v7b execution manifest](harness/matrix-v7b.json).
 - [Measured CPU attribution limits](m0-cost-attribution-notes.md), [Bonanza source contracts](bonanza-contract-notes.md), and [M1 native comparator preflight](m1-native-preflight.md).
-- [M0 closure assessment draft](m0-gate-assessment-draft.md) and [proposed acceptance accounting](acceptance-metrics-draft.md); neither declares a gate outcome.
-- [First-attachment preparation costs](m0-preparation-costs.md) and [cross-worktree publication admission](m0-cross-worktree-reuse-notes.md) distinguish newcomer cost from reuse after restarting an already prepared worktree.
+- [Final M0 assessment](m0-gate-assessment.md), [diagnostic analysis](m0-diagnostic-analysis.md), and [acceptance metrics](acceptance-metrics.md). Earlier [closure](m0-gate-assessment-draft.md) and [accounting](acceptance-metrics-draft.md) drafts remain as history.
+- [First-attachment preparation costs](m0-preparation-costs.md), [cross-worktree publication admission](m0-cross-worktree-reuse-notes.md), and [captured witness conflicts](m0-witness-capture-findings.md) distinguish newcomer cost from prepared-worktree restart reuse and identify external-binding portability requirements.
 - Preparatory implementation maps: [native/private comparison](m1-native-implementation-checklist.md), [typed query traces](m1-trace-implementation-checklist.md), and [coherent input publication](m2-capture-feasibility.md).
 
 Earlier measurements are background, not new passes. In particular, diagnostic Skyframe names and path-normalized graph dumps are not sound cache identities. This experiment must measure validation and representation overhead before claiming cross-snapshot reuse.

@@ -2,9 +2,9 @@
 
 Date: 2026-11-07
 
-Status: execution started; no milestone has passed yet.
+Status as of 2026-11-08: M0 complete — continue on repeated retained state; bounded M1 investigation in progress. No later gate has passed.
 
-Evidence will be recorded in the [measurement index](../measurements/shared-evaluation-2026-11-07/README.md). Architectural choices, commands, deviations, measurements, and gate decisions belong in the [decision log](../measurements/shared-evaluation-2026-11-07/decision-log.md). These links name the evidence files being established alongside this plan; they are not claims that measurements already exist.
+Evidence is recorded in the [measurement index](../measurements/shared-evaluation-2026-11-07/README.md). Architectural choices, commands, deviations, measurements, and gate decisions belong in the [decision log](../measurements/shared-evaluation-2026-11-07/decision-log.md).
 
 ## Hypothesis and initial scope
 
@@ -24,8 +24,8 @@ Continue automatically across passing milestones. A failed gate permits one time
 
 | Milestone | State | Gate outcome |
 | --- | --- | --- |
-| M0: baseline and duplicated cost | In progress | Not decided |
-| M1: dependency-trace replay | Not started | Not decided |
+| M0: baseline and duplicated cost | Complete | Continue on repeated retained state; partial CPU-breakdown deviation recorded |
+| M1: dependency-trace replay | In progress | Not decided; native-hosting preliminary probe first |
 | M2: immutable snapshots and query inputs | Not started | Not decided |
 | M3: real end-to-end evaluation slice | Not started | Not decided |
 | M4: ten concurrent worktrees | Not started | Not decided |
@@ -44,11 +44,15 @@ Measure analysis, validation, graph restoration, action execution, memory, CPU, 
 
 **Deliverable:** baseline results, a cost breakdown, and the chosen representative target.
 
+**Recorded outcome (2026-11-08):** [M0 assessment](../measurements/shared-evaluation-2026-11-07/m0-gate-assessment.md) continues to bounded M1 after the 29-row matrix and two diagnostic sessions. Repeated retained state supplies the basis; CPU attribution remains partial under D016. This does not establish typed overlap, cheap first attachment or the later economic gates. No additional M0 or N2 transfer run is required for this decision.
+
 ## M1: Estimate the benefit using real dependency traces
+
+**Preliminary native-hosting probe:** build and pin one fork binary with the existing two-engine cap, qualify functionality, then compare private and native N2 runs with matched effective policies, independent references and complete accounting. Native mode retains private graphs and changes other services; its result is a bundle comparison, **not a semantic-sharing pass**. Consider a ten-engine cap only after N2 correctness and measured usefulness justify the bounded extension, with admission and ownership checks. This cheaper preliminary route does not replace the trace savings ceiling required before a graph rewrite or change isolated SkyCache as the later comparator.
 
 Instrument the selected target to record logical queries, dependency observations, value sizes, and computation/validation costs. Build an offline replay tool that groups equivalent results across snapshots and models retained variants.
 
-Measure lookup and validation overhead in the replay itself. Estimate remaining savings after accounting for indexes, dependency records, and request bookkeeping. Treat diagnostic names and normalized physical paths as diagnostic evidence, not sufficient authorization for a cache hit.
+Measure lookup and validation overhead in the replay itself. Estimate remaining savings after accounting for indexes, dependency records, and request bookkeeping. Give unsupported costs an explicit generous bound so a narrow trace subset cannot determine the gate by omission. Treat diagnostic names and normalized physical paths as diagnostic evidence, not sufficient authorization for a cache hit.
 
 **Continue:** measured overlap leaves enough headroom to plausibly meet the later memory and CPU gates.
 
