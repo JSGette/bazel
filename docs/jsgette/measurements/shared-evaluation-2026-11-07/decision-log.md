@@ -367,3 +367,11 @@ trace CPU or projected bytes become avoided CPU or PSS by assertion.
 The actual function constant belongs to public `vfs.FileStateKey`, already in the collector's direct dependency. Correct those two references. Widen the nonexistent singleton to public `FileStateValue` and invoke its existing equality implementation, which recognizes the private concrete class including deserialized non-singleton instances. Add a focused regression for that latter case. Projection meaning, capture limits, graph behavior and economic gates remain unchanged.
 
 Preserve the failed runtime and source bundle. Freeze the corrected source in a distinct bundle and perform a new source/unit qualification in fresh `m1-skycache-trace-build-v2`; do not reuse its output base or rewrite the failed evidence. The failed durable owner was retired only after archive verification, live scope absence, build-server absence and a recorded failure assessment. This is a bounded implementation correction, not an architectural M1 verdict. Compilation, all thirteen focused targets and real Java interoperability still must pass before workload tracing.
+
+**D030 corrected source freeze:** formatter2 passed with identical Java tokens
+and no BUILD formatting changes. The [v2 preparation bundle](evidence/skycache-trace-build-preparation-v2/)
+pins source tree `d9ca5e8f8e38bdd6c18405f85e1b6d2edabe7889`, bundle SHA-256
+`520a271893427ac3a2715d261d522b9b288e2f0a82fcbc5b10103920969932c6`, and combined patch SHA-256
+`84d5553039da873484bdc04c2fded104368764b81e84876d88e6b2fe15a3a0ed`. Run `m1-trace-source-build-02` once
+in fresh v2 runtime state with the unchanged qualification requirements. The
+collector now has 23 authored tests, the module seven; execution is pending.

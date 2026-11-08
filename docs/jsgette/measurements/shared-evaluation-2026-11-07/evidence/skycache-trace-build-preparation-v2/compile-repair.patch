@@ -1,0 +1,78 @@
+--- a/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceCollector.java
++++ b/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceCollector.java
+@@ -6,6 +6,7 @@
+ 
+ import com.google.devtools.build.lib.actions.FileStateValue;
+ import com.google.devtools.build.lib.vfs.Dirent;
++import com.google.devtools.build.lib.vfs.FileStateKey;
+ import com.google.devtools.build.lib.vfs.Root;
+ import com.google.devtools.build.lib.vfs.RootedPath;
+ import com.google.devtools.build.skyframe.ErrorInfo;
+@@ -42,6 +43,9 @@
+ 
+ /** Bounded command-local observations. It does not authorize cache reuse or change evaluation. */
+ public final class M1TraceCollector implements EvaluationProgressReceiver, AutoCloseable {
++  private static final FileStateValue NONEXISTENT_FILE_STATE_VALUE =
++      FileStateValue.NONEXISTENT_FILE_STATE_NODE;
++
+   static final int MAX_RECORD_BYTES = 1024 * 1024;
+   static final int FOOTER_RESERVE = 65536;
+   static final int MAX_THREADS = 256;
+@@ -388,7 +392,7 @@
+ 
+   @Nullable
+   private RootedPath supportedPath(SkyKey key) {
+-    if (!(key.functionName().equals(SkyFunctions.FILE_STATE)
++    if (!(key.functionName().equals(FileStateKey.FILE_STATE)
+         || key.functionName().equals(SkyFunctions.DIRECTORY_LISTING_STATE))) {
+       return null;
+     }
+@@ -415,7 +419,7 @@
+     if (supportedPath(key) == null || value == null) {
+       return null;
+     }
+-    if (key.functionName().equals(SkyFunctions.FILE_STATE) && !(value instanceof FileStateValue)
++    if (key.functionName().equals(FileStateKey.FILE_STATE) && !(value instanceof FileStateValue)
+         || key.functionName().equals(SkyFunctions.DIRECTORY_LISTING_STATE)
+             && !(value instanceof DirectoryListingStateValue)) {
+       return null;
+@@ -440,7 +444,7 @@
+               HexFormat.of().formatHex(file.getDigest()));
+     } else if (value instanceof FileStateValue.DirectoryFileStateValue) {
+       out = row("class", "DirectoryFileStateValue", "type", "DIRECTORY");
+-    } else if (value.getClass() == FileStateValue.NONEXISTENT_FILE_STATE_NODE.getClass()) {
++    } else if (NONEXISTENT_FILE_STATE_VALUE.equals(value)) {
+       out = row("class", "NonexistentFileStateValue", "type", "NONEXISTENT");
+     } else if (value instanceof FileStateValue.SymlinkFileStateValue link) {
+       String target = link.getSymlinkTarget().getPathString();
+--- a/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceCollectorTest.java
++++ b/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceCollectorTest.java
+@@ -199,6 +199,28 @@
+   }
+ 
+   @Test
++  public void missingProjectionRecognizesNonSingletonInstances() throws Exception {
++    FileStateValue singleton = FileStateValue.NONEXISTENT_FILE_STATE_NODE;
++    // Deserialization can produce copies of this private concrete class.
++    var constructor = singleton.getClass().getDeclaredConstructor();
++    constructor.setAccessible(true);
++    FileStateValue copy = constructor.newInstance();
++    assertThat(copy).isNotSameInstanceAs(singleton);
++    assertThat(copy).isEqualTo(singleton);
++    M1TraceCollector collector = collector();
++    collector.evaluated(
++        key("missing-copy"),
++        EvaluationState.SUCCESS_VERSION_CHANGED,
++        copy,
++        null,
++        new GroupedDeps());
++    collector.finish();
++    assertThat(collector.isComplete()).isTrue();
++    assertThat(records("observation").get(0).getAsJsonObject("projection").get("type").getAsString())
++        .isEqualTo("NONEXISTENT");
++  }
++
++  @Test
+   public void missingDirectorySymlinkAndListingPreserveTypedFacts() {
+     M1TraceCollector collector = collector();
+     collector.evaluated(
