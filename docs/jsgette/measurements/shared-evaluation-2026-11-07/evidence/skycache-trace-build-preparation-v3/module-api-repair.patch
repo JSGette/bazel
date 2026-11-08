@@ -1,0 +1,78 @@
+--- before/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceModule.java
++++ after/src/main/java/com/google/devtools/build/lib/skyframe/M1TraceModule.java
+@@ -64,14 +64,14 @@
+           "bzl_inlining");
+ 
+   @OptionsClass
+-  public static final class Options extends OptionsBase {
++  public static abstract class Options extends OptionsBase {
+     @Option(
+         name = "experimental_m1_trace",
+         defaultValue = "",
+         documentationCategory = OptionDocumentationCategory.UNDOCUMENTED,
+         effectTags = {OptionEffectTag.BAZEL_MONITORING},
+         help = "Write a bounded diagnostic trace to a new absolute file. Empty disables tracing.")
+-    public String output;
++    public abstract String getOutput();
+ 
+     @Option(
+         name = "experimental_m1_trace_context",
+@@ -81,7 +81,7 @@
+         help =
+             "Absolute JSON metadata file for experimental_m1_trace; declarations need external"
+                 + " verification.")
+-    public String context;
++    public abstract String getContext();
+   }
+ 
+   @Nullable private Session session;
+@@ -99,7 +99,7 @@
+       afterCommand();
+     }
+     Options options = env.getOptions().getOptions(Options.class);
+-    if (options == null || options.output.isEmpty()) {
++    if (options == null || options.getOutput().isEmpty()) {
+       return; // No evaluator access, attachment, collector or graph walk while disabled.
+     }
+     Writer writer = null;
+@@ -112,7 +112,7 @@
+         throw new IOException("The initial trace binding supports Linux only");
+       }
+       Root workspaceRoot = Root.fromPath(env.getWorkspace());
+-      Context context = readContext(Path.of(options.context), env.getWorkspace().getPathString());
++      Context context = readContext(Path.of(options.getContext()), env.getWorkspace().getPathString());
+       Map<String, Object> header = context.header();
+       Map<?, ?> bindings = (Map<?, ?>) header.get("repository_bindings");
+       Map<?, ?> main = (Map<?, ?>) bindings.get("main");
+@@ -131,7 +131,7 @@
+       header.put("context_status", "declared");
+       header.put("capture_window", "module_after_cache_setup_to_after_cache_finalization");
+       header.put("direct_skycache_witness_validation", "unobserved");
+-      Path output = canonicalFile(Path.of(options.output));
++      Path output = canonicalFile(Path.of(options.getOutput()));
+       if (output.startsWith(Path.of(env.getWorkspace().getPathString()))) {
+         throw new IOException("Trace output must be outside the source workspace");
+       }
+--- before/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceModuleTest.java
++++ after/src/test/java/com/google/devtools/build/lib/skyframe/M1TraceModuleTest.java
+@@ -97,6 +97,20 @@
+         OptionsParser.builder().optionsClasses(M1TraceModule.Options.class).build();
+     parser.parse(args);
+     return parser;
++  }
++
++  @Test
++  public void generatedOptionGettersPreserveDefaultsAndExplicitValues() throws Exception {
++    M1TraceModule.Options defaults = options().getOptions(M1TraceModule.Options.class);
++    assertThat(defaults.getOutput()).isEmpty();
++    assertThat(defaults.getContext()).isEmpty();
++    M1TraceModule.Options configured =
++        options(
++                "--experimental_m1_trace=/trace.jsonl",
++                "--experimental_m1_trace_context=/context.json")
++            .getOptions(M1TraceModule.Options.class);
++    assertThat(configured.getOutput()).isEqualTo("/trace.jsonl");
++    assertThat(configured.getContext()).isEqualTo("/context.json");
+   }
+ 
+   @Test

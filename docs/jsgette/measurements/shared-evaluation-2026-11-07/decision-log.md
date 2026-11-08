@@ -385,3 +385,13 @@ Correct the new module to the actual method-based option API, update its call si
 **Qualification implementation decision:** preserve both failed source bundles, reports, logs, BEPs and archives. For the next qualification, reuse the second attempt's verified task-owned source/build output state rather than compiling all unchanged native dependencies a third time. Before any source replacement, require the exact archived failed report, absent old daemon, full old source inventory, fixed tool/configuration bytes and immutable old evidence. Replace only the declared corrected files, verify every file against the new complete source bundle, and keep their preimages. Write fresh commands/logs/BEP/report/candidate under `m1-skycache-trace-qualification-v3`; old report/log/BEP/source-archive evidence must not be overwritten. The report must identify its reused source root and build state explicitly. Recheck all source bytes after product build and the same thirteen focused targets, require stable candidate bytes, and shut down. This is compilation-state reuse, not benchmark-pool reuse or a savings measurement.
 
 The second failed owner was retired only after verified archival, live scope absence and build-server absence. No M1 architectural verdict follows from either implementation error. Real trace/replay interoperability and workload measurements still require a successfully qualified candidate.
+
+**D031 frozen incremental qualification:** the [v3 preparation](evidence/skycache-trace-build-preparation-v3/)
+records bundle SHA-256 `96d2685e027cfe64620281ae0828e28069e17cfb8b73226411c9e61771b3add0`, source tree
+`e8aa57dfd71b302706f16f25389351ff6bb328ff`, combined patch SHA-256
+`026010487e7a049bfbed364803053729f64d1f2be7acd970d5a04132d3512a90`, and launcher SHA-256
+`a0140aaf26e25196a3d3b833a0a1b38e3ba7e95f126e01b034f5cb6bd697f705`. The exact previous-tree/pin/repair-path lineage is
+checked in addition to full source bytes. Run `m1-trace-source-build-03` once
+under the existing guard, retaining both failed attempts and their outcomes.
+Formatter03's preflight cleared after 42.52 seconds before a later task-owned
+source-archive cache hint; no causal clearance claim is made for that hint.
