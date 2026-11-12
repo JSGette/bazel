@@ -439,3 +439,8 @@ The [existing-byte function summary](m1-trace-family-coverage.md) ranks configur
 The [bounded protocol](m1-residual-investigation-protocol.md), SHA-256 b4bf447302e4e4a7cf39f6b7940026f26694d4cc6927d808bdd8aa315e2c66fa, selects the combined unattributed restarted-request cost. Use all ten current restarted cache/BEP evidence sets and decode only the two existing historical M0 restart CPU recordings at full recorded depth. No new workload capture or semantic family is added. Existing source evidence shows why timers are elapsed and why a new CPU/heap recording alone cannot establish equivalence or peak-PSS savings. Preserve historical and current binary/window distinctions.
 
 This consumes the one investigation allowed after N1. Publish the result, then mark M1 inconclusive and stop before M2 if either CPU or memory savings remains unresolved. A sampling category is not a CPU-seconds bound or proof of repeated validation dominance. Native hosting remains an independently useful component; thresholds remain unchanged.
+
+
+## D036 — Bound offline decoder resources after admission failure (2026-11-12)
+
+The inherited 10-GiB auxiliary admission timed out before launching the archived-recording decoder. Preserve that attempt; no decoder scope or output was created. The [frozen decoder-only addendum](m1-residual-decoder-budget-addendum.md) restricts a copy of the existing guard wrapper to this exact command and run ID, with a 1536-MiB cgroup limit and unchanged 512-MiB decoder heap, host reserves, margin and ownership checks. No benchmark policy or economic threshold changes. Attempt the same two existing recordings once; a further failure stays unavailable evidence in the final M1 assessment.
