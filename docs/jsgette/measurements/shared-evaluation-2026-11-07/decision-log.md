@@ -432,3 +432,10 @@ The [N1 assessment](m1-trace-n1-diagnostics.md) publishes every ratio. Prepared-
 The [existing-byte function summary](m1-trace-family-coverage.md) ranks configured targets first in each restarted trace, followed by module and Bzl loading. The exact projected subset is limited to directories/nonexistent FILE_STATE observations; over 99% of observations remain unsupported. Every complete savings ceiling remains unknown. Retained-only nodes, cross-run N1 repetitions, function names, Python allocation peaks and projection bytes earn no semantic sharing or PSS credit.
 
 **Decision:** do not scale this costly observer to N2/N10 or widen semantic projection families now. Select the combined unattributed CPU/state question for the single bounded residual investigation allowed by the frozen protocol; there is no measured basis to label all of it validation, decoding or GC. Record that investigation's exact input/budget and stop condition before execution. M1 remains pending, M2–M6 not started, and the 50% memory/30% CPU/10% latency gates stay fixed.
+
+
+## D035 — Freeze the single residual-cost audit (2026-11-12)
+
+The [bounded protocol](m1-residual-investigation-protocol.md), SHA-256 b4bf447302e4e4a7cf39f6b7940026f26694d4cc6927d808bdd8aa315e2c66fa, selects the combined unattributed restarted-request cost. Use all ten current restarted cache/BEP evidence sets and decode only the two existing historical M0 restart CPU recordings at full recorded depth. No new workload capture or semantic family is added. Existing source evidence shows why timers are elapsed and why a new CPU/heap recording alone cannot establish equivalence or peak-PSS savings. Preserve historical and current binary/window distinctions.
+
+This consumes the one investigation allowed after N1. Publish the result, then mark M1 inconclusive and stop before M2 if either CPU or memory savings remains unresolved. A sampling category is not a CPU-seconds bound or proof of repeated validation dominance. Native hosting remains an independently useful component; thresholds remain unchanged.
