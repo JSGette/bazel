@@ -1,0 +1,112 @@
+{
+  "traces": [
+    {
+      "trace_sha256": "7dca23da9b843afead61d266e3cad5bfa2c7b47fcef6f0ac45d473004e4b52b6",
+      "trace_id": "d8869b72-92f2-4d32-9fcb-3d3efe1a1942",
+      "engine_id": "m1-trace-n1-p05-warm-on",
+      "snapshot_id": "d793a882f066245fd2daa33bd77d4bb4e22c25aabb6e0f15e14755fd93f442d8",
+      "context_attested": true,
+      "node_count": 69287,
+      "completion_sha256": "640b0018f1df6ca3aa6919f19793b34901d73bf4ba7eb18f2193e205a8a8058d",
+      "observation_count": 69305,
+      "observed_node_count": 17,
+      "retained_only_node_count": 69270,
+      "dependency_only_node_count": 0,
+      "model_payload_bytes_charged": 26814442,
+      "strict_cross_engine_observation_matches": 0,
+      "projection_cross_engine_observation_matches": 0,
+      "same_engine_variant_matches_no_credit": 0,
+      "unknown_observations_by_reason": {
+        "key_or_value_unsupported": 69036
+      },
+      "observed_nodes_missing_or_unknown_compute_cpu": 15,
+      "exclusive_cpu_by_state": {
+        "CHECK_DIRTY": {
+          "known_exclusive_ns": 1321373,
+          "unknown_intervals": 0
+        },
+        "INITIALIZING_ENVIRONMENT": {
+          "known_exclusive_ns": 99241,
+          "unknown_intervals": 0
+        },
+        "COMPUTE": {
+          "known_exclusive_ns": 19398240,
+          "unknown_intervals": 0
+        },
+        "COMMIT": {
+          "known_exclusive_ns": 1085200,
+          "unknown_intervals": 0
+        }
+      },
+      "captured_node_cpu_ceilings": {
+        "strict_captured_table": {
+          "known_exclusive_compute_ns": 0,
+          "unknown_cpu_nodes": 0,
+          "unknown_match_nodes": 17,
+          "matched_observed_nodes": 0,
+          "complete_cpu_ceiling_ns": null
+        },
+        "projection_free_oracle": {
+          "known_exclusive_compute_ns": 0,
+          "unknown_cpu_nodes": 0,
+          "unknown_match_nodes": 17,
+          "matched_observed_nodes": 0,
+          "complete_cpu_ceiling_ns": null
+        }
+      },
+      "bzl_input_value_hits": null,
+      "unobserved_target_demand_closure": null
+    }
+  ],
+  "table": {
+    "logical_keys": 269,
+    "retained_complete_variants": 269,
+    "projection_keys": 269,
+    "projection_variants": 269,
+    "canonical_payload_bytes": 136917,
+    "owner_associations": 538,
+    "memory_note": "Payload count is not Python allocation, JVM heap or PSS; tracemalloc peak measured separately"
+  },
+  "interpretation": [
+    "Read-only captured-table model, not a live correctness/admission protocol.",
+    "Caller attestations bind exact trace bytes and declared contexts; runtime provenance is not reverified.",
+    "CPU credit is a captured-node ceiling, not avoided CPU; attempts are not paired with observations.",
+    "Only known exclusive COMPUTE CPU is credited; absent/unsupported CPU remains explicitly unknown.",
+    "Retained-only nodes and same-engine matches earn no command CPU credit.",
+    "Grouped dependency evidence is captured state, never an atomic historical filesystem snapshot.",
+    "Dependency/epoch IDs use domain-separated SHA256 over full captured representations; collision resistance is a model assumption.",
+    "BZL input equality does not establish module-value equality; direct SkyCache validation is unobserved.",
+    "Trace closure and table bytes cannot be converted to retained JVM heap, PSS savings, or a gate verdict."
+  ],
+  "milestone_verdict": null,
+  "format": "m1-offline-typed-replay-v1",
+  "attestation_sha256": "fd3532c4434f90e531530e31ff23afbbb3a0226cbc2763b7cacab45aaab11ff0",
+  "replay_source_sha256": "d32be7f08f87ffcf3f81781ddcf24ee6301b4a23aaf7d9e4be90dda8255e3776",
+  "contract_sha256": "a527c3554a7771b5dc72b781f5d812cc61900cf0ffa3687567126db0657587ef",
+  "replay_limits": {
+    "max_traces": 32,
+    "max_aggregate_trace_bytes": 268435456,
+    "max_records_per_trace": 1000000,
+    "max_table_payload_bytes": 67108864,
+    "max_total_variants": 250000,
+    "max_owner_associations": 1000000,
+    "max_dependency_depth": 128,
+    "max_transient_model_payload_bytes_per_trace": 67108864
+  },
+  "python_observer": {
+    "parse_validation_thread_cpu_ns": 6780072073,
+    "parse_validation_wall_ns": 7915008954,
+    "lookup_validation_thread_cpu_ns": 1239937952,
+    "lookup_validation_wall_ns": 1269136875,
+    "parse_traced_current_bytes": 230540666,
+    "parse_traced_peak_bytes": 244051684,
+    "lookup_traced_peak_increment_bytes": 47341269,
+    "post_replay_traced_current_bytes": 242568270,
+    "tracemalloc_enabled_during_measurement": true,
+    "thread_cpu_clock_resolution_seconds": 1e-09,
+    "wall_clock_resolution_seconds": 1e-09,
+    "clock_note": "Observed deltas may quantize to zero for small fixtures; this does not establish zero cost.",
+    "process_rss_bytes": null,
+    "memory_kind": "Python tracemalloc allocations; excludes native buffers/RSS/JVM/PSS"
+  }
+}

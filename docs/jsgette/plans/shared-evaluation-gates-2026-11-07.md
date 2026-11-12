@@ -2,7 +2,7 @@
 
 Date: 2026-11-07
 
-Status as of 2026-11-08: M0 complete — continue on repeated retained state; bounded M1 investigation in progress. No later gate has passed.
+Status as of 2026-11-12: M0 complete — continue on repeated retained state; bounded M1 investigation in progress. No later gate has passed.
 
 Evidence is recorded in the [measurement index](../measurements/shared-evaluation-2026-11-07/README.md). Architectural choices, commands, deviations, measurements, and gate decisions belong in the [decision log](../measurements/shared-evaluation-2026-11-07/decision-log.md).
 
@@ -25,7 +25,7 @@ Continue automatically across passing milestones. A failed gate permits one time
 | Milestone | State | Gate outcome |
 | --- | --- | --- |
 | M0: baseline and duplicated cost | Complete | Continue on repeated retained state; partial CPU-breakdown deviation recorded |
-| M1: dependency-trace replay | In progress | N2/N10 hosting diagnostics complete after qualification and 21 cap-ten acceptance checks; D028 continues to typed-trace qualification, with the savings ceiling still required before a graph rewrite |
+| M1: dependency-trace replay | In progress | Hosting and all twenty N1 trace controls complete; D034 records material trace overhead and unresolved semantic/CPU/memory coverage. The savings ceiling is still required before a graph rewrite |
 | M2: immutable snapshots and query inputs | Not started | Not decided |
 | M3: real end-to-end evaluation slice | Not started | Not decided |
 | M4: ten concurrent worktrees | Not started | Not decided |
@@ -50,7 +50,7 @@ Measure analysis, validation, graph restoration, action execution, memory, CPU, 
 
 **Preliminary native-hosting probe:** build and pin one fork binary with the existing two-engine cap, qualify functionality, then compare private and native N2 runs with matched effective policies, independent references and complete accounting. Native mode retains private graphs and changes other services; its result is a bundle comparison, **not a semantic-sharing pass**. Consider a ten-engine cap only after N2 correctness and measured usefulness justify the bounded extension, with admission and ownership checks. This cheaper preliminary route does not replace the trace savings ceiling required before a graph rewrite or change isolated SkyCache as the later comparator.
 
-**Preliminary status (2026-11-08):** cap-two/N2 and cap-ten source qualification and all [21 cap-ten acceptance checks](../measurements/shared-evaluation-2026-11-07/evidence/auxiliary/native-acceptance-cap10-01/results.json) passed. The [completed N10 assessment](../measurements/shared-evaluation-2026-11-07/native-n10-assessment.md) covers an independent reference and one ordered private/native pair: build-window non-harness CPU fell about 66.3%, sampled daemon PSS 24.7%, and full recorded lifecycle CPU 20.1%, under heavy reclaim/I/O pressure. Native still retains private graphs, and the comparator is this fork's private mode. D028 preserves that useful hosting result and proceeds to typed traces without more N10 warm/variant runs or heap tuning. The separate reconstructed SkyCache prototype passed product build and all thirteen focused Java targets under D032. Its eight-build/five-trace Java interoperability smoke passed. D033 proceeds to N1 workload coverage and tracing-cost controls before assessing the savings ceiling. This does not pass M1 or M4.
+**Preliminary status (2026-11-08):** cap-two/N2 and cap-ten source qualification and all [21 cap-ten acceptance checks](../measurements/shared-evaluation-2026-11-07/evidence/auxiliary/native-acceptance-cap10-01/results.json) passed. The [completed N10 assessment](../measurements/shared-evaluation-2026-11-07/native-n10-assessment.md) covers an independent reference and one ordered private/native pair: build-window non-harness CPU fell about 66.3%, sampled daemon PSS 24.7%, and full recorded lifecycle CPU 20.1%, under heavy reclaim/I/O pressure. Native still retains private graphs, and the comparator is this fork's private mode. D028 preserves that useful hosting result and proceeds to typed traces without more N10 warm/variant runs or heap tuning. The separate reconstructed SkyCache prototype passed product build and all thirteen focused Java targets under D032. Its eight-build/five-trace Java interoperability smoke passed. D034 closes all twenty N1 workload sessions and ten replay checks. The [N1 assessment](../measurements/shared-evaluation-2026-11-07/m1-trace-n1-diagnostics.md) and [function coverage](../measurements/shared-evaluation-2026-11-07/m1-trace-family-coverage.md) show material tracing cost, over 99% unsupported observations and unresolved CPU/memory ceilings. This does not pass M1 or M4.
 
 Instrument the selected target to record logical queries, dependency observations, value sizes, and computation/validation costs. Build an offline replay tool that groups equivalent results across snapshots and models retained variants.
 

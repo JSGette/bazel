@@ -1,0 +1,326 @@
+{
+  "schema_version": 1,
+  "image": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+  "target": "/mnt/shared-evaluation-20261107",
+  "expected_uuid": "05abc6fb-e13c-4e06-bd41-2cb6911dd802",
+  "apply": true,
+  "commands": [
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--list",
+        "--json",
+        "--output",
+        "NAME,BACK-FILE,MAJ:MIN,DIO,AUTOCLEAR"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"loopdevices\": [\n      {\n         \"name\": \"/dev/loop0\",\n         \"back-file\": \"/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4\",\n         \"maj:min\": \"7:0\",\n         \"dio\": true,\n         \"autoclear\": false\n      }\n   ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/blkid",
+        "-s",
+        "UUID",
+        "-o",
+        "value",
+        "/dev/loop0"
+      ],
+      "exit_code": 0,
+      "stdout": "05abc6fb-e13c-4e06-bd41-2cb6911dd802\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/4",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/5",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/6",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/8",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/9",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/11",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/4",
+        "--",
+        "/usr/bin/sync",
+        "-f",
+        "/mnt/shared-evaluation-20261107"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/4",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/4",
+        "--",
+        "/usr/bin/umount",
+        "/mnt/shared-evaluation-20261107"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/12",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/13",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/14",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/15",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/16",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/17",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--list",
+        "--json",
+        "--output",
+        "NAME,BACK-FILE,MAJ:MIN,DIO,AUTOCLEAR"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"loopdevices\": [\n      {\n         \"name\": \"/dev/loop0\",\n         \"back-file\": \"/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4\",\n         \"maj:min\": \"7:0\",\n         \"dio\": true,\n         \"autoclear\": false\n      }\n   ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--detach",
+        "/dev/loop0"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--list",
+        "--json",
+        "--output",
+        "NAME,BACK-FILE,MAJ:MIN,DIO,AUTOCLEAR"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"loopdevices\": [\n\n   ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--find",
+        "--show",
+        "--direct-io=on",
+        "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4"
+      ],
+      "exit_code": 0,
+      "stdout": "/dev/loop0\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/blkid",
+        "-s",
+        "UUID",
+        "-o",
+        "value",
+        "/dev/loop0"
+      ],
+      "exit_code": 0,
+      "stdout": "05abc6fb-e13c-4e06-bd41-2cb6911dd802\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/mount",
+        "-t",
+        "ext4",
+        "-o",
+        "noatime",
+        "/dev/loop0",
+        "/mnt/shared-evaluation-20261107"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--list",
+        "--json",
+        "--output",
+        "NAME,BACK-FILE,MAJ:MIN,DIO,AUTOCLEAR"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"loopdevices\": [\n      {\n         \"name\": \"/dev/loop0\",\n         \"back-file\": \"/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4\",\n         \"maj:min\": \"7:0\",\n         \"dio\": true,\n         \"autoclear\": false\n      }\n   ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/findmnt",
+        "--json",
+        "--mountpoint",
+        "/mnt/shared-evaluation-20261107",
+        "--output",
+        "SOURCE,FSTYPE,UUID,OPTIONS,TARGET"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0\",\n         \"fstype\": \"ext4\",\n         \"uuid\": \"05abc6fb-e13c-4e06-bd41-2cb6911dd802\",\n         \"options\": \"rw,noatime\",\n         \"target\": \"/mnt/shared-evaluation-20261107\"\n      }\n   ]\n}\n",
+      "stderr": ""
+    }
+  ],
+  "status": "completed",
+  "meminfo_before": "MemTotal:       20476040 kB\nMemFree:        17470604 kB\nMemAvailable:   19293940 kB\nBuffers:            1904 kB\nCached:           141168 kB\nSwapCached:           96 kB\nActive:            88536 kB\nInactive:         130848 kB\nActive(anon):       2700 kB\nInactive(anon):    77256 kB\nActive(file):      85836 kB\nInactive(file):    53592 kB\nUnevictable:           0 kB\nMlocked:               0 kB\nSwapTotal:       5242880 kB\nSwapFree:        5242612 kB\nDirty:                60 kB\nWriteback:             0 kB\nAnonPages:         76288 kB\nMapped:           137024 kB\nShmem:              3648 kB\nKReclaimable:    1973684 kB\nSlab:            2300524 kB\nSReclaimable:    1973684 kB\nSUnreclaim:       326840 kB\nKernelStack:        7216 kB\nPageTables:         3296 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    15480900 kB\nCommitted_AS:     713316 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:      126544 kB\nVmallocChunk:          0 kB\nPercpu:            15360 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      123904 kB\nDirectMap2M:    12457984 kB\nDirectMap1G:    17825792 kB\n",
+  "loop_before": {
+    "name": "/dev/loop0",
+    "back-file": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+    "maj:min": "7:0",
+    "dio": true,
+    "autoclear": false
+  },
+  "namespaces_before": [
+    {
+      "namespace_inode": 4026532223,
+      "representative_pid": 1,
+      "mountinfo": [
+        "292 80 7:0 / /mnt/shared-evaluation-20261107 rw,noatime - ext4 /dev/loop0 rw"
+      ],
+      "fd": 4
+    }
+  ],
+  "loop_after": {
+    "name": "/dev/loop0",
+    "back-file": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+    "maj:min": "7:0",
+    "dio": true,
+    "autoclear": false
+  },
+  "mount_after": {
+    "filesystems": [
+      {
+        "source": "/dev/loop0",
+        "fstype": "ext4",
+        "uuid": "05abc6fb-e13c-4e06-bd41-2cb6911dd802",
+        "options": "rw,noatime",
+        "target": "/mnt/shared-evaluation-20261107"
+      }
+    ]
+  },
+  "meminfo_after": "MemTotal:       20476040 kB\nMemFree:        17489604 kB\nMemAvailable:   19294368 kB\nBuffers:            1432 kB\nCached:           142552 kB\nSwapCached:           96 kB\nActive:            89452 kB\nInactive:         132268 kB\nActive(anon):       2724 kB\nInactive(anon):    78704 kB\nActive(file):      86728 kB\nInactive(file):    53564 kB\nUnevictable:           0 kB\nMlocked:               0 kB\nSwapTotal:       5242880 kB\nSwapFree:        5242612 kB\nDirty:                88 kB\nWriteback:             0 kB\nAnonPages:         77700 kB\nMapped:           137560 kB\nShmem:              3648 kB\nKReclaimable:    1954276 kB\nSlab:            2280460 kB\nSReclaimable:    1954276 kB\nSUnreclaim:       326184 kB\nKernelStack:        7280 kB\nPageTables:         3532 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    15480900 kB\nCommitted_AS:     713316 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:      126656 kB\nVmallocChunk:          0 kB\nPercpu:            15360 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      123904 kB\nDirectMap2M:    12457984 kB\nDirectMap1G:    17825792 kB\n",
+  "elapsed_seconds": 1.2091079460005858
+}
