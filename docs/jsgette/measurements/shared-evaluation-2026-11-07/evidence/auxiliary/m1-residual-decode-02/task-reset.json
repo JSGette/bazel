@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "image": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+  "target": "/mnt/shared-evaluation-20261107",
+  "expected_uuid": "05abc6fb-e13c-4e06-bd41-2cb6911dd802",
+  "apply": true,
+  "commands": [
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--list",
+        "--json",
+        "--output",
+        "NAME,BACK-FILE,MAJ:MIN,DIO,AUTOCLEAR"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"loopdevices\": [\n      {\n         \"name\": \"/dev/loop0\",\n         \"back-file\": \"/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4\",\n         \"maj:min\": \"7:0\",\n         \"dio\": true,\n         \"autoclear\": false\n      }\n   ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/blkid",
+        "-s",
+        "UUID",
+        "-o",
+        "value",
+        "/dev/loop0"
+      ],
+      "exit_code": 0,
+      "stdout": "05abc6fb-e13c-4e06-bd41-2cb6911dd802\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/4",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/5",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/6",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/8",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/9",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/nsenter",
+        "--mount=/proc/self/fd/11",
+        "--",
+        "/usr/bin/cat",
+        "/proc/self/mountinfo"
+      ],
+      "exit_code": 1
+    }
+  ],
+  "status": "error",
+  "meminfo_before": "MemTotal:       20476036 kB\nMemFree:        16166648 kB\nMemAvailable:   16518980 kB\nBuffers:           42596 kB\nCached:          1658216 kB\nSwapCached:            0 kB\nActive:           836048 kB\nInactive:        2689292 kB\nActive(anon):     630744 kB\nInactive(anon):  2359332 kB\nActive(file):     205304 kB\nInactive(file):   329960 kB\nUnevictable:           0 kB\nMlocked:               0 kB\nSwapTotal:       5242880 kB\nSwapFree:        5242880 kB\nDirty:                32 kB\nWriteback:             0 kB\nAnonPages:       1825068 kB\nMapped:           180372 kB\nShmem:           1165548 kB\nKReclaimable:      66068 kB\nSlab:             296956 kB\nSReclaimable:      66068 kB\nSUnreclaim:       230888 kB\nKernelStack:       12304 kB\nPageTables:        11024 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    15480896 kB\nCommitted_AS:    5098020 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:      131364 kB\nVmallocChunk:          0 kB\nPercpu:            14208 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:       80896 kB\nDirectMap2M:     6209536 kB\nDirectMap1G:    24117248 kB\n",
+  "error": "/usr/bin/nsenter exited 1: /usr/bin/cat: /proc/self/mountinfo: No such file or directory",
+  "meminfo_after": "MemTotal:       20476036 kB\nMemFree:        16162192 kB\nMemAvailable:   16515304 kB\nBuffers:           43380 kB\nCached:          1658212 kB\nSwapCached:            0 kB\nActive:           836052 kB\nInactive:        2690336 kB\nActive(anon):     630748 kB\nInactive(anon):  2359596 kB\nActive(file):     205304 kB\nInactive(file):   330740 kB\nUnevictable:           0 kB\nMlocked:               0 kB\nSwapTotal:       5242880 kB\nSwapFree:        5242880 kB\nDirty:                32 kB\nWriteback:             0 kB\nAnonPages:       1825248 kB\nMapped:           180500 kB\nShmem:           1165548 kB\nKReclaimable:      66068 kB\nSlab:             296956 kB\nSReclaimable:      66068 kB\nSUnreclaim:       230888 kB\nKernelStack:       12388 kB\nPageTables:        11064 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    15480896 kB\nCommitted_AS:    5098068 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:      131444 kB\nVmallocChunk:          0 kB\nPercpu:            14208 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:       80896 kB\nDirectMap2M:     6209536 kB\nDirectMap1G:    24117248 kB\n",
+  "elapsed_seconds": 0.04086022599994976
+}

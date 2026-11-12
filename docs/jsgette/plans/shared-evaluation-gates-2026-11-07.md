@@ -2,7 +2,7 @@
 
 Date: 2026-11-07
 
-Status as of 2026-11-12: M0 complete — continue on repeated retained state; bounded M1 investigation in progress. No later gate has passed.
+Status as of 2026-11-12: M0 complete; M1 inconclusive after the bounded investigation. Stopped before M2 for an architectural pivot. No later gate has passed.
 
 Evidence is recorded in the [measurement index](../measurements/shared-evaluation-2026-11-07/README.md). Architectural choices, commands, deviations, measurements, and gate decisions belong in the [decision log](../measurements/shared-evaluation-2026-11-07/decision-log.md).
 
@@ -25,7 +25,7 @@ Continue automatically across passing milestones. A failed gate permits one time
 | Milestone | State | Gate outcome |
 | --- | --- | --- |
 | M0: baseline and duplicated cost | Complete | Continue on repeated retained state; partial CPU-breakdown deviation recorded |
-| M1: dependency-trace replay | In progress | Hosting and all twenty N1 trace controls complete; D034 records material trace overhead and unresolved semantic/CPU/memory coverage. The savings ceiling is still required before a graph rewrite |
+| M1: dependency-trace replay | Inconclusive — pivot required | All N1 controls and the bounded residual audit assessed; neither CPU nor memory savings ceiling established. D037 stops this route before M2 |
 | M2: immutable snapshots and query inputs | Not started | Not decided |
 | M3: real end-to-end evaluation slice | Not started | Not decided |
 | M4: ten concurrent worktrees | Not started | Not decided |
@@ -65,6 +65,8 @@ Measure lookup and validation overhead in the replay itself. Estimate remaining 
 **Deliverable:** an explicit savings ceiling and evidence identifying which computations can be shared. Replay establishes potential; it does not establish evaluator correctness.
 
 Timebox M0 and M1 together to roughly one engineer-week. This is the first investment decision, not a promise about elapsed time.
+
+**Recorded outcome (2026-11-12):** the [final M1 assessment](../measurements/shared-evaluation-2026-11-07/m1-gate-assessment.md) is inconclusive. The one bounded residual investigation did not resolve either CPU or memory savings. Stop the current trace route and retain the useful native-hosting component. A completed immutable result-bundle experiment is proposed as a new architectural direction, not started and not an M2 pass.
 
 ## M2: Implement immutable snapshots and explicit query inputs
 

@@ -1,0 +1,85 @@
+{
+  "image": "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4",
+  "target": "/mnt/shared-evaluation-20261107",
+  "expected_uuid": "05abc6fb-e13c-4e06-bd41-2cb6911dd802",
+  "pid": 30785,
+  "start_ticks": "80143",
+  "commands": [
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--list",
+        "--json",
+        "--output",
+        "NAME,BACK-FILE,DIO,AUTOCLEAR"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"loopdevices\": [\n\n   ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/losetup",
+        "--find",
+        "--show",
+        "--direct-io=on",
+        "/mnt/d/Codex/shared-evaluation-20261107/work/runtime.ext4"
+      ],
+      "exit_code": 0,
+      "stdout": "/dev/loop0\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/sbin/blkid",
+        "-s",
+        "UUID",
+        "-o",
+        "value",
+        "/dev/loop0"
+      ],
+      "exit_code": 0,
+      "stdout": "05abc6fb-e13c-4e06-bd41-2cb6911dd802\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/mount",
+        "-t",
+        "ext4",
+        "-o",
+        "noatime",
+        "/dev/loop0",
+        "/mnt/shared-evaluation-20261107"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/findmnt",
+        "--json",
+        "--mountpoint",
+        "/mnt/shared-evaluation-20261107",
+        "--output",
+        "SOURCE,FSTYPE,UUID,OPTIONS,TARGET"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0\",\n         \"fstype\": \"ext4\",\n         \"uuid\": \"05abc6fb-e13c-4e06-bd41-2cb6911dd802\",\n         \"options\": \"rw,noatime\",\n         \"target\": \"/mnt/shared-evaluation-20261107\"\n      }\n   ]\n}\n",
+      "stderr": ""
+    }
+  ],
+  "mount": {
+    "filesystems": [
+      {
+        "source": "/dev/loop0",
+        "fstype": "ext4",
+        "uuid": "05abc6fb-e13c-4e06-bd41-2cb6911dd802",
+        "options": "rw,noatime",
+        "target": "/mnt/shared-evaluation-20261107"
+      }
+    ]
+  },
+  "status": "restored_existing_image_no_data_reset"
+}

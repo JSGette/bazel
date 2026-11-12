@@ -444,3 +444,16 @@ This consumes the one investigation allowed after N1. Publish the result, then m
 ## D036 — Bound offline decoder resources after admission failure (2026-11-12)
 
 The inherited 10-GiB auxiliary admission timed out before launching the archived-recording decoder. Preserve that attempt; no decoder scope or output was created. The [frozen decoder-only addendum](m1-residual-decoder-budget-addendum.md) restricts a copy of the existing guard wrapper to this exact command and run ID, with a 1536-MiB cgroup limit and unchanged 512-MiB decoder heap, host reserves, margin and ownership checks. No benchmark policy or economic threshold changes. Attempt the same two existing recordings once; a further failure stays unavailable evidence in the final M1 assessment.
+
+
+## D037 — M1 inconclusive: stop the trace route and present a pivot (2026-11-12)
+
+The [final assessment](m1-gate-assessment.md) closes the one bounded residual investigation. All ten restarted sidecar/BEP evidence sets verified; each records 3,272 configured-target hits, 114 misses and 59,136 successful CAS gets. Three focused sidecar tests passed, followed by root review. These counts and overlapping elapsed histograms do not partition CPU or retained memory. Source review identifies synchronous validation, asynchronous decoding and finalization boundaries without inventing a cost split.
+
+The D036 decoder-only second attempt also stopped before launch: the unchanged reset helper encountered an unrelated sandbox mount namespace without /proc/self/mountinfo. Both attempts are preserved; neither created a guard scope or decoder output. Per the frozen addendum no third attempt or new capture was made. The prepared full-stack analyzer passed seventeen synthetic tests and independent static review, but no real full-stack analysis ran. Missing deeper stacks do not prove architectural failure and would not by themselves establish semantic equivalence or PSS savings.
+
+**Gate decision: M1 inconclusive — pivot required.** Unsupported CPU/state remains potentially removable; no optimistic impossibility bound or supported continuation headroom exists for both gates. Do not use cheap typed leaves as a whole-architecture ceiling. Do not infer a validation-only pivot from cache counters. M2–M6 remain not started, and the frozen 50% memory/30% CPU/10% latency goals are unchanged.
+
+Retain qualified native hosting as a useful private-graph component. Recommend a separate future experiment with a completed immutable result bundle/dependency closure, explicit snapshot and repository bindings, output views independent of reusable state, and fully charged first attachment. This replaces the current trace route only through a new recorded architectural decision; no such implementation is claimed. Keep phase-barrier removal separate.
+
+Task-only cleanup verified absent residual guard scopes, unmounted the task image from every observed namespace containing it, detached its exact loop device and stopped its PID/start-tick-verified keeper. The 512-GiB image and all evidence remain preserved; unrelated processes were not stopped. The [residual packet](evidence/m1-residual-investigation/) records the cleanup and the distinction between executed sidecar analysis and unexecuted decoder preparation. Stop here under the user's milestone-pivot rule.
